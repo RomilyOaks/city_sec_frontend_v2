@@ -76,3 +76,11 @@ export async function asignarPermisosARol(rolId, permisoIds) {
   const res = await api.post(`/roles/${rolId}/permisos`, { permisos: permisoIds })
   return res?.data
 }
+
+/**
+ * Obtener usuarios asignados a un rol
+ */
+export async function getUsuariosDeRol(rolId) {
+  const res = await api.get(`/roles/${rolId}/usuarios`)
+  return res?.data?.data || res?.data || { usuarios: [], total: 0 }
+}

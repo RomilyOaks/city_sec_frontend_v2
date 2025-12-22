@@ -12,6 +12,10 @@ import {
   Check,
   Loader2,
   AlertTriangle,
+  Eye,
+  User,
+  Mail,
+  Clock,
 } from 'lucide-react'
 import {
   listRoles,
@@ -20,6 +24,7 @@ import {
   deleteRol,
   getPermisosDeRol,
   asignarPermisosARol,
+  getUsuariosDeRol,
 } from '../../services/rolesService'
 import { getPermisosAgrupados } from '../../services/permisosService'
 
@@ -30,6 +35,8 @@ export default function RolesPermisosPage() {
   const [showRolModal, setShowRolModal] = useState(false)
   const [editingRol, setEditingRol] = useState(null)
   const [hasChanges, setHasChanges] = useState(false)
+  const [showUsuariosModal, setShowUsuariosModal] = useState(false)
+  const [usuariosRol, setUsuariosRol] = useState(null)
 
   // Query: Lista de roles
   const {
@@ -190,6 +197,20 @@ export default function RolesPermisosPage() {
     }
   }
 
+  // Ver usuarios de un rol
+  const handleVerUsuarios = async (rol) => {
+    try {
+      setUsuariosRol({ loading: true, rol })
+      setShowUsuariosModal(true)
+      const data = await getUsuariosDeRol(rol.id)
+      setUsuariosRol({ ...data, loading: false })
+    } catch (error) {
+      toast.error('Error al cargar usuarios del rol')
+      setShowUsuariosModal(false)
+      setUsuariosRol(null)
+    }
+  }
+
   // Colores para roles
   const getRolColor = (rol) => {
     return rol.color || '#6B7280'
@@ -266,7 +287,17 @@ export default function RolesPermisosPage() {
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleVerUsuarios(rol)
+                        }}
+                        className="p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                        title="Ver usuarios"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
                       {!rol.es_sistema && (
                         <>
                           <button
@@ -275,6 +306,7 @@ export default function RolesPermisosPage() {
                               handleOpenRolModal(rol)
                             }}
                             className="p-1.5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                            title="Editar rol"
                           >
                             <Edit2 className="h-4 w-4" />
                           </button>
@@ -284,6 +316,7 @@ export default function RolesPermisosPage() {
                               handleDeleteRol(rol)
                             }}
                             className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                            title="Eliminar rol"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -436,6 +469,17 @@ export default function RolesPermisosPage() {
           }}
           onSave={handleSaveRol}
           isLoading={createMutation.isPending || updateMutation.isPending}
+        />
+      )}
+
+      {/* Modal Usuarios del Rol */}
+      {showUsuariosModal && (
+        <UsuariosRolModal
+          data={usuariosRol}
+          onClose={() => {
+            setShowUsuariosModal(false)
+            setUsuariosRol(null)
+          }}
         />
       )}
     </div>
@@ -626,6 +670,119 @@ function RolModal({ rol, onClose, onSave, isLoading }) {
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  )
+}
+
+// Modal para ver usuarios de un rol
+function UsuariosRolModal({ data, onClose }) {
+  const formatDate = (dateStr) => {
+    if (!dateStr) return 'Nunca'
+    return new Date(dateStr).toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-3">
+            {data?.rol && (
+              <div
+                className="w-4 h-4 rounded-full"
+                style={{ backgroundColor: data.rol.color || '#6B7280' }}
+              />
+            )}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Usuarios con rol "{data?.rol?.nombre || '...'}"
+              </h3>
+              {!data?.loading && (
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {data?.total || 0} usuario{data?.total !== 1 ? 's' : ''} encontrado{data?.total !== 1 ? 's' : ''}
+                </p>
+              )}
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {data?.loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+            </div>
+          ) : !data?.usuarios || data.usuarios.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <User className="h-12 w-12 mx-auto mb-4 opacity-30" />
+              <p>No hay usuarios con este rol</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {data.usuarios.map((usuario) => (
+                <div
+                  key={usuario.id}
+                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                      <User className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {usuario.nombre || usuario.username}
+                      </p>
+                      <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                        <Mail className="h-3 w-3" />
+                        <span>{usuario.email}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span
+                      className={`inline-flex px-2 py-0.5 text-xs rounded-full ${
+                        usuario.estado
+                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                          : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                      }`}
+                    >
+                      {usuario.estado ? 'Activo' : 'Inactivo'}
+                    </span>
+                    {usuario.ultimo_acceso && (
+                      <div className="flex items-center gap-1 text-xs text-gray-400 mt-1 justify-end">
+                        <Clock className="h-3 w-3" />
+                        <span>{formatDate(usuario.ultimo_acceso)}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+          <button
+            onClick={onClose}
+            className="w-full px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+          >
+            Cerrar
+          </button>
+        </div>
       </div>
     </div>
   )
