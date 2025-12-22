@@ -743,7 +743,7 @@ function UsuariosRolModal({ data, onClose }) {
                     </div>
                     <div>
                       <p className="font-medium text-gray-900 dark:text-white">
-                        {usuario.nombre || usuario.username}
+                        {usuario.nombres ? `${usuario.nombres} ${usuario.apellidos || ''}`.trim() : usuario.username}
                       </p>
                       <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                         <Mail className="h-3 w-3" />
