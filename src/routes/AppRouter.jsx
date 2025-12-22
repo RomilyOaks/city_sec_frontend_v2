@@ -12,6 +12,7 @@ import VehiculosPage from '../pages/vehiculos/VehiculosPage.jsx'
 import NovedadesPage from '../pages/novedades/NovedadesPage.jsx'
 import { ROUTE_ACCESS } from '../rbac/rbac.js'
 import AdminUsuariosPage from '../pages/admin/AdminUsuariosPage.jsx'
+import RolesPermisosPage from '../pages/admin/RolesPermisosPage.jsx'
 
 export default function AppRouter() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
@@ -35,6 +36,14 @@ export default function AppRouter() {
           element={
             <ProtectedRoute allowedRoles={ROUTE_ACCESS.admin_usuarios}>
               <AdminUsuariosPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/roles"
+          element={
+            <ProtectedRoute allowedRoles={ROUTE_ACCESS.admin_roles}>
+              <RolesPermisosPage />
             </ProtectedRoute>
           }
         />

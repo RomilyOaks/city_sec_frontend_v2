@@ -36,3 +36,30 @@ export async function quitarPermisoDeRol(rolId, permisoId) {
   const res = await api.delete(`/roles/${rolId}/permisos/${permisoId}`)
   return res?.data
 }
+
+/**
+ * Obtener permisos agrupados por módulo y recurso
+ */
+export async function getPermisosAgrupados() {
+  const res = await api.get('/permisos?limit=500')
+  const permisos = res?.data?.data?.permisos || res?.data?.permisos || []
+  
+  // Agrupar por módulo > recurso
+  const agrupados = permisos.reduce((acc, permiso) => {
+    const modulo = permiso.modulo || 'otros'
+    const recurso = permiso.recurso || 'general'
+    const key = `${modulo}.${recurso}`
+    
+    if (!acc[key]) {
+      acc[key] = {
+        modulo,
+        recurso,
+        permisos: []
+      }
+    }
+    acc[key].permisos.push(permiso)
+    return acc
+  }, {})
+  
+  return agrupados
+}

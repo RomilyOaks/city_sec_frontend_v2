@@ -60,3 +60,19 @@ export async function deleteRol(id) {
   const res = await api.delete(`/roles/${id}`)
   return res?.data
 }
+
+/**
+ * Obtener permisos asignados a un rol
+ */
+export async function getPermisosDeRol(rolId) {
+  const res = await api.get(`/roles/${rolId}/permisos`)
+  return res?.data?.data || res?.data || { permisos: [] }
+}
+
+/**
+ * Asignar permisos a un rol (reemplaza los existentes)
+ */
+export async function asignarPermisosARol(rolId, permisoIds) {
+  const res = await api.post(`/roles/${rolId}/permisos`, { permisos: permisoIds })
+  return res?.data
+}

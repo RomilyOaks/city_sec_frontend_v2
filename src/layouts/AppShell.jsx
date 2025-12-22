@@ -8,6 +8,7 @@ import {
   User,
   Users,
   Key,
+  Shield,
 } from 'lucide-react'
 
 import ThemeToggle from '../components/common/ThemeToggle.jsx'
@@ -113,6 +114,11 @@ export default function AppShell() {
             {canAccess('admin_usuarios') && (
               <SidebarLink to="/admin/usuarios" icon={User}>
                 Usuarios
+              </SidebarLink>
+            )}
+            {canAccess('admin_roles') && (
+              <SidebarLink to="/admin/roles" icon={Shield}>
+                Roles y Permisos
               </SidebarLink>
             )}
             {canAccess('personal') && (
