@@ -677,14 +677,24 @@ function RolModal({ rol, onClose, onSave, isLoading }) {
 
 // Modal para ver usuarios de un rol
 function UsuariosRolModal({ data, onClose }) {
+  const [selectedUsuario, setSelectedUsuario] = useState(null)
+  const [usuarioDetalle, setUsuarioDetalle] = useState(null)
+
   // Cerrar con tecla ESC
   useEffect(() => {
     const handleEsc = (e) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') {
+        if (selectedUsuario) {
+          setSelectedUsuario(null)
+          setUsuarioDetalle(null)
+        } else {
+          onClose()
+        }
+      }
     }
     window.addEventListener('keydown', handleEsc)
     return () => window.removeEventListener('keydown', handleEsc)
-  }, [onClose])
+  }, [onClose, selectedUsuario])
 
   const formatDate = (dateStr) => {
     if (!dateStr) return 'Nunca'
@@ -697,29 +707,173 @@ function UsuariosRolModal({ data, onClose }) {
     })
   }
 
+  const handleVerUsuario = async (usuario) => {
+    setSelectedUsuario(usuario)
+    setUsuarioDetalle({ loading: true })
+    try {
+      const { getUserById } = await import('../../services/usersService')
+      const detalle = await getUserById(usuario.id)
+      setUsuarioDetalle(detalle)
+    } catch (error) {
+      toast.error('Error al cargar detalle del usuario')
+      setSelectedUsuario(null)
+      setUsuarioDetalle(null)
+    }
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col">
+    <>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3">
+              {data?.rol && (
+                <div
+                  className="w-4 h-4 rounded-full"
+                  style={{ backgroundColor: data.rol.color || '#6B7280' }}
+                />
+              )}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Usuarios con rol "{data?.rol?.nombre || '...'}"
+                </h3>
+                {!data?.loading && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {data?.total || 0} usuario{data?.total !== 1 ? 's' : ''} encontrado{data?.total !== 1 ? 's' : ''}
+                  </p>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto p-4">
+            {data?.loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+              </div>
+            ) : !data?.usuarios || data.usuarios.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <User className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                <p>No hay usuarios con este rol</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {data.usuarios.map((usuario) => (
+                  <div
+                    key={usuario.id}
+                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                        <User className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {usuario.nombres ? `${usuario.nombres} ${usuario.apellidos || ''}`.trim() : usuario.username}
+                        </p>
+                        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                          <Mail className="h-3 w-3" />
+                          <span>{usuario.email}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <span
+                          className={`inline-flex px-2 py-0.5 text-xs rounded-full ${
+                            usuario.estado
+                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                              : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                          }`}
+                        >
+                          {usuario.estado ? 'Activo' : 'Inactivo'}
+                        </span>
+                        {usuario.last_login_at && (
+                          <div className="flex items-center gap-1 text-xs text-gray-400 mt-1 justify-end">
+                            <Clock className="h-3 w-3" />
+                            <span>{formatDate(usuario.last_login_at)}</span>
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => handleVerUsuario(usuario)}
+                        className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                        title="Ver detalle"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+            <button
+              onClick={onClose}
+              className="w-full px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Modal de detalle de usuario */}
+      {selectedUsuario && (
+        <UsuarioDetalleModal
+          usuario={usuarioDetalle}
+          onClose={() => {
+            setSelectedUsuario(null)
+            setUsuarioDetalle(null)
+          }}
+        />
+      )}
+    </>
+  )
+}
+
+// Modal de detalle de usuario independiente
+function UsuarioDetalleModal({ usuario, onClose }) {
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handleEsc)
+    return () => window.removeEventListener('keydown', handleEsc)
+  }, [onClose])
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return 'N/A'
+    return new Date(dateStr).toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+
+  const isLoading = usuario?.loading
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[85vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-3">
-            {data?.rol && (
-              <div
-                className="w-4 h-4 rounded-full"
-                style={{ backgroundColor: data.rol.color || '#6B7280' }}
-              />
-            )}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Usuarios con rol "{data?.rol?.nombre || '...'}"
-              </h3>
-              {!data?.loading && (
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {data?.total || 0} usuario{data?.total !== 1 ? 's' : ''} encontrado{data?.total !== 1 ? 's' : ''}
-                </p>
-              )}
-            </div>
-          </div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Detalle de Usuario
+          </h3>
           <button
             onClick={onClose}
             className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
@@ -730,55 +884,103 @@ function UsuariosRolModal({ data, onClose }) {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4">
-          {data?.loading ? (
+          {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
             </div>
-          ) : !data?.usuarios || data.usuarios.length === 0 ? (
+          ) : !usuario ? (
             <div className="text-center py-12 text-gray-500">
               <User className="h-12 w-12 mx-auto mb-4 opacity-30" />
-              <p>No hay usuarios con este rol</p>
+              <p>No se pudo cargar el usuario</p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {data.usuarios.map((usuario) => (
-                <div
-                  key={usuario.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
-                      <User className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900 dark:text-white">
-                        {usuario.nombres ? `${usuario.nombres} ${usuario.apellidos || ''}`.trim() : usuario.username}
-                      </p>
-                      <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                        <Mail className="h-3 w-3" />
-                        <span>{usuario.email}</span>
-                      </div>
-                    </div>
+            <div className="space-y-4">
+              {/* Avatar y nombre */}
+              <div className="flex items-center gap-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="w-16 h-16 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                  <User className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
+                </div>
+                <div>
+                  <h4 className="text-xl font-semibold text-gray-900 dark:text-white">
+                    {usuario.nombres ? `${usuario.nombres} ${usuario.apellidos || ''}`.trim() : usuario.username}
+                  </h4>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">@{usuario.username}</p>
+                  <span
+                    className={`inline-flex mt-1 px-2 py-0.5 text-xs rounded-full ${
+                      usuario.estado
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                        : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                    }`}
+                  >
+                    {usuario.estado ? 'Activo' : 'Inactivo'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Información de contacto */}
+              <div className="space-y-3">
+                <h5 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Contacto
+                </h5>
+                <div className="grid gap-2">
+                  <div className="flex items-center gap-3 text-sm">
+                    <Mail className="h-4 w-4 text-gray-400" />
+                    <span className="text-gray-900 dark:text-white">{usuario.email}</span>
                   </div>
-                  <div className="text-right">
-                    <span
-                      className={`inline-flex px-2 py-0.5 text-xs rounded-full ${
-                        usuario.estado
-                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                          : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                      }`}
-                    >
-                      {usuario.estado ? 'Activo' : 'Inactivo'}
-                    </span>
-                    {usuario.last_login_at && (
-                      <div className="flex items-center gap-1 text-xs text-gray-400 mt-1 justify-end">
-                        <Clock className="h-3 w-3" />
-                        <span>{formatDate(usuario.last_login_at)}</span>
-                      </div>
-                    )}
+                  {usuario.telefono && (
+                    <div className="flex items-center gap-3 text-sm">
+                      <span className="h-4 w-4 text-gray-400 text-center">📱</span>
+                      <span className="text-gray-900 dark:text-white">{usuario.telefono}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Roles */}
+              {usuario.Roles && usuario.Roles.length > 0 && (
+                <div className="space-y-3">
+                  <h5 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Roles
+                  </h5>
+                  <div className="flex flex-wrap gap-2">
+                    {usuario.Roles.map((rol) => (
+                      <span
+                        key={rol.id}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400"
+                      >
+                        <div
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: rol.color || '#6366f1' }}
+                        />
+                        {rol.nombre}
+                      </span>
+                    ))}
                   </div>
                 </div>
-              ))}
+              )}
+
+              {/* Fechas */}
+              <div className="space-y-3">
+                <h5 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Actividad
+                </h5>
+                <div className="grid gap-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500 dark:text-gray-400">Último acceso:</span>
+                    <span className="text-gray-900 dark:text-white">{formatDate(usuario.last_login_at)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500 dark:text-gray-400">Creado:</span>
+                    <span className="text-gray-900 dark:text-white">{formatDate(usuario.created_at)}</span>
+                  </div>
+                  {usuario.email_verified_at && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500 dark:text-gray-400">Email verificado:</span>
+                      <span className="text-gray-900 dark:text-white">{formatDate(usuario.email_verified_at)}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </div>

@@ -51,3 +51,8 @@ export async function updateUser(userId, payload) {
   const res = await api.put(`/usuarios/${userId}`, payload)
   return res?.data
 }
+
+export async function getUserById(userId) {
+  const res = await api.get(`/usuarios/${userId}`)
+  return res?.data?.data || res?.data || null
+}
