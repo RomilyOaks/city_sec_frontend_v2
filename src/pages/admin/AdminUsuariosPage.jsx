@@ -924,6 +924,8 @@ export default function AdminUsuariosPage() {
                     .filter((p) => {
                       // Si showAllPersonal está activo, mostrar todos
                       if (showAllPersonal) return true
+                      // Siempre incluir el personal actualmente asignado
+                      if (editDraft.personal_seguridad_id && String(p.id) === String(editDraft.personal_seguridad_id)) return true
                       // Filtrar por apellidos del usuario para sugerencias más relevantes
                       if (!editingUser?.apellidos) return true
                       const userApellidos = (editingUser.apellidos || '').toUpperCase().split(' ')
