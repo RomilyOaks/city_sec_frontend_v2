@@ -761,10 +761,10 @@ function UsuariosRolModal({ data, onClose }) {
                     >
                       {usuario.estado ? 'Activo' : 'Inactivo'}
                     </span>
-                    {usuario.ultimo_acceso && (
+                    {usuario.last_login_at && (
                       <div className="flex items-center gap-1 text-xs text-gray-400 mt-1 justify-end">
                         <Clock className="h-3 w-3" />
-                        <span>{formatDate(usuario.ultimo_acceso)}</span>
+                        <span>{formatDate(usuario.last_login_at)}</span>
                       </div>
                     )}
                   </div>
