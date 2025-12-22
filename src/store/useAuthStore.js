@@ -1,0 +1,76 @@
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
+
+export const useAuthStore = create(
+  persist(
+    (set, get) => ({
+      token: null,
+      user: null,
+      isAuthenticated: false,
+
+      setAuth: (token, user) => set({ token, user, isAuthenticated: Boolean(token) }),
+
+      logout: () => {
+        set({ token: null, user: null, isAuthenticated: false })
+      },
+
+      // Verificar si el usuario tiene alguno de los roles especificados
+      hasAnyRole: (allowedRoles) => {
+        if (!allowedRoles || allowedRoles.length === 0) return true
+        const user = get().user
+        const roles = user?.roles || user?.Roles || []
+        const slugs = roles
+          .map((r) => r?.slug || r?.Slug || r?.nombre || r?.name)
+          .filter(Boolean)
+        return slugs.some((slug) => allowedRoles.includes(slug))
+      },
+
+      // Obtener los slugs de roles del usuario
+      getRoleSlugs: () => {
+        const user = get().user
+        const roles = user?.roles || user?.Roles || []
+        return roles
+          .map((r) => r?.slug || r?.Slug || r?.nombre || r?.name)
+          .filter(Boolean)
+      },
+
+      // Obtener los permisos del usuario
+      getPermisos: () => {
+        const user = get().user
+        return user?.permisos || []
+      },
+
+      // Verificar si el usuario tiene alguno de los permisos especificados
+      hasAnyPermission: (requiredPermisos) => {
+        if (!requiredPermisos || requiredPermisos.length === 0) return true
+        const user = get().user
+        const userPermisos = user?.permisos || []
+        
+        // super_admin tiene todos los permisos
+        const roles = user?.roles || []
+        const isSuperAdmin = roles.some((r) => r?.slug === 'super_admin')
+        if (isSuperAdmin) return true
+
+        return requiredPermisos.some((p) => userPermisos.includes(p))
+      },
+
+      // Verificar si el usuario tiene TODOS los permisos especificados
+      hasAllPermissions: (requiredPermisos) => {
+        if (!requiredPermisos || requiredPermisos.length === 0) return true
+        const user = get().user
+        const userPermisos = user?.permisos || []
+        
+        // super_admin tiene todos los permisos
+        const roles = user?.roles || []
+        const isSuperAdmin = roles.some((r) => r?.slug === 'super_admin')
+        if (isSuperAdmin) return true
+
+        return requiredPermisos.every((p) => userPermisos.includes(p))
+      },
+    }),
+    {
+      name: 'auth-storage',
+      partialize: (state) => ({ token: state.token, user: state.user, isAuthenticated: state.isAuthenticated }),
+    },
+  ),
+)

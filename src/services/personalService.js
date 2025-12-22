@@ -1,0 +1,99 @@
+import api from './api'
+
+/**
+ * Listar personal con filtros y paginación
+ */
+export async function listPersonal({ page = 1, limit = 20, status, cargo_id, search } = {}) {
+  const params = new URLSearchParams()
+  params.append('page', page)
+  params.append('limit', limit)
+  if (status) params.append('status', status)
+  if (cargo_id) params.append('cargo_id', cargo_id)
+  if (search) params.append('search', search)
+
+  const res = await api.get(`/personal?${params.toString()}`)
+  return res?.data?.data || res?.data || { personal: [], pagination: null }
+}
+
+/**
+ * Obtener personal por ID
+ */
+export async function getPersonalById(id) {
+  const res = await api.get(`/personal/${id}`)
+  return res?.data?.data || res?.data || null
+}
+
+/**
+ * Crear nuevo personal
+ */
+export async function createPersonal(data) {
+  const res = await api.post('/personal', data)
+  return res?.data
+}
+
+/**
+ * Actualizar personal
+ */
+export async function updatePersonal(id, data) {
+  const res = await api.put(`/personal/${id}`, data)
+  return res?.data
+}
+
+/**
+ * Eliminar personal (soft delete)
+ */
+export async function deletePersonal(id) {
+  const res = await api.delete(`/personal/${id}`)
+  return res?.data
+}
+
+/**
+ * Restaurar personal eliminado
+ */
+export async function restorePersonal(id) {
+  const res = await api.post(`/personal/${id}/restore`)
+  return res?.data
+}
+
+/**
+ * Cambiar status de personal
+ */
+export async function cambiarStatusPersonal(id, status, observaciones) {
+  const res = await api.patch(`/personal/${id}/status`, { status, observaciones })
+  return res?.data
+}
+
+/**
+ * Obtener estadísticas de personal
+ */
+export async function getEstadisticasPersonal() {
+  const res = await api.get('/personal/stats')
+  return res?.data?.data || res?.data || {}
+}
+
+/**
+ * Listar conductores (personal con licencia)
+ */
+export async function listConductores() {
+  try {
+    // Intentar endpoint específico de conductores
+    const res = await api.get('/personal/conductores')
+    const data = res?.data?.data?.conductores || res?.data?.conductores || res?.data?.data || res?.data || []
+    return Array.isArray(data) ? data : []
+  } catch (err) {
+    // Fallback: obtener todo el personal y filtrar los que tienen licencia
+    console.warn('Endpoint conductores no disponible, usando fallback')
+    const res = await api.get('/personal?limit=100')
+    const personal = res?.data?.data?.personal || res?.data?.personal || res?.data?.data || res?.data || []
+    const list = Array.isArray(personal) ? personal : []
+    return list.filter(p => p.licencia && p.estado === 1)
+  }
+}
+
+/**
+ * Listar personal disponible (sin vehículo asignado)
+ */
+export async function listPersonalDisponible() {
+  const res = await api.get('/personal/disponibles')
+  return res?.data?.data || res?.data || []
+}
