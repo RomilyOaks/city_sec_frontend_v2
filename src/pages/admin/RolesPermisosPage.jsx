@@ -677,6 +677,15 @@ function RolModal({ rol, onClose, onSave, isLoading }) {
 
 // Modal para ver usuarios de un rol
 function UsuariosRolModal({ data, onClose }) {
+  // Cerrar con tecla ESC
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handleEsc)
+    return () => window.removeEventListener('keydown', handleEsc)
+  }, [onClose])
+
   const formatDate = (dateStr) => {
     if (!dateStr) return 'Nunca'
     return new Date(dateStr).toLocaleDateString('es-ES', {
