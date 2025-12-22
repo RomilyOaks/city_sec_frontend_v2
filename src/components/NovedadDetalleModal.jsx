@@ -62,14 +62,16 @@ export default function NovedadDetalleModal({
       setLoading(true)
       setLoadingHistorial(true)
       try {
+        const id = novedadId || initialNovedad?.id
         const [novedadData, historialData] = await Promise.all([
-          initialNovedad ? Promise.resolve(initialNovedad) : getNovedadById(novedadId),
-          getHistorialEstados(novedadId || initialNovedad?.id)
+          getNovedadById(id),
+          getHistorialEstados(id)
         ])
         setNovedad(novedadData)
         setHistorial(historialData || [])
       } catch (err) {
         console.error('Error cargando novedad:', err)
+        if (initialNovedad) setNovedad(initialNovedad)
       } finally {
         setLoading(false)
         setLoadingHistorial(false)
