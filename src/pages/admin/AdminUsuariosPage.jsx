@@ -568,7 +568,7 @@ export default function AdminUsuariosPage() {
                                   apellidos: u.apellidos || '',
                                   telefono: u.telefono || '',
                                   roles: u.roleIds || [],
-                                  personal_seguridad_id: u.personal_seguridad_id || '',
+                                  personal_seguridad_id: u.personal_seguridad_id ? String(u.personal_seguridad_id) : '',
                                 })
                               }}
                               className="inline-flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
@@ -931,7 +931,7 @@ export default function AdminUsuariosPage() {
                       return userApellidos.some(ap => ap && personalApellidos.includes(ap))
                     })
                     .map((p) => (
-                    <option key={p.id} value={p.id}>
+                    <option key={p.id} value={String(p.id)}>
                       {p.apellido_paterno} {p.apellido_materno}, {p.nombres} - {p.doc_numero || 'Sin DNI'}
                     </option>
                   ))}
