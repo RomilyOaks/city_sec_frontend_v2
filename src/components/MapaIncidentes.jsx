@@ -319,9 +319,12 @@ export default function MapaIncidentes({
                       </div>
                     </div>
                     
-                    {novedad.descripcion && (
+                    {/* Priorizar localizacion + referencia, fallback a descripcion */}
+                    {(novedad.localizacion || novedad.referencia_ubicacion || novedad.descripcion) && (
                       <div className="mt-2 pt-2 border-t border-slate-200 text-xs text-slate-600 line-clamp-2">
-                        {novedad.descripcion}
+                        {novedad.localizacion || novedad.referencia_ubicacion 
+                          ? `${novedad.localizacion || ''}${novedad.localizacion && novedad.referencia_ubicacion ? ' - ' : ''}${novedad.referencia_ubicacion || ''}`
+                          : novedad.descripcion}
                       </div>
                     )}
                     

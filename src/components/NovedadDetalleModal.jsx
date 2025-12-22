@@ -290,6 +290,20 @@ export default function NovedadDetalleModal({
                     <span className="text-xs font-medium text-slate-500">Personas Afectadas</span>
                     <p className="text-sm text-slate-900 dark:text-slate-50">{novedad.num_personas_afectadas || '0'}</p>
                   </div>
+                  
+                  {/* Descripción y Observaciones */}
+                  {novedad.descripcion && (
+                    <div>
+                      <h4 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Descripción del Incidente</h4>
+                      <p className="text-sm text-slate-900 dark:text-slate-50 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">{novedad.descripcion}</p>
+                    </div>
+                  )}
+                  {novedad.observaciones && (
+                    <div>
+                      <h4 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Observaciones</h4>
+                      <p className="text-sm text-slate-700 dark:text-slate-300 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">{novedad.observaciones}</p>
+                    </div>
+                  )}
                 </div>
               )}
 
