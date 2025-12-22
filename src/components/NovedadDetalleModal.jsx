@@ -291,13 +291,7 @@ export default function NovedadDetalleModal({
                     <p className="text-sm text-slate-900 dark:text-slate-50">{novedad.num_personas_afectadas || '0'}</p>
                   </div>
                   
-                  {/* Descripción y Observaciones */}
-                  {novedad.descripcion && (
-                    <div>
-                      <h4 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Descripción del Incidente</h4>
-                      <p className="text-sm text-slate-900 dark:text-slate-50 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">{novedad.descripcion}</p>
-                    </div>
-                  )}
+                  {/* Observaciones (descripcion ya aparece en Datos Básicos) */}
                   {novedad.observaciones && (
                     <div>
                       <h4 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Observaciones</h4>
