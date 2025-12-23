@@ -45,6 +45,23 @@ import { getPermisosAgrupados } from '../../services/permisosService'
  * TODO: Agregar PropTypes o validación de tipos
  */
 
+/**
+ * * COMPONENTE: RolesPermisosPage
+ * 
+ * @component
+ * @category General
+ * @description Componente de CitySecure para gestión de roles y permisos
+ * 
+ * @param {Object} props - Propiedades del componente
+ * @returns {JSX.Element} Elemento React renderizado
+ * 
+ * @example
+ * <RolesPermisosPage />
+ * 
+ * TODO: Documentar props específicas
+ * TODO: Agregar PropTypes o validación de tipos
+ */
+
 export default function RolesPermisosPage() {
   const queryClient = useQueryClient()
   const [selectedRol, setSelectedRol] = useState(null)

@@ -34,6 +34,23 @@ const schema = z
  * TODO: Agregar PropTypes o validación de tipos
  */
 
+/**
+ * * COMPONENTE: ChangePasswordModal
+ * 
+ * @component
+ * @category General
+ * @description Componente de CitySecure para general
+ * 
+ * @param {Object} props - Propiedades del componente
+ * @returns {JSX.Element} Elemento React renderizado
+ * 
+ * @example
+ * <ChangePasswordModal />
+ * 
+ * TODO: Documentar props específicas
+ * TODO: Agregar PropTypes o validación de tipos
+ */
+
 export default function ChangePasswordModal({ isOpen, onClose }) {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)

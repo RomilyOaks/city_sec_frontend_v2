@@ -1,14 +1,14 @@
 
 REPORTE DE DOCUMENTACIÓN AUTOMÁTICA
 Proyecto: CitySecure Frontend
-Fecha: 23/12/2025, 10:54:55 a. m.
+Fecha: 23/12/2025, 12:10:03 p. m.
 
 ESTADÍSTICAS:
 - Archivos escaneados: 31
-- Archivos modificados: 18
-- Componentes documentados: 21
+- Archivos modificados: 15
+- Componentes documentados: 15
 - Funciones documentadas: 0
-- Stores documentados: 2
+- Stores documentados: 0
 - Errores: 0
 
 

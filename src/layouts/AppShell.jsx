@@ -71,6 +71,23 @@ function SidebarLink({ to, icon: Icon, children }) {
  * TODO: Agregar PropTypes o validación de tipos
  */
 
+/**
+ * * COMPONENTE: AppShell
+ * 
+ * @component
+ * @category General
+ * @description Componente de CitySecure para estructura principal de la aplicación
+ * 
+ * @param {Object} props - Propiedades del componente
+ * @returns {JSX.Element} Elemento React renderizado
+ * 
+ * @example
+ * <AppShell />
+ * 
+ * TODO: Documentar props específicas
+ * TODO: Agregar PropTypes o validación de tipos
+ */
+
 export default function AppShell() {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)

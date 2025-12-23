@@ -17,6 +17,23 @@ import { Link } from 'react-router-dom'
  * TODO: Agregar PropTypes o validación de tipos
  */
 
+/**
+ * * COMPONENTE: NotFoundPage
+ * 
+ * @component
+ * @category General
+ * @description Componente de CitySecure para general
+ * 
+ * @param {Object} props - Propiedades del componente
+ * @returns {JSX.Element} Elemento React renderizado
+ * 
+ * @example
+ * <NotFoundPage />
+ * 
+ * TODO: Documentar props específicas
+ * TODO: Agregar PropTypes o validación de tipos
+ */
+
 export default function NotFoundPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">

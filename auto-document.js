@@ -44,9 +44,9 @@ const PATTERNS = {
   reactComponent:
     /(?:export\s+(?:default\s+)?)?(?:function|const)\s+([A-Z][a-zA-Z0-9]*)\s*=?\s*(?:\([^)]*\))?\s*(?:=>)?\s*{/,
 
-  // Funciones de servicio
+  // Funciones de servicio (ambos estilos: const y function)
   serviceFunction:
-    /export\s+(?:const|async function)\s+([a-z][a-zA-Z0-9]*)\s*=?\s*(?:async)?\s*\([^)]*\)\s*(?:=>)?\s*{/,
+    /export\s+(?:async\s+)?(?:function|const)\s+([a-z][a-zA-Z0-9]*)\s*(?:=\s*(?:async\s*)?)?\([^)]*\)\s*(?:=>)?\s*{/,
 
   // Stores Zustand
   zustandStore: /export\s+const\s+(use[A-Z][a-zA-Z0-9]*Store)\s*=\s*create/,

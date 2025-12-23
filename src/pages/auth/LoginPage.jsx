@@ -34,6 +34,23 @@ const schema = z.object({
  * TODO: Agregar PropTypes o validación de tipos
  */
 
+/**
+ * * COMPONENTE: LoginPage
+ * 
+ * @component
+ * @category General
+ * @description Componente de CitySecure para autenticación de usuarios del sistema
+ * 
+ * @param {Object} props - Propiedades del componente
+ * @returns {JSX.Element} Elemento React renderizado
+ * 
+ * @example
+ * <LoginPage />
+ * 
+ * TODO: Documentar props específicas
+ * TODO: Agregar PropTypes o validación de tipos
+ */
+
 export default function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
