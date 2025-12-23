@@ -30,6 +30,23 @@ const ORIGEN_LLAMADA_OPTIONS = [
 
 const PRIORIDAD_OPTIONS = ['ALTA', 'MEDIA', 'BAJA']
 
+/**
+ * * COMPONENTE: NovedadesPage
+ * 
+ * @component
+ * @category General
+ * @description Componente de CitySecure para gestión de incidentes y novedades
+ * 
+ * @param {Object} props - Propiedades del componente
+ * @returns {JSX.Element} Elemento React renderizado
+ * 
+ * @example
+ * <NovedadesPage />
+ * 
+ * TODO: Documentar props específicas
+ * TODO: Agregar PropTypes o validación de tipos
+ */
+
 export default function NovedadesPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const user = useAuthStore((s) => s.user)

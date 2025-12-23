@@ -30,6 +30,23 @@ const schema = z
     path: ['confirmPassword'],
   })
 
+/**
+ * * COMPONENTE: SignupPage
+ * 
+ * @component
+ * @category General
+ * @description Componente de CitySecure para registro de nuevos usuarios
+ * 
+ * @param {Object} props - Propiedades del componente
+ * @returns {JSX.Element} Elemento React renderizado
+ * 
+ * @example
+ * <SignupPage />
+ * 
+ * TODO: Documentar props específicas
+ * TODO: Agregar PropTypes o validación de tipos
+ */
+
 export default function SignupPage() {
   const navigate = useNavigate()
 

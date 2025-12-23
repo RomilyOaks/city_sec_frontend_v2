@@ -96,6 +96,23 @@ const initialFormData = {
   observaciones: '',
 }
 
+/**
+ * * COMPONENTE: VehiculosPage
+ * 
+ * @component
+ * @category General
+ * @description Componente de CitySecure para gestión de vehículos
+ * 
+ * @param {Object} props - Propiedades del componente
+ * @returns {JSX.Element} Elemento React renderizado
+ * 
+ * @example
+ * <VehiculosPage />
+ * 
+ * TODO: Documentar props específicas
+ * TODO: Agregar PropTypes o validación de tipos
+ */
+
 export default function VehiculosPage() {
   const user = useAuthStore((s) => s.user)
   const canCreate = canPerformAction(user, 'vehiculos_create')

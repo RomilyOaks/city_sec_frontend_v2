@@ -35,6 +35,23 @@ const schema = z
     path: ['confirmPassword'],
   })
 
+/**
+ * * COMPONENTE: AdminUsuariosPage
+ * 
+ * @component
+ * @category General
+ * @description Componente de CitySecure para administración de usuarios
+ * 
+ * @param {Object} props - Propiedades del componente
+ * @returns {JSX.Element} Elemento React renderizado
+ * 
+ * @example
+ * <AdminUsuariosPage />
+ * 
+ * TODO: Documentar props específicas
+ * TODO: Agregar PropTypes o validación de tipos
+ */
+
 export default function AdminUsuariosPage() {
   const [roles, setRoles] = useState([])
   const [loadingRoles, setLoadingRoles] = useState(true)

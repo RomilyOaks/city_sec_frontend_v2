@@ -14,6 +14,23 @@ import { ROUTE_ACCESS } from '../rbac/rbac.js'
 import AdminUsuariosPage from '../pages/admin/AdminUsuariosPage.jsx'
 import RolesPermisosPage from '../pages/admin/RolesPermisosPage.jsx'
 
+/**
+ * * COMPONENTE: AppRouter
+ * 
+ * @component
+ * @category General
+ * @description Componente de CitySecure para general
+ * 
+ * @param {Object} props - Propiedades del componente
+ * @returns {JSX.Element} Elemento React renderizado
+ * 
+ * @example
+ * <AppRouter />
+ * 
+ * TODO: Documentar props específicas
+ * TODO: Agregar PropTypes o validación de tipos
+ */
+
 export default function AppRouter() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
 

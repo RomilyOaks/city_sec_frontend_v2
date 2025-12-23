@@ -17,6 +17,23 @@ import { useAuthStore } from '../store/useAuthStore.js'
 import { canAccessRoute } from '../rbac/rbac.js'
 import { APP_VERSION } from '../config/version.js'
 
+/**
+ * * COMPONENTE: SidebarLink
+ * 
+ * @component
+ * @category General
+ * @description Componente de CitySecure para general
+ * 
+ * @param {Object} props - Propiedades del componente
+ * @returns {JSX.Element} Elemento React renderizado
+ * 
+ * @example
+ * <SidebarLink />
+ * 
+ * TODO: Documentar props específicas
+ * TODO: Agregar PropTypes o validación de tipos
+ */
+
 function SidebarLink({ to, icon: Icon, children }) {
   return (
     <NavLink
@@ -36,6 +53,23 @@ function SidebarLink({ to, icon: Icon, children }) {
     </NavLink>
   )
 }
+
+/**
+ * * COMPONENTE: AppShell
+ * 
+ * @component
+ * @category General
+ * @description Componente de CitySecure para estructura principal de la aplicación
+ * 
+ * @param {Object} props - Propiedades del componente
+ * @returns {JSX.Element} Elemento React renderizado
+ * 
+ * @example
+ * <AppShell />
+ * 
+ * TODO: Documentar props específicas
+ * TODO: Agregar PropTypes o validación de tipos
+ */
 
 export default function AppShell() {
   const navigate = useNavigate()

@@ -49,6 +49,23 @@ const initialFormData = {
   vehiculo_id: '',
 }
 
+/**
+ * * COMPONENTE: PersonalPage
+ * 
+ * @component
+ * @category General
+ * @description Componente de CitySecure para gestión de personal de seguridad
+ * 
+ * @param {Object} props - Propiedades del componente
+ * @returns {JSX.Element} Elemento React renderizado
+ * 
+ * @example
+ * <PersonalPage />
+ * 
+ * TODO: Documentar props específicas
+ * TODO: Agregar PropTypes o validación de tipos
+ */
+
 export default function PersonalPage() {
   const user = useAuthStore((s) => s.user)
   const canRead = canAccessRoute(user, 'personal')

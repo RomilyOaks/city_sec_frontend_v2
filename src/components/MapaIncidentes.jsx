@@ -53,6 +53,23 @@ const ESTADO_COLORS = {
 }
 
 // Componente para habilitar scroll wheel zoom solo cuando el mapa tiene foco
+/**
+ * * COMPONENTE: ScrollWheelZoomOnFocus
+ * 
+ * @component
+ * @category General
+ * @description Componente de CitySecure para general
+ * 
+ * @param {Object} props - Propiedades del componente
+ * @returns {JSX.Element} Elemento React renderizado
+ * 
+ * @example
+ * <ScrollWheelZoomOnFocus />
+ * 
+ * TODO: Documentar props específicas
+ * TODO: Agregar PropTypes o validación de tipos
+ */
+
 function ScrollWheelZoomOnFocus() {
   const map = useMap()
   
@@ -100,6 +117,23 @@ function ScrollWheelZoomOnFocus() {
 }
 
 // Componente para ajustar vista del mapa
+/**
+ * * COMPONENTE: FitBounds
+ * 
+ * @component
+ * @category General
+ * @description Componente de CitySecure para general
+ * 
+ * @param {Object} props - Propiedades del componente
+ * @returns {JSX.Element} Elemento React renderizado
+ * 
+ * @example
+ * <FitBounds />
+ * 
+ * TODO: Documentar props específicas
+ * TODO: Agregar PropTypes o validación de tipos
+ */
+
 function FitBounds({ novedades }) {
   const map = useMap()
   

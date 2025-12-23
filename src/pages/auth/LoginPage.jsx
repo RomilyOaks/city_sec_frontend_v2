@@ -17,6 +17,23 @@ const schema = z.object({
   password: z.string().min(1, 'Requerido'),
 })
 
+/**
+ * * COMPONENTE: LoginPage
+ * 
+ * @component
+ * @category General
+ * @description Componente de CitySecure para autenticación de usuarios del sistema
+ * 
+ * @param {Object} props - Propiedades del componente
+ * @returns {JSX.Element} Elemento React renderizado
+ * 
+ * @example
+ * <LoginPage />
+ * 
+ * TODO: Documentar props específicas
+ * TODO: Agregar PropTypes o validación de tipos
+ */
+
 export default function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()

@@ -28,6 +28,23 @@ import {
 } from '../../services/rolesService'
 import { getPermisosAgrupados } from '../../services/permisosService'
 
+/**
+ * * COMPONENTE: RolesPermisosPage
+ * 
+ * @component
+ * @category General
+ * @description Componente de CitySecure para gestión de roles y permisos
+ * 
+ * @param {Object} props - Propiedades del componente
+ * @returns {JSX.Element} Elemento React renderizado
+ * 
+ * @example
+ * <RolesPermisosPage />
+ * 
+ * TODO: Documentar props específicas
+ * TODO: Agregar PropTypes o validación de tipos
+ */
+
 export default function RolesPermisosPage() {
   const queryClient = useQueryClient()
   const [selectedRol, setSelectedRol] = useState(null)
@@ -487,6 +504,23 @@ export default function RolesPermisosPage() {
 }
 
 // Modal para crear/editar rol
+/**
+ * * COMPONENTE: RolModal
+ * 
+ * @component
+ * @category General
+ * @description Componente de CitySecure para general
+ * 
+ * @param {Object} props - Propiedades del componente
+ * @returns {JSX.Element} Elemento React renderizado
+ * 
+ * @example
+ * <RolModal />
+ * 
+ * TODO: Documentar props específicas
+ * TODO: Agregar PropTypes o validación de tipos
+ */
+
 function RolModal({ rol, onClose, onSave, isLoading }) {
   const [formData, setFormData] = useState({
     nombre: rol?.nombre || '',
@@ -676,6 +710,23 @@ function RolModal({ rol, onClose, onSave, isLoading }) {
 }
 
 // Modal para ver usuarios de un rol
+/**
+ * * COMPONENTE: UsuariosRolModal
+ * 
+ * @component
+ * @category General
+ * @description Componente de CitySecure para general
+ * 
+ * @param {Object} props - Propiedades del componente
+ * @returns {JSX.Element} Elemento React renderizado
+ * 
+ * @example
+ * <UsuariosRolModal />
+ * 
+ * TODO: Documentar props específicas
+ * TODO: Agregar PropTypes o validación de tipos
+ */
+
 function UsuariosRolModal({ data, onClose }) {
   const [selectedUsuario, setSelectedUsuario] = useState(null)
   const [usuarioDetalle, setUsuarioDetalle] = useState(null)
@@ -844,6 +895,23 @@ function UsuariosRolModal({ data, onClose }) {
 }
 
 // Modal de detalle de usuario independiente
+/**
+ * * COMPONENTE: UsuarioDetalleModal
+ * 
+ * @component
+ * @category General
+ * @description Componente de CitySecure para general
+ * 
+ * @param {Object} props - Propiedades del componente
+ * @returns {JSX.Element} Elemento React renderizado
+ * 
+ * @example
+ * <UsuarioDetalleModal />
+ * 
+ * TODO: Documentar props específicas
+ * TODO: Agregar PropTypes o validación de tipos
+ */
+
 function UsuarioDetalleModal({ usuario, onClose }) {
   useEffect(() => {
     const handleEsc = (e) => {

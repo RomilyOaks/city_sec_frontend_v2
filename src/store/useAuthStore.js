@@ -1,6 +1,23 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
+/**
+ * * STORE ZUSTAND: useAuthStore
+ * 
+ * @module useAuthStore
+ * @description Store de estado global para gestión de autenticación y sesión de usuario
+ * 
+ * @property {Object} state - Estado del store
+ * @property {Function} actions - Acciones para modificar el estado
+ * 
+ * ! NO modificar el estado directamente - usar las acciones provistas
+ * TODO: Documentar propiedades específicas del estado
+ * TODO: Documentar todas las acciones disponibles
+ * 
+ * @example
+ * const { state, action } = useAuthStore();
+ */
+
 export const useAuthStore = create(
   persist(
     (set, get) => ({

@@ -5,6 +5,23 @@ import { getEstadisticasVehiculos } from '../../services/vehiculosService'
 import { getEstadisticasNovedades, listNovedades } from '../../services/novedadesService'
 import MapaIncidentes from '../../components/MapaIncidentes'
 
+/**
+ * * COMPONENTE: DashboardPage
+ * 
+ * @component
+ * @category General
+ * @description Componente de CitySecure para visualización del dashboard principal
+ * 
+ * @param {Object} props - Propiedades del componente
+ * @returns {JSX.Element} Elemento React renderizado
+ * 
+ * @example
+ * <DashboardPage />
+ * 
+ * TODO: Documentar props específicas
+ * TODO: Agregar PropTypes o validación de tipos
+ */
+
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({
