@@ -841,6 +841,7 @@ function UsuariosRolModal({ data, onClose }) {
       if (!mountedRef.current) return;
       setUsuarioDetalle(detalle);
     } catch (error) {
+      console.error(error);
       if (!mountedRef.current) return;
       toast.error("Error al cargar detalle del usuario");
       setSelectedUsuario(null);

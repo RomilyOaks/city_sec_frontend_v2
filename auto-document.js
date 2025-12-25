@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-/* eslint-env node */
+/* global process */
 
 /**
  * Script de Documentación Automática para CitySecure Frontend
