@@ -1,3 +1,12 @@
+/**
+ * File: c:\\Project\\city_sec_frontend_v2\\src\\layouts\\AppShell.jsx
+ * @version 2.0.0
+ * @description Layout principal (AppShell) que contiene la barra superior, el sidebar y el outlet de rutas.
+ * Se añadieron headers y JSDoc para facilitar mantenimiento sin cambiar la lógica.
+ *
+ * @module src/layouts/AppShell.jsx
+ */
+
 import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
@@ -56,37 +65,11 @@ function SidebarLink({ to, icon, children }) {
 }
 
 /**
- * * COMPONENTE: AppShell
+ * AppShell - Layout principal con header y sidebar
  *
  * @component
- * @category General
- * @description Componente de CitySecure para estructura principal de la aplicación
- *
- * @param {Object} props - Propiedades del componente
- * @returns {JSX.Element} Elemento React renderizado
- *
- * @example
- * <AppShell />
- *
- * TODO: Documentar props específicas
- * TODO: Agregar PropTypes o validación de tipos
- */
-
-/**
- * * COMPONENTE: AppShell
- *
- * @component
- * @category General
- * @description Componente de CitySecure para estructura principal de la aplicación
- *
- * @param {Object} props - Propiedades del componente
- * @returns {JSX.Element} Elemento React renderizado
- *
- * @example
- * <AppShell />
- *
- * TODO: Documentar props específicas
- * TODO: Agregar PropTypes o validación de tipos
+ * @category Components | Layouts
+ * @returns {JSX.Element}
  */
 
 export default function AppShell() {
