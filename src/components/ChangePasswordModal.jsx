@@ -1,60 +1,50 @@
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { z } from 'zod'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { X, Eye, EyeOff, Lock, Check } from 'lucide-react'
-import toast from 'react-hot-toast'
-import { changePassword } from '../services/authService'
+/**
+ * File: c:\\Project\\city_sec_frontend_v2\\src\\components\\ChangePasswordModal.jsx
+ * @version 2.0.0
+ * @description Modal para que el usuario actualice su contraseña. Incluye validación frontend con Zod y feedback visual de requisitos de contraseña.
+ * @module src/components/ChangePasswordModal.jsx
+ */
+
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { X, Eye, EyeOff, Lock, Check } from "lucide-react";
+import toast from "react-hot-toast";
+import { changePassword } from "../services/authService";
 
 const schema = z
   .object({
-    currentPassword: z.string().min(1, 'Ingrese su contraseña actual'),
-    newPassword: z.string().min(8, 'Mínimo 8 caracteres'),
-    confirmPassword: z.string().min(1, 'Confirme la nueva contraseña'),
+    currentPassword: z.string().min(1, "Ingrese su contraseña actual"),
+    newPassword: z.string().min(8, "Mínimo 8 caracteres"),
+    confirmPassword: z.string().min(1, "Confirme la nueva contraseña"),
   })
   .refine((data) => data.newPassword === data.confirmPassword, {
-    message: 'Las contraseñas no coinciden',
-    path: ['confirmPassword'],
-  })
+    message: "Las contraseñas no coinciden",
+    path: ["confirmPassword"],
+  });
 
 /**
- * * COMPONENTE: ChangePasswordModal
- * 
+ * ChangePasswordModal - Modal para cambio de contraseña
+ *
+ * @version 2.0.0
  * @component
- * @category General
- * @description Componente de CitySecure para general
- * 
- * @param {Object} props - Propiedades del componente
- * @returns {JSX.Element} Elemento React renderizado
- * 
+ * @category Components | Modals
+ * @description Modal que permite al usuario actualizar su contraseña actual. Valida las reglas de seguridad (longitud, mayúsculas, minúsculas, números) y muestra indicadores de fortaleza.
+ *
+ * @param {Object} props
+ * @param {boolean} props.isOpen - Indica si el modal está abierto
+ * @param {Function} props.onClose - Callback para cerrar el modal
+ * @returns {JSX.Element}
+ *
  * @example
- * <ChangePasswordModal />
- * 
- * TODO: Documentar props específicas
- * TODO: Agregar PropTypes o validación de tipos
- */
-
-/**
- * * COMPONENTE: ChangePasswordModal
- * 
- * @component
- * @category General
- * @description Componente de CitySecure para general
- * 
- * @param {Object} props - Propiedades del componente
- * @returns {JSX.Element} Elemento React renderizado
- * 
- * @example
- * <ChangePasswordModal />
- * 
- * TODO: Documentar props específicas
- * TODO: Agregar PropTypes o validación de tipos
+ * <ChangePasswordModal isOpen={open} onClose={() => setOpen(false)} />
  */
 
 export default function ChangePasswordModal({ isOpen, onClose }) {
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
-  const [showNewPassword, setShowNewPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const {
     register,
@@ -65,47 +55,51 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
   } = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: '',
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
     },
-  })
+  });
 
-  const newPassword = watch('newPassword', '')
+  const newPassword = watch("newPassword", "");
 
   // Validaciones de contraseña
-  const hasMinLength = newPassword.length >= 8
-  const hasUppercase = /[A-Z]/.test(newPassword)
-  const hasLowercase = /[a-z]/.test(newPassword)
-  const hasNumber = /[0-9]/.test(newPassword)
+  const hasMinLength = newPassword.length >= 8;
+  const hasUppercase = /[A-Z]/.test(newPassword);
+  const hasLowercase = /[a-z]/.test(newPassword);
+  const hasNumber = /[0-9]/.test(newPassword);
 
   const onSubmit = async (data) => {
     try {
       await changePassword({
         currentPassword: data.currentPassword,
         newPassword: data.newPassword,
-      })
-      toast.success('Contraseña actualizada correctamente')
-      reset()
-      onClose()
+      });
+      toast.success("Contraseña actualizada correctamente");
+      reset();
+      onClose();
     } catch (err) {
-      const message = err?.response?.data?.message || 'Error al cambiar la contraseña'
-      toast.error(message)
+      const message =
+        err?.response?.data?.message || "Error al cambiar la contraseña";
+      toast.error(message);
     }
-  }
+  };
 
   const handleClose = () => {
-    reset()
-    setShowCurrentPassword(false)
-    setShowNewPassword(false)
-    setShowConfirmPassword(false)
-    onClose()
-  }
+    reset();
+    setShowCurrentPassword(false);
+    setShowNewPassword(false);
+    setShowConfirmPassword(false);
+    onClose();
+  };
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/50 p-4" style={{ zIndex: 9999 }}>
+    <div
+      className="fixed inset-0 flex items-center justify-center bg-black/50 p-4"
+      style={{ zIndex: 9999 }}
+    >
       <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
@@ -117,7 +111,9 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
               <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
                 Cambiar Contraseña
               </h3>
-              <p className="text-sm text-slate-500">Actualiza tu contraseña de acceso</p>
+              <p className="text-sm text-slate-500">
+                Actualiza tu contraseña de acceso
+              </p>
             </div>
           </div>
           <button
@@ -137,10 +133,10 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
             </label>
             <div className="relative">
               <input
-                type={showCurrentPassword ? 'text' : 'password'}
+                type={showCurrentPassword ? "text" : "password"}
                 className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 pr-10 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
                 placeholder="Ingrese su contraseña actual"
-                {...register('currentPassword')}
+                {...register("currentPassword")}
               />
               <button
                 type="button"
@@ -151,7 +147,9 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
               </button>
             </div>
             {errors.currentPassword && (
-              <p className="mt-1 text-xs text-red-600">{errors.currentPassword.message}</p>
+              <p className="mt-1 text-xs text-red-600">
+                {errors.currentPassword.message}
+              </p>
             )}
           </div>
 
@@ -162,10 +160,10 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
             </label>
             <div className="relative">
               <input
-                type={showNewPassword ? 'text' : 'password'}
+                type={showNewPassword ? "text" : "password"}
                 className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 pr-10 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
                 placeholder="Ingrese la nueva contraseña"
-                {...register('newPassword')}
+                {...register("newPassword")}
               />
               <button
                 type="button"
@@ -176,33 +174,77 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
               </button>
             </div>
             {errors.newPassword && (
-              <p className="mt-1 text-xs text-red-600">{errors.newPassword.message}</p>
+              <p className="mt-1 text-xs text-red-600">
+                {errors.newPassword.message}
+              </p>
             )}
 
             {/* Indicadores de fortaleza */}
             {newPassword && (
               <div className="mt-2 space-y-1">
                 <div className="flex items-center gap-2 text-xs">
-                  <Check size={14} className={hasMinLength ? 'text-green-500' : 'text-slate-300'} />
-                  <span className={hasMinLength ? 'text-green-600 dark:text-green-400' : 'text-slate-500'}>
+                  <Check
+                    size={14}
+                    className={
+                      hasMinLength ? "text-green-500" : "text-slate-300"
+                    }
+                  />
+                  <span
+                    className={
+                      hasMinLength
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-slate-500"
+                    }
+                  >
                     Mínimo 8 caracteres
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-xs">
-                  <Check size={14} className={hasUppercase ? 'text-green-500' : 'text-slate-300'} />
-                  <span className={hasUppercase ? 'text-green-600 dark:text-green-400' : 'text-slate-500'}>
+                  <Check
+                    size={14}
+                    className={
+                      hasUppercase ? "text-green-500" : "text-slate-300"
+                    }
+                  />
+                  <span
+                    className={
+                      hasUppercase
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-slate-500"
+                    }
+                  >
                     Una mayúscula
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-xs">
-                  <Check size={14} className={hasLowercase ? 'text-green-500' : 'text-slate-300'} />
-                  <span className={hasLowercase ? 'text-green-600 dark:text-green-400' : 'text-slate-500'}>
+                  <Check
+                    size={14}
+                    className={
+                      hasLowercase ? "text-green-500" : "text-slate-300"
+                    }
+                  />
+                  <span
+                    className={
+                      hasLowercase
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-slate-500"
+                    }
+                  >
                     Una minúscula
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-xs">
-                  <Check size={14} className={hasNumber ? 'text-green-500' : 'text-slate-300'} />
-                  <span className={hasNumber ? 'text-green-600 dark:text-green-400' : 'text-slate-500'}>
+                  <Check
+                    size={14}
+                    className={hasNumber ? "text-green-500" : "text-slate-300"}
+                  />
+                  <span
+                    className={
+                      hasNumber
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-slate-500"
+                    }
+                  >
                     Un número
                   </span>
                 </div>
@@ -217,10 +259,10 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
             </label>
             <div className="relative">
               <input
-                type={showConfirmPassword ? 'text' : 'password'}
+                type={showConfirmPassword ? "text" : "password"}
                 className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 pr-10 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
                 placeholder="Repita la nueva contraseña"
-                {...register('confirmPassword')}
+                {...register("confirmPassword")}
               />
               <button
                 type="button"
@@ -231,7 +273,9 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
               </button>
             </div>
             {errors.confirmPassword && (
-              <p className="mt-1 text-xs text-red-600">{errors.confirmPassword.message}</p>
+              <p className="mt-1 text-xs text-red-600">
+                {errors.confirmPassword.message}
+              </p>
             )}
           </div>
 
@@ -249,11 +293,11 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
               disabled={isSubmitting}
               className="px-4 py-2 rounded-lg bg-primary-700 text-white hover:bg-primary-800 disabled:opacity-60 font-medium"
             >
-              {isSubmitting ? 'Guardando...' : 'Cambiar contraseña'}
+              {isSubmitting ? "Guardando..." : "Cambiar contraseña"}
             </button>
           </div>
         </form>
       </div>
     </div>
-  )
+  );
 }
