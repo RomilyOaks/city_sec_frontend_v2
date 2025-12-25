@@ -31,23 +31,6 @@ import RolesPermisosPage from "../pages/admin/RolesPermisosPage.jsx";
  * @returns {JSX.Element}
  */
 
-/**
- * * COMPONENTE: AppRouter
- *
- * @component
- * @category General
- * @description Componente de CitySecure para general
- *
- * @param {Object} props - Propiedades del componente
- * @returns {JSX.Element} Elemento React renderizado
- *
- * @example
- * <AppRouter />
- *
- * TODO: Documentar props específicas
- * TODO: Agregar PropTypes o validación de tipos
- */
-
 export default function AppRouter() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 

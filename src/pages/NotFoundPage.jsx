@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link } from "react-router-dom";
 
 /**
  * File: c:\\Project\\city_sec_frontend_v2\\src\\pages\\NotFoundPage.jsx
@@ -32,5 +32,5 @@ export default function NotFoundPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

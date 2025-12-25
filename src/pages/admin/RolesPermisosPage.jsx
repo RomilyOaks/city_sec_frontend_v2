@@ -35,27 +35,12 @@ import {
 import { getPermisosAgrupados } from "../../services/permisosService";
 
 /**
- * * COMPONENTE: RolesPermisosPage
+ * RolesPermisosPage - Gestión de roles y permisos (lista, creación, edición y asignación de permisos)
  *
  * @component
- * @category General
+ * @category Pages | Admin
  * @version 2.0.0
- *
- * TODO: Documentar props específicas
- * TODO: Agregar PropTypes o validación de tipos
- */
-
-/**
- * * COMPONENTE: RolesPermisosPage
- *
- * @component
- * @category General
- * @version 2.0.0
- * @example
- * <RolesPermisosPage />
- *
- * TODO: Documentar props específicas
- * TODO: Agregar PropTypes o validación de tipos
+ * @returns {JSX.Element}
  */
 
 export default function RolesPermisosPage() {

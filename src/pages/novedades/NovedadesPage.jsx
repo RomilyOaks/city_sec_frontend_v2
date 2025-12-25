@@ -251,14 +251,6 @@ export default function NovedadesPage() {
    *
    * @returns {Promise<void>}
    */
-  /**
-   * fetchCatalogos
-   * Carga catálogos iniciales usados en el filtro y en el formulario de creación:
-   * - tipos de novedad, estados y sectores.
-   * Intenta las llamadas en paralelo para mejorar rendimiento.
-   *
-   * @returns {Promise<void>}
-   */
   const fetchCatalogos = async () => {
     try {
       const [tiposRes, estadosRes, sectoresRes] = await Promise.all([
