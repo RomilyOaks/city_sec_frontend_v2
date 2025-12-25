@@ -28,20 +28,11 @@ import { useThemeStore } from "../../store/useThemeStore";
  */
 
 /**
- * * COMPONENTE: ThemeToggle
+ * ThemeToggle - Alterna tema claro/oscuro
  *
  * @component
- * @category General
- * @description Componente de CitySecure para cambio de tema claro/oscuro
- *
- * @param {Object} props - Propiedades del componente
- * @returns {JSX.Element} Elemento React renderizado
- *
- * @example
- * <ThemeToggle />
- *
- * TODO: Documentar props específicas
- * TODO: Agregar PropTypes o validación de tipos
+ * @category Components | Common
+ * @returns {JSX.Element}
  */
 
 export default function ThemeToggle() {
