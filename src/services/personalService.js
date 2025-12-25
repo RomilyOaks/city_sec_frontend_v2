@@ -1,3 +1,12 @@
+/**
+ * File: c:\\Project\\city_sec_frontend_v2\\src\\services\\personalService.js
+ * @version 2.0.0
+ * @description Servicio para gestión de personal: listado, creación, actualización y utilidades.
+ * Documentación añadida sin cambiar la implementación.
+ *
+ * @module src/services/personalService.js
+ */
+
 import api from "./api";
 
 /**
