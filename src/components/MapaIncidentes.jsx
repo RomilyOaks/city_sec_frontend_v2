@@ -1,3 +1,12 @@
+/**
+ * File: c:\\Project\\city_sec_frontend_v2\\src\\components\\MapaIncidentes.jsx
+ * @version 2.0.0
+ * @description Componente de mapa que renderiza incidentes con Leaflet y clusters. Incluye filtros, creación de iconos personalizados y modal de detalle.
+ * Documentación educativa: se añadieron JSDoc y comentarios explicativos sin alterar la lógica.
+ *
+ * @module src/components/MapaIncidentes.jsx
+ */
+
 import { useEffect, useState, useMemo } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import { Eye } from "lucide-react";
@@ -212,6 +221,21 @@ const formatFecha = (fecha) => {
   });
 };
 
+/**
+ * MapaIncidentes - Mapa interactivo de incidentes
+ *
+ * @version 2.0.0
+ * @component
+ * @category Components | Maps
+ * @param {Object} props
+ * @param {Array} props.novedades - Lista de novedades con lat/lng
+ * @param {string} [props.height] - Alto del mapa (CSS)
+ * @param {Array} [props.center] - Coordenadas iniciales [lat, lng]
+ * @param {number} [props.zoom] - Zoom inicial
+ * @param {boolean} [props.showFilters] - Mostrar filtros UI
+ * @param {Function} [props.onMarkerClick] - Callback al clicar un marcador
+ * @returns {JSX.Element}
+ */
 export default function MapaIncidentes({
   novedades = [],
   height = "500px",

@@ -1,3 +1,12 @@
+/**
+ * File: c:\\Project\\city_sec_frontend_v2\\src\\components\\NovedadDetalleModal.jsx
+ * @version 2.0.0
+ * @description Modal que muestra detalle completo de una novedad, incluyendo historial y tabs para datos, ubicación, reportante y seguimiento.
+ * Documentación educativa: se añadieron JSDoc y helpers explicativos.
+ *
+ * @module src/components/NovedadDetalleModal.jsx
+ */
+
 import { useEffect, useState } from "react";
 import {
   X,
