@@ -41,6 +41,12 @@ const ORIGEN_LLAMADA_OPTIONS = [
   { value: "OTROS", label: "Otros", icon: Radio },
 ];
 
+/**
+ * formatFecha - Formatea fecha/hora a formato legible (es-PE).
+ *
+ * @param {string|Date} fecha
+ * @returns {string}
+ */
 const formatFecha = (fecha) => {
   if (!fecha) return "—";
   return new Date(fecha).toLocaleString("es-PE", {
@@ -52,6 +58,12 @@ const formatFecha = (fecha) => {
   });
 };
 
+/**
+ * prioridadColor - Devuelve clases CSS según nivel de prioridad.
+ *
+ * @param {string} prioridad
+ * @returns {string}
+ */
 const prioridadColor = (prioridad) => {
   switch (prioridad) {
     case "ALTA":
@@ -65,6 +77,12 @@ const prioridadColor = (prioridad) => {
   }
 };
 
+/**
+ * estadoColor - Devuelve clases CSS o estilo inline para representar el color de un estado.
+ *
+ * @param {Object|null} estado
+ * @returns {string|Object}
+ */
 const estadoColor = (estado) => {
   if (!estado)
     return "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300";

@@ -26,7 +26,12 @@ L.Icon.Default.mergeOptions({
     "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
 });
 
-// Iconos personalizados por prioridad - estilo pin/marcador
+/**
+ * createCustomIcon - Crea un icono SVG para marcador de novedad.
+ *
+ * @param {string} color - Color en formato hex usado en el SVG.
+ * @returns {L.DivIcon} Elemento de icono para Leaflet.
+ */
 const createCustomIcon = (color) => {
   return L.divIcon({
     className: "custom-marker",
@@ -64,22 +69,14 @@ const ESTADO_COLORS = {
   default: "#6b7280",
 };
 
-// Componente para habilitar scroll wheel zoom solo cuando el mapa tiene foco
 /**
- * * COMPONENTE: ScrollWheelZoomOnFocus
+ * ScrollWheelZoomOnFocus - Habilita scroll wheel zoom solo cuando el mapa tiene foco.
  *
  * @component
- * @category General
- * @description Componente de CitySecure para general
- *
- * @param {Object} props - Propiedades del componente
- * @returns {JSX.Element} Elemento React renderizado
- *
- * @example
- * <ScrollWheelZoomOnFocus />
- *
- * TODO: Documentar props específicas
- * TODO: Agregar PropTypes o validación de tipos
+ * @category Components | Maps
+ * @description Añade listeners para habilitar/deshabilitar zoom por scroll cuando el usuario hace foco en el mapa,
+ * y aplica estilos visuales de foco para mejorar la accesibilidad.
+ * @returns {null}
  */
 
 function ScrollWheelZoomOnFocus() {
@@ -128,22 +125,13 @@ function ScrollWheelZoomOnFocus() {
   return null;
 }
 
-// Componente para ajustar vista del mapa
 /**
- * * COMPONENTE: FitBounds
+ * FitBounds - Ajusta la vista del mapa para que todas las `novedades` visibles queden dentro de los bounds.
  *
  * @component
- * @category General
- * @description Componente de CitySecure para general
- *
- * @param {Object} props - Propiedades del componente
- * @returns {JSX.Element} Elemento React renderizado
- *
- * @example
- * <FitBounds />
- *
- * TODO: Documentar props específicas
- * TODO: Agregar PropTypes o validación de tipos
+ * @category Components | Maps
+ * @param {Array} props.novedades - Array de novedades con latitud/longitud válidas
+ * @returns {null}
  */
 
 function FitBounds({ novedades }) {
@@ -167,7 +155,12 @@ function FitBounds({ novedades }) {
   return null;
 }
 
-// Función para crear icono de cluster personalizado
+/**
+ * createClusterCustomIcon - Genera icono personalizado para un cluster.
+ *
+ * @param {Object} cluster - Cluster de MarkerClusterGroup
+ * @returns {L.DivIcon}
+ */
 const createClusterCustomIcon = (cluster) => {
   const count = cluster.getChildCount();
   let size = "small";
@@ -209,7 +202,12 @@ const createClusterCustomIcon = (cluster) => {
   });
 };
 
-// Formatear fecha
+/**
+ * formatFecha - Formatea fecha a string con locale es-PE.
+ *
+ * @param {string|Date} fecha
+ * @returns {string}
+ */
 const formatFecha = (fecha) => {
   if (!fecha) return "—";
   return new Date(fecha).toLocaleString("es-PE", {
