@@ -1,6 +1,12 @@
-import { useState, useEffect } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import toast from 'react-hot-toast'
+/**
+ * File: c:\Project\city_sec_frontend_v2\src\pages\admin\RolesPermisosPage.jsx
+ * @version 2.0.0
+ * @description Gestión de roles y permisos — lista, creación, edición, asignación de permisos y visualización de usuarios por rol.
+ */
+
+import { useState, useEffect, useRef } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 import {
   Shield,
   Plus,
@@ -16,7 +22,7 @@ import {
   User,
   Mail,
   Clock,
-} from 'lucide-react'
+} from "lucide-react";
 import {
   listRoles,
   createRol,
@@ -25,230 +31,257 @@ import {
   getPermisosDeRol,
   asignarPermisosARol,
   getUsuariosDeRol,
-} from '../../services/rolesService'
-import { getPermisosAgrupados } from '../../services/permisosService'
+} from "../../services/rolesService";
+import { getPermisosAgrupados } from "../../services/permisosService";
 
 /**
  * * COMPONENTE: RolesPermisosPage
- * 
+ *
  * @component
  * @category General
- * @description Componente de CitySecure para gestión de roles y permisos
- * 
- * @param {Object} props - Propiedades del componente
- * @returns {JSX.Element} Elemento React renderizado
- * 
- * @example
- * <RolesPermisosPage />
- * 
+ * @version 2.0.0
+ *
  * TODO: Documentar props específicas
  * TODO: Agregar PropTypes o validación de tipos
  */
 
 /**
  * * COMPONENTE: RolesPermisosPage
- * 
+ *
  * @component
  * @category General
- * @description Componente de CitySecure para gestión de roles y permisos
- * 
- * @param {Object} props - Propiedades del componente
- * @returns {JSX.Element} Elemento React renderizado
- * 
+ * @version 2.0.0
  * @example
  * <RolesPermisosPage />
- * 
+ *
  * TODO: Documentar props específicas
  * TODO: Agregar PropTypes o validación de tipos
  */
 
 export default function RolesPermisosPage() {
-  const queryClient = useQueryClient()
-  const [selectedRol, setSelectedRol] = useState(null)
-  const [permisosSeleccionados, setPermisosSeleccionados] = useState([])
-  const [showRolModal, setShowRolModal] = useState(false)
-  const [editingRol, setEditingRol] = useState(null)
-  const [hasChanges, setHasChanges] = useState(false)
-  const [showUsuariosModal, setShowUsuariosModal] = useState(false)
-  const [usuariosRol, setUsuariosRol] = useState(null)
+  const queryClient = useQueryClient();
+  const [selectedRol, setSelectedRol] = useState(null);
+  const [permisosSeleccionados, setPermisosSeleccionados] = useState([]);
+  const [showRolModal, setShowRolModal] = useState(false);
+  const [editingRol, setEditingRol] = useState(null);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [showUsuariosModal, setShowUsuariosModal] = useState(false);
+  const [usuariosRol, setUsuariosRol] = useState(null);
+
+  // Evita setState en componentes desmontados (protección para operaciones asíncronas)
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Query: Lista de roles
-  const {
-    data: roles = [],
-    isLoading: loadingRoles,
-  } = useQuery({
-    queryKey: ['roles'],
+  const { data: roles = [], isLoading: loadingRoles } = useQuery({
+    queryKey: ["roles"],
     queryFn: () => listRoles({ incluirPermisos: false }),
-  })
+  });
 
   // Query: Permisos agrupados por módulo
-  const {
-    data: permisosAgrupados = {},
-    isLoading: loadingPermisos,
-  } = useQuery({
-    queryKey: ['permisos-agrupados'],
-    queryFn: getPermisosAgrupados,
-  })
+  const { data: permisosAgrupados = {}, isLoading: loadingPermisos } = useQuery(
+    {
+      queryKey: ["permisos-agrupados"],
+      queryFn: getPermisosAgrupados,
+    }
+  );
 
   // Query: Permisos del rol seleccionado
-  const {
-    data: permisosDelRol,
-    isLoading: loadingPermisosRol,
-  } = useQuery({
-    queryKey: ['permisos-rol', selectedRol?.id],
+  const { data: permisosDelRol, isLoading: loadingPermisosRol } = useQuery({
+    queryKey: ["permisos-rol", selectedRol?.id],
     queryFn: () => getPermisosDeRol(selectedRol.id),
     enabled: !!selectedRol?.id,
-  })
+  });
 
   // Cargar permisos cuando cambia el rol seleccionado
   useEffect(() => {
     if (permisosDelRol?.permisos) {
-      const ids = permisosDelRol.permisos.map((p) => p.id)
-      setPermisosSeleccionados(ids)
-      setHasChanges(false)
+      const ids = permisosDelRol.permisos.map((p) => p.id);
+      setPermisosSeleccionados(ids);
+      setHasChanges(false);
     }
-  }, [permisosDelRol])
+  }, [permisosDelRol]);
 
   // Mutation: Crear rol
   const createMutation = useMutation({
     mutationFn: createRol,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['roles'] })
-      toast.success('Rol creado exitosamente')
-      setShowRolModal(false)
-      setEditingRol(null)
+      queryClient.invalidateQueries({ queryKey: ["roles"] });
+      toast.success("Rol creado exitosamente");
+      setShowRolModal(false);
+      setEditingRol(null);
     },
     onError: (error) => {
-      toast.error(error.response?.data?.message || 'Error al crear rol')
+      toast.error(error.response?.data?.message || "Error al crear rol");
     },
-  })
+  });
 
   // Mutation: Actualizar rol
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => updateRol(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['roles'] })
-      toast.success('Rol actualizado exitosamente')
-      setShowRolModal(false)
-      setEditingRol(null)
+      queryClient.invalidateQueries({ queryKey: ["roles"] });
+      toast.success("Rol actualizado exitosamente");
+      setShowRolModal(false);
+      setEditingRol(null);
     },
     onError: (error) => {
-      toast.error(error.response?.data?.message || 'Error al actualizar rol')
+      toast.error(error.response?.data?.message || "Error al actualizar rol");
     },
-  })
+  });
 
   // Mutation: Eliminar rol
   const deleteMutation = useMutation({
     mutationFn: deleteRol,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['roles'] })
-      toast.success('Rol eliminado exitosamente')
+      queryClient.invalidateQueries({ queryKey: ["roles"] });
+      toast.success("Rol eliminado exitosamente");
       if (selectedRol?.id === deleteMutation.variables) {
-        setSelectedRol(null)
+        setSelectedRol(null);
       }
     },
     onError: (error) => {
-      toast.error(error.response?.data?.message || 'Error al eliminar rol')
+      toast.error(error.response?.data?.message || "Error al eliminar rol");
     },
-  })
+  });
 
   // Mutation: Asignar permisos
   const asignarPermisosMutation = useMutation({
-    mutationFn: ({ rolId, permisoIds }) => asignarPermisosARol(rolId, permisoIds),
+    mutationFn: ({ rolId, permisoIds }) =>
+      asignarPermisosARol(rolId, permisoIds),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['permisos-rol', selectedRol?.id] })
-      toast.success('Permisos actualizados exitosamente')
-      setHasChanges(false)
+      queryClient.invalidateQueries({
+        queryKey: ["permisos-rol", selectedRol?.id],
+      });
+      toast.success("Permisos actualizados exitosamente");
+      setHasChanges(false);
     },
     onError: (error) => {
-      toast.error(error.response?.data?.message || 'Error al asignar permisos')
+      toast.error(error.response?.data?.message || "Error al asignar permisos");
     },
-  })
+  });
 
-  // Toggle permiso
+  /**
+   * Alterna la selección de un permiso para el rol actualmente cargado.
+   * @param {number|string} permisoId - ID del permiso a alternar.
+   */
   const togglePermiso = (permisoId) => {
     setPermisosSeleccionados((prev) => {
       const newPermisos = prev.includes(permisoId)
         ? prev.filter((id) => id !== permisoId)
-        : [...prev, permisoId]
-      setHasChanges(true)
-      return newPermisos
-    })
-  }
+        : [...prev, permisoId];
+      setHasChanges(true);
+      return newPermisos;
+    });
+  };
 
-  // Toggle todos los permisos de un grupo (módulo.recurso)
+  /**
+   * Alterna todos los permisos de un grupo (módulo.recurso).
+   * Si todos los permisos del grupo están seleccionados los quita, en caso contrario los añade.
+   * @param {string} key - Clave del grupo en `permisosAgrupados` (ej. "modulo.recurso").
+   */
   const toggleModulo = (key) => {
-    const grupo = permisosAgrupados[key]
-    if (!grupo) return
-    
-    const idsGrupo = grupo.permisos.map((p) => p.id)
-    const todosSeleccionados = idsGrupo.every((id) => permisosSeleccionados.includes(id))
+    const grupo = permisosAgrupados[key];
+    if (!grupo) return;
+
+    const idsGrupo = grupo.permisos.map((p) => p.id);
+    const todosSeleccionados = idsGrupo.every((id) =>
+      permisosSeleccionados.includes(id)
+    );
 
     setPermisosSeleccionados((prev) => {
-      let newPermisos
+      let newPermisos;
       if (todosSeleccionados) {
-        newPermisos = prev.filter((id) => !idsGrupo.includes(id))
+        newPermisos = prev.filter((id) => !idsGrupo.includes(id));
       } else {
-        newPermisos = [...new Set([...prev, ...idsGrupo])]
+        newPermisos = [...new Set([...prev, ...idsGrupo])];
       }
-      setHasChanges(true)
-      return newPermisos
-    })
-  }
+      setHasChanges(true);
+      return newPermisos;
+    });
+  };
 
-  // Guardar permisos
+  /**
+   * Envía al backend la lista de permisos seleccionados para el rol activo.
+   * Evita la operación si no hay rol seleccionado.
+   */
   const handleGuardarPermisos = () => {
-    if (!selectedRol) return
+    if (!selectedRol) return;
     asignarPermisosMutation.mutate({
       rolId: selectedRol.id,
       permisoIds: permisosSeleccionados,
-    })
-  }
+    });
+  };
 
-  // Abrir modal para crear/editar rol
+  /**
+   * Abre el modal para crear un nuevo rol o editar uno existente.
+   * @param {Object|null} rol - Rol a editar, o null para crear uno nuevo.
+   */
   const handleOpenRolModal = (rol = null) => {
-    setEditingRol(rol)
-    setShowRolModal(true)
-  }
+    setEditingRol(rol);
+    setShowRolModal(true);
+  };
 
-  // Guardar rol (crear o actualizar)
+  /**
+   * Guarda el rol: crea uno nuevo o actualiza el existente en edición.
+   * @param {Object} formData - Datos del formulario del rol (nombre, slug, descripción, color, nivel).
+   */
   const handleSaveRol = (formData) => {
     if (editingRol) {
-      updateMutation.mutate({ id: editingRol.id, data: formData })
+      updateMutation.mutate({ id: editingRol.id, data: formData });
     } else {
-      createMutation.mutate(formData)
+      createMutation.mutate(formData);
     }
-  }
+  };
 
-  // Eliminar rol
+  /**
+   * Intenta eliminar un rol.
+   * No permite eliminar roles de sistema y pide confirmación al usuario.
+   * @param {Object} rol - Rol a eliminar.
+   */
   const handleDeleteRol = (rol) => {
     if (rol.es_sistema) {
-      toast.error('No se puede eliminar un rol del sistema')
-      return
+      toast.error("No se puede eliminar un rol del sistema");
+      return;
     }
     if (window.confirm(`¿Eliminar el rol "${rol.nombre}"?`)) {
-      deleteMutation.mutate(rol.id)
+      deleteMutation.mutate(rol.id);
     }
-  }
+  };
 
-  // Ver usuarios de un rol
+  /**
+   * Carga los usuarios asociados a un rol y abre el modal correspondiente.
+   * Realiza la llamada al servicio `getUsuariosDeRol`.
+   * @param {Object} rol - Rol del que se solicitan los usuarios.
+   */
   const handleVerUsuarios = async (rol) => {
     try {
-      setUsuariosRol({ loading: true, rol })
-      setShowUsuariosModal(true)
-      const data = await getUsuariosDeRol(rol.id)
-      setUsuariosRol({ ...data, loading: false })
+      setUsuariosRol({ loading: true, rol });
+      setShowUsuariosModal(true);
+      const data = await getUsuariosDeRol(rol.id);
+      if (!isMountedRef.current) return;
+      setUsuariosRol({ ...data, loading: false });
     } catch (error) {
-      toast.error('Error al cargar usuarios del rol')
-      setShowUsuariosModal(false)
-      setUsuariosRol(null)
+      if (!isMountedRef.current) return;
+      toast.error("Error al cargar usuarios del rol");
+      setShowUsuariosModal(false);
+      setUsuariosRol(null);
     }
-  }
+  };
 
-  // Colores para roles
+  /**
+   * Devuelve el color asociado a un rol o un color por defecto.
+   * @param {Object} rol - Objeto rol que puede contener el atributo `color`.
+   * @returns {string} Color en formato HEX.
+   */
   const getRolColor = (rol) => {
-    return rol.color || '#6B7280'
-  }
+    return rol.color || "#6B7280";
+  };
 
   return (
     <div className="space-y-6">
@@ -280,7 +313,9 @@ export default function RolesPermisosPage() {
         <div className="lg:col-span-1">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
             <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="font-semibold text-gray-900 dark:text-white">Roles</h2>
+              <h2 className="font-semibold text-gray-900 dark:text-white">
+                Roles
+              </h2>
             </div>
             <div className="divide-y divide-gray-200 dark:divide-gray-700">
               {loadingRoles ? (
@@ -298,8 +333,8 @@ export default function RolesPermisosPage() {
                     onClick={() => setSelectedRol(rol)}
                     className={`flex items-center justify-between p-4 cursor-pointer transition-colors ${
                       selectedRol?.id === rol.id
-                        ? 'bg-indigo-50 dark:bg-indigo-900/20'
-                        : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                        ? "bg-indigo-50 dark:bg-indigo-900/20"
+                        : "hover:bg-gray-50 dark:hover:bg-gray-700/50"
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -324,8 +359,8 @@ export default function RolesPermisosPage() {
                     <div className="flex items-center gap-1">
                       <button
                         onClick={(e) => {
-                          e.stopPropagation()
-                          handleVerUsuarios(rol)
+                          e.stopPropagation();
+                          handleVerUsuarios(rol);
                         }}
                         className="p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                         title="Ver usuarios"
@@ -336,8 +371,8 @@ export default function RolesPermisosPage() {
                         <>
                           <button
                             onClick={(e) => {
-                              e.stopPropagation()
-                              handleOpenRolModal(rol)
+                              e.stopPropagation();
+                              handleOpenRolModal(rol);
                             }}
                             className="p-1.5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                             title="Editar rol"
@@ -346,8 +381,8 @@ export default function RolesPermisosPage() {
                           </button>
                           <button
                             onClick={(e) => {
-                              e.stopPropagation()
-                              handleDeleteRol(rol)
+                              e.stopPropagation();
+                              handleDeleteRol(rol);
                             }}
                             className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                             title="Eliminar rol"
@@ -358,7 +393,7 @@ export default function RolesPermisosPage() {
                       )}
                       <ChevronRight
                         className={`h-4 w-4 text-gray-400 transition-transform ${
-                          selectedRol?.id === rol.id ? 'rotate-90' : ''
+                          selectedRol?.id === rol.id ? "rotate-90" : ""
                         }`}
                       />
                     </div>
@@ -375,7 +410,9 @@ export default function RolesPermisosPage() {
             <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
               <div>
                 <h2 className="font-semibold text-gray-900 dark:text-white">
-                  {selectedRol ? `Permisos de "${selectedRol.nombre}"` : 'Selecciona un rol'}
+                  {selectedRol
+                    ? `Permisos de "${selectedRol.nombre}"`
+                    : "Selecciona un rol"}
                 </h2>
                 {selectedRol && (
                   <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -412,14 +449,15 @@ export default function RolesPermisosPage() {
               ) : (
                 <div className="space-y-4 max-h-[600px] overflow-y-auto">
                   {Object.entries(permisosAgrupados).map(([key, grupo]) => {
-                    const { modulo, recurso, permisos } = grupo
-                    const idsGrupo = permisos.map((p) => p.id)
+                    const { modulo, recurso, permisos } = grupo;
+                    const idsGrupo = permisos.map((p) => p.id);
                     const seleccionadosGrupo = idsGrupo.filter((id) =>
                       permisosSeleccionados.includes(id)
-                    )
-                    const todosSeleccionados = seleccionadosGrupo.length === idsGrupo.length
+                    );
+                    const todosSeleccionados =
+                      seleccionadosGrupo.length === idsGrupo.length;
                     const algunosSeleccionados =
-                      seleccionadosGrupo.length > 0 && !todosSeleccionados
+                      seleccionadosGrupo.length > 0 && !todosSeleccionados;
 
                     return (
                       <div
@@ -435,10 +473,10 @@ export default function RolesPermisosPage() {
                             <div
                               className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
                                 todosSeleccionados
-                                  ? 'bg-indigo-600 border-indigo-600'
+                                  ? "bg-indigo-600 border-indigo-600"
                                   : algunosSeleccionados
-                                  ? 'bg-indigo-300 border-indigo-300'
-                                  : 'border-gray-300 dark:border-gray-600'
+                                  ? "bg-indigo-300 border-indigo-300"
+                                  : "border-gray-300 dark:border-gray-600"
                               }`}
                             >
                               {(todosSeleccionados || algunosSeleccionados) && (
@@ -460,14 +498,16 @@ export default function RolesPermisosPage() {
                         {/* Permisos del grupo */}
                         <div className="p-3 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                           {permisos.map((permiso) => {
-                            const isSelected = permisosSeleccionados.includes(permiso.id)
+                            const isSelected = permisosSeleccionados.includes(
+                              permiso.id
+                            );
                             return (
                               <label
                                 key={permiso.id}
                                 className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${
                                   isSelected
-                                    ? 'bg-indigo-50 dark:bg-indigo-900/20'
-                                    : 'hover:bg-gray-50 dark:hover:bg-gray-700/30'
+                                    ? "bg-indigo-50 dark:bg-indigo-900/20"
+                                    : "hover:bg-gray-50 dark:hover:bg-gray-700/30"
                                 }`}
                               >
                                 <input
@@ -480,11 +520,11 @@ export default function RolesPermisosPage() {
                                   {permiso.accion}
                                 </span>
                               </label>
-                            )
+                            );
                           })}
                         </div>
                       </div>
-                    )
+                    );
                   })}
                 </div>
               )}
@@ -498,8 +538,8 @@ export default function RolesPermisosPage() {
         <RolModal
           rol={editingRol}
           onClose={() => {
-            setShowRolModal(false)
-            setEditingRol(null)
+            setShowRolModal(false);
+            setEditingRol(null);
           }}
           onSave={handleSaveRol}
           isLoading={createMutation.isPending || updateMutation.isPending}
@@ -511,83 +551,84 @@ export default function RolesPermisosPage() {
         <UsuariosRolModal
           data={usuariosRol}
           onClose={() => {
-            setShowUsuariosModal(false)
-            setUsuariosRol(null)
+            setShowUsuariosModal(false);
+            setUsuariosRol(null);
           }}
         />
       )}
     </div>
-  )
+  );
 }
 
 // Modal para crear/editar rol
 /**
  * * COMPONENTE: RolModal
- * 
+ *
  * @component
  * @category General
- * @description Componente de CitySecure para general
- * 
- * @param {Object} props - Propiedades del componente
- * @returns {JSX.Element} Elemento React renderizado
- * 
+ * @version 2.0.0
  * @example
  * <RolModal />
- * 
+ *
  * TODO: Documentar props específicas
  * TODO: Agregar PropTypes o validación de tipos
  */
 
 function RolModal({ rol, onClose, onSave, isLoading }) {
   const [formData, setFormData] = useState({
-    nombre: rol?.nombre || '',
-    slug: rol?.slug || '',
-    descripcion: rol?.descripcion || '',
+    nombre: rol?.nombre || "",
+    slug: rol?.slug || "",
+    descripcion: rol?.descripcion || "",
     nivel_jerarquia: rol?.nivel_jerarquia || 5,
-    color: rol?.color || '#6B7280',
-  })
+    color: rol?.color || "#6B7280",
+  });
 
+  // Maneja cambios en los inputs del formulario y auto-genera el slug para nuevos roles
   const handleChange = (e) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
 
-    // Auto-generar slug desde nombre
-    if (name === 'nombre' && !rol) {
+    // Auto-generar slug desde nombre si es un rol nuevo
+    if (name === "nombre" && !rol) {
       const slug = value
         .toLowerCase()
-        .replace(/\s+/g, '_')
-        .replace(/[^a-z0-9_]/g, '')
-      setFormData((prev) => ({ ...prev, slug }))
+        .replace(/\s+/g, "_")
+        .replace(/[^a-z0-9_]/g, "");
+      setFormData((prev) => ({ ...prev, slug }));
     }
-  }
+  };
 
+  /**
+   * Valida y envía el formulario del rol al handler `onSave`.
+   * Evita el envío si faltan campos obligatorios.
+   */
   const handleSubmit = (e) => {
-    e.preventDefault()
+    e.preventDefault();
     if (!formData.nombre || !formData.slug) {
-      toast.error('Nombre y slug son requeridos')
-      return
+      toast.error("Nombre y slug son requeridos");
+      return;
     }
-    onSave(formData)
-  }
+    onSave(formData);
+  };
 
   const coloresPreset = [
-    '#DC2626', // Rojo
-    '#EA580C', // Naranja
-    '#CA8A04', // Amarillo
-    '#16A34A', // Verde
-    '#0891B2', // Cyan
-    '#2563EB', // Azul
-    '#7C3AED', // Violeta
-    '#DB2777', // Rosa
-    '#6B7280', // Gris
-  ]
+    "#DC2626", // Rojo
+    "#EA580C", // Naranja
+    "#CA8A04", // Amarillo
+    "#16A34A", // Verde
+    "#0891B2", // Cyan
+    "#2563EB", // Azul
+    "#7C3AED", // Violeta
+    "#DB2777", // Rosa
+    "#6B7280", // Gris
+  ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-4">
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {rol ? 'Editar Rol' : 'Nuevo Rol'}
+            {rol ? "Editar Rol" : "Nuevo Rol"}
           </h3>
           <button
             onClick={onClose}
@@ -681,8 +722,8 @@ function RolModal({ rol, onClose, onSave, isLoading }) {
                     onClick={() => setFormData((prev) => ({ ...prev, color }))}
                     className={`w-6 h-6 rounded-full border-2 transition-transform ${
                       formData.color === color
-                        ? 'border-gray-900 dark:border-white scale-110'
-                        : 'border-transparent hover:scale-110'
+                        ? "border-gray-900 dark:border-white scale-110"
+                        : "border-transparent hover:scale-110"
                     }`}
                     style={{ backgroundColor: color }}
                   />
@@ -717,77 +758,90 @@ function RolModal({ rol, onClose, onSave, isLoading }) {
               ) : (
                 <Save className="h-4 w-4" />
               )}
-              {rol ? 'Actualizar' : 'Crear'}
+              {rol ? "Actualizar" : "Crear"}
             </button>
           </div>
         </form>
       </div>
     </div>
-  )
+  );
 }
 
 // Modal para ver usuarios de un rol
 /**
  * * COMPONENTE: UsuariosRolModal
- * 
+ *
  * @component
  * @category General
- * @description Componente de CitySecure para general
- * 
- * @param {Object} props - Propiedades del componente
- * @returns {JSX.Element} Elemento React renderizado
- * 
+ * @version 2.0.0
  * @example
  * <UsuariosRolModal />
- * 
+ *
  * TODO: Documentar props específicas
  * TODO: Agregar PropTypes o validación de tipos
  */
 
 function UsuariosRolModal({ data, onClose }) {
-  const [selectedUsuario, setSelectedUsuario] = useState(null)
-  const [usuarioDetalle, setUsuarioDetalle] = useState(null)
+  const [selectedUsuario, setSelectedUsuario] = useState(null);
+  const [usuarioDetalle, setUsuarioDetalle] = useState(null);
+
+  // Evita setState después de desmontar (peticiones asíncronas)
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // Cerrar con tecla ESC
   useEffect(() => {
     const handleEsc = (e) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         if (selectedUsuario) {
-          setSelectedUsuario(null)
-          setUsuarioDetalle(null)
+          setSelectedUsuario(null);
+          setUsuarioDetalle(null);
         } else {
-          onClose()
+          onClose();
         }
       }
-    }
-    window.addEventListener('keydown', handleEsc)
-    return () => window.removeEventListener('keydown', handleEsc)
-  }, [onClose, selectedUsuario])
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [onClose, selectedUsuario]);
 
+  /**
+   * Formatea una fecha en una representación legible (es-ES). Devuelve "Nunca" si no hay valor.
+   * @param {string|null|undefined} dateStr - Cadena ISO de fecha.
+   * @returns {string} Fecha formateada o "Nunca".
+   */
   const formatDate = (dateStr) => {
-    if (!dateStr) return 'Nunca'
-    return new Date(dateStr).toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  }
+    if (!dateStr) return "Nunca";
+    return new Date(dateStr).toLocaleDateString("es-ES", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
+  /** Carga detalle completo de un usuario y lo muestra en el modal. @param {Object} usuario */
   const handleVerUsuario = async (usuario) => {
-    setSelectedUsuario(usuario)
-    setUsuarioDetalle({ loading: true })
+    setSelectedUsuario(usuario);
+    setUsuarioDetalle({ loading: true });
     try {
-      const { getUserById } = await import('../../services/usersService')
-      const detalle = await getUserById(usuario.id)
-      setUsuarioDetalle(detalle)
+      const { getUserById } = await import("../../services/usersService");
+      const detalle = await getUserById(usuario.id);
+      if (!mountedRef.current) return;
+      setUsuarioDetalle(detalle);
     } catch (error) {
-      toast.error('Error al cargar detalle del usuario')
-      setSelectedUsuario(null)
-      setUsuarioDetalle(null)
+      if (!mountedRef.current) return;
+      toast.error("Error al cargar detalle del usuario");
+      setSelectedUsuario(null);
+      setUsuarioDetalle(null);
     }
-  }
+  };
 
   return (
     <>
@@ -799,16 +853,17 @@ function UsuariosRolModal({ data, onClose }) {
               {data?.rol && (
                 <div
                   className="w-4 h-4 rounded-full"
-                  style={{ backgroundColor: data.rol.color || '#6B7280' }}
+                  style={{ backgroundColor: data.rol.color || "#6B7280" }}
                 />
               )}
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Usuarios con rol "{data?.rol?.nombre || '...'}"
+                  Usuarios con rol "{data?.rol?.nombre || "..."}"
                 </h3>
                 {!data?.loading && (
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {data?.total || 0} usuario{data?.total !== 1 ? 's' : ''} encontrado{data?.total !== 1 ? 's' : ''}
+                    {data?.total || 0} usuario{data?.total !== 1 ? "s" : ""}{" "}
+                    encontrado{data?.total !== 1 ? "s" : ""}
                   </p>
                 )}
               </div>
@@ -845,7 +900,11 @@ function UsuariosRolModal({ data, onClose }) {
                       </div>
                       <div>
                         <p className="font-medium text-gray-900 dark:text-white">
-                          {usuario.nombres ? `${usuario.nombres} ${usuario.apellidos || ''}`.trim() : usuario.username}
+                          {usuario.nombres
+                            ? `${usuario.nombres} ${
+                                usuario.apellidos || ""
+                              }`.trim()
+                            : usuario.username}
                         </p>
                         <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                           <Mail className="h-3 w-3" />
@@ -858,11 +917,11 @@ function UsuariosRolModal({ data, onClose }) {
                         <span
                           className={`inline-flex px-2 py-0.5 text-xs rounded-full ${
                             usuario.estado
-                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                              : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                              : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
                           }`}
                         >
-                          {usuario.estado ? 'Activo' : 'Inactivo'}
+                          {usuario.estado ? "Activo" : "Inactivo"}
                         </span>
                         {usuario.last_login_at && (
                           <div className="flex items-center gap-1 text-xs text-gray-400 mt-1 justify-end">
@@ -902,29 +961,25 @@ function UsuariosRolModal({ data, onClose }) {
         <UsuarioDetalleModal
           usuario={usuarioDetalle}
           onClose={() => {
-            setSelectedUsuario(null)
-            setUsuarioDetalle(null)
+            setSelectedUsuario(null);
+            setUsuarioDetalle(null);
           }}
         />
       )}
     </>
-  )
+  );
 }
 
 // Modal de detalle de usuario independiente
 /**
  * * COMPONENTE: UsuarioDetalleModal
- * 
+ *
  * @component
  * @category General
- * @description Componente de CitySecure para general
- * 
- * @param {Object} props - Propiedades del componente
- * @returns {JSX.Element} Elemento React renderizado
- * 
+ * @version 2.0.0
  * @example
  * <UsuarioDetalleModal />
- * 
+ *
  * TODO: Documentar props específicas
  * TODO: Agregar PropTypes o validación de tipos
  */
@@ -932,24 +987,29 @@ function UsuariosRolModal({ data, onClose }) {
 function UsuarioDetalleModal({ usuario, onClose }) {
   useEffect(() => {
     const handleEsc = (e) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', handleEsc)
-    return () => window.removeEventListener('keydown', handleEsc)
-  }, [onClose])
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [onClose]);
 
+  /**
+   * Formatea una fecha (es-ES). Devuelve "N/A" si no hay valor.
+   * @param {string|null|undefined} dateStr - Fecha en formato ISO.
+   * @returns {string} Fecha formateada o "N/A".
+   */
   const formatDate = (dateStr) => {
-    if (!dateStr) return 'N/A'
-    return new Date(dateStr).toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  }
+    if (!dateStr) return "N/A";
+    return new Date(dateStr).toLocaleDateString("es-ES", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
-  const isLoading = usuario?.loading
+  const isLoading = usuario?.loading;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
@@ -987,17 +1047,21 @@ function UsuarioDetalleModal({ usuario, onClose }) {
                 </div>
                 <div>
                   <h4 className="text-xl font-semibold text-gray-900 dark:text-white">
-                    {usuario.nombres ? `${usuario.nombres} ${usuario.apellidos || ''}`.trim() : usuario.username}
+                    {usuario.nombres
+                      ? `${usuario.nombres} ${usuario.apellidos || ""}`.trim()
+                      : usuario.username}
                   </h4>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">@{usuario.username}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    @{usuario.username}
+                  </p>
                   <span
                     className={`inline-flex mt-1 px-2 py-0.5 text-xs rounded-full ${
                       usuario.estado
-                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                        : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                        : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
                     }`}
                   >
-                    {usuario.estado ? 'Activo' : 'Inactivo'}
+                    {usuario.estado ? "Activo" : "Inactivo"}
                   </span>
                 </div>
               </div>
@@ -1010,12 +1074,18 @@ function UsuarioDetalleModal({ usuario, onClose }) {
                 <div className="grid gap-2">
                   <div className="flex items-center gap-3 text-sm">
                     <Mail className="h-4 w-4 text-gray-400" />
-                    <span className="text-gray-900 dark:text-white">{usuario.email}</span>
+                    <span className="text-gray-900 dark:text-white">
+                      {usuario.email}
+                    </span>
                   </div>
                   {usuario.telefono && (
                     <div className="flex items-center gap-3 text-sm">
-                      <span className="h-4 w-4 text-gray-400 text-center">📱</span>
-                      <span className="text-gray-900 dark:text-white">{usuario.telefono}</span>
+                      <span className="h-4 w-4 text-gray-400 text-center">
+                        📱
+                      </span>
+                      <span className="text-gray-900 dark:text-white">
+                        {usuario.telefono}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -1035,7 +1105,7 @@ function UsuarioDetalleModal({ usuario, onClose }) {
                       >
                         <div
                           className="w-2 h-2 rounded-full"
-                          style={{ backgroundColor: rol.color || '#6366f1' }}
+                          style={{ backgroundColor: rol.color || "#6366f1" }}
                         />
                         {rol.nombre}
                       </span>
@@ -1051,17 +1121,29 @@ function UsuarioDetalleModal({ usuario, onClose }) {
                 </h5>
                 <div className="grid gap-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-500 dark:text-gray-400">Último acceso:</span>
-                    <span className="text-gray-900 dark:text-white">{formatDate(usuario.last_login_at)}</span>
+                    <span className="text-gray-500 dark:text-gray-400">
+                      Último acceso:
+                    </span>
+                    <span className="text-gray-900 dark:text-white">
+                      {formatDate(usuario.last_login_at)}
+                    </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500 dark:text-gray-400">Creado:</span>
-                    <span className="text-gray-900 dark:text-white">{formatDate(usuario.created_at)}</span>
+                    <span className="text-gray-500 dark:text-gray-400">
+                      Creado:
+                    </span>
+                    <span className="text-gray-900 dark:text-white">
+                      {formatDate(usuario.created_at)}
+                    </span>
                   </div>
                   {usuario.email_verified_at && (
                     <div className="flex justify-between">
-                      <span className="text-gray-500 dark:text-gray-400">Email verificado:</span>
-                      <span className="text-gray-900 dark:text-white">{formatDate(usuario.email_verified_at)}</span>
+                      <span className="text-gray-500 dark:text-gray-400">
+                        Email verificado:
+                      </span>
+                      <span className="text-gray-900 dark:text-white">
+                        {formatDate(usuario.email_verified_at)}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -1081,5 +1163,5 @@ function UsuarioDetalleModal({ usuario, onClose }) {
         </div>
       </div>
     </div>
-  )
+  );
 }
