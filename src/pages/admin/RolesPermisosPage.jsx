@@ -102,8 +102,12 @@ export default function RolesPermisosPage() {
   useEffect(() => {
     if (permisosDelRol?.permisos) {
       const ids = permisosDelRol.permisos.map((p) => p.id);
-      setPermisosSeleccionados(ids);
-      setHasChanges(false);
+      // Deferring setState to avoid synchronous setState within effect (prevents cascading renders)
+      setTimeout(() => {
+        if (!isMountedRef.current) return;
+        setPermisosSeleccionados(ids);
+        setHasChanges(false);
+      }, 0);
     }
   }, [permisosDelRol]);
 
@@ -267,6 +271,7 @@ export default function RolesPermisosPage() {
       if (!isMountedRef.current) return;
       setUsuariosRol({ ...data, loading: false });
     } catch (error) {
+      console.error(error);
       if (!isMountedRef.current) return;
       toast.error("Error al cargar usuarios del rol");
       setShowUsuariosModal(false);

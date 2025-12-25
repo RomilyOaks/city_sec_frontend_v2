@@ -31,6 +31,7 @@ import {
   listUsers,
   restoreUser,
   updateUser,
+  changeUserEstado,
 } from "../../services/usersService.js";
 import { listPersonal } from "../../services/personalService.js";
 import { useAuthStore } from "../../store/useAuthStore.js";
@@ -498,6 +499,7 @@ export default function AdminUsuariosPage() {
    *
    * @param {Object} u - usuario
    */
+  /* eslint-disable-next-line no-unused-vars */
   const handleToggleEstado = async (u) => {
     try {
       const nextEstado = u.estado === "ACTIVO" ? "INACTIVO" : "ACTIVO";

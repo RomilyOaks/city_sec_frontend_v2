@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+/* eslint-env node */
+
 /**
  * Script de Documentación Automática para CitySecure Frontend
  *
@@ -76,7 +78,7 @@ const stats = {
  * @returns {string} - Bloque JSDoc generado
  */
 function generateComponentDoc(componentName, filePath) {
-  const fileName = path.basename(filePath);
+  const _fileName = path.basename(filePath);
   const category = getFileCategory(filePath);
 
   return `/**

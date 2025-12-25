@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+/* eslint-env node */
+
 /**
  * Script de VISTA PREVIA - Documentación CitySecure Frontend
  *
@@ -118,7 +120,7 @@ async function previewFile(filePath) {
       });
     }
   } catch (error) {
-    console.error(`❌ Error: ${filePath}`);
+    console.error(`❌ Error: ${filePath}`, error);
   }
 }
 
@@ -139,7 +141,7 @@ async function scanDirectory(dir) {
       }
     }
   } catch (error) {
-    console.error(`❌ Error escaneando: ${dir}`);
+    console.error(`❌ Error escaneando: ${dir}`, error);
   }
 }
 
