@@ -1,37 +1,19 @@
 import { Link } from 'react-router-dom'
 
 /**
- * * COMPONENTE: NotFoundPage
- * 
- * @component
- * @category General
- * @description Componente de CitySecure para general
- * 
- * @param {Object} props - Propiedades del componente
- * @returns {JSX.Element} Elemento React renderizado
- * 
- * @example
- * <NotFoundPage />
- * 
- * TODO: Documentar props específicas
- * TODO: Agregar PropTypes o validación de tipos
+ * File: c:\\Project\\city_sec_frontend_v2\\src\\pages\\NotFoundPage.jsx
+ * @version 2.0.0
+ * @description Página 404 / Not Found.
+ *
+ * @module src/pages/NotFoundPage.jsx
  */
 
 /**
- * * COMPONENTE: NotFoundPage
- * 
+ * NotFoundPage - Página 404
+ *
  * @component
- * @category General
- * @description Componente de CitySecure para general
- * 
- * @param {Object} props - Propiedades del componente
- * @returns {JSX.Element} Elemento React renderizado
- * 
- * @example
- * <NotFoundPage />
- * 
- * TODO: Documentar props específicas
- * TODO: Agregar PropTypes o validación de tipos
+ * @category Pages
+ * @returns {JSX.Element}
  */
 
 export default function NotFoundPage() {

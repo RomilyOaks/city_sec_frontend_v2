@@ -6,37 +6,19 @@ import { getEstadisticasNovedades, listNovedades } from '../../services/novedade
 import MapaIncidentes from '../../components/MapaIncidentes'
 
 /**
- * * COMPONENTE: DashboardPage
- * 
- * @component
- * @category General
- * @description Componente de CitySecure para visualización del dashboard principal
- * 
- * @param {Object} props - Propiedades del componente
- * @returns {JSX.Element} Elemento React renderizado
- * 
- * @example
- * <DashboardPage />
- * 
- * TODO: Documentar props específicas
- * TODO: Agregar PropTypes o validación de tipos
+ * File: c:\\Project\\city_sec_frontend_v2\\src\\pages\\dashboard\\DashboardPage.jsx
+ * @version 2.0.0
+ * @description Página de Dashboard con estadísticas y mapa de incidentes.
+ *
+ * @module src/pages/dashboard/DashboardPage.jsx
  */
 
 /**
- * * COMPONENTE: DashboardPage
- * 
+ * DashboardPage - Vista principal con tarjetas de métricas y mapa
+ *
  * @component
- * @category General
- * @description Componente de CitySecure para visualización del dashboard principal
- * 
- * @param {Object} props - Propiedades del componente
- * @returns {JSX.Element} Elemento React renderizado
- * 
- * @example
- * <DashboardPage />
- * 
- * TODO: Documentar props específicas
- * TODO: Agregar PropTypes o validación de tipos
+ * @category Pages
+ * @returns {JSX.Element}
  */
 
 export default function DashboardPage() {
