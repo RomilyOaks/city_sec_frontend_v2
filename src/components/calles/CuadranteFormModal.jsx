@@ -31,7 +31,7 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
   const loadSectores = async () => {
     setLoadingSectores(true);
     try {
-      const result = await listSectores({ limit: 1000 });
+      const result = await listSectores({ limit: 100 });
       setSectores(result.items || []);
     } catch (error) {
       console.error("Error al cargar sectores:", error);

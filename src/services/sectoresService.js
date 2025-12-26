@@ -21,11 +21,7 @@ export async function listSectores({
   if (search) params.append("search", search);
 
   const url = `/sectores?${params.toString()}`;
-  console.log("[sectoresService] GET URL:", url);
-  console.log("[sectoresService] Full URL will be:", `${import.meta.env.VITE_API_URL}${url}`);
-
   const res = await api.get(url);
-  console.log("[sectoresService] Response:", res?.data);
 
   return res?.data?.data || res?.data || { items: [], pagination: null };
 }
