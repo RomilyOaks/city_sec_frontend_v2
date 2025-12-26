@@ -25,6 +25,7 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
   const [ubigeos, setUbigeos] = useState([]);
   const [ubigeoSearch, setUbigeoSearch] = useState("");
   const [showUbigeoDropdown, setShowUbigeoDropdown] = useState(false);
+  const [validationError, setValidationError] = useState("");
 
   useEffect(() => {
     if (!isOpen) return;
@@ -166,6 +167,7 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
     setUbigeoSearch("");
     setUbigeos([]);
     setShowUbigeoDropdown(false);
+    setValidationError("");
     setActiveTab("basicos");
     onClose();
   };
@@ -178,11 +180,14 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setValidationError(""); // Limpiar errores previos
 
     try {
       // Validación de campos requeridos
       if (!formData.codigo || !formData.codigo.trim()) {
-        toast.error("El campo Código es requerido");
+        const errorMsg = "El campo Código es requerido";
+        setValidationError(errorMsg);
+        toast.error(errorMsg);
         setActiveTab("basicos");
         setTimeout(() => document.getElementById("sector-codigo")?.focus(), 100);
         setLoading(false);
@@ -190,7 +195,9 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
       }
 
       if (!formData.nombre || !formData.nombre.trim()) {
-        toast.error("El campo Nombre es requerido");
+        const errorMsg = "El campo Nombre es requerido";
+        setValidationError(errorMsg);
+        toast.error(errorMsg);
         setActiveTab("basicos");
         setTimeout(() => document.getElementById("sector-nombre")?.focus(), 100);
         setLoading(false);
@@ -200,7 +207,9 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
       // Validación de ubigeo (si se proporciona, debe tener 6 dígitos)
       if (formData.ubigeo && formData.ubigeo.trim()) {
         if (!/^\d{6}$/.test(formData.ubigeo)) {
-          toast.error("El Ubigeo debe contener exactamente 6 dígitos");
+          const errorMsg = "El Ubigeo debe contener exactamente 6 dígitos";
+          setValidationError(errorMsg);
+          toast.error(errorMsg);
           setActiveTab("georeferenciados");
           setTimeout(() => document.getElementById("sector-ubigeo")?.focus(), 100);
           setLoading(false);
@@ -210,15 +219,26 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
 
       // Validación de color_mapa (debe ser formato hex válido)
       if (formData.color_mapa && !/^#[0-9A-Fa-f]{6}$/.test(formData.color_mapa)) {
-        toast.error("El color debe tener formato hexadecimal válido (ej: #4A6126)");
+        const errorMsg = "El color debe tener formato hexadecimal válido (ej: #4A6126)";
+        setValidationError(errorMsg);
+        toast.error(errorMsg);
         setActiveTab("georeferenciados");
         setTimeout(() => document.getElementById("sector-color")?.focus(), 100);
         setLoading(false);
         return;
       }
 
-      const dataToSend = {
+      // Para crear: usar "codigo", para actualizar: usar "sector_code"
+      const dataToSend = sector ? {
         sector_code: formData.codigo.trim(),
+        nombre: formData.nombre.trim(),
+        descripcion: formData.descripcion?.trim() || null,
+        ubigeo: formData.ubigeo?.trim() || null,
+        zona_code: formData.zona_code?.trim() || null,
+        poligono_json: formData.poligono_json?.trim() || null,
+        color_mapa: formData.color_mapa || "#4A6126",
+      } : {
+        codigo: formData.codigo.trim(),
         nombre: formData.nombre.trim(),
         descripcion: formData.descripcion?.trim() || null,
         ubigeo: formData.ubigeo?.trim() || null,
@@ -242,19 +262,32 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
       // Mensajes de error más específicos
       const errorMessage = error.response?.data?.message;
       if (errorMessage) {
-        if (errorMessage.includes("sector_code")) {
-          toast.error("Error: El código del sector ya existe o es inválido");
+        let specificError = errorMessage;
+
+        if (errorMessage.includes("sector_code") || errorMessage.includes("codigo")) {
+          specificError = "Error: El código del sector ya existe o es inválido";
+          setValidationError(specificError);
           setActiveTab("basicos");
           setTimeout(() => document.getElementById("sector-codigo")?.focus(), 100);
         } else if (errorMessage.includes("ubigeo")) {
-          toast.error("Error: El ubigeo es inválido");
+          specificError = "Error: El ubigeo es inválido";
+          setValidationError(specificError);
           setActiveTab("georeferenciados");
           setTimeout(() => document.getElementById("sector-ubigeo")?.focus(), 100);
+        } else if (errorMessage.includes("nombre")) {
+          specificError = "Error: El nombre es inválido o ya existe";
+          setValidationError(specificError);
+          setActiveTab("basicos");
+          setTimeout(() => document.getElementById("sector-nombre")?.focus(), 100);
         } else {
-          toast.error(errorMessage);
+          setValidationError(errorMessage);
         }
+
+        toast.error(specificError);
       } else {
-        toast.error("Error al guardar el sector. Por favor, revise los datos ingresados.");
+        const genericError = "Error al guardar el sector. Por favor, revise los datos ingresados.";
+        setValidationError(genericError);
+        toast.error(genericError);
       }
     } finally {
       setLoading(false);
@@ -279,6 +312,20 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
             <X size={24} />
           </button>
         </div>
+
+        {/* Mensaje de error de validación */}
+        {validationError && (
+          <div className="mx-6 mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <div className="flex items-start gap-2">
+              <svg className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              <p className="text-sm text-red-800 dark:text-red-200 font-medium">
+                {validationError}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="sticky top-[73px] bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 z-10">
