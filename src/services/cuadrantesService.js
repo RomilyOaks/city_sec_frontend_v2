@@ -34,7 +34,27 @@ export async function listCuadrantes({
   console.log("📨 [SERVICE DEBUG] res.data.data:", res?.data?.data);
   console.log("📨 [SERVICE DEBUG] res.status:", res.status);
 
-  const finalResult = res?.data?.data || res?.data || { items: [], pagination: null };
+  // El backend devuelve: { success: true, data: Array }
+  // Necesitamos normalizar a: { items: Array, pagination: Object }
+  const rawData = res?.data?.data || res?.data;
+
+  // Si rawData es un array, normalizarlo a objeto con items y pagination
+  let finalResult;
+  if (Array.isArray(rawData)) {
+    finalResult = {
+      items: rawData,
+      pagination: {
+        current_page: page,
+        total_items: rawData.length,
+        total_pages: 1,
+        items_per_page: limit
+      }
+    };
+  } else {
+    // Si ya es un objeto, asumimos que tiene el formato correcto
+    finalResult = rawData;
+  }
+
   console.log("📤 [SERVICE DEBUG] Resultado final que se retorna:", finalResult);
 
   return finalResult;
