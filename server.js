@@ -1,12 +1,29 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { existsSync } from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const distPath = path.join(__dirname, 'dist');
+const indexPath = path.join(distPath, 'index.html');
+
+// Verify dist directory exists
+if (!existsSync(distPath)) {
+  console.error(`ERROR: dist directory not found at ${distPath}`);
+  process.exit(1);
+}
+
+if (!existsSync(indexPath)) {
+  console.error(`ERROR: index.html not found at ${indexPath}`);
+  process.exit(1);
+}
+
+console.log(`✓ Found dist directory at: ${distPath}`);
+console.log(`✓ Found index.html at: ${indexPath}`);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -14,14 +31,14 @@ app.get('/health', (req, res) => {
 });
 
 // Serve static files from dist directory
-app.use(express.static(path.join(__dirname, 'dist'), {
+app.use(express.static(distPath, {
   maxAge: '1d',
   etag: false
 }));
 
 // Handle SPA routing - send all requests to index.html
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'), (err) => {
+  res.sendFile(indexPath, (err) => {
     if (err) {
       console.error('Error sending file:', err);
       res.status(500).send('Error loading application');
@@ -29,7 +46,11 @@ app.get('*', (req, res) => {
   });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✓ Server running on http://0.0.0.0:${PORT}`);
-  console.log(`✓ Serving from: ${path.join(__dirname, 'dist')}`);
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✓ Server listening on http://0.0.0.0:${PORT}`);
+});
+
+server.on('error', (error) => {
+  console.error('Server error:', error);
+  process.exit(1);
 });
