@@ -253,14 +253,14 @@ export default function AppShell() {
                     Tipos de Vía
                   </SidebarLink>
                 )}
+                {canAccess("calles_sectores_cuadrantes") && (
+                  <SidebarLink to="/calles/sectores-cuadrantes" icon={Map}>
+                    Sectores y Cuadrantes
+                  </SidebarLink>
+                )}
                 {/*
                   TODO: Descomentar cuando se implementen estas páginas
 
-                  {canAccess("calles_cuadrantes") && (
-                    <SidebarLink to="/calles/cuadrantes" icon={MapPin}>
-                      Cuadrantes
-                    </SidebarLink>
-                  )}
                   {canAccess("calles_direcciones") && (
                     <SidebarLink to="/calles/direcciones" icon={MapPin}>
                       Direcciones

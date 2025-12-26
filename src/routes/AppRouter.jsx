@@ -30,6 +30,7 @@ import RolesPermisosPage from "../pages/admin/RolesPermisosPage.jsx";
 // ============================================
 import CallesPage from "../pages/calles/CallesPage.jsx";
 import TiposViaPage from "../pages/calles/TiposViaPage.jsx";
+import SectoresCuadrantesPage from "../pages/calles/SectoresCuadrantesPage.jsx";
 
 /**
  * AppRouter - Router principal con rutas públicas y protegidas
@@ -122,6 +123,14 @@ export default function AppRouter() {
           element={
             <ProtectedRoute allowedRoles={ROUTE_ACCESS.calles_tipos_via}>
               <TiposViaPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="calles/sectores-cuadrantes"
+          element={
+            <ProtectedRoute allowedRoles={ROUTE_ACCESS.calles_sectores_cuadrantes}>
+              <SectoresCuadrantesPage />
             </ProtectedRoute>
           }
         />
