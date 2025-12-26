@@ -24,6 +24,7 @@ import {
   MapPin,
   ChevronDown,
   Type,
+  Map,
 } from "lucide-react";
 
 import ThemeToggle from "../components/common/ThemeToggle.jsx";
