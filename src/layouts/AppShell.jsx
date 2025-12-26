@@ -1,8 +1,11 @@
 /**
- * File: c:\\Project\\city_sec_frontend_v2\\src\\layouts\\AppShell.jsx
- * @version 2.0.0
- * @description Layout principal (AppShell) que contiene la barra superior, el sidebar y el outlet de rutas.
- * Se añadieron headers y JSDoc para facilitar mantenimiento sin cambiar la lógica.
+ * File: src/layouts/AppShell.jsx
+ * @version 2.1.0
+ * @description Layout principal (AppShell) con barra superior, sidebar y outlet de rutas.
+ *
+ * CHANGELOG v2.1.0:
+ * - ✅ Agregado menú desplegable para módulo Calles
+ * - ✅ Componente SidebarDropdown para submenús
  *
  * @module src/layouts/AppShell.jsx
  */
@@ -18,6 +21,9 @@ import {
   Users,
   Key,
   Shield,
+  MapPin,
+  ChevronDown,
+  Type,
 } from "lucide-react";
 
 import ThemeToggle from "../components/common/ThemeToggle.jsx";
@@ -27,22 +33,9 @@ import { canAccessRoute } from "../rbac/rbac.js";
 import { APP_VERSION } from "../config/version.js";
 
 /**
- * * COMPONENTE: SidebarLink
- *
+ * SidebarLink - Link individual del sidebar
  * @component
- * @category General
- * @description Componente de CitySecure para general
- *
- * @param {Object} props - Propiedades del componente
- * @returns {JSX.Element} Elemento React renderizado
- *
- * @example
- * <SidebarLink />
- *
- * TODO: Documentar props específicas
- * TODO: Agregar PropTypes o validación de tipos
  */
-
 function SidebarLink({ to, icon, children }) {
   const Icon = icon;
   return (
@@ -65,13 +58,44 @@ function SidebarLink({ to, icon, children }) {
 }
 
 /**
+ * SidebarDropdown - Menú desplegable del sidebar
+ * @component
+ */
+function SidebarDropdown({ icon, label, children }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const Icon = icon;
+
+  return (
+    <div>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm font-medium transition text-slate-700 hover:bg-primary-50 dark:text-slate-200 dark:hover:bg-slate-800"
+      >
+        <div className="flex items-center gap-2">
+          <Icon size={18} />
+          <span>{label}</span>
+        </div>
+        <ChevronDown
+          size={16}
+          className={`transition-transform ${isOpen ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {isOpen && (
+        <div className="ml-4 mt-1 space-y-1 border-l-2 border-slate-200 dark:border-slate-700 pl-2">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
  * AppShell - Layout principal con header y sidebar
- *
  * @component
  * @category Components | Layouts
  * @returns {JSX.Element}
  */
-
 export default function AppShell() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
@@ -95,6 +119,9 @@ export default function AppShell() {
 
   return (
     <div className="min-h-screen bg-primary-50 dark:bg-slate-950">
+      {/* ============================================
+          HEADER
+          ============================================ */}
       <header className="sticky top-0 z-10 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900 backdrop-blur">
         <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -173,12 +200,18 @@ export default function AppShell() {
         </div>
       </header>
 
+      {/* ============================================
+          SIDEBAR + MAIN CONTENT
+          ============================================ */}
       <div className="mx-auto max-w-7xl px-4 py-6 grid grid-cols-1 md:grid-cols-[240px_1fr] gap-6">
         <aside className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 shadow-sm h-fit">
           <nav className="space-y-1">
+            {/* Dashboard */}
             <SidebarLink to="/dashboard" icon={LayoutDashboard}>
               Dashboard
             </SidebarLink>
+
+            {/* Administración */}
             {canAccess("admin_usuarios") && (
               <SidebarLink to="/admin/usuarios" icon={User}>
                 Usuarios
@@ -189,6 +222,8 @@ export default function AppShell() {
                 Roles y Permisos
               </SidebarLink>
             )}
+
+            {/* Operaciones */}
             {canAccess("personal") && (
               <SidebarLink to="/personal" icon={Users}>
                 Personal
@@ -203,6 +238,36 @@ export default function AppShell() {
               <SidebarLink to="/novedades" icon={AlertTriangle}>
                 Novedades
               </SidebarLink>
+            )}
+
+            {/* ============================================
+                MÓDULO CALLES - MENÚ DESPLEGABLE
+                ============================================ */}
+            {canAccess("calles") && (
+              <SidebarDropdown icon={MapPin} label="Calles">
+                <SidebarLink to="/calles" icon={MapPin}>
+                  Gestión de Calles
+                </SidebarLink>
+                {canAccess("calles_tipos_via") && (
+                  <SidebarLink to="/calles/tipos-via" icon={Type}>
+                    Tipos de Vía
+                  </SidebarLink>
+                )}
+                {/*
+                  TODO: Descomentar cuando se implementen estas páginas
+
+                  {canAccess("calles_cuadrantes") && (
+                    <SidebarLink to="/calles/cuadrantes" icon={MapPin}>
+                      Cuadrantes
+                    </SidebarLink>
+                  )}
+                  {canAccess("calles_direcciones") && (
+                    <SidebarLink to="/calles/direcciones" icon={MapPin}>
+                      Direcciones
+                    </SidebarLink>
+                  )}
+                */}
+              </SidebarDropdown>
             )}
           </nav>
 

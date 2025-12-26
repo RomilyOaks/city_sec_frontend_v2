@@ -677,9 +677,10 @@ export default function AdminUsuariosPage() {
                     nextDeleted: "all",
                   });
                 }}
-                className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                className="inline-flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800"
+                title="Limpiar filtros"
               >
-                Limpiar
+                <X size={20} />
               </button>
             </div>
           </div>

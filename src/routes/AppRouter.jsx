@@ -1,8 +1,10 @@
 /**
- * File: c:\\Project\\city_sec_frontend_v2\\src\\routes\\AppRouter.jsx
- * @version 2.0.0
+ * File: src/routes/AppRouter.jsx
+ * @version 2.1.0
  * @description Router principal de la aplicación con rutas públicas y protegidas.
- * Se consolidaron JSDoc blocks y se añadió cabecera de archivo.
+ *
+ * CHANGELOG v2.1.0:
+ * - ✅ Agregadas rutas del módulo Calles
  *
  * @module src/routes/AppRouter.jsx
  */
@@ -23,6 +25,12 @@ import { ROUTE_ACCESS } from "../rbac/rbac.js";
 import AdminUsuariosPage from "../pages/admin/AdminUsuariosPage.jsx";
 import RolesPermisosPage from "../pages/admin/RolesPermisosPage.jsx";
 
+// ============================================
+// IMPORTAR PÁGINAS DEL MÓDULO CALLES
+// ============================================
+import CallesPage from "../pages/calles/CallesPage.jsx";
+import TiposViaPage from "../pages/calles/TiposViaPage.jsx";
+
 /**
  * AppRouter - Router principal con rutas públicas y protegidas
  *
@@ -30,7 +38,6 @@ import RolesPermisosPage from "../pages/admin/RolesPermisosPage.jsx";
  * @category Components | Routing
  * @returns {JSX.Element}
  */
-
 export default function AppRouter() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
@@ -52,7 +59,10 @@ export default function AppRouter() {
           </ProtectedRoute>
         }
       >
+        {/* Dashboard */}
         <Route path="dashboard" element={<DashboardPage />} />
+
+        {/* Administración */}
         <Route
           path="admin/usuarios"
           element={
@@ -69,6 +79,8 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
+
+        {/* Operaciones */}
         <Route
           path="personal"
           element={
@@ -93,6 +105,31 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
+
+        {/* ============================================
+            MÓDULO CALLES (NUEVO)
+            ============================================ */}
+        <Route
+          path="calles"
+          element={
+            <ProtectedRoute allowedRoles={ROUTE_ACCESS.calles}>
+              <CallesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="calles/tipos-via"
+          element={
+            <ProtectedRoute allowedRoles={ROUTE_ACCESS.calles_tipos_via}>
+              <TiposViaPage />
+            </ProtectedRoute>
+          }
+        />
+        {/*
+          TODO: Agregar rutas adicionales del módulo Calles:
+          - /calles/cuadrantes
+          - /calles/direcciones
+        */}
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />

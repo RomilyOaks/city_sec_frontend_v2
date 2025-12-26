@@ -193,6 +193,7 @@ export default function VehiculosPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [filterEstado, setFilterEstado] = useState("");
+  const [filterTipo, setFilterTipo] = useState("");
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingVehiculo, setEditingVehiculo] = useState(null);
@@ -259,6 +260,7 @@ export default function VehiculosPage() {
         page: nextPage,
         limit: 15,
         estado_operativo: filterEstado || undefined,
+        tipo_id: filterTipo || undefined,
         search: search || undefined,
       });
       const items = result?.vehiculos || result?.data || result || [];
@@ -273,7 +275,7 @@ export default function VehiculosPage() {
 
   useEffect(() => {
     fetchVehiculos({ nextPage: page });
-  }, [page, filterEstado]);
+  }, [page, filterEstado, filterTipo]);
 
   const handleSearch = () => {
     setPage(1);
@@ -1084,6 +1086,21 @@ export default function VehiculosPage() {
             )}
           </div>
           <select
+            value={filterTipo}
+            onChange={(e) => {
+              setFilterTipo(e.target.value);
+              setPage(1);
+            }}
+            className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
+          >
+            <option value="">Todos los tipos</option>
+            {tiposVehiculo.map((tipo) => (
+              <option key={tipo.id} value={tipo.id}>
+                {tipo.nombre}
+              </option>
+            ))}
+          </select>
+          <select
             value={filterEstado}
             onChange={(e) => {
               setFilterEstado(e.target.value);
@@ -1104,6 +1121,20 @@ export default function VehiculosPage() {
           >
             Buscar
           </button>
+          {(search || filterTipo || filterEstado) && (
+            <button
+              onClick={() => {
+                setSearch("");
+                setFilterTipo("");
+                setFilterEstado("");
+                setPage(1);
+              }}
+              className="inline-flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 p-2 text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800"
+              title="Limpiar todos los filtros"
+            >
+              <X size={20} />
+            </button>
+          )}
         </div>
       </div>
 
