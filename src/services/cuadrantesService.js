@@ -4,7 +4,7 @@
  * @description Servicio para gestión de cuadrantes
  */
 
-import api from "../api/axiosConfig";
+import api from "./api";
 
 /**
  * Listar cuadrantes con filtros y paginación

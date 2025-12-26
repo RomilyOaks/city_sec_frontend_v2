@@ -4,7 +4,7 @@
  * @description Servicio para gestión de sectores
  */
 
-import api from "../api/axiosConfig";
+import api from "./api";
 
 /**
  * Listar sectores con filtros y paginación
