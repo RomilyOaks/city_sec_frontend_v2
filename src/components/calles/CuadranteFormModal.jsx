@@ -1,21 +1,27 @@
 /**
  * File: src/components/calles/CuadranteFormModal.jsx
- * @version 2.0.0
- * @description Modal para crear/editar cuadrantes con soporte para sector preseleccionado
+ * @version 3.0.0
+ * @description Modal para crear/editar cuadrantes con tabs para datos básicos y georeferenciados
  */
 
 import { useState, useEffect } from "react";
-import { X } from "lucide-react";
+import { X, MapPin, FileText } from "lucide-react";
 import { createCuadrante, updateCuadrante } from "../../services/cuadrantesService";
 import { listSectores } from "../../services/sectoresService";
 import toast from "react-hot-toast";
 
 export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSuccess, preselectedSectorId }) {
+  const [activeTab, setActiveTab] = useState("basicos");
   const [formData, setFormData] = useState({
-    codigo: "",
+    cuadrante_code: "",
     nombre: "",
     sector_id: "",
     descripcion: "",
+    zona_code: "",
+    latitud: "",
+    longitud: "",
+    poligono_json: "",
+    radio_metros: "",
   });
   const [sectores, setSectores] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -44,19 +50,30 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
   useEffect(() => {
     if (cuadrante) {
       setFormData({
-        codigo: cuadrante.codigo || "",
+        cuadrante_code: cuadrante.cuadrante_code || cuadrante.codigo || "",
         nombre: cuadrante.nombre || "",
         sector_id: cuadrante.sector_id || "",
         descripcion: cuadrante.descripcion || "",
+        zona_code: cuadrante.zona_code || "",
+        latitud: cuadrante.latitud || "",
+        longitud: cuadrante.longitud || "",
+        poligono_json: cuadrante.poligono_json || "",
+        radio_metros: cuadrante.radio_metros || "",
       });
     } else {
       setFormData({
-        codigo: "",
+        cuadrante_code: "",
         nombre: "",
         sector_id: preselectedSectorId || "",
         descripcion: "",
+        zona_code: "",
+        latitud: "",
+        longitud: "",
+        poligono_json: "",
+        radio_metros: "",
       });
     }
+    setActiveTab("basicos");
   }, [cuadrante, preselectedSectorId, isOpen]);
 
   // Autofocus en el primer campo cuando se abre el modal
@@ -91,11 +108,17 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
 
   const handleClose = () => {
     setFormData({
-      codigo: "",
+      cuadrante_code: "",
       nombre: "",
       sector_id: "",
       descripcion: "",
+      zona_code: "",
+      latitud: "",
+      longitud: "",
+      poligono_json: "",
+      radio_metros: "",
     });
+    setActiveTab("basicos");
     onClose();
   };
 
@@ -109,11 +132,24 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
     setLoading(true);
 
     try {
+      // Preparar datos para envío
+      const dataToSend = {
+        cuadrante_code: formData.cuadrante_code,
+        nombre: formData.nombre,
+        sector_id: formData.sector_id,
+        descripcion: formData.descripcion || null,
+        zona_code: formData.zona_code || null,
+        latitud: formData.latitud ? parseFloat(formData.latitud) : null,
+        longitud: formData.longitud ? parseFloat(formData.longitud) : null,
+        poligono_json: formData.poligono_json || null,
+        radio_metros: formData.radio_metros ? parseFloat(formData.radio_metros) : null,
+      };
+
       if (cuadrante) {
-        await updateCuadrante(cuadrante.id, formData);
+        await updateCuadrante(cuadrante.id, dataToSend);
         toast.success("Cuadrante actualizado correctamente");
       } else {
-        await createCuadrante(formData);
+        await createCuadrante(dataToSend);
         toast.success("Cuadrante creado correctamente");
       }
       onSuccess();
@@ -132,9 +168,9 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="relative bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between z-10">
           <h2 className="text-xl font-bold text-slate-900 dark:text-white">
             {cuadrante ? "Editar Cuadrante" : "Nuevo Cuadrante"}
           </h2>
@@ -147,105 +183,249 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
           </button>
         </div>
 
+        {/* Tabs */}
+        <div className="sticky top-[73px] bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 z-10">
+          <div className="flex gap-4">
+            <button
+              type="button"
+              onClick={() => setActiveTab("basicos")}
+              className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors ${
+                activeTab === "basicos"
+                  ? "border-primary-700 text-primary-700 dark:text-primary-500"
+                  : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              }`}
+            >
+              <FileText size={18} />
+              <span>Datos Básicos</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("georeferenciados")}
+              className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors ${
+                activeTab === "georeferenciados"
+                  ? "border-primary-700 text-primary-700 dark:text-primary-500"
+                  : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              }`}
+            >
+              <MapPin size={18} />
+              <span>Datos Georeferenciados</span>
+            </button>
+          </div>
+        </div>
+
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* Código */}
-          <div>
-            <label
-              htmlFor="cuadrante-codigo"
-              className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
-            >
-              Código <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              id="cuadrante-codigo"
-              name="codigo"
-              value={formData.codigo}
-              onChange={handleChange}
-              required
-              maxLength={10}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              placeholder="Ej: C01"
-            />
-          </div>
+        <form onSubmit={handleSubmit} className="p-6">
+          {/* Tab: Datos Básicos */}
+          {activeTab === "basicos" && (
+            <div className="space-y-4">
+              {/* Código */}
+              <div>
+                <label
+                  htmlFor="cuadrante-codigo"
+                  className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+                >
+                  Código <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="cuadrante-codigo"
+                  name="cuadrante_code"
+                  value={formData.cuadrante_code}
+                  onChange={handleChange}
+                  required
+                  maxLength={10}
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="Ej: C01"
+                />
+              </div>
 
-          {/* Nombre */}
-          <div>
-            <label
-              htmlFor="cuadrante-nombre"
-              className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
-            >
-              Nombre <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              id="cuadrante-nombre"
-              name="nombre"
-              value={formData.nombre}
-              onChange={handleChange}
-              required
-              maxLength={100}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              placeholder="Ej: Cuadrante Norte"
-            />
-          </div>
+              {/* Nombre */}
+              <div>
+                <label
+                  htmlFor="cuadrante-nombre"
+                  className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+                >
+                  Nombre <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="cuadrante-nombre"
+                  name="nombre"
+                  value={formData.nombre}
+                  onChange={handleChange}
+                  required
+                  maxLength={100}
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="Ej: Cuadrante Norte"
+                />
+              </div>
 
-          {/* Sector */}
-          <div>
-            <label
-              htmlFor="cuadrante-sector"
-              className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
-            >
-              Sector <span className="text-red-500">*</span>
-            </label>
-            <select
-              id="cuadrante-sector"
-              name="sector_id"
-              value={formData.sector_id}
-              onChange={handleChange}
-              required
-              disabled={loadingSectores || (!!preselectedSectorId && !cuadrante)}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50"
-            >
-              <option value="">
-                {loadingSectores ? "Cargando..." : "Seleccione un sector"}
-              </option>
-              {sectores.map((sector) => (
-                <option key={sector.id} value={sector.id}>
-                  {sector.sector_code || sector.codigo} - {sector.nombre}
-                </option>
-              ))}
-            </select>
-            {preselectedSectorId && !cuadrante && (
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                El sector está preseleccionado según el sector actual
-              </p>
-            )}
-          </div>
+              {/* Sector */}
+              <div>
+                <label
+                  htmlFor="cuadrante-sector"
+                  className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+                >
+                  Sector <span className="text-red-500">*</span>
+                </label>
+                <select
+                  id="cuadrante-sector"
+                  name="sector_id"
+                  value={formData.sector_id}
+                  onChange={handleChange}
+                  required
+                  disabled={loadingSectores || (!!preselectedSectorId && !cuadrante)}
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50"
+                >
+                  <option value="">
+                    {loadingSectores ? "Cargando..." : "Seleccione un sector"}
+                  </option>
+                  {sectores.map((sector) => (
+                    <option key={sector.id} value={sector.id}>
+                      {sector.sector_code || sector.codigo} - {sector.nombre}
+                    </option>
+                  ))}
+                </select>
+                {preselectedSectorId && !cuadrante && (
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    El sector está preseleccionado según el sector actual
+                  </p>
+                )}
+              </div>
 
-          {/* Descripción */}
-          <div>
-            <label
-              htmlFor="cuadrante-descripcion"
-              className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
-            >
-              Descripción
-            </label>
-            <textarea
-              id="cuadrante-descripcion"
-              name="descripcion"
-              value={formData.descripcion}
-              onChange={handleChange}
-              rows={3}
-              maxLength={500}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
-              placeholder="Descripción del cuadrante..."
-            />
-          </div>
+              {/* Descripción */}
+              <div>
+                <label
+                  htmlFor="cuadrante-descripcion"
+                  className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+                >
+                  Descripción
+                </label>
+                <textarea
+                  id="cuadrante-descripcion"
+                  name="descripcion"
+                  value={formData.descripcion}
+                  onChange={handleChange}
+                  rows={3}
+                  maxLength={500}
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                  placeholder="Descripción del cuadrante..."
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Tab: Datos Georeferenciados */}
+          {activeTab === "georeferenciados" && (
+            <div className="space-y-4">
+              {/* Zona Code */}
+              <div>
+                <label
+                  htmlFor="cuadrante-zona"
+                  className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+                >
+                  Código de Zona
+                </label>
+                <input
+                  type="text"
+                  id="cuadrante-zona"
+                  name="zona_code"
+                  value={formData.zona_code}
+                  onChange={handleChange}
+                  maxLength={10}
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="Ej: Z01"
+                />
+              </div>
+
+              {/* Coordenadas */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label
+                    htmlFor="cuadrante-latitud"
+                    className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+                  >
+                    Latitud
+                  </label>
+                  <input
+                    type="number"
+                    id="cuadrante-latitud"
+                    name="latitud"
+                    value={formData.latitud}
+                    onChange={handleChange}
+                    step="any"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Ej: -12.046374"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="cuadrante-longitud"
+                    className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+                  >
+                    Longitud
+                  </label>
+                  <input
+                    type="number"
+                    id="cuadrante-longitud"
+                    name="longitud"
+                    value={formData.longitud}
+                    onChange={handleChange}
+                    step="any"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Ej: -77.042793"
+                  />
+                </div>
+              </div>
+
+              {/* Radio en metros */}
+              <div>
+                <label
+                  htmlFor="cuadrante-radio"
+                  className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+                >
+                  Radio (metros)
+                </label>
+                <input
+                  type="number"
+                  id="cuadrante-radio"
+                  name="radio_metros"
+                  value={formData.radio_metros}
+                  onChange={handleChange}
+                  min="0"
+                  step="0.01"
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="Ej: 500"
+                />
+              </div>
+
+              {/* Polígono JSON */}
+              <div>
+                <label
+                  htmlFor="cuadrante-poligono"
+                  className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+                >
+                  Polígono (JSON)
+                </label>
+                <textarea
+                  id="cuadrante-poligono"
+                  name="poligono_json"
+                  value={formData.poligono_json}
+                  onChange={handleChange}
+                  rows={5}
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none font-mono text-sm"
+                  placeholder='{"type":"Polygon","coordinates":[...]}'
+                />
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Formato GeoJSON del polígono que delimita el cuadrante
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Footer */}
-          <div className="flex gap-3 pt-4">
+          <div className="flex gap-3 pt-6 mt-6 border-t border-slate-200 dark:border-slate-700">
             <button
               type="button"
               onClick={handleClose}
