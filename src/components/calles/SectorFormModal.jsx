@@ -138,7 +138,7 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
               onChange={handleChange}
               required
               maxLength={10}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               placeholder="Ej: S01"
             />
           </div>
@@ -159,7 +159,7 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
               onChange={handleChange}
               required
               maxLength={100}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               placeholder="Ej: Sector Centro"
             />
           </div>
@@ -179,7 +179,7 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
               onChange={handleChange}
               rows={3}
               maxLength={500}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
               placeholder="Descripción del sector..."
             />
           </div>
@@ -197,7 +197,7 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
             <button
               type="submit"
               id="submit-sector-btn"
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-2 bg-primary-700 text-white rounded-lg hover:bg-primary-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={loading}
               title="Guardar (ALT+G)"
             >

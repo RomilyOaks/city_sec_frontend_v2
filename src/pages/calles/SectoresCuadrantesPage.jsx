@@ -250,7 +250,7 @@ export default function SectoresCuadrantesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Map className="text-blue-600" size={28} />
+            <Map className="text-primary-700" size={28} />
             Sectores y Cuadrantes
           </h1>
           <p className="text-slate-600 dark:text-slate-400 mt-1">
@@ -266,7 +266,7 @@ export default function SectoresCuadrantesPage() {
             onClick={() => setActiveTab("sectores")}
             className={`px-4 py-2 font-medium border-b-2 transition-colors ${
               activeTab === "sectores"
-                ? "border-blue-600 text-blue-600 dark:text-blue-400"
+                ? "border-blue-600 text-primary-700 dark:text-blue-400"
                 : "border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
@@ -276,7 +276,7 @@ export default function SectoresCuadrantesPage() {
             onClick={() => setActiveTab("cuadrantes")}
             className={`px-4 py-2 font-medium border-b-2 transition-colors ${
               activeTab === "cuadrantes"
-                ? "border-blue-600 text-blue-600 dark:text-blue-400"
+                ? "border-blue-600 text-primary-700 dark:text-blue-400"
                 : "border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
@@ -407,7 +407,7 @@ function SectoresTab({
         {can("sectores_create") && (
           <button
             onClick={onCreate}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-700 text-white rounded-lg hover:bg-primary-800 transition-colors"
             title="Nuevo Sector (ALT+N)"
           >
             <Plus size={20} />
@@ -466,7 +466,7 @@ function SectoresTab({
                         {can("sectores_update") && (
                           <button
                             onClick={() => onEdit(sector)}
-                            className="p-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                            className="p-1 text-primary-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
                             title="Editar"
                           >
                             <Edit size={18} />
@@ -585,7 +585,7 @@ function CuadrantesTab({
         {can("cuadrantes_create") && (
           <button
             onClick={onCreate}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-700 text-white rounded-lg hover:bg-primary-800 transition-colors"
             title="Nuevo Cuadrante (ALT+N)"
           >
             <Plus size={20} />
@@ -650,7 +650,7 @@ function CuadrantesTab({
                         {can("cuadrantes_update") && (
                           <button
                             onClick={() => onEdit(cuadrante)}
-                            className="p-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                            className="p-1 text-primary-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
                             title="Editar"
                           >
                             <Edit size={18} />
