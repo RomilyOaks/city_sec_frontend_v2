@@ -48,6 +48,8 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
   };
 
   useEffect(() => {
+    if (!isOpen) return; // Solo ejecutar cuando el modal se abre
+
     if (cuadrante) {
       setFormData({
         cuadrante_code: cuadrante.cuadrante_code || cuadrante.codigo || "",
@@ -74,7 +76,8 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
       });
     }
     setActiveTab("basicos");
-  }, [cuadrante, preselectedSectorId, isOpen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cuadrante, isOpen]);
 
   // Autofocus en el primer campo cuando se abre el modal
   useEffect(() => {
