@@ -22,7 +22,12 @@ export async function listCuadrantes({
   if (search) params.append("search", search);
   if (sector_id) params.append("sector_id", sector_id);
 
-  const res = await api.get(`/cuadrantes?${params.toString()}`);
+  const url = `/cuadrantes?${params.toString()}`;
+  console.log("[cuadrantesService] GET", url);
+
+  const res = await api.get(url);
+  console.log("[cuadrantesService] Response:", res?.data);
+
   return res?.data?.data || res?.data || { items: [], pagination: null };
 }
 

@@ -20,7 +20,12 @@ export async function listSectores({
   params.append("estado", "1"); // Solo sectores activos
   if (search) params.append("search", search);
 
-  const res = await api.get(`/sectores?${params.toString()}`);
+  const url = `/sectores?${params.toString()}`;
+  console.log("[sectoresService] GET", url);
+
+  const res = await api.get(url);
+  console.log("[sectoresService] Response:", res?.data);
+
   return res?.data?.data || res?.data || { items: [], pagination: null };
 }
 

@@ -54,12 +54,16 @@ export default function SectoresCuadrantesPage() {
   // ============================================
 
   useEffect(() => {
+    console.log("[SectoresCuadrantes] useEffect triggered:", { activeTab });
     if (activeTab === "sectores") {
+      console.log("[SectoresCuadrantes] Loading sectores...");
       loadSectores();
     } else {
+      console.log("[SectoresCuadrantes] Loading cuadrantes...");
       loadCuadrantes();
     }
-  }, [activeTab, currentPageSectores, currentPageCuadrantes, searchSectores, searchCuadrantes, filterSectorId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, currentPageSectores, currentPageCuadrantes]);
 
   useEffect(() => {
     // Cargar todos los sectores para el filtro de cuadrantes
@@ -67,6 +71,7 @@ export default function SectoresCuadrantesPage() {
   }, []);
 
   const loadSectores = async () => {
+    console.log("[loadSectores] Starting fetch...", { page: currentPageSectores, limit, search: searchSectores });
     setLoadingSectores(true);
     try {
       const result = await listSectores({
@@ -74,10 +79,12 @@ export default function SectoresCuadrantesPage() {
         limit,
         search: searchSectores || undefined,
       });
+      console.log("[loadSectores] Result:", result);
       setSectores(result.items || []);
       setPaginationSectores(result.pagination);
     } catch (error) {
-      console.error("Error al cargar sectores:", error);
+      console.error("[loadSectores] Error:", error);
+      console.error("[loadSectores] Error details:", error.response?.data || error.message);
       toast.error("Error al cargar sectores");
     } finally {
       setLoadingSectores(false);
@@ -85,6 +92,7 @@ export default function SectoresCuadrantesPage() {
   };
 
   const loadCuadrantes = async () => {
+    console.log("[loadCuadrantes] Starting fetch...", { page: currentPageCuadrantes, limit, search: searchCuadrantes, sector_id: filterSectorId });
     setLoadingCuadrantes(true);
     try {
       const result = await listCuadrantes({
@@ -93,10 +101,12 @@ export default function SectoresCuadrantesPage() {
         search: searchCuadrantes || undefined,
         sector_id: filterSectorId || undefined,
       });
+      console.log("[loadCuadrantes] Result:", result);
       setCuadrantes(result.items || []);
       setPaginationCuadrantes(result.pagination);
     } catch (error) {
-      console.error("Error al cargar cuadrantes:", error);
+      console.error("[loadCuadrantes] Error:", error);
+      console.error("[loadCuadrantes] Error details:", error.response?.data || error.message);
       toast.error("Error al cargar cuadrantes");
     } finally {
       setLoadingCuadrantes(false);
