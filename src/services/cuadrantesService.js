@@ -95,7 +95,15 @@ export async function createCuadrante(data) {
  * Actualizar cuadrante existente
  */
 export async function updateCuadrante(id, data) {
+  console.log("🔄 [UPDATE DEBUG] ID del cuadrante:", id);
+  console.log("🔄 [UPDATE DEBUG] Datos enviados:", data);
+  console.log("🔄 [UPDATE DEBUG] URL completa:", `/cuadrantes/${id}`);
+
   const res = await api.put(`/cuadrantes/${id}`, data);
+
+  console.log("✅ [UPDATE DEBUG] Respuesta del servidor:", res);
+  console.log("✅ [UPDATE DEBUG] res.data:", res.data);
+
   return res?.data?.data || res?.data;
 }
 
