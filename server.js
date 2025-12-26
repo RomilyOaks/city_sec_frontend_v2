@@ -25,9 +25,16 @@ if (!existsSync(indexPath)) {
 console.log(`✓ Found dist directory at: ${distPath}`);
 console.log(`✓ Found index.html at: ${indexPath}`);
 
+// Middleware to log all requests
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  next();
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.status(200).send('OK');
+  console.log('Health check requested');
+  res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
 // Serve static files from dist directory
@@ -38,6 +45,7 @@ app.use(express.static(distPath, {
 
 // Handle SPA routing - send all requests to index.html
 app.get('*', (req, res) => {
+  console.log(`Serving index.html for: ${req.url}`);
   res.sendFile(indexPath, (err) => {
     if (err) {
       console.error('Error sending file:', err);
