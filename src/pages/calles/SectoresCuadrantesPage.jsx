@@ -70,15 +70,30 @@ export default function SectoresCuadrantesPage() {
   const loadSectores = async () => {
     setLoadingSectores(true);
     try {
+      console.log("🔍 [DEBUG] Cargando sectores con parámetros:", {
+        page: currentPageSectores,
+        limit,
+        search: searchSectores || undefined,
+      });
+
       const result = await listSectores({
         page: currentPageSectores,
         limit,
         search: searchSectores || undefined,
       });
+
+      console.log("📦 [DEBUG] Resultado completo de listSectores:", result);
+      console.log("📋 [DEBUG] result.items:", result.items);
+      console.log("📊 [DEBUG] result.pagination:", result.pagination);
+      console.log("🔢 [DEBUG] Cantidad de items:", result.items?.length || 0);
+
       setSectores(result.items || []);
       setPaginationSectores(result.pagination);
+
+      console.log("✅ [DEBUG] Sectores actualizados en estado");
     } catch (error) {
-      console.error("Error al cargar sectores:", error);
+      console.error("❌ [DEBUG] Error al cargar sectores:", error);
+      console.error("❌ [DEBUG] Error completo:", JSON.stringify(error, null, 2));
       toast.error("Error al cargar sectores");
     } finally {
       setLoadingSectores(false);
@@ -88,16 +103,32 @@ export default function SectoresCuadrantesPage() {
   const loadCuadrantes = async () => {
     setLoadingCuadrantes(true);
     try {
+      console.log("🔍 [DEBUG] Cargando cuadrantes con parámetros:", {
+        page: currentPageCuadrantes,
+        limit,
+        search: searchCuadrantes || undefined,
+        sector_id: filterSectorId || undefined,
+      });
+
       const result = await listCuadrantes({
         page: currentPageCuadrantes,
         limit,
         search: searchCuadrantes || undefined,
         sector_id: filterSectorId || undefined,
       });
+
+      console.log("📦 [DEBUG] Resultado completo de listCuadrantes:", result);
+      console.log("📋 [DEBUG] result.items:", result.items);
+      console.log("📊 [DEBUG] result.pagination:", result.pagination);
+      console.log("🔢 [DEBUG] Cantidad de items:", result.items?.length || 0);
+
       setCuadrantes(result.items || []);
       setPaginationCuadrantes(result.pagination);
+
+      console.log("✅ [DEBUG] Cuadrantes actualizados en estado");
     } catch (error) {
-      console.error("Error al cargar cuadrantes:", error);
+      console.error("❌ [DEBUG] Error al cargar cuadrantes:", error);
+      console.error("❌ [DEBUG] Error completo:", JSON.stringify(error, null, 2));
       toast.error("Error al cargar cuadrantes");
     } finally {
       setLoadingCuadrantes(false);
@@ -106,10 +137,13 @@ export default function SectoresCuadrantesPage() {
 
   const loadAllSectores = async () => {
     try {
+      console.log("🔍 [DEBUG] Cargando TODOS los sectores (limit: 100)");
       const result = await listSectores({ limit: 100 });
+      console.log("📦 [DEBUG] Resultado loadAllSectores:", result);
+      console.log("🔢 [DEBUG] Total sectores para filtro:", result.items?.length || 0);
       setAllSectores(result.items || []);
     } catch (error) {
-      console.error("Error al cargar sectores:", error);
+      console.error("❌ [DEBUG] Error al cargar todos los sectores:", error);
     }
   };
 

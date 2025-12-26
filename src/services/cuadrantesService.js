@@ -23,9 +23,21 @@ export async function listCuadrantes({
   if (sector_id) params.append("sector_id", sector_id);
 
   const url = `/cuadrantes?${params.toString()}`;
+
+  console.log("🌐 [SERVICE DEBUG] URL completa:", url);
+  console.log("🌐 [SERVICE DEBUG] Parámetros:", { page, limit, search, sector_id });
+
   const res = await api.get(url);
 
-  return res?.data?.data || res?.data || { items: [], pagination: null };
+  console.log("📨 [SERVICE DEBUG] Respuesta completa del servidor:", res);
+  console.log("📨 [SERVICE DEBUG] res.data:", res.data);
+  console.log("📨 [SERVICE DEBUG] res.data.data:", res?.data?.data);
+  console.log("📨 [SERVICE DEBUG] res.status:", res.status);
+
+  const finalResult = res?.data?.data || res?.data || { items: [], pagination: null };
+  console.log("📤 [SERVICE DEBUG] Resultado final que se retorna:", finalResult);
+
+  return finalResult;
 }
 
 /**

@@ -21,9 +21,21 @@ export async function listSectores({
   if (search) params.append("search", search);
 
   const url = `/sectores?${params.toString()}`;
+
+  console.log("🌐 [SERVICE DEBUG] URL completa:", url);
+  console.log("🌐 [SERVICE DEBUG] Parámetros:", { page, limit, search });
+
   const res = await api.get(url);
 
-  return res?.data?.data || res?.data || { items: [], pagination: null };
+  console.log("📨 [SERVICE DEBUG] Respuesta completa del servidor:", res);
+  console.log("📨 [SERVICE DEBUG] res.data:", res.data);
+  console.log("📨 [SERVICE DEBUG] res.data.data:", res?.data?.data);
+  console.log("📨 [SERVICE DEBUG] res.status:", res.status);
+
+  const finalResult = res?.data?.data || res?.data || { items: [], pagination: null };
+  console.log("📤 [SERVICE DEBUG] Resultado final que se retorna:", finalResult);
+
+  return finalResult;
 }
 
 /**
