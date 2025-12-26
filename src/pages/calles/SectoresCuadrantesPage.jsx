@@ -60,7 +60,7 @@ export default function SectoresCuadrantesPage() {
       loadCuadrantes();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, currentPageSectores, currentPageCuadrantes]);
+  }, [activeTab, currentPageSectores, currentPageCuadrantes, searchSectores, searchCuadrantes, filterSectorId]);
 
   useEffect(() => {
     // Cargar todos los sectores para el filtro de cuadrantes
@@ -183,6 +183,8 @@ export default function SectoresCuadrantesPage() {
   const handleClearSearchSectores = () => {
     setSearchSectores("");
     setCurrentPageSectores(1);
+    // Recargar inmediatamente después de limpiar
+    setTimeout(() => loadSectores(), 0);
   };
 
   // ============================================
@@ -221,11 +223,15 @@ export default function SectoresCuadrantesPage() {
   const handleClearSearchCuadrantes = () => {
     setSearchCuadrantes("");
     setCurrentPageCuadrantes(1);
+    // Recargar inmediatamente después de limpiar
+    setTimeout(() => loadCuadrantes(), 0);
   };
 
   const handleClearFilterSector = () => {
     setFilterSectorId("");
     setCurrentPageCuadrantes(1);
+    // Recargar inmediatamente después de limpiar el filtro
+    setTimeout(() => loadCuadrantes(), 0);
   };
 
   // ============================================
@@ -488,7 +494,7 @@ function SectoresTab({
                 sectores.map((sector) => (
                   <tr key={sector.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-white">
-                      {sector.codigo}
+                      {sector.sector_code || sector.codigo}
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-900 dark:text-white">
                       {sector.nombre}
@@ -669,13 +675,13 @@ function CuadrantesTab({
                 cuadrantes.map((cuadrante) => (
                   <tr key={cuadrante.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-white">
-                      {cuadrante.codigo}
+                      {cuadrante.cuadrante_code || cuadrante.codigo}
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-900 dark:text-white">
                       {cuadrante.nombre}
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
-                      {cuadrante.sector?.codigo} - {cuadrante.sector?.nombre}
+                      {cuadrante.sector?.sector_code || cuadrante.sector?.codigo} - {cuadrante.sector?.nombre}
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
                       {cuadrante.descripcion || "-"}
