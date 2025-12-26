@@ -1,11 +1,11 @@
 /**
  * File: src/pages/calles/SectoresCuadrantesPage.jsx
- * @version 1.0.0
- * @description Página de gestión de sectores y cuadrantes con tabs
+ * @version 2.0.0
+ * @description Página de gestión de sectores y cuadrantes (Master-Detail)
  */
 
 import { useState, useEffect } from "react";
-import { Plus, Search, Edit, Trash2, X, Map } from "lucide-react";
+import { Plus, Search, Edit, Trash2, X, Map, ChevronRight, ArrowLeft } from "lucide-react";
 import {
   listSectores,
   deleteSector,
@@ -21,7 +21,10 @@ import toast from "react-hot-toast";
 
 export default function SectoresCuadrantesPage() {
   const { can } = useAuthStore();
-  const [activeTab, setActiveTab] = useState("sectores"); // "sectores" o "cuadrantes"
+
+  // Vista actual: "sectores" o "cuadrantes"
+  const [view, setView] = useState("sectores");
+  const [selectedSector, setSelectedSector] = useState(null);
 
   // Estado de Sectores
   const [sectores, setSectores] = useState([]);
@@ -31,21 +34,17 @@ export default function SectoresCuadrantesPage() {
   const [currentPageSectores, setCurrentPageSectores] = useState(1);
   const [showCreateSectorModal, setShowCreateSectorModal] = useState(false);
   const [showEditSectorModal, setShowEditSectorModal] = useState(false);
-  const [selectedSector, setSelectedSector] = useState(null);
+  const [editingSector, setEditingSector] = useState(null);
 
   // Estado de Cuadrantes
   const [cuadrantes, setCuadrantes] = useState([]);
-  const [loadingCuadrantes, setLoadingCuadrantes] = useState(true);
+  const [loadingCuadrantes, setLoadingCuadrantes] = useState(false);
   const [searchCuadrantes, setSearchCuadrantes] = useState("");
-  const [filterSectorId, setFilterSectorId] = useState("");
   const [paginationCuadrantes, setPaginationCuadrantes] = useState(null);
   const [currentPageCuadrantes, setCurrentPageCuadrantes] = useState(1);
   const [showCreateCuadranteModal, setShowCreateCuadranteModal] = useState(false);
   const [showEditCuadranteModal, setShowEditCuadranteModal] = useState(false);
-  const [selectedCuadrante, setSelectedCuadrante] = useState(null);
-
-  // Lista de todos los sectores para filtro
-  const [allSectores, setAllSectores] = useState([]);
+  const [editingCuadrante, setEditingCuadrante] = useState(null);
 
   const limit = 15;
 
@@ -54,46 +53,30 @@ export default function SectoresCuadrantesPage() {
   // ============================================
 
   useEffect(() => {
-    if (activeTab === "sectores") {
-      loadSectores();
-    } else {
+    loadSectores();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPageSectores, searchSectores]);
+
+  useEffect(() => {
+    if (view === "cuadrantes" && selectedSector) {
       loadCuadrantes();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, currentPageSectores, currentPageCuadrantes, searchSectores, searchCuadrantes, filterSectorId]);
-
-  useEffect(() => {
-    // Cargar todos los sectores para el filtro de cuadrantes
-    loadAllSectores();
-  }, []);
+  }, [view, selectedSector, currentPageCuadrantes, searchCuadrantes]);
 
   const loadSectores = async () => {
     setLoadingSectores(true);
     try {
-      console.log("🔍 [DEBUG] Cargando sectores con parámetros:", {
-        page: currentPageSectores,
-        limit,
-        search: searchSectores || undefined,
-      });
-
       const result = await listSectores({
         page: currentPageSectores,
         limit,
         search: searchSectores || undefined,
       });
 
-      console.log("📦 [DEBUG] Resultado completo de listSectores:", result);
-      console.log("📋 [DEBUG] result.items:", result.items);
-      console.log("📊 [DEBUG] result.pagination:", result.pagination);
-      console.log("🔢 [DEBUG] Cantidad de items:", result.items?.length || 0);
-
       setSectores(result.items || []);
       setPaginationSectores(result.pagination);
-
-      console.log("✅ [DEBUG] Sectores actualizados en estado");
     } catch (error) {
-      console.error("❌ [DEBUG] Error al cargar sectores:", error);
-      console.error("❌ [DEBUG] Error completo:", JSON.stringify(error, null, 2));
+      console.error("Error al cargar sectores:", error);
       toast.error("Error al cargar sectores");
     } finally {
       setLoadingSectores(false);
@@ -101,49 +84,24 @@ export default function SectoresCuadrantesPage() {
   };
 
   const loadCuadrantes = async () => {
+    if (!selectedSector) return;
+
     setLoadingCuadrantes(true);
     try {
-      console.log("🔍 [DEBUG] Cargando cuadrantes con parámetros:", {
-        page: currentPageCuadrantes,
-        limit,
-        search: searchCuadrantes || undefined,
-        sector_id: filterSectorId || undefined,
-      });
-
       const result = await listCuadrantes({
         page: currentPageCuadrantes,
         limit,
         search: searchCuadrantes || undefined,
-        sector_id: filterSectorId || undefined,
+        sector_id: selectedSector.id,
       });
-
-      console.log("📦 [DEBUG] Resultado completo de listCuadrantes:", result);
-      console.log("📋 [DEBUG] result.items:", result.items);
-      console.log("📊 [DEBUG] result.pagination:", result.pagination);
-      console.log("🔢 [DEBUG] Cantidad de items:", result.items?.length || 0);
 
       setCuadrantes(result.items || []);
       setPaginationCuadrantes(result.pagination);
-
-      console.log("✅ [DEBUG] Cuadrantes actualizados en estado");
     } catch (error) {
-      console.error("❌ [DEBUG] Error al cargar cuadrantes:", error);
-      console.error("❌ [DEBUG] Error completo:", JSON.stringify(error, null, 2));
+      console.error("Error al cargar cuadrantes:", error);
       toast.error("Error al cargar cuadrantes");
     } finally {
       setLoadingCuadrantes(false);
-    }
-  };
-
-  const loadAllSectores = async () => {
-    try {
-      console.log("🔍 [DEBUG] Cargando TODOS los sectores (limit: 100)");
-      const result = await listSectores({ limit: 100 });
-      console.log("📦 [DEBUG] Resultado loadAllSectores:", result);
-      console.log("🔢 [DEBUG] Total sectores para filtro:", result.items?.length || 0);
-      setAllSectores(result.items || []);
-    } catch (error) {
-      console.error("❌ [DEBUG] Error al cargar todos los sectores:", error);
     }
   };
 
@@ -152,12 +110,12 @@ export default function SectoresCuadrantesPage() {
   // ============================================
 
   const handleCreateSector = () => {
-    setSelectedSector(null);
+    setEditingSector(null);
     setShowCreateSectorModal(true);
   };
 
   const handleEditSector = (sector) => {
-    setSelectedSector(sector);
+    setEditingSector(sector);
     setShowEditSectorModal(true);
   };
 
@@ -183,8 +141,20 @@ export default function SectoresCuadrantesPage() {
   const handleClearSearchSectores = () => {
     setSearchSectores("");
     setCurrentPageSectores(1);
-    // Recargar inmediatamente después de limpiar
-    setTimeout(() => loadSectores(), 0);
+  };
+
+  const handleViewSectorDetail = (sector) => {
+    setSelectedSector(sector);
+    setView("cuadrantes");
+    setSearchCuadrantes("");
+    setCurrentPageCuadrantes(1);
+  };
+
+  const handleBackToSectores = () => {
+    setView("sectores");
+    setSelectedSector(null);
+    setCuadrantes([]);
+    setPaginationCuadrantes(null);
   };
 
   // ============================================
@@ -192,12 +162,12 @@ export default function SectoresCuadrantesPage() {
   // ============================================
 
   const handleCreateCuadrante = () => {
-    setSelectedCuadrante(null);
+    setEditingCuadrante(null);
     setShowCreateCuadranteModal(true);
   };
 
   const handleEditCuadrante = (cuadrante) => {
-    setSelectedCuadrante(cuadrante);
+    setEditingCuadrante(cuadrante);
     setShowEditCuadranteModal(true);
   };
 
@@ -223,15 +193,6 @@ export default function SectoresCuadrantesPage() {
   const handleClearSearchCuadrantes = () => {
     setSearchCuadrantes("");
     setCurrentPageCuadrantes(1);
-    // Recargar inmediatamente después de limpiar
-    setTimeout(() => loadCuadrantes(), 0);
-  };
-
-  const handleClearFilterSector = () => {
-    setFilterSectorId("");
-    setCurrentPageCuadrantes(1);
-    // Recargar inmediatamente después de limpiar el filtro
-    setTimeout(() => loadCuadrantes(), 0);
   };
 
   // ============================================
@@ -240,46 +201,19 @@ export default function SectoresCuadrantesPage() {
 
   useEffect(() => {
     function handleKeyDown(e) {
-      // ALT+N para crear nuevo
       if (e.altKey && e.key === "n") {
         e.preventDefault();
-        if (activeTab === "sectores" && can("sectores_create")) {
+        if (view === "sectores") {
           handleCreateSector();
-        } else if (activeTab === "cuadrantes" && can("cuadrantes_create")) {
+        } else if (view === "cuadrantes") {
           handleCreateCuadrante();
-        }
-      }
-      // PageDown
-      if (e.key === "PageDown") {
-        e.preventDefault();
-        if (activeTab === "sectores") {
-          if (paginationSectores?.current_page < paginationSectores?.total_pages) {
-            setCurrentPageSectores((prev) => prev + 1);
-          }
-        } else {
-          if (paginationCuadrantes?.current_page < paginationCuadrantes?.total_pages) {
-            setCurrentPageCuadrantes((prev) => prev + 1);
-          }
-        }
-      }
-      // PageUp
-      if (e.key === "PageUp") {
-        e.preventDefault();
-        if (activeTab === "sectores") {
-          if (paginationSectores?.current_page > 1) {
-            setCurrentPageSectores((prev) => prev - 1);
-          }
-        } else {
-          if (paginationCuadrantes?.current_page > 1) {
-            setCurrentPageCuadrantes((prev) => prev - 1);
-          }
         }
       }
     }
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [activeTab, paginationSectores, paginationCuadrantes]);
+  }, [view]);
 
   // ============================================
   // RENDER
@@ -290,469 +224,413 @@ export default function SectoresCuadrantesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Map className="text-primary-700" size={28} />
-            Sectores y Cuadrantes
-          </h1>
+          <div className="flex items-center gap-2">
+            {view === "cuadrantes" && (
+              <button
+                onClick={handleBackToSectores}
+                className="p-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                title="Volver a sectores"
+              >
+                <ArrowLeft size={20} />
+              </button>
+            )}
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <Map className="text-primary-700" size={28} />
+              {view === "sectores" ? "Sectores" : `Cuadrantes de ${selectedSector?.nombre}`}
+            </h1>
+          </div>
           <p className="text-slate-600 dark:text-slate-400 mt-1">
-            Gestión de división territorial
+            {view === "sectores"
+              ? "Gestión de división territorial - Seleccione un sector para ver sus cuadrantes"
+              : "Gestión de cuadrantes del sector seleccionado"
+            }
           </p>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="border-b border-slate-200 dark:border-slate-700">
-        <div className="flex gap-4">
+      {/* Breadcrumb */}
+      {view === "cuadrantes" && (
+        <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
           <button
-            onClick={() => setActiveTab("sectores")}
-            className={`px-4 py-2 font-medium border-b-2 transition-colors ${
-              activeTab === "sectores"
-                ? "border-blue-600 text-primary-700 dark:text-blue-400"
-                : "border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-            }`}
+            onClick={handleBackToSectores}
+            className="hover:text-primary-700 dark:hover:text-primary-500 transition-colors"
           >
-            Sectores ({paginationSectores?.total_items || 0})
+            Sectores
           </button>
-          <button
-            onClick={() => setActiveTab("cuadrantes")}
-            className={`px-4 py-2 font-medium border-b-2 transition-colors ${
-              activeTab === "cuadrantes"
-                ? "border-blue-600 text-primary-700 dark:text-blue-400"
-                : "border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-            }`}
-          >
-            Cuadrantes ({paginationCuadrantes?.total_items || 0})
-          </button>
+          <ChevronRight size={16} />
+          <span className="text-slate-900 dark:text-white font-medium">
+            {selectedSector?.sector_code || selectedSector?.codigo} - {selectedSector?.nombre}
+          </span>
         </div>
-      </div>
-
-      {/* Contenido según tab activo */}
-      {activeTab === "sectores" ? (
-        <SectoresTab
-          sectores={sectores}
-          loading={loadingSectores}
-          search={searchSectores}
-          setSearch={setSearchSectores}
-          onSearch={handleSearchSectores}
-          onClearSearch={handleClearSearchSectores}
-          onCreate={handleCreateSector}
-          onEdit={handleEditSector}
-          onDelete={handleDeleteSector}
-          pagination={paginationSectores}
-          currentPage={currentPageSectores}
-          setCurrentPage={setCurrentPageSectores}
-          can={can}
-        />
-      ) : (
-        <CuadrantesTab
-          cuadrantes={cuadrantes}
-          loading={loadingCuadrantes}
-          search={searchCuadrantes}
-          setSearch={setSearchCuadrantes}
-          onSearch={handleSearchCuadrantes}
-          onClearSearch={handleClearSearchCuadrantes}
-          sectores={allSectores}
-          filterSectorId={filterSectorId}
-          setFilterSectorId={setFilterSectorId}
-          onClearFilterSector={handleClearFilterSector}
-          onCreate={handleCreateCuadrante}
-          onEdit={handleEditCuadrante}
-          onDelete={handleDeleteCuadrante}
-          pagination={paginationCuadrantes}
-          currentPage={currentPageCuadrantes}
-          setCurrentPage={setCurrentPageCuadrantes}
-          can={can}
-        />
       )}
 
-      {/* Modales - Sectores */}
-      <SectorFormModal
-        isOpen={showCreateSectorModal}
-        onClose={() => setShowCreateSectorModal(false)}
-        onSuccess={loadSectores}
-      />
-      <SectorFormModal
-        isOpen={showEditSectorModal}
-        onClose={() => setShowEditSectorModal(false)}
-        sector={selectedSector}
-        onSuccess={loadSectores}
-      />
+      {/* Vista de Sectores */}
+      {view === "sectores" && (
+        <div className="space-y-4">
+          {/* Búsqueda y acciones */}
+          <div className="flex items-center gap-4">
+            <form onSubmit={handleSearchSectores} className="flex-1 flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
+                <input
+                  type="text"
+                  placeholder="Buscar sectores..."
+                  value={searchSectores}
+                  onChange={(e) => setSearchSectores(e.target.value)}
+                  className="w-full pl-10 pr-10 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+                {searchSectores && (
+                  <button
+                    type="button"
+                    onClick={handleClearSearchSectores}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                  >
+                    <X size={18} />
+                  </button>
+                )}
+              </div>
+            </form>
 
-      {/* Modales - Cuadrantes */}
-      <CuadranteFormModal
-        isOpen={showCreateCuadranteModal}
-        onClose={() => setShowCreateCuadranteModal(false)}
-        onSuccess={loadCuadrantes}
-      />
-      <CuadranteFormModal
-        isOpen={showEditCuadranteModal}
-        onClose={() => setShowEditCuadranteModal(false)}
-        cuadrante={selectedCuadrante}
-        onSuccess={loadCuadrantes}
-      />
-    </div>
-  );
-}
-
-// ============================================
-// SUB-COMPONENTES
-// ============================================
-
-function SectoresTab({
-  sectores,
-  loading,
-  search,
-  setSearch,
-  onSearch,
-  onClearSearch,
-  onCreate,
-  onEdit,
-  onDelete,
-  pagination,
-  currentPage,
-  setCurrentPage,
-  can,
-}) {
-  return (
-    <div className="space-y-4">
-      {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        {/* Search */}
-        <form onSubmit={onSearch} className="flex-1 flex gap-2">
-          <div className="relative flex-1 max-w-md">
-            <Search
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"
-              size={20}
-            />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar sectores..."
-              className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-            />
+            {can("sectores_create") && (
+              <button
+                onClick={handleCreateSector}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-primary-700 text-white rounded-lg hover:bg-primary-800 transition-colors"
+                title="Nuevo Sector (ALT+N)"
+              >
+                <Plus size={20} />
+                <span>Nuevo Sector</span>
+              </button>
+            )}
           </div>
-          {search && (
-            <button
-              type="button"
-              onClick={onClearSearch}
-              className="inline-flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-700 p-2 text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800"
-              title="Limpiar filtro"
-            >
-              <X size={20} />
-            </button>
-          )}
-        </form>
 
-        {/* Botón Crear */}
-        {can("sectores_create") && (
-          <button
-            onClick={onCreate}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-700 text-white rounded-lg hover:bg-primary-800 transition-colors"
-            title="Nuevo Sector (ALT+N)"
-          >
-            <Plus size={20} />
-            <span>Nuevo Sector</span>
-          </button>
-        )}
-      </div>
-
-      {/* Tabla */}
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                  Código
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                  Nombre
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                  Descripción
-                </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                  Acciones
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-              {loading ? (
-                <tr>
-                  <td colSpan="4" className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
-                    Cargando...
-                  </td>
-                </tr>
-              ) : sectores.length === 0 ? (
-                <tr>
-                  <td colSpan="4" className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
-                    No hay sectores registrados
-                  </td>
-                </tr>
-              ) : (
-                sectores.map((sector) => (
-                  <tr key={sector.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-white">
-                      {sector.sector_code || sector.codigo}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-slate-900 dark:text-white">
-                      {sector.nombre}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
-                      {sector.descripcion || "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
-                      <div className="flex items-center justify-center gap-2">
-                        {can("sectores_update") && (
-                          <button
-                            onClick={() => onEdit(sector)}
-                            className="p-1 text-primary-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
-                            title="Editar"
-                          >
-                            <Edit size={18} />
-                          </button>
-                        )}
-                        {can("sectores_delete") && (
-                          <button
-                            onClick={() => onDelete(sector.id)}
-                            className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                            title="Eliminar"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
+          {/* Tabla de Sectores */}
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                      Código
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                      Nombre
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                      Descripción
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                      Acciones
+                    </th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Paginación */}
-      {pagination && pagination.total_pages > 1 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={pagination.total_pages}
-          onPageChange={setCurrentPage}
-        />
-      )}
-    </div>
-  );
-}
-
-function CuadrantesTab({
-  cuadrantes,
-  loading,
-  search,
-  setSearch,
-  onSearch,
-  onClearSearch,
-  sectores,
-  filterSectorId,
-  setFilterSectorId,
-  onClearFilterSector,
-  onCreate,
-  onEdit,
-  onDelete,
-  pagination,
-  currentPage,
-  setCurrentPage,
-  can,
-}) {
-  return (
-    <div className="space-y-4">
-      {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        <div className="flex-1 flex gap-2 flex-wrap">
-          {/* Search */}
-          <form onSubmit={onSearch} className="flex gap-2">
-            <div className="relative">
-              <Search
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"
-                size={20}
-              />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar cuadrantes..."
-                className="pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-              />
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                  {loadingSectores ? (
+                    <tr>
+                      <td colSpan="4" className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
+                        Cargando...
+                      </td>
+                    </tr>
+                  ) : sectores.length === 0 ? (
+                    <tr>
+                      <td colSpan="4" className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
+                        No hay sectores registrados
+                      </td>
+                    </tr>
+                  ) : (
+                    sectores.map((sector) => (
+                      <tr
+                        key={sector.id}
+                        className="hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer"
+                        onClick={() => handleViewSectorDetail(sector)}
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary-700 dark:text-primary-500">
+                          {sector.sector_code || sector.codigo}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-slate-900 dark:text-white">
+                          {sector.nombre}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
+                          {sector.descripcion || "-"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
+                          <div className="flex items-center justify-center gap-2">
+                            {can("sectores_update") && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditSector(sector);
+                                }}
+                                className="p-1 text-primary-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                                title="Editar"
+                              >
+                                <Edit size={18} />
+                              </button>
+                            )}
+                            {can("sectores_delete") && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteSector(sector.id);
+                                }}
+                                className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                title="Eliminar"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
-            {search && (
-              <button
-                type="button"
-                onClick={onClearSearch}
-                className="inline-flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-700 p-2 text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800"
-                title="Limpiar búsqueda"
-              >
-                <X size={20} />
-              </button>
-            )}
-          </form>
 
-          {/* Filtro de Sector */}
-          <div className="flex gap-2">
-            <select
-              value={filterSectorId}
-              onChange={(e) => setFilterSectorId(e.target.value)}
-              className="px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Todos los sectores</option>
-              {sectores.map((sector) => (
-                <option key={sector.id} value={sector.id}>
-                  {sector.codigo} - {sector.nombre}
-                </option>
-              ))}
-            </select>
-            {filterSectorId && (
-              <button
-                type="button"
-                onClick={onClearFilterSector}
-                className="inline-flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-700 p-2 text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800"
-                title="Limpiar filtro de sector"
-              >
-                <X size={20} />
-              </button>
+            {/* Paginación de Sectores */}
+            {paginationSectores && paginationSectores.total_pages > 1 && (
+              <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                <div className="text-sm text-slate-600 dark:text-slate-400">
+                  Mostrando {sectores.length} de {paginationSectores.total_items} sectores
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setCurrentPageSectores(Math.max(1, currentPageSectores - 1))}
+                    disabled={currentPageSectores === 1}
+                    className="px-3 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Anterior
+                  </button>
+                  <span className="px-3 py-1 text-sm text-slate-600 dark:text-slate-400">
+                    Página {currentPageSectores} de {paginationSectores.total_pages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPageSectores(Math.min(paginationSectores.total_pages, currentPageSectores + 1))}
+                    disabled={currentPageSectores === paginationSectores.total_pages}
+                    className="px-3 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Siguiente
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         </div>
+      )}
 
-        {/* Botón Crear */}
-        {can("cuadrantes_create") && (
-          <button
-            onClick={onCreate}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-700 text-white rounded-lg hover:bg-primary-800 transition-colors"
-            title="Nuevo Cuadrante (ALT+N)"
-          >
-            <Plus size={20} />
-            <span>Nuevo Cuadrante</span>
-          </button>
-        )}
-      </div>
+      {/* Vista de Cuadrantes */}
+      {view === "cuadrantes" && selectedSector && (
+        <div className="space-y-4">
+          {/* Card con información del sector */}
+          <div className="bg-gradient-to-r from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20 border border-primary-200 dark:border-primary-800 rounded-lg p-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <p className="text-sm font-medium text-primary-700 dark:text-primary-400">Código del Sector</p>
+                <p className="text-lg font-bold text-primary-900 dark:text-primary-300">
+                  {selectedSector.sector_code || selectedSector.codigo}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-primary-700 dark:text-primary-400">Nombre</p>
+                <p className="text-lg font-bold text-primary-900 dark:text-primary-300">{selectedSector.nombre}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-primary-700 dark:text-primary-400">Descripción</p>
+                <p className="text-lg text-primary-900 dark:text-primary-300">{selectedSector.descripcion || "-"}</p>
+              </div>
+            </div>
+          </div>
 
-      {/* Tabla */}
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                  Código
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                  Nombre
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                  Sector
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                  Descripción
-                </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                  Acciones
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-              {loading ? (
-                <tr>
-                  <td colSpan="5" className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
-                    Cargando...
-                  </td>
-                </tr>
-              ) : cuadrantes.length === 0 ? (
-                <tr>
-                  <td colSpan="5" className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
-                    No hay cuadrantes registrados
-                  </td>
-                </tr>
-              ) : (
-                cuadrantes.map((cuadrante) => (
-                  <tr key={cuadrante.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-white">
-                      {cuadrante.cuadrante_code || cuadrante.codigo}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-slate-900 dark:text-white">
-                      {cuadrante.nombre}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
-                      {cuadrante.sector?.sector_code || cuadrante.sector?.codigo} - {cuadrante.sector?.nombre}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
-                      {cuadrante.descripcion || "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
-                      <div className="flex items-center justify-center gap-2">
-                        {can("cuadrantes_update") && (
-                          <button
-                            onClick={() => onEdit(cuadrante)}
-                            className="p-1 text-primary-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
-                            title="Editar"
-                          >
-                            <Edit size={18} />
-                          </button>
-                        )}
-                        {can("cuadrantes_delete") && (
-                          <button
-                            onClick={() => onDelete(cuadrante.id)}
-                            className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                            title="Eliminar"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
+          {/* Búsqueda y acciones de cuadrantes */}
+          <div className="flex items-center gap-4">
+            <form onSubmit={handleSearchCuadrantes} className="flex-1 flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
+                <input
+                  type="text"
+                  placeholder="Buscar cuadrantes..."
+                  value={searchCuadrantes}
+                  onChange={(e) => setSearchCuadrantes(e.target.value)}
+                  className="w-full pl-10 pr-10 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+                {searchCuadrantes && (
+                  <button
+                    type="button"
+                    onClick={handleClearSearchCuadrantes}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                  >
+                    <X size={18} />
+                  </button>
+                )}
+              </div>
+            </form>
+
+            {can("cuadrantes_create") && (
+              <button
+                onClick={handleCreateCuadrante}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-primary-700 text-white rounded-lg hover:bg-primary-800 transition-colors"
+                title="Nuevo Cuadrante (ALT+N)"
+              >
+                <Plus size={20} />
+                <span>Nuevo Cuadrante</span>
+              </button>
+            )}
+          </div>
+
+          {/* Tabla de Cuadrantes */}
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                      Código
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                      Nombre
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                      Descripción
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                      Acciones
+                    </th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                  {loadingCuadrantes ? (
+                    <tr>
+                      <td colSpan="4" className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
+                        Cargando...
+                      </td>
+                    </tr>
+                  ) : cuadrantes.length === 0 ? (
+                    <tr>
+                      <td colSpan="4" className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
+                        No hay cuadrantes registrados para este sector
+                      </td>
+                    </tr>
+                  ) : (
+                    cuadrantes.map((cuadrante) => (
+                      <tr key={cuadrante.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-white">
+                          {cuadrante.cuadrante_code || cuadrante.codigo}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-slate-900 dark:text-white">
+                          {cuadrante.nombre}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
+                          {cuadrante.descripcion || "-"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
+                          <div className="flex items-center justify-center gap-2">
+                            {can("cuadrantes_update") && (
+                              <button
+                                onClick={() => handleEditCuadrante(cuadrante)}
+                                className="p-1 text-primary-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                                title="Editar"
+                              >
+                                <Edit size={18} />
+                              </button>
+                            )}
+                            {can("cuadrantes_delete") && (
+                              <button
+                                onClick={() => handleDeleteCuadrante(cuadrante.id)}
+                                className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                title="Eliminar"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
 
-      {/* Paginación */}
-      {pagination && pagination.total_pages > 1 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={pagination.total_pages}
-          onPageChange={setCurrentPage}
+            {/* Paginación de Cuadrantes */}
+            {paginationCuadrantes && paginationCuadrantes.total_pages > 1 && (
+              <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                <div className="text-sm text-slate-600 dark:text-slate-400">
+                  Mostrando {cuadrantes.length} de {paginationCuadrantes.total_items} cuadrantes
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setCurrentPageCuadrantes(Math.max(1, currentPageCuadrantes - 1))}
+                    disabled={currentPageCuadrantes === 1}
+                    className="px-3 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Anterior
+                  </button>
+                  <span className="px-3 py-1 text-sm text-slate-600 dark:text-slate-400">
+                    Página {currentPageCuadrantes} de {paginationCuadrantes.total_pages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPageCuadrantes(Math.min(paginationCuadrantes.total_pages, currentPageCuadrantes + 1))}
+                    disabled={currentPageCuadrantes === paginationCuadrantes.total_pages}
+                    className="px-3 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Siguiente
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Modals */}
+      {showCreateSectorModal && (
+        <SectorFormModal
+          isOpen={showCreateSectorModal}
+          onClose={() => setShowCreateSectorModal(false)}
+          sector={null}
+          onSuccess={() => {
+            loadSectores();
+            setShowCreateSectorModal(false);
+          }}
         />
       )}
-    </div>
-  );
-}
 
-function Pagination({ currentPage, totalPages, onPageChange }) {
-  return (
-    <div className="flex items-center justify-between bg-white dark:bg-slate-800 px-4 py-3 rounded-lg shadow">
-      <div className="text-sm text-slate-700 dark:text-slate-300">
-        Página <span className="font-medium">{currentPage}</span> de{" "}
-        <span className="font-medium">{totalPages}</span>
-      </div>
-      <div className="flex gap-2">
-        <button
-          onClick={() => onPageChange(currentPage - 1)}
-          disabled={currentPage === 1}
-          className="px-3 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-          title="Página anterior (Re Pág)"
-        >
-          Anterior
-        </button>
-        <button
-          onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
-          className="px-3 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-          title="Página siguiente (Av Pág)"
-        >
-          Siguiente
-        </button>
-      </div>
+      {showEditSectorModal && (
+        <SectorFormModal
+          isOpen={showEditSectorModal}
+          onClose={() => setShowEditSectorModal(false)}
+          sector={editingSector}
+          onSuccess={() => {
+            loadSectores();
+            setShowEditSectorModal(false);
+          }}
+        />
+      )}
+
+      {showCreateCuadranteModal && (
+        <CuadranteFormModal
+          isOpen={showCreateCuadranteModal}
+          onClose={() => setShowCreateCuadranteModal(false)}
+          cuadrante={null}
+          onSuccess={() => {
+            loadCuadrantes();
+            setShowCreateCuadranteModal(false);
+          }}
+          preselectedSectorId={selectedSector?.id}
+        />
+      )}
+
+      {showEditCuadranteModal && (
+        <CuadranteFormModal
+          isOpen={showEditCuadranteModal}
+          onClose={() => setShowEditCuadranteModal(false)}
+          cuadrante={editingCuadrante}
+          onSuccess={() => {
+            loadCuadrantes();
+            setShowEditCuadranteModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }

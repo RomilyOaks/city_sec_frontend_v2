@@ -1,7 +1,7 @@
 /**
  * File: src/components/calles/CuadranteFormModal.jsx
- * @version 1.0.0
- * @description Modal para crear/editar cuadrantes
+ * @version 2.0.0
+ * @description Modal para crear/editar cuadrantes con soporte para sector preseleccionado
  */
 
 import { useState, useEffect } from "react";
@@ -10,7 +10,7 @@ import { createCuadrante, updateCuadrante } from "../../services/cuadrantesServi
 import { listSectores } from "../../services/sectoresService";
 import toast from "react-hot-toast";
 
-export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSuccess }) {
+export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSuccess, preselectedSectorId }) {
   const [formData, setFormData] = useState({
     codigo: "",
     nombre: "",
@@ -53,11 +53,11 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
       setFormData({
         codigo: "",
         nombre: "",
-        sector_id: "",
+        sector_id: preselectedSectorId || "",
         descripcion: "",
       });
     }
-  }, [cuadrante, isOpen]);
+  }, [cuadrante, preselectedSectorId, isOpen]);
 
   // Autofocus en el primer campo cuando se abre el modal
   useEffect(() => {
@@ -205,7 +205,7 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
               value={formData.sector_id}
               onChange={handleChange}
               required
-              disabled={loadingSectores}
+              disabled={loadingSectores || (!!preselectedSectorId && !cuadrante)}
               className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50"
             >
               <option value="">
@@ -213,10 +213,15 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
               </option>
               {sectores.map((sector) => (
                 <option key={sector.id} value={sector.id}>
-                  {sector.codigo} - {sector.nombre}
+                  {sector.sector_code || sector.codigo} - {sector.nombre}
                 </option>
               ))}
             </select>
+            {preselectedSectorId && !cuadrante && (
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                El sector está preseleccionado según el sector actual
+              </p>
+            )}
           </div>
 
           {/* Descripción */}
