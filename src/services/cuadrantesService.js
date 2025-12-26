@@ -23,7 +23,8 @@ export async function listCuadrantes({
   if (sector_id) params.append("sector_id", sector_id);
 
   const url = `/cuadrantes?${params.toString()}`;
-  console.log("[cuadrantesService] GET", url);
+  console.log("[cuadrantesService] GET URL:", url);
+  console.log("[cuadrantesService] Full URL will be:", `${import.meta.env.VITE_API_URL}${url}`);
 
   const res = await api.get(url);
   console.log("[cuadrantesService] Response:", res?.data);
