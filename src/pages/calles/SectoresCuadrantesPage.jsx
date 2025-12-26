@@ -626,7 +626,10 @@ export default function SectoresCuadrantesPage() {
           onClose={() => setShowEditCuadranteModal(false)}
           cuadrante={editingCuadrante}
           onSuccess={() => {
-            loadCuadrantes();
+            // Dar tiempo al backend para que actualice antes de recargar
+            setTimeout(() => {
+              loadCuadrantes();
+            }, 500);
             setShowEditCuadranteModal(false);
           }}
         />

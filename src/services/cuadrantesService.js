@@ -22,6 +22,9 @@ export async function listCuadrantes({
   if (search) params.append("search", search);
   if (sector_id) params.append("sector_id", sector_id);
 
+  // Cache buster para evitar respuestas cacheadas
+  params.append("_t", Date.now());
+
   const url = `/cuadrantes?${params.toString()}`;
 
   console.log("🌐 [SERVICE DEBUG] URL completa:", url);
