@@ -113,7 +113,14 @@ export async function updateCuadrante(id, data) {
 /**
  * Eliminar cuadrante (soft delete)
  */
-export async function deleteCuadrante(id) {
-  const res = await api.delete(`/cuadrantes/${id}`);
+export async function deleteCuadrante(id, deleted_by) {
+  console.log("🗑️ [DELETE DEBUG] ID del cuadrante:", id);
+  console.log("🗑️ [DELETE DEBUG] deleted_by:", deleted_by);
+
+  const res = await api.delete(`/cuadrantes/${id}`, {
+    data: { deleted_by }
+  });
+
+  console.log("✅ [DELETE DEBUG] Respuesta del servidor:", res);
   return res?.data?.data || res?.data;
 }

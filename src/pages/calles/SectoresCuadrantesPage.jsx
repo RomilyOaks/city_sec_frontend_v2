@@ -20,7 +20,7 @@ import CuadranteFormModal from "../../components/calles/CuadranteFormModal";
 import toast from "react-hot-toast";
 
 export default function SectoresCuadrantesPage() {
-  const { can } = useAuthStore();
+  const { can, user } = useAuthStore();
 
   // Vista actual: "sectores" o "cuadrantes"
   const [view, setView] = useState("sectores");
@@ -123,7 +123,7 @@ export default function SectoresCuadrantesPage() {
     if (!window.confirm("¿Está seguro de eliminar este sector?")) return;
 
     try {
-      await deleteSector(id);
+      await deleteSector(id, user?.id);
       toast.success("Sector eliminado correctamente");
       loadSectores();
     } catch (error) {
@@ -175,7 +175,7 @@ export default function SectoresCuadrantesPage() {
     if (!window.confirm("¿Está seguro de eliminar este cuadrante?")) return;
 
     try {
-      await deleteCuadrante(id);
+      await deleteCuadrante(id, user?.id);
       toast.success("Cuadrante eliminado correctamente");
       loadCuadrantes();
     } catch (error) {

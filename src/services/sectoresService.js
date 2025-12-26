@@ -85,7 +85,9 @@ export async function getSectorById(id) {
  * Crear nuevo sector
  */
 export async function createSector(data) {
+  console.log("📝 [CREATE DEBUG] Datos enviados para crear sector:", data);
   const res = await api.post("/sectores", data);
+  console.log("✅ [CREATE DEBUG] Respuesta del servidor:", res);
   return res?.data?.data || res?.data;
 }
 
@@ -93,14 +95,24 @@ export async function createSector(data) {
  * Actualizar sector existente
  */
 export async function updateSector(id, data) {
+  console.log("🔄 [UPDATE DEBUG] ID del sector:", id);
+  console.log("🔄 [UPDATE DEBUG] Datos enviados:", data);
   const res = await api.put(`/sectores/${id}`, data);
+  console.log("✅ [UPDATE DEBUG] Respuesta del servidor:", res);
   return res?.data?.data || res?.data;
 }
 
 /**
  * Eliminar sector (soft delete)
  */
-export async function deleteSector(id) {
-  const res = await api.delete(`/sectores/${id}`);
+export async function deleteSector(id, deleted_by) {
+  console.log("🗑️ [DELETE DEBUG] ID del sector:", id);
+  console.log("🗑️ [DELETE DEBUG] deleted_by:", deleted_by);
+
+  const res = await api.delete(`/sectores/${id}`, {
+    data: { deleted_by }
+  });
+
+  console.log("✅ [DELETE DEBUG] Respuesta del servidor:", res);
   return res?.data?.data || res?.data;
 }
