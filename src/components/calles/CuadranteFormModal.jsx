@@ -1,7 +1,7 @@
 /**
  * File: src/components/calles/CuadranteFormModal.jsx
- * @version 3.0.0
- * @description Modal para crear/editar cuadrantes con tabs para datos básicos y georeferenciados
+ * @version 4.0.0
+ * @description Modal para crear/editar cuadrantes con tabs, navegación por teclado y color picker
  */
 
 import { useState, useEffect } from "react";
@@ -16,12 +16,12 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
     cuadrante_code: "",
     nombre: "",
     sector_id: "",
-    descripcion: "",
     zona_code: "",
     latitud: "",
     longitud: "",
     poligono_json: "",
     radio_metros: "",
+    color_mapa: "#108981",
   });
   const [sectores, setSectores] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -53,24 +53,24 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
         cuadrante_code: cuadrante.cuadrante_code || cuadrante.codigo || "",
         nombre: cuadrante.nombre || "",
         sector_id: cuadrante.sector_id || "",
-        descripcion: cuadrante.descripcion || "",
         zona_code: cuadrante.zona_code || "",
         latitud: cuadrante.latitud || "",
         longitud: cuadrante.longitud || "",
         poligono_json: cuadrante.poligono_json || "",
         radio_metros: cuadrante.radio_metros || "",
+        color_mapa: cuadrante.color_mapa || "#108981",
       });
     } else {
       setFormData({
         cuadrante_code: "",
         nombre: "",
         sector_id: preselectedSectorId || "",
-        descripcion: "",
         zona_code: "",
         latitud: "",
         longitud: "",
         poligono_json: "",
         radio_metros: "",
+        color_mapa: "#108981",
       });
     }
     setActiveTab("basicos");
@@ -100,6 +100,16 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
         e.preventDefault();
         document.getElementById("submit-cuadrante-btn")?.click();
       }
+      // PageDown para ir al tab derecho (georeferenciados)
+      if (e.key === "PageDown") {
+        e.preventDefault();
+        setActiveTab("georeferenciados");
+      }
+      // PageUp para ir al tab izquierdo (basicos)
+      if (e.key === "PageUp") {
+        e.preventDefault();
+        setActiveTab("basicos");
+      }
     }
 
     window.addEventListener("keydown", handleKeyDown);
@@ -111,12 +121,12 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
       cuadrante_code: "",
       nombre: "",
       sector_id: "",
-      descripcion: "",
       zona_code: "",
       latitud: "",
       longitud: "",
       poligono_json: "",
       radio_metros: "",
+      color_mapa: "#108981",
     });
     setActiveTab("basicos");
     onClose();
@@ -132,17 +142,17 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
     setLoading(true);
 
     try {
-      // Preparar datos para envío
+      // Preparar datos para envío (sin incluir descripcion)
       const dataToSend = {
         cuadrante_code: formData.cuadrante_code,
         nombre: formData.nombre,
-        sector_id: formData.sector_id,
-        descripcion: formData.descripcion || null,
+        sector_id: parseInt(formData.sector_id),
         zona_code: formData.zona_code || null,
         latitud: formData.latitud ? parseFloat(formData.latitud) : null,
         longitud: formData.longitud ? parseFloat(formData.longitud) : null,
         poligono_json: formData.poligono_json || null,
         radio_metros: formData.radio_metros ? parseFloat(formData.radio_metros) : null,
+        color_mapa: formData.color_mapa || "#108981",
       };
 
       if (cuadrante) {
@@ -194,6 +204,7 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
                   ? "border-primary-700 text-primary-700 dark:text-primary-500"
                   : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
               }`}
+              title="Re Pag"
             >
               <FileText size={18} />
               <span>Datos Básicos</span>
@@ -206,6 +217,7 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
                   ? "border-primary-700 text-primary-700 dark:text-primary-500"
                   : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
               }`}
+              title="Av Pag"
             >
               <MapPin size={18} />
               <span>Datos Georeferenciados</span>
@@ -291,26 +303,6 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
                     El sector está preseleccionado según el sector actual
                   </p>
                 )}
-              </div>
-
-              {/* Descripción */}
-              <div>
-                <label
-                  htmlFor="cuadrante-descripcion"
-                  className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
-                >
-                  Descripción
-                </label>
-                <textarea
-                  id="cuadrante-descripcion"
-                  name="descripcion"
-                  value={formData.descripcion}
-                  onChange={handleChange}
-                  rows={3}
-                  maxLength={500}
-                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
-                  placeholder="Descripción del cuadrante..."
-                />
               </div>
             </div>
           )}
@@ -398,6 +390,42 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="Ej: 500"
                 />
+              </div>
+
+              {/* Color de Mapa */}
+              <div>
+                <label
+                  htmlFor="cuadrante-color"
+                  className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+                >
+                  Color en Mapa
+                </label>
+                <div className="flex gap-3 items-center">
+                  <input
+                    type="color"
+                    id="cuadrante-color"
+                    name="color_mapa"
+                    value={formData.color_mapa}
+                    onChange={handleChange}
+                    className="h-10 w-20 border border-slate-300 dark:border-slate-600 rounded-lg cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={formData.color_mapa}
+                    onChange={(e) => setFormData(prev => ({ ...prev, color_mapa: e.target.value }))}
+                    maxLength={7}
+                    className="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono"
+                    placeholder="#108981"
+                  />
+                  <div
+                    className="h-10 w-10 rounded-lg border-2 border-slate-300 dark:border-slate-600"
+                    style={{ backgroundColor: formData.color_mapa }}
+                    title="Vista previa del color"
+                  />
+                </div>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Color que se mostrará en el mapa para este cuadrante
+                </p>
               </div>
 
               {/* Polígono JSON */}
