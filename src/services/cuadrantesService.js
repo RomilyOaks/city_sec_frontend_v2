@@ -34,13 +34,27 @@ export async function listCuadrantes({
   console.log("📨 [SERVICE DEBUG] res.data.data:", res?.data?.data);
   console.log("📨 [SERVICE DEBUG] res.status:", res.status);
 
-  // El backend devuelve: { success: true, data: Array }
-  // Necesitamos normalizar a: { items: Array, pagination: Object }
+  // El backend puede devolver varios formatos:
+  // Formato 1: { success: true, data: Array }
+  // Formato 2: { success: true, data: { cuadrantes: Array, pagination: Object } }
   const rawData = res?.data?.data || res?.data;
 
-  // Si rawData es un array, normalizarlo a objeto con items y pagination
   let finalResult;
-  if (Array.isArray(rawData)) {
+
+  // Si rawData tiene la propiedad 'cuadrantes', usar ese formato
+  if (rawData && rawData.cuadrantes && Array.isArray(rawData.cuadrantes)) {
+    finalResult = {
+      items: rawData.cuadrantes,
+      pagination: rawData.pagination || {
+        current_page: page,
+        total_items: rawData.cuadrantes.length,
+        total_pages: 1,
+        items_per_page: limit
+      }
+    };
+  }
+  // Si rawData es un array directamente
+  else if (Array.isArray(rawData)) {
     finalResult = {
       items: rawData,
       pagination: {
@@ -50,8 +64,9 @@ export async function listCuadrantes({
         items_per_page: limit
       }
     };
-  } else {
-    // Si ya es un objeto, asumimos que tiene el formato correcto
+  }
+  // Si ya tiene el formato correcto con 'items'
+  else {
     finalResult = rawData;
   }
 

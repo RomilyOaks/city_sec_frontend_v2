@@ -32,13 +32,27 @@ export async function listSectores({
   console.log("📨 [SERVICE DEBUG] res.data.data:", res?.data?.data);
   console.log("📨 [SERVICE DEBUG] res.status:", res.status);
 
-  // El backend devuelve: { success: true, data: Array }
-  // Necesitamos normalizar a: { items: Array, pagination: Object }
+  // El backend puede devolver varios formatos:
+  // Formato 1: { success: true, data: Array }
+  // Formato 2: { success: true, data: { sectores: Array, pagination: Object } }
   const rawData = res?.data?.data || res?.data;
 
-  // Si rawData es un array, normalizarlo a objeto con items y pagination
   let finalResult;
-  if (Array.isArray(rawData)) {
+
+  // Si rawData tiene la propiedad 'sectores', usar ese formato
+  if (rawData && rawData.sectores && Array.isArray(rawData.sectores)) {
+    finalResult = {
+      items: rawData.sectores,
+      pagination: rawData.pagination || {
+        current_page: page,
+        total_items: rawData.sectores.length,
+        total_pages: 1,
+        items_per_page: limit
+      }
+    };
+  }
+  // Si rawData es un array directamente
+  else if (Array.isArray(rawData)) {
     finalResult = {
       items: rawData,
       pagination: {
@@ -48,8 +62,9 @@ export async function listSectores({
         items_per_page: limit
       }
     };
-  } else {
-    // Si ya es un objeto, asumimos que tiene el formato correcto
+  }
+  // Si ya tiene el formato correcto con 'items'
+  else {
     finalResult = rawData;
   }
 
