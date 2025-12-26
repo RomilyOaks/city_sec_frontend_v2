@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "serve dist -s -n -l tcp://0.0.0.0:$PORT"
+    "start": "node server.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -29,6 +29,7 @@
     "xlsx": "^0.18.5",
     "zod": "^4.2.1",
     "serve": "^14.2.4",
+    "serve-handler": "^6.1.5",
     "zustand": "^5.0.9"
   },
   "devDependencies": {
