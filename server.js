@@ -25,16 +25,15 @@ if (!existsSync(indexPath)) {
 console.log(`✓ Found dist directory at: ${distPath}`);
 console.log(`✓ Found index.html at: ${indexPath}`);
 
-// Middleware to log all requests
+// Health check endpoint FIRST (before any middleware)
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+});
+
+// Middleware to log all requests (after health check)
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
   next();
-});
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-  console.log('Health check requested');
-  res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
 // Serve static files from dist directory
