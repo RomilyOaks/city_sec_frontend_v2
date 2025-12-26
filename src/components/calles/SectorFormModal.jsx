@@ -7,6 +7,7 @@
 import { useState, useEffect } from "react";
 import { X, MapPin, FileText } from "lucide-react";
 import { createSector, updateSector } from "../../services/sectoresService";
+import { listUbigeos } from "../../services/novedadesService";
 import toast from "react-hot-toast";
 
 export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) {
@@ -21,6 +22,9 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
     color_mapa: "#4A6126",
   });
   const [loading, setLoading] = useState(false);
+  const [ubigeos, setUbigeos] = useState([]);
+  const [ubigeoSearch, setUbigeoSearch] = useState("");
+  const [showUbigeoDropdown, setShowUbigeoDropdown] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -35,6 +39,13 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
         poligono_json: sector.poligono_json || "",
         color_mapa: sector.color_mapa || "#4A6126",
       });
+
+      // Cargar texto del ubigeo si existe
+      if (sector.ubigeo) {
+        fetchUbigeoByCode(sector.ubigeo);
+      } else {
+        setUbigeoSearch("");
+      }
     } else {
       setFormData({
         codigo: "",
@@ -45,10 +56,62 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
         poligono_json: "",
         color_mapa: "#4A6126",
       });
+      setUbigeoSearch("");
     }
     setActiveTab("basicos");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sector, isOpen]);
+
+  // Función para buscar UBIGEO por código (modo edit)
+  async function fetchUbigeoByCode(code) {
+    try {
+      const res = await listUbigeos(code);
+      if (res && res.length > 0) {
+        const ubigeo = res[0];
+        setUbigeoSearch(
+          `${ubigeo.departamento}/${ubigeo.provincia}/${ubigeo.distrito}`
+        );
+      }
+    } catch (err) {
+      console.error("Error buscando UBIGEO por código:", err);
+    }
+  }
+
+  // Búsqueda dinámica de UBIGEOs
+  async function fetchUbigeos(searchTerm) {
+    if (!searchTerm || searchTerm.trim().length === 0) {
+      setUbigeos([]);
+      setShowUbigeoDropdown(false);
+      return;
+    }
+
+    try {
+      console.log("🔍 Buscando UBIGEOs con:", searchTerm);
+      const res = await listUbigeos(searchTerm);
+      const ubigeosList = Array.isArray(res) ? res : [];
+      console.log(`📊 Resultados: ${ubigeosList.length} distritos encontrados`);
+      setUbigeos(ubigeosList);
+      setShowUbigeoDropdown(ubigeosList.length > 0);
+    } catch (err) {
+      console.error("❌ Error buscando ubigeos:", err);
+      setUbigeos([]);
+      setShowUbigeoDropdown(false);
+    }
+  }
+
+  function handleUbigeoSearch(e) {
+    const value = e.target.value;
+    setUbigeoSearch(value);
+    fetchUbigeos(value);
+  }
+
+  function handleUbigeoSelect(ubigeo) {
+    console.log("📍 UBIGEO SELECCIONADO:", ubigeo.ubigeo_code);
+    setFormData({ ...formData, ubigeo: ubigeo.ubigeo_code });
+    const ubigeoText = `${ubigeo.departamento}/${ubigeo.provincia}/${ubigeo.distrito}`;
+    setUbigeoSearch(ubigeoText);
+    setShowUbigeoDropdown(false);
+  }
 
   // Autofocus en el primer campo cuando se abre el modal
   useEffect(() => {
@@ -100,6 +163,9 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
       poligono_json: "",
       color_mapa: "#4A6126",
     });
+    setUbigeoSearch("");
+    setUbigeos([]);
+    setShowUbigeoDropdown(false);
     setActiveTab("basicos");
     onClose();
   };
@@ -114,13 +180,50 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
     setLoading(true);
 
     try {
+      // Validación de campos requeridos
+      if (!formData.codigo || !formData.codigo.trim()) {
+        toast.error("El campo Código es requerido");
+        setActiveTab("basicos");
+        setTimeout(() => document.getElementById("sector-codigo")?.focus(), 100);
+        setLoading(false);
+        return;
+      }
+
+      if (!formData.nombre || !formData.nombre.trim()) {
+        toast.error("El campo Nombre es requerido");
+        setActiveTab("basicos");
+        setTimeout(() => document.getElementById("sector-nombre")?.focus(), 100);
+        setLoading(false);
+        return;
+      }
+
+      // Validación de ubigeo (si se proporciona, debe tener 6 dígitos)
+      if (formData.ubigeo && formData.ubigeo.trim()) {
+        if (!/^\d{6}$/.test(formData.ubigeo)) {
+          toast.error("El Ubigeo debe contener exactamente 6 dígitos");
+          setActiveTab("georeferenciados");
+          setTimeout(() => document.getElementById("sector-ubigeo")?.focus(), 100);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Validación de color_mapa (debe ser formato hex válido)
+      if (formData.color_mapa && !/^#[0-9A-Fa-f]{6}$/.test(formData.color_mapa)) {
+        toast.error("El color debe tener formato hexadecimal válido (ej: #4A6126)");
+        setActiveTab("georeferenciados");
+        setTimeout(() => document.getElementById("sector-color")?.focus(), 100);
+        setLoading(false);
+        return;
+      }
+
       const dataToSend = {
-        sector_code: formData.codigo,
-        nombre: formData.nombre,
-        descripcion: formData.descripcion || null,
-        ubigeo: formData.ubigeo || null,
-        zona_code: formData.zona_code || null,
-        poligono_json: formData.poligono_json || null,
+        sector_code: formData.codigo.trim(),
+        nombre: formData.nombre.trim(),
+        descripcion: formData.descripcion?.trim() || null,
+        ubigeo: formData.ubigeo?.trim() || null,
+        zona_code: formData.zona_code?.trim() || null,
+        poligono_json: formData.poligono_json?.trim() || null,
         color_mapa: formData.color_mapa || "#4A6126",
       };
 
@@ -135,9 +238,24 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
       handleClose();
     } catch (error) {
       console.error("Error al guardar sector:", error);
-      toast.error(
-        error.response?.data?.message || "Error al guardar el sector"
-      );
+
+      // Mensajes de error más específicos
+      const errorMessage = error.response?.data?.message;
+      if (errorMessage) {
+        if (errorMessage.includes("sector_code")) {
+          toast.error("Error: El código del sector ya existe o es inválido");
+          setActiveTab("basicos");
+          setTimeout(() => document.getElementById("sector-codigo")?.focus(), 100);
+        } else if (errorMessage.includes("ubigeo")) {
+          toast.error("Error: El ubigeo es inválido");
+          setActiveTab("georeferenciados");
+          setTimeout(() => document.getElementById("sector-ubigeo")?.focus(), 100);
+        } else {
+          toast.error(errorMessage);
+        }
+      } else {
+        toast.error("Error al guardar el sector. Por favor, revise los datos ingresados.");
+      }
     } finally {
       setLoading(false);
     }
@@ -266,8 +384,8 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
           {/* Tab: Datos Georeferenciados */}
           {activeTab === "georeferenciados" && (
             <div className="space-y-4">
-              {/* Ubigeo */}
-              <div>
+              {/* Ubigeo - Autocomplete */}
+              <div className="relative">
                 <label
                   htmlFor="sector-ubigeo"
                   className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
@@ -277,15 +395,59 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
                 <input
                   type="text"
                   id="sector-ubigeo"
-                  name="ubigeo"
-                  value={formData.ubigeo}
-                  onChange={handleChange}
-                  maxLength={6}
+                  value={ubigeoSearch}
+                  onChange={handleUbigeoSearch}
+                  onFocus={() => {
+                    if (ubigeoSearch.length >= 1) {
+                      setShowUbigeoDropdown(true);
+                    }
+                  }}
+                  onBlur={() => {
+                    setTimeout(() => setShowUbigeoDropdown(false), 200);
+                  }}
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="Ej: 150101"
+                  placeholder="Buscar distrito..."
+                  autoComplete="off"
                 />
+
+                {/* Mostrar código UBIGEO seleccionado */}
+                {formData.ubigeo && (
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                      Código:
+                    </span>
+                    <span className="text-xs font-mono font-semibold text-primary-700 dark:text-primary-400">
+                      {formData.ubigeo}
+                    </span>
+                  </div>
+                )}
+
+                {/* Dropdown de UBIGEO */}
+                {showUbigeoDropdown && ubigeos.length > 0 && (
+                  <div className="absolute z-50 w-full mt-1 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {ubigeos.slice(0, 50).map((ubigeo) => (
+                      <button
+                        type="button"
+                        key={ubigeo.ubigeo_code}
+                        onClick={() => handleUbigeoSelect(ubigeo)}
+                        className="w-full px-4 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-600 border-b border-slate-200 dark:border-slate-600 last:border-0"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="font-medium">{ubigeo.distrito}</div>
+                          <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
+                            {ubigeo.ubigeo_code}
+                          </span>
+                        </div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400">
+                          {ubigeo.provincia} - {ubigeo.departamento}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  Código de ubicación geográfica (6 dígitos)
+                  Busque y seleccione el distrito (departamento/provincia/distrito)
                 </p>
               </div>
 

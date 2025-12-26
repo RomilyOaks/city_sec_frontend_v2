@@ -53,7 +53,12 @@ export default function SectoresCuadrantesPage() {
   // ============================================
 
   useEffect(() => {
-    loadSectores();
+    // Debounce para la búsqueda
+    const timeoutId = setTimeout(() => {
+      loadSectores();
+    }, 300); // Esperar 300ms después de que el usuario deje de escribir
+
+    return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPageSectores, searchSectores]);
 
@@ -66,6 +71,9 @@ export default function SectoresCuadrantesPage() {
 
   const loadSectores = async () => {
     setLoadingSectores(true);
+    console.log("🔍 [PAGE DEBUG] loadSectores called with searchSectores:", searchSectores);
+    console.log("🔍 [PAGE DEBUG] searchSectores length:", searchSectores?.length);
+
     try {
       const result = await listSectores({
         page: currentPageSectores,
@@ -73,6 +81,7 @@ export default function SectoresCuadrantesPage() {
         search: searchSectores || undefined,
       });
 
+      console.log("✅ [PAGE DEBUG] Sectores cargados:", result.items?.length);
       setSectores(result.items || []);
       setPaginationSectores(result.pagination);
     } catch (error) {

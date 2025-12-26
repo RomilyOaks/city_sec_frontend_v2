@@ -22,8 +22,10 @@ export async function listSectores({
 
   const url = `/sectores?${params.toString()}`;
 
-  console.log("🌐 [SERVICE DEBUG] URL completa:", url);
-  console.log("🌐 [SERVICE DEBUG] Parámetros:", { page, limit, search });
+  console.log("🔍 [SECTORES DEBUG] Parámetros de búsqueda:", { page, limit, search });
+  console.log("🔍 [SECTORES DEBUG] search value:", search);
+  console.log("🔍 [SECTORES DEBUG] search type:", typeof search);
+  console.log("🌐 [SECTORES DEBUG] URL completa:", url);
 
   const res = await api.get(url);
 
