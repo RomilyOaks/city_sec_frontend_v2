@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "serve dist -s -l ${PORT:-3000}"
+    "start": "serve dist -s -n -p $PORT"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
