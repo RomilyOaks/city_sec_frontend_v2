@@ -94,6 +94,25 @@ export const useAuthStore = create(
 
         return requiredPermisos.every((p) => userPermisos.includes(p));
       },
+
+      // Helper para verificar permisos de acción (alias para usar con ACTION_PERMISSIONS)
+      can: (actionKey) => {
+        const user = get().user;
+
+        // super_admin tiene todos los permisos
+        const roles = user?.roles || [];
+        const isSuperAdmin = roles.some((r) => r?.slug === "super_admin");
+        if (isSuperAdmin) return true;
+
+        // Importar ACTION_PERMISSIONS para verificar
+        const { ACTION_PERMISSIONS } = require("../rbac/rbac.js");
+        const requiredPermisos = ACTION_PERMISSIONS[actionKey];
+
+        if (!requiredPermisos || requiredPermisos.length === 0) return true;
+
+        const userPermisos = user?.permisos || [];
+        return requiredPermisos.some((p) => userPermisos.includes(p));
+      },
     }),
     {
       name: "auth-storage",
