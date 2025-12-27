@@ -267,6 +267,47 @@ export default function DireccionViewModal({ isOpen, onClose, direccion }) {
               </p>
             </div>
           )}
+
+          {/* Información de Auditoría */}
+          <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">
+              Información de Auditoría
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Creado Por
+                </label>
+                <p className="text-base text-slate-900 dark:text-white">
+                  {direccion.createdByUser?.nombre || direccion.created_by || "-"}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Fecha de Creación
+                </label>
+                <p className="text-base text-slate-900 dark:text-white">
+                  {direccion.created_at ? new Date(direccion.created_at).toLocaleString("es-PE") : "-"}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Actualizado Por
+                </label>
+                <p className="text-base text-slate-900 dark:text-white">
+                  {direccion.updatedByUser?.nombre || direccion.updated_by || "-"}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Última Actualización
+                </label>
+                <p className="text-base text-slate-900 dark:text-white">
+                  {direccion.updated_at ? new Date(direccion.updated_at).toLocaleString("es-PE") : "-"}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Footer */}
