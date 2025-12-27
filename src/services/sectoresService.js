@@ -22,17 +22,7 @@ export async function listSectores({
 
   const url = `/sectores?${params.toString()}`;
 
-  console.log("🔍 [SECTORES DEBUG] Parámetros de búsqueda:", { page, limit, search });
-  console.log("🔍 [SECTORES DEBUG] search value:", search);
-  console.log("🔍 [SECTORES DEBUG] search type:", typeof search);
-  console.log("🌐 [SECTORES DEBUG] URL completa:", url);
-
   const res = await api.get(url);
-
-  console.log("📨 [SERVICE DEBUG] Respuesta completa del servidor:", res);
-  console.log("📨 [SERVICE DEBUG] res.data:", res.data);
-  console.log("📨 [SERVICE DEBUG] res.data.data:", res?.data?.data);
-  console.log("📨 [SERVICE DEBUG] res.status:", res.status);
 
   // El backend puede devolver varios formatos:
   // Formato 1: { success: true, data: Array }
@@ -70,8 +60,6 @@ export async function listSectores({
     finalResult = rawData;
   }
 
-  console.log("📤 [SERVICE DEBUG] Resultado final que se retorna:", finalResult);
-
   return finalResult;
 }
 
@@ -87,9 +75,7 @@ export async function getSectorById(id) {
  * Crear nuevo sector
  */
 export async function createSector(data) {
-  console.log("📝 [CREATE DEBUG] Datos enviados para crear sector:", data);
   const res = await api.post("/sectores", data);
-  console.log("✅ [CREATE DEBUG] Respuesta del servidor:", res);
   return res?.data?.data || res?.data;
 }
 
@@ -97,10 +83,7 @@ export async function createSector(data) {
  * Actualizar sector existente
  */
 export async function updateSector(id, data) {
-  console.log("🔄 [UPDATE DEBUG] ID del sector:", id);
-  console.log("🔄 [UPDATE DEBUG] Datos enviados:", data);
   const res = await api.put(`/sectores/${id}`, data);
-  console.log("✅ [UPDATE DEBUG] Respuesta del servidor:", res);
   return res?.data?.data || res?.data;
 }
 
@@ -108,13 +91,9 @@ export async function updateSector(id, data) {
  * Eliminar sector (soft delete)
  */
 export async function deleteSector(id, deleted_by) {
-  console.log("🗑️ [DELETE DEBUG] ID del sector:", id);
-  console.log("🗑️ [DELETE DEBUG] deleted_by:", deleted_by);
-
   const res = await api.delete(`/sectores/${id}`, {
     data: { deleted_by }
   });
 
-  console.log("✅ [DELETE DEBUG] Respuesta del servidor:", res);
   return res?.data?.data || res?.data;
 }

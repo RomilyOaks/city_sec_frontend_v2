@@ -27,15 +27,7 @@ export async function listCuadrantes({
 
   const url = `/cuadrantes?${params.toString()}`;
 
-  console.log("🌐 [SERVICE DEBUG] URL completa:", url);
-  console.log("🌐 [SERVICE DEBUG] Parámetros:", { page, limit, search, sector_id });
-
   const res = await api.get(url);
-
-  console.log("📨 [SERVICE DEBUG] Respuesta completa del servidor:", res);
-  console.log("📨 [SERVICE DEBUG] res.data:", res.data);
-  console.log("📨 [SERVICE DEBUG] res.data.data:", res?.data?.data);
-  console.log("📨 [SERVICE DEBUG] res.status:", res.status);
 
   // El backend puede devolver varios formatos:
   // Formato 1: { success: true, data: Array }
@@ -73,8 +65,6 @@ export async function listCuadrantes({
     finalResult = rawData;
   }
 
-  console.log("📤 [SERVICE DEBUG] Resultado final que se retorna:", finalResult);
-
   return finalResult;
 }
 
@@ -98,14 +88,7 @@ export async function createCuadrante(data) {
  * Actualizar cuadrante existente
  */
 export async function updateCuadrante(id, data) {
-  console.log("🔄 [UPDATE DEBUG] ID del cuadrante:", id);
-  console.log("🔄 [UPDATE DEBUG] Datos enviados:", data);
-  console.log("🔄 [UPDATE DEBUG] URL completa:", `/cuadrantes/${id}`);
-
   const res = await api.put(`/cuadrantes/${id}`, data);
-
-  console.log("✅ [UPDATE DEBUG] Respuesta del servidor:", res);
-  console.log("✅ [UPDATE DEBUG] res.data:", res.data);
 
   return res?.data?.data || res?.data;
 }
@@ -114,13 +97,9 @@ export async function updateCuadrante(id, data) {
  * Eliminar cuadrante (soft delete)
  */
 export async function deleteCuadrante(id, deleted_by) {
-  console.log("🗑️ [DELETE DEBUG] ID del cuadrante:", id);
-  console.log("🗑️ [DELETE DEBUG] deleted_by:", deleted_by);
-
   const res = await api.delete(`/cuadrantes/${id}`, {
     data: { deleted_by }
   });
 
-  console.log("✅ [DELETE DEBUG] Respuesta del servidor:", res);
   return res?.data?.data || res?.data;
 }

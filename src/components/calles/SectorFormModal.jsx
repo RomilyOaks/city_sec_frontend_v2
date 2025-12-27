@@ -42,27 +42,20 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
       });
 
       // Cargar texto del ubigeo si existe
-      console.log("📍 [EDIT MODE] sector.Ubigeo:", sector.Ubigeo);
-      console.log("📍 [EDIT MODE] sector.ubigeo:", sector.ubigeo);
-
       if (sector.Ubigeo) {
         // Caso 1: Objeto Ubigeo completo desde el backend
         const ubigeoText = `${sector.Ubigeo.departamento}/${sector.Ubigeo.provincia}/${sector.Ubigeo.distrito}`;
-        console.log("✅ [EDIT MODE] Usando objeto Ubigeo completo:", ubigeoText);
         setUbigeoSearch(ubigeoText);
       } else if (sector.ubigeo) {
         // Caso 2: Solo código, mostrar el código como fallback
-        console.log("🔄 [EDIT MODE] Solo tenemos código:", sector.ubigeo);
         // Intentar buscar por código, pero si falla mostrar solo el código
         fetchUbigeoByCode(sector.ubigeo).then((found) => {
           if (!found) {
             // Si no se encuentra, mostrar el código como fallback
-            console.log("ℹ️ [EDIT MODE] Usando código como fallback:", sector.ubigeo);
             setUbigeoSearch(sector.ubigeo);
           }
         });
       } else {
-        console.log("⚠️ [EDIT MODE] No hay ubigeo disponible");
         setUbigeoSearch("");
       }
     } else {
@@ -84,20 +77,16 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
   // Función para buscar UBIGEO por código (modo edit)
   async function fetchUbigeoByCode(code) {
     try {
-      console.log("🔍 [UBIGEO FETCH] Buscando ubigeo con código:", code);
       const ubigeo = await getUbigeoByCode(code);
 
       if (ubigeo) {
         const ubigeoText = `${ubigeo.departamento}/${ubigeo.provincia}/${ubigeo.distrito}`;
-        console.log("✅ [UBIGEO FETCH] Estableciendo texto:", ubigeoText);
         setUbigeoSearch(ubigeoText);
         return true; // Encontrado
       } else {
-        console.warn("⚠️ [UBIGEO FETCH] No se encontró ubigeo para código:", code);
         return false; // No encontrado
       }
     } catch (err) {
-      console.error("❌ [UBIGEO FETCH] Error buscando UBIGEO por código:", err);
       return false; // Error
     }
   }
@@ -111,14 +100,11 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
     }
 
     try {
-      console.log("🔍 Buscando UBIGEOs con:", searchTerm);
       const res = await listUbigeos(searchTerm);
       const ubigeosList = Array.isArray(res) ? res : [];
-      console.log(`📊 Resultados: ${ubigeosList.length} distritos encontrados`);
       setUbigeos(ubigeosList);
       setShowUbigeoDropdown(ubigeosList.length > 0);
     } catch (err) {
-      console.error("❌ Error buscando ubigeos:", err);
       setUbigeos([]);
       setShowUbigeoDropdown(false);
     }
@@ -131,7 +117,6 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
   }
 
   function handleUbigeoSelect(ubigeo) {
-    console.log("📍 UBIGEO SELECCIONADO:", ubigeo.ubigeo_code);
     setFormData({ ...formData, ubigeo: ubigeo.ubigeo_code });
     const ubigeoText = `${ubigeo.departamento}/${ubigeo.provincia}/${ubigeo.distrito}`;
     setUbigeoSearch(ubigeoText);
@@ -273,8 +258,6 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
       onSuccess();
       handleClose();
     } catch (error) {
-      console.error("Error al guardar sector:", error);
-      console.error("📋 Error completo:", JSON.stringify(error.response?.data, null, 2));
 
       // Extraer mensaje de error del backend en diferentes formatos posibles
       const backendData = error.response?.data;
@@ -326,9 +309,6 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
       if (!errorMessage) {
         errorMessage = "Error de validación. Por favor, revise los datos ingresados.";
       }
-
-      console.log("🔍 Error extraído:", errorMessage);
-      console.log("🔍 Campo con error:", fieldWithError);
 
       // Determinar qué campo tiene el error y enfocar
       let specificError = errorMessage;

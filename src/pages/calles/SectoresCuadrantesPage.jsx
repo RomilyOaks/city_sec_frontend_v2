@@ -71,8 +71,6 @@ export default function SectoresCuadrantesPage() {
 
   const loadSectores = async () => {
     setLoadingSectores(true);
-    console.log("🔍 [PAGE DEBUG] loadSectores called with searchSectores:", searchSectores);
-    console.log("🔍 [PAGE DEBUG] searchSectores length:", searchSectores?.length);
 
     try {
       const result = await listSectores({
@@ -437,7 +435,7 @@ export default function SectoresCuadrantesPage() {
         <div className="space-y-4">
           {/* Card con información del sector */}
           <div className="bg-gradient-to-r from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20 border border-primary-200 dark:border-primary-800 rounded-lg p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <p className="text-sm font-medium text-primary-700 dark:text-primary-400">Código del Sector</p>
                 <p className="text-lg font-bold text-primary-900 dark:text-primary-300">
@@ -447,6 +445,10 @@ export default function SectoresCuadrantesPage() {
               <div>
                 <p className="text-sm font-medium text-primary-700 dark:text-primary-400">Nombre</p>
                 <p className="text-lg font-bold text-primary-900 dark:text-primary-300">{selectedSector.nombre}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-primary-700 dark:text-primary-400">Zona</p>
+                <p className="text-lg font-bold text-primary-900 dark:text-primary-300">{selectedSector.zona_code || "-"}</p>
               </div>
               <div>
                 <p className="text-sm font-medium text-primary-700 dark:text-primary-400">Descripción</p>
