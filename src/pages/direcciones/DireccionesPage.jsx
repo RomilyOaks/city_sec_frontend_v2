@@ -108,6 +108,10 @@ export default function DireccionesPage() {
 
       const result = await listDirecciones(params);
 
+      console.log("📊 [DireccionesPage] Resultado del API:", result);
+      console.log("📊 [DireccionesPage] Items recibidos:", result.items || result.data?.items || []);
+      console.log("📊 [DireccionesPage] Total items:", result.pagination?.totalItems || result.data?.pagination?.totalItems);
+
       setDirecciones(result.items || result.data?.items || []);
       setPagination(result.pagination || result.data?.pagination);
     } catch (err) {

@@ -50,7 +50,12 @@ export const listDirecciones = async ({
   if (sector_id) params.append("sector_id", sector_id);
   if (geocodificada !== null) params.append("geocodificada", geocodificada);
 
-  const res = await api.get(`/direcciones?${params.toString()}`);
+  const url = `/direcciones?${params.toString()}`;
+  console.log("🔗 [direccionesService] Llamando a:", url);
+
+  const res = await api.get(url);
+  console.log("📦 [direccionesService] Respuesta raw:", res.data);
+
   return res.data?.data || res.data;
 };
 
