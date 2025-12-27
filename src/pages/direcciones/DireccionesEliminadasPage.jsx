@@ -41,12 +41,12 @@ export default function DireccionesEliminadasPage() {
     try {
       setLoading(true);
 
-      // Construir params
+      // Construir params - usar paranoid=false para obtener registros eliminados
       const params = new URLSearchParams();
       params.append("page", currentPage);
       params.append("limit", 20);
       if (search) params.append("search", search);
-      params.append("includeDeleted", "true"); // Flag para incluir eliminadas
+      params.append("paranoid", "false"); // Flag para incluir soft-deleted en Sequelize
 
       const url = `/direcciones?${params.toString()}`;
       console.log("🔗 [DireccionesEliminadasPage] Llamando a:", url);
@@ -57,7 +57,9 @@ export default function DireccionesEliminadasPage() {
       const data = res.data?.data || res.data;
 
       // Filtrar solo las que tienen deleted_at NOT NULL
-      const eliminadas = data.items?.filter(d => d.deleted_at !== null) || [];
+      const eliminadas = (data.items || data || []).filter(d => d.deleted_at !== null);
+
+      console.log("📦 [DireccionesEliminadasPage] Direcciones eliminadas encontradas:", eliminadas.length);
 
       setDirecciones(eliminadas);
       setPagination({
@@ -68,7 +70,8 @@ export default function DireccionesEliminadasPage() {
       });
     } catch (error) {
       console.error("❌ Error al cargar direcciones eliminadas:", error);
-      alert("Error al cargar direcciones eliminadas");
+      console.error("❌ Detalles del error:", error.response?.data || error.message);
+      alert("Error al cargar direcciones eliminadas: " + (error.response?.data?.message || error.message));
     } finally {
       setLoading(false);
     }
