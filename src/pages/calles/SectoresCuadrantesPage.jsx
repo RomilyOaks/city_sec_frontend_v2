@@ -324,6 +324,9 @@ export default function SectoresCuadrantesPage() {
                       Nombre
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                      Zona
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                       Descripción
                     </th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
@@ -334,13 +337,13 @@ export default function SectoresCuadrantesPage() {
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                   {loadingSectores ? (
                     <tr>
-                      <td colSpan="4" className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
+                      <td colSpan="5" className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
                         Cargando...
                       </td>
                     </tr>
                   ) : sectores.length === 0 ? (
                     <tr>
-                      <td colSpan="4" className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
+                      <td colSpan="5" className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
                         No hay sectores registrados
                       </td>
                     </tr>
@@ -356,6 +359,9 @@ export default function SectoresCuadrantesPage() {
                         </td>
                         <td className="px-6 py-4 text-sm text-slate-900 dark:text-white">
                           {sector.nombre}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400">
+                          {sector.zona_code || "-"}
                         </td>
                         <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
                           {sector.descripcion || "-"}
