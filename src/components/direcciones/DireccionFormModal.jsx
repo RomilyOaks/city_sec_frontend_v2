@@ -290,6 +290,25 @@ export default function DireccionFormModal({ isOpen, onClose, direccion = null }
 
         {/* Form */}
         <form id="direccion-form" onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Código - Solo visible al editar (read-only) */}
+          {direccion && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Código de Dirección
+              </label>
+              <input
+                type="text"
+                value={direccion.direccion_code}
+                readOnly
+                disabled
+                className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-not-allowed"
+              />
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Código único generado automáticamente
+              </p>
+            </div>
+          )}
+
           {/* Calle - Campo obligatorio */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">

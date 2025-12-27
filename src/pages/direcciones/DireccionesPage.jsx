@@ -15,7 +15,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { Plus, Search, Edit, Trash2, MapPin, Filter, X, Map as MapIcon, Navigation } from "lucide-react";
+import { Plus, Search, Edit, Trash2, MapPin, Filter, X, Map as MapIcon, Navigation, RefreshCw } from "lucide-react";
 import { listDirecciones, deleteDireccion } from "../../services/direccionesService";
 import { listCallesActivas } from "../../services/callesService";
 import { useAuthStore } from "../../store/useAuthStore";
@@ -267,6 +267,20 @@ export default function DireccionesPage() {
               <Search size={18} />
               Buscar
             </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setCurrentPage(1);
+                loadDirecciones();
+              }}
+              disabled={loading}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 dark:border-slate-600 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50"
+              title="Recargar datos"
+            >
+              <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
+              Actualizar
+            </button>
           </div>
 
           {/* Filtros avanzados */}
@@ -329,9 +343,6 @@ export default function DireccionesPage() {
             <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                  Código
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                   Dirección Completa
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wider">
@@ -351,13 +362,13 @@ export default function DireccionesPage() {
             <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
+                  <td colSpan="5" className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
                     Cargando direcciones...
                   </td>
                 </tr>
               ) : direcciones.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
+                  <td colSpan="5" className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
                     No hay direcciones registradas
                   </td>
                 </tr>
@@ -367,9 +378,6 @@ export default function DireccionesPage() {
                     key={dir.id}
                     className="hover:bg-slate-50 dark:hover:bg-slate-700/50"
                   >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary-700 dark:text-primary-500">
-                      {dir.direccion_code}
-                    </td>
                     <td className="px-6 py-4 text-sm text-slate-900 dark:text-white">
                       <div>{formatDireccion(dir)}</div>
                       {dir.urbanizacion && (
