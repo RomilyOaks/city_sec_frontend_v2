@@ -195,6 +195,12 @@ export default function CallesPage() {
   }
 
   function handleViewCuadrantes(calle) {
+    console.log("🗺️ Navegando a cuadrantes con calle:", {
+      id: calle.id,
+      nombre: calle.nombre_completo,
+      calle_code: calle.calle_code,
+      objeto_completo: calle
+    });
     navigate("/calles/calles-cuadrantes", { state: { calle } });
   }
 
