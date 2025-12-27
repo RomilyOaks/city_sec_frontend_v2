@@ -18,7 +18,7 @@ export async function listCuadrantes({
   const params = new URLSearchParams();
   params.append("page", page);
   params.append("limit", limit);
-  params.append("estado", "1"); // Solo cuadrantes activos
+  // NO filtrar por estado aquí - el backend debe manejarlo
   if (search) params.append("search", search);
   if (sector_id) params.append("sector_id", sector_id);
 
