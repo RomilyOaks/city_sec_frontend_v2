@@ -105,6 +105,28 @@ export default function CalleCuadranteFormModal({
     }
   }, [isOpen]);
 
+  // Keyboard shortcuts: ESC para cerrar, ALT+G para guardar
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // ESC - Cerrar modal
+      if (e.key === "Escape" && isOpen && !loading) {
+        e.preventDefault();
+        handleClose();
+      }
+      // ALT + G - Guardar/Crear
+      if (e.altKey && e.key === "g" && isOpen && !loading) {
+        e.preventDefault();
+        // Trigger form submit
+        document.getElementById("calle-cuadrante-form")?.requestSubmit();
+      }
+    };
+
+    if (isOpen) {
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [isOpen, loading]);
+
   const handleClose = () => {
     setFormData({
       calle_id: calleId || "",
@@ -220,7 +242,7 @@ export default function CalleCuadranteFormModal({
               {calleCuadrante ? "Editar" : "Nuevo"} Cuadrante
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-              Calle: <span className="font-medium">{calleNombre}</span>
+              Calle: <span className="font-medium">{calleNombre}</span> • ESC para cerrar • ALT+G para guardar
             </p>
           </div>
           <button
@@ -239,7 +261,7 @@ export default function CalleCuadranteFormModal({
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form id="calle-cuadrante-form" onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Cuadrante - Campo obligatorio */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -265,7 +287,7 @@ export default function CalleCuadranteFormModal({
               ))}
             </select>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Seleccione el cuadrante por donde pasa esta calle
+              Seleccione el cuadrante por donde pasa esta calle. Puede asignar el mismo cuadrante con diferente "Lado" (PAR/IMPAR/AMBOS).
             </p>
           </div>
 
