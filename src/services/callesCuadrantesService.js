@@ -18,7 +18,7 @@ export async function listCallesCuadrantes({
   const params = new URLSearchParams();
   params.append("page", page);
   params.append("limit", limit);
-  params.append("estado", "1"); // Solo relaciones activas
+  // NO filtrar por estado aquí - el backend debe manejarlo
   if (search) params.append("search", search);
   if (calle_id) params.append("calle_id", calle_id);
 
@@ -26,6 +26,8 @@ export async function listCallesCuadrantes({
   params.append("_t", Date.now());
 
   const url = `/calles-cuadrantes?${params.toString()}`;
+
+  console.log("🔗 URL de solicitud:", url);
 
   const res = await api.get(url);
 

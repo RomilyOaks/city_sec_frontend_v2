@@ -165,10 +165,12 @@ export default function CallesCuadrantesPage() {
   };
 
   const handleBackToCalles = () => {
+    console.log("🔙 Volviendo a vista de calles");
     setView("calles");
     setSelectedCalle(null);
     setCurrentPageCuadrantes(1);
     setSearchCuadrantes("");
+    setCuadrantes([]);
   };
 
   const handleEditCalle = (e, calle) => {
