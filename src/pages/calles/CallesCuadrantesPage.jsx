@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { Plus, Search, Edit, Trash2, ArrowLeft, MapPin } from "lucide-react";
 import {
   listCalles,
@@ -20,11 +21,12 @@ import CalleCuadranteFormModal from "../../components/calles/CalleCuadranteFormM
 import toast from "react-hot-toast";
 
 export default function CallesCuadrantesPage() {
+  const location = useLocation();
   const { can, user } = useAuthStore();
 
   // Vista actual: "calles" o "cuadrantes"
-  const [view, setView] = useState("calles");
-  const [selectedCalle, setSelectedCalle] = useState(null);
+  const [view, setView] = useState(location.state?.calle ? "cuadrantes" : "calles");
+  const [selectedCalle, setSelectedCalle] = useState(location.state?.calle || null);
 
   // Estado de Calles
   const [calles, setCalles] = useState([]);
@@ -73,15 +75,17 @@ export default function CallesCuadrantesPage() {
   // Hook para manejar tecla Page Up cuando se está en vista de cuadrantes
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // PageUp key code = 33
-      if (e.keyCode === 33 && view === "cuadrantes") {
+      // PageUp key: e.key === "PageUp" o e.keyCode === 33
+      if ((e.key === "PageUp" || e.keyCode === 33) && view === "cuadrantes") {
         e.preventDefault(); // Prevenir scroll de página
         handleBackToCalles();
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    if (view === "cuadrantes") {
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view]);
 
@@ -212,15 +216,15 @@ export default function CallesCuadrantesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <MapPin className="w-8 h-8 text-primary-600" />
+          <MapPin className="w-8 h-8 text-primary-600 dark:text-primary-400" />
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-              {view === "calles" ? "Calles" : `Cuadrantes de ${selectedCalle?.nombre_completo}`}
+              {view === "calles" ? "Calles" : `Cuadrantes - ${selectedCalle?.nombre_completo}`}
             </h1>
             <p className="text-sm text-slate-600 dark:text-slate-400">
               {view === "calles"
                 ? "Gestión de calles y sus cuadrantes"
-                : "Gestión de cuadrantes por donde pasa la calle"}
+                : "Gestión de cuadrantes por donde pasa la calle (Re Pag para volver)"}
             </p>
           </div>
         </div>
