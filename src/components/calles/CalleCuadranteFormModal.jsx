@@ -239,11 +239,8 @@ export default function CalleCuadranteFormModal({
         <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between">
           <div>
             <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
-              {calleCuadrante ? "Editar" : "Nuevo"} Cuadrante
+              {calleCuadrante ? "Editar" : "Nuevo"} Cuadrante para {calleNombre}
             </h2>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-              Calle: <span className="font-medium">{calleNombre}</span> • ESC para cerrar • ALT+G para guardar
-            </p>
           </div>
           <button
             onClick={handleClose}
@@ -288,6 +285,13 @@ export default function CalleCuadranteFormModal({
             </select>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
               Seleccione el cuadrante por donde pasa esta calle. Puede asignar el mismo cuadrante con diferente "Lado" (PAR/IMPAR/AMBOS).
+            </p>
+          </div>
+
+          {/* Tip de ayuda */}
+          <div className="flex justify-end mb-4">
+            <p className="text-xs text-slate-600 dark:text-slate-400">
+              <span className="text-blue-600 dark:text-blue-400 font-medium">Tip:</span> ESC para cerrar • ALT+G para guardar
             </p>
           </div>
 

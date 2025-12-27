@@ -245,13 +245,13 @@ export default function AppShell() {
                 MÓDULO CALLES - MENÚ DESPLEGABLE
                 ============================================ */}
             {canAccess("calles") && (
-              <SidebarDropdown icon={MapPin} label="Calles">
+              <SidebarDropdown icon={MapPin} label="Gestión Vial">
                 <SidebarLink to="/calles" icon={MapPin}>
-                  Gestión de Calles
+                  Maestro de Calles
                 </SidebarLink>
                 {canAccess("calles_tipos_via") && (
                   <SidebarLink to="/calles/tipos-via" icon={Type}>
-                    Tipos de Vía
+                    Tipos de Vías
                   </SidebarLink>
                 )}
                 {canAccess("calles_sectores_cuadrantes") && (
