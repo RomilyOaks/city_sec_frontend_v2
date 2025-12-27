@@ -72,13 +72,18 @@ export default function CallesCuadrantesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, selectedCalle, currentPageCuadrantes, searchCuadrantes]);
 
-  // Hook para manejar tecla Page Up cuando se está en vista de cuadrantes
+  // Hook para manejar teclas cuando se está en vista de cuadrantes
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // PageUp key: e.key === "PageUp" o e.keyCode === 33
+      // PageUp key: e.key === "PageUp" o e.keyCode === 33 - Volver a calles
       if ((e.key === "PageUp" || e.keyCode === 33) && view === "cuadrantes") {
-        e.preventDefault(); // Prevenir scroll de página
+        e.preventDefault();
         handleBackToCalles();
+      }
+      // ALT + N - Nuevo cuadrante
+      if (e.altKey && e.key === "n" && view === "cuadrantes" && can("calles_cuadrantes_create")) {
+        e.preventDefault();
+        handleCreateCuadrante();
       }
     };
 
@@ -110,7 +115,18 @@ export default function CallesCuadrantesPage() {
   };
 
   const loadCuadrantes = async () => {
-    if (!selectedCalle) return;
+    if (!selectedCalle) {
+      console.warn("⚠️ loadCuadrantes: No hay calle seleccionada");
+      return;
+    }
+
+    console.log("📡 Cargando cuadrantes para calle:", {
+      calle_id: selectedCalle.id,
+      nombre: selectedCalle.nombre_completo,
+      page: currentPageCuadrantes,
+      limit,
+      search: searchCuadrantes
+    });
 
     setLoadingCuadrantes(true);
 
@@ -122,10 +138,15 @@ export default function CallesCuadrantesPage() {
         search: searchCuadrantes || undefined,
       });
 
-      setCuadrantes(result.items || result.data?.items || []);
+      console.log("📦 Respuesta de cuadrantes:", result);
+
+      const cuadrantesData = result.items || result.data?.items || result.data || [];
+      console.log("✅ Cuadrantes procesados:", cuadrantesData);
+
+      setCuadrantes(cuadrantesData);
       setPaginationCuadrantes(result.pagination || result.data?.pagination);
     } catch (error) {
-      console.error("Error al cargar cuadrantes:", error);
+      console.error("❌ Error al cargar cuadrantes:", error);
       toast.error("Error al cargar cuadrantes de la calle");
     } finally {
       setLoadingCuadrantes(false);
@@ -219,12 +240,12 @@ export default function CallesCuadrantesPage() {
           <MapPin className="w-8 h-8 text-primary-600 dark:text-primary-400" />
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-              {view === "calles" ? "Calles" : `Cuadrantes - ${selectedCalle?.nombre_completo}`}
+              {view === "calles" ? "Calles" : `Cuadrantes de ${selectedCalle?.nombre_completo}`}
             </h1>
             <p className="text-sm text-slate-600 dark:text-slate-400">
               {view === "calles"
                 ? "Gestión de calles y sus cuadrantes"
-                : "Gestión de cuadrantes por donde pasa la calle (Re Pag para volver)"}
+                : "Gestión de cuadrantes por donde pasa la calle (Re Pag para volver, Alt+N para nuevo)"}
             </p>
           </div>
         </div>
