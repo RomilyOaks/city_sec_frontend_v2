@@ -56,6 +56,13 @@ export const ROUTE_ACCESS = {
     ROLE_SLUGS.SUPERVISOR,
     ROLE_SLUGS.OPERADOR,
   ],
+  calles_direcciones: [
+    ROLE_SLUGS.SUPER_ADMIN,
+    ROLE_SLUGS.ADMIN,
+    ROLE_SLUGS.SUPERVISOR,
+    ROLE_SLUGS.OPERADOR,
+    ROLE_SLUGS.CONSULTA,
+  ],
 };
 
 // Mapeo de rutas a permisos requeridos (del backend)
@@ -69,6 +76,7 @@ export const ROUTE_PERMISSIONS = {
   calles_tipos_via: ["calles.tipos_via.read"],
   calles_sectores_cuadrantes: ["calles.sectores.read", "calles.cuadrantes.read"],
   calles_calles_cuadrantes: ["calles.calles_cuadrantes.read"],
+  calles_direcciones: ["calles.direcciones.read"],
   reportes: [
     "reportes.novedades.read",
     "reportes.personal.read",
@@ -134,6 +142,12 @@ export const ACTION_PERMISSIONS = {
   calles_cuadrantes_create: ["calles.calles_cuadrantes.create"],
   calles_cuadrantes_update: ["calles.calles_cuadrantes.update"],
   calles_cuadrantes_delete: ["calles.calles_cuadrantes.delete"],
+
+  // Direcciones
+  direcciones_create: ["calles.direcciones.create"],
+  direcciones_update: ["calles.direcciones.update"],
+  direcciones_delete: ["calles.direcciones.delete"],
+  direcciones_geocodificar: ["calles.direcciones.geocodificar", "calles.direcciones.update"],
 };
 
 export function getUserRoleSlugs(user) {

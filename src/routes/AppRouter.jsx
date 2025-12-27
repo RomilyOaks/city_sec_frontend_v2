@@ -32,6 +32,7 @@ import CallesPage from "../pages/calles/CallesPage.jsx";
 import TiposViaPage from "../pages/calles/TiposViaPage.jsx";
 import SectoresCuadrantesPage from "../pages/calles/SectoresCuadrantesPage.jsx";
 import CallesCuadrantesPage from "../pages/calles/CallesCuadrantesPage.jsx";
+import DireccionesPage from "../pages/direcciones/DireccionesPage.jsx";
 
 /**
  * AppRouter - Router principal con rutas públicas y protegidas
@@ -143,10 +144,14 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
-        {/*
-          TODO: Agregar rutas adicionales del módulo Calles:
-          - /calles/direcciones
-        */}
+        <Route
+          path="calles/direcciones"
+          element={
+            <ProtectedRoute allowedRoles={ROUTE_ACCESS.calles_direcciones}>
+              <DireccionesPage />
+            </ProtectedRoute>
+          }
+        />
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />

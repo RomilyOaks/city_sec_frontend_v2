@@ -25,6 +25,7 @@ import {
   ChevronDown,
   Type,
   Map,
+  Navigation,
 } from "lucide-react";
 
 import ThemeToggle from "../components/common/ThemeToggle.jsx";
@@ -259,15 +260,11 @@ export default function AppShell() {
                     Sectores y Cuadrantes
                   </SidebarLink>
                 )}
-                {/*
-                  TODO: Descomentar cuando se implementen estas páginas
-
-                  {canAccess("calles_direcciones") && (
-                    <SidebarLink to="/calles/direcciones" icon={MapPin}>
-                      Direcciones
-                    </SidebarLink>
-                  )}
-                */}
+                {canAccess("calles_direcciones") && (
+                  <SidebarLink to="/calles/direcciones" icon={Navigation}>
+                    Direcciones
+                  </SidebarLink>
+                )}
               </SidebarDropdown>
             )}
           </nav>
