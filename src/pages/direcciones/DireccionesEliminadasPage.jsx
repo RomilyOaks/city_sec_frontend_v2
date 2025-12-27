@@ -41,12 +41,12 @@ export default function DireccionesEliminadasPage() {
     try {
       setLoading(true);
 
-      // Construir params - usar paranoid=false para obtener registros eliminados
+      // Construir params - usar paranoid=false para obtener TODAS las direcciones (incluyendo eliminadas)
       const params = new URLSearchParams();
       params.append("page", currentPage);
       params.append("limit", 20);
       if (search) params.append("search", search);
-      params.append("paranoid", "false"); // Flag para incluir soft-deleted en Sequelize
+      params.append("paranoid", "false"); // ← Incluir soft-deleted en Sequelize
 
       const url = `/direcciones?${params.toString()}`;
       console.log("🔗 [DireccionesEliminadasPage] Llamando a:", url);
@@ -55,23 +55,30 @@ export default function DireccionesEliminadasPage() {
       console.log("📦 [DireccionesEliminadasPage] Respuesta raw:", res.data);
 
       const data = res.data?.data || res.data;
+      const allItems = data.items || data || [];
 
-      // Filtrar solo las que tienen deleted_at NOT NULL
-      const eliminadas = (data.items || data || []).filter(d => d.deleted_at !== null);
+      // Filtrar solo las que tienen deleted_at NOT NULL (eliminadas)
+      const eliminadas = allItems.filter(d => d.deleted_at !== null);
 
-      console.log("📦 [DireccionesEliminadasPage] Direcciones eliminadas encontradas:", eliminadas.length);
+      console.log("📦 [DireccionesEliminadasPage] Total recibidas:", allItems.length);
+      console.log("📦 [DireccionesEliminadasPage] Direcciones eliminadas:", eliminadas.length);
+      console.log("📦 [DireccionesEliminadasPage] Direcciones activas:", allItems.length - eliminadas.length);
 
       setDirecciones(eliminadas);
+
+      // Ajustar paginación basada en las eliminadas encontradas
       setPagination({
-        currentPage: data.currentPage || 1,
-        totalPages: data.totalPages || 1,
+        currentPage: parseInt(data.currentPage) || currentPage,
+        totalPages: Math.max(1, Math.ceil(eliminadas.length / 20)),
         totalItems: eliminadas.length,
-        limit: data.limit || 20,
+        limit: parseInt(data.limit) || 20,
       });
     } catch (error) {
       console.error("❌ Error al cargar direcciones eliminadas:", error);
       console.error("❌ Detalles del error:", error.response?.data || error.message);
-      alert("Error al cargar direcciones eliminadas: " + (error.response?.data?.message || error.message));
+
+      const errorMsg = error.response?.data?.message || error.message || "Error desconocido";
+      alert(`Error al cargar direcciones eliminadas:\n${errorMsg}\n\nVerifica que el backend esté disponible.`);
     } finally {
       setLoading(false);
     }
