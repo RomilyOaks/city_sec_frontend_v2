@@ -11,6 +11,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Plus, Search, Edit, Trash2, MapPin, Filter, X } from "lucide-react";
 import {
   listCalles,
@@ -30,6 +31,7 @@ export default function CallesPage() {
   // ============================================
   // ESTADO
   // ============================================
+  const navigate = useNavigate();
   const [calles, setCalles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -56,6 +58,7 @@ export default function CallesPage() {
   const canCreate = hasPermission(["calles.calles.create"]);
   const canUpdate = hasPermission(["calles.calles.update"]);
   const canDelete = hasPermission(["calles.calles.delete"]);
+  const canReadCuadrantes = hasPermission(["calles.calles_cuadrantes.read"]);
 
   // ============================================
   // EFECTOS
@@ -189,6 +192,10 @@ export default function CallesPage() {
 
   function handlePageChange(newPage) {
     setCurrentPage(newPage);
+  }
+
+  function handleViewCuadrantes(calle) {
+    navigate("/calles/calles-cuadrantes", { state: { calle } });
   }
 
   // ============================================
@@ -409,6 +416,15 @@ export default function CallesPage() {
                     </td>
                     <td className="px-4 py-3 text-right text-sm">
                       <div className="flex items-center justify-end gap-2">
+                        {canReadCuadrantes && (
+                          <button
+                            onClick={() => handleViewCuadrantes(calle)}
+                            className="inline-flex items-center justify-center rounded-lg p-2 text-primary-600 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-900/20"
+                            title="Ver cuadrantes"
+                          >
+                            <MapPin size={16} />
+                          </button>
+                        )}
                         {canUpdate && (
                           <button
                             onClick={() => handleEdit(calle)}
