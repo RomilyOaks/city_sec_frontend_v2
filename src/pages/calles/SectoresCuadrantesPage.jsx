@@ -69,6 +69,21 @@ export default function SectoresCuadrantesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, selectedSector, currentPageCuadrantes, searchCuadrantes]);
 
+  // Hook para manejar tecla Page Up cuando se está en vista de cuadrantes
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // PageUp key code = 33
+      if (e.keyCode === 33 && view === "cuadrantes") {
+        e.preventDefault(); // Prevenir scroll de página
+        handleBackToSectores();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view]);
+
   const loadSectores = async () => {
     setLoadingSectores(true);
 
