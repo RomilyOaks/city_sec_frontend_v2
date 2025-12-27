@@ -42,7 +42,13 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
       });
 
       // Cargar texto del ubigeo si existe
-      if (sector.ubigeo) {
+      if (sector.Ubigeo) {
+        // Caso 1: Objeto Ubigeo completo desde el backend
+        setUbigeoSearch(
+          `${sector.Ubigeo.departamento}/${sector.Ubigeo.provincia}/${sector.Ubigeo.distrito}`
+        );
+      } else if (sector.ubigeo) {
+        // Caso 2: Solo código, buscar vía API
         fetchUbigeoByCode(sector.ubigeo);
       } else {
         setUbigeoSearch("");
@@ -258,37 +264,106 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
       handleClose();
     } catch (error) {
       console.error("Error al guardar sector:", error);
+      console.error("📋 Error completo:", JSON.stringify(error.response?.data, null, 2));
 
-      // Mensajes de error más específicos
-      const errorMessage = error.response?.data?.message;
-      if (errorMessage) {
-        let specificError = errorMessage;
+      // Extraer mensaje de error del backend en diferentes formatos posibles
+      const backendData = error.response?.data;
+      let errorMessage = "";
+      let fieldWithError = "";
 
-        if (errorMessage.includes("sector_code") || errorMessage.includes("codigo")) {
-          specificError = "Error: El código del sector ya existe o es inválido";
-          setValidationError(specificError);
-          setActiveTab("basicos");
-          setTimeout(() => document.getElementById("sector-codigo")?.focus(), 100);
-        } else if (errorMessage.includes("ubigeo")) {
-          specificError = "Error: El ubigeo es inválido";
-          setValidationError(specificError);
-          setActiveTab("georeferenciados");
-          setTimeout(() => document.getElementById("sector-ubigeo")?.focus(), 100);
-        } else if (errorMessage.includes("nombre")) {
-          specificError = "Error: El nombre es inválido o ya existe";
-          setValidationError(specificError);
-          setActiveTab("basicos");
-          setTimeout(() => document.getElementById("sector-nombre")?.focus(), 100);
-        } else {
-          setValidationError(errorMessage);
-        }
-
-        toast.error(specificError);
-      } else {
-        const genericError = "Error al guardar el sector. Por favor, revise los datos ingresados.";
-        setValidationError(genericError);
-        toast.error(genericError);
+      // Formato 1: { message: "texto del error" }
+      if (backendData?.message) {
+        errorMessage = backendData.message;
       }
+      // Formato 2: { error: "texto del error" }
+      else if (backendData?.error) {
+        errorMessage = backendData.error;
+      }
+      // Formato 3: { errors: { field: "mensaje" } } o { errors: ["mensaje1", "mensaje2"] }
+      else if (backendData?.errors) {
+        if (typeof backendData.errors === 'object' && !Array.isArray(backendData.errors)) {
+          // Es un objeto con campos específicos
+          const errorFields = Object.keys(backendData.errors);
+          if (errorFields.length > 0) {
+            fieldWithError = errorFields[0];
+            errorMessage = `Error en ${fieldWithError}: ${backendData.errors[fieldWithError]}`;
+          }
+        } else if (Array.isArray(backendData.errors)) {
+          // Es un array de errores
+          errorMessage = backendData.errors.join(", ");
+        }
+      }
+      // Formato 4: String directo
+      else if (typeof backendData === 'string') {
+        errorMessage = backendData;
+      }
+
+      // Si no se encontró mensaje, usar genérico
+      if (!errorMessage) {
+        errorMessage = "Error de validación. Por favor, revise los datos ingresados.";
+      }
+
+      console.log("🔍 Error extraído:", errorMessage);
+      console.log("🔍 Campo con error:", fieldWithError);
+
+      // Determinar qué campo tiene el error y enfocar
+      let specificError = errorMessage;
+
+      // Verificar si el error menciona campos específicos
+      const lowerError = errorMessage.toLowerCase();
+
+      if (lowerError.includes("codigo") || lowerError.includes("sector_code") || fieldWithError === "codigo" || fieldWithError === "sector_code") {
+        specificError = errorMessage.includes("ya existe")
+          ? "Error: El código del sector ya existe"
+          : `Error en Código: ${errorMessage}`;
+        setValidationError(specificError);
+        setActiveTab("basicos");
+        setTimeout(() => document.getElementById("sector-codigo")?.focus(), 100);
+      }
+      else if (lowerError.includes("nombre") || fieldWithError === "nombre") {
+        specificError = errorMessage.includes("ya existe")
+          ? "Error: El nombre del sector ya existe"
+          : `Error en Nombre: ${errorMessage}`;
+        setValidationError(specificError);
+        setActiveTab("basicos");
+        setTimeout(() => document.getElementById("sector-nombre")?.focus(), 100);
+      }
+      else if (lowerError.includes("descripcion") || fieldWithError === "descripcion") {
+        specificError = `Error en Descripción: ${errorMessage}`;
+        setValidationError(specificError);
+        setActiveTab("basicos");
+        setTimeout(() => document.getElementById("sector-descripcion")?.focus(), 100);
+      }
+      else if (lowerError.includes("ubigeo") || fieldWithError === "ubigeo") {
+        specificError = `Error en Ubigeo: ${errorMessage}`;
+        setValidationError(specificError);
+        setActiveTab("georeferenciados");
+        setTimeout(() => document.getElementById("sector-ubigeo")?.focus(), 100);
+      }
+      else if (lowerError.includes("zona") || fieldWithError === "zona_code") {
+        specificError = `Error en Zona: ${errorMessage}`;
+        setValidationError(specificError);
+        setActiveTab("georeferenciados");
+        setTimeout(() => document.getElementById("sector-zona")?.focus(), 100);
+      }
+      else if (lowerError.includes("color") || fieldWithError === "color_mapa") {
+        specificError = `Error en Color: ${errorMessage}`;
+        setValidationError(specificError);
+        setActiveTab("georeferenciados");
+        setTimeout(() => document.getElementById("sector-color")?.focus(), 100);
+      }
+      else if (lowerError.includes("poligono") || fieldWithError === "poligono_json") {
+        specificError = `Error en Polígono: ${errorMessage}`;
+        setValidationError(specificError);
+        setActiveTab("georeferenciados");
+        setTimeout(() => document.getElementById("sector-poligono")?.focus(), 100);
+      }
+      else {
+        // Error genérico pero con el mensaje real del backend
+        setValidationError(errorMessage);
+      }
+
+      toast.error(specificError);
     } finally {
       setLoading(false);
     }
