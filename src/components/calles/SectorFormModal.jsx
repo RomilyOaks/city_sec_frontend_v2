@@ -271,18 +271,32 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
       else if (backendData?.error) {
         errorMessage = backendData.error;
       }
-      // Formato 3: { errors: { field: "mensaje" } } o { errors: ["mensaje1", "mensaje2"] }
+      // Formato 3: { errors: { field: "mensaje" } } o { errors: ["mensaje1", "mensaje2"] } o { errors: [{field, message}] }
       else if (backendData?.errors) {
-        if (typeof backendData.errors === 'object' && !Array.isArray(backendData.errors)) {
+        if (Array.isArray(backendData.errors)) {
+          // Es un array de errores
+          if (backendData.errors.length > 0 && typeof backendData.errors[0] === 'object' && backendData.errors[0].field) {
+            // Array de objetos con estructura {field, message, ...}
+            const firstError = backendData.errors[0];
+            fieldWithError = firstError.field;
+            errorMessage = firstError.message || "";
+
+            // Si hay más errores, agregarlos al mensaje
+            if (backendData.errors.length > 1) {
+              const otherErrors = backendData.errors.slice(1).map(e => `${e.field}: ${e.message}`).join(", ");
+              errorMessage = `${errorMessage}. También: ${otherErrors}`;
+            }
+          } else {
+            // Array de strings simples
+            errorMessage = backendData.errors.join(", ");
+          }
+        } else if (typeof backendData.errors === 'object') {
           // Es un objeto con campos específicos
           const errorFields = Object.keys(backendData.errors);
           if (errorFields.length > 0) {
             fieldWithError = errorFields[0];
             errorMessage = `Error en ${fieldWithError}: ${backendData.errors[fieldWithError]}`;
           }
-        } else if (Array.isArray(backendData.errors)) {
-          // Es un array de errores
-          errorMessage = backendData.errors.join(", ");
         }
       }
       // Formato 4: String directo
