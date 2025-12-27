@@ -156,7 +156,7 @@ export default function AppRouter() {
         <Route
           path="calles/direcciones-eliminadas"
           element={
-            <ProtectedRoute allowedRoles={[ROUTE_ACCESS.calles_direcciones]}>
+            <ProtectedRoute allowedRoles={ROUTE_ACCESS.calles_direcciones}>
               <DireccionesEliminadasPage />
             </ProtectedRoute>
           }
