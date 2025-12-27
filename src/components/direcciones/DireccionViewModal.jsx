@@ -6,6 +6,7 @@
  * @module src/components/direcciones/DireccionViewModal
  */
 
+import { useEffect } from "react";
 import { X, MapPin, Navigation, Map as MapIcon } from "lucide-react";
 
 /**
@@ -18,6 +19,23 @@ import { X, MapPin, Navigation, Map as MapIcon } from "lucide-react";
  */
 export default function DireccionViewModal({ isOpen, onClose, direccion }) {
   if (!isOpen || !direccion) return null;
+
+  // Manejo de tecla ESC para cerrar
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === "Escape") {
+        handleClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener("keydown", handleEscape);
+    }
+
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [isOpen]);
 
   const handleClose = () => {
     onClose();
