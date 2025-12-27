@@ -42,15 +42,20 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
       });
 
       // Cargar texto del ubigeo si existe
+      console.log("📍 [EDIT MODE] sector.Ubigeo:", sector.Ubigeo);
+      console.log("📍 [EDIT MODE] sector.ubigeo:", sector.ubigeo);
+
       if (sector.Ubigeo) {
         // Caso 1: Objeto Ubigeo completo desde el backend
-        setUbigeoSearch(
-          `${sector.Ubigeo.departamento}/${sector.Ubigeo.provincia}/${sector.Ubigeo.distrito}`
-        );
+        const ubigeoText = `${sector.Ubigeo.departamento}/${sector.Ubigeo.provincia}/${sector.Ubigeo.distrito}`;
+        console.log("✅ [EDIT MODE] Usando objeto Ubigeo completo:", ubigeoText);
+        setUbigeoSearch(ubigeoText);
       } else if (sector.ubigeo) {
         // Caso 2: Solo código, buscar vía API
+        console.log("🔄 [EDIT MODE] Solo tenemos código, buscando en API:", sector.ubigeo);
         fetchUbigeoByCode(sector.ubigeo);
       } else {
+        console.log("⚠️ [EDIT MODE] No hay ubigeo disponible");
         setUbigeoSearch("");
       }
     } else {
@@ -72,15 +77,21 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
   // Función para buscar UBIGEO por código (modo edit)
   async function fetchUbigeoByCode(code) {
     try {
+      console.log("🔍 [UBIGEO FETCH] Buscando ubigeo con código:", code);
       const res = await listUbigeos(code);
+      console.log("📋 [UBIGEO FETCH] Respuesta de listUbigeos:", res);
+      console.log("📋 [UBIGEO FETCH] Cantidad de resultados:", res?.length);
+
       if (res && res.length > 0) {
         const ubigeo = res[0];
-        setUbigeoSearch(
-          `${ubigeo.departamento}/${ubigeo.provincia}/${ubigeo.distrito}`
-        );
+        const ubigeoText = `${ubigeo.departamento}/${ubigeo.provincia}/${ubigeo.distrito}`;
+        console.log("✅ [UBIGEO FETCH] Estableciendo texto:", ubigeoText);
+        setUbigeoSearch(ubigeoText);
+      } else {
+        console.warn("⚠️ [UBIGEO FETCH] No se encontraron resultados para código:", code);
       }
     } catch (err) {
-      console.error("Error buscando UBIGEO por código:", err);
+      console.error("❌ [UBIGEO FETCH] Error buscando UBIGEO por código:", err);
     }
   }
 
