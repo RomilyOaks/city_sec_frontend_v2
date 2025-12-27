@@ -31,6 +31,7 @@ export default function TipoViaFormModal({
     codigo: "",
     nombre: "",
     abreviatura: "",
+    orden: "",
     descripcion: "",
   });
 
@@ -43,6 +44,7 @@ export default function TipoViaFormModal({
         codigo: initialData.codigo || "",
         nombre: initialData.nombre || "",
         abreviatura: initialData.abreviatura || "",
+        orden: initialData.orden || "",
         descripcion: initialData.descripcion || "",
       });
     }
@@ -138,6 +140,7 @@ export default function TipoViaFormModal({
       codigo: "",
       nombre: "",
       abreviatura: "",
+      orden: "",
       descripcion: "",
     });
     onClose();
@@ -237,6 +240,26 @@ export default function TipoViaFormModal({
               placeholder="Ejemplo: Av."
               required
             />
+          </div>
+
+          {/* Orden */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
+              Orden de Visualización
+            </label>
+            <input
+              type="number"
+              value={formData.orden}
+              onChange={(e) =>
+                setFormData({ ...formData, orden: e.target.value })
+              }
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+              placeholder="Ejemplo: 1, 2, 3..."
+              min="0"
+            />
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              Orden para mostrar en listados (menor número aparece primero)
+            </p>
           </div>
 
           {/* Descripción */}

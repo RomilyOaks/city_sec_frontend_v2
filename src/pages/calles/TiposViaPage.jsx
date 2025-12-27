@@ -31,6 +31,7 @@ export default function TiposViaPage() {
 
   // Filtros
   const [search, setSearch] = useState("");
+  const [orderBy, setOrderBy] = useState("orden"); // "orden" | "nombre" | "codigo"
 
   // Paginación
   const [currentPage, setCurrentPage] = useState(1);
@@ -52,7 +53,7 @@ export default function TiposViaPage() {
   // ============================================
   useEffect(() => {
     loadTiposVia();
-  }, [currentPage, search]);
+  }, [currentPage, search, orderBy]);
 
   // Shortcuts de teclado
   useEffect(() => {
@@ -105,7 +106,25 @@ export default function TiposViaPage() {
       }
 
       console.log("✅ Tipos de vía procesados:", tiposViaData.length);
-      setTiposVia(tiposViaData);
+
+      // Ordenar los datos según el criterio seleccionado
+      const sortedData = [...tiposViaData].sort((a, b) => {
+        if (orderBy === "orden") {
+          // Ordenar por orden (números menores primero, null/undefined al final)
+          const ordenA = a.orden ?? 999999;
+          const ordenB = b.orden ?? 999999;
+          return ordenA - ordenB;
+        } else if (orderBy === "nombre") {
+          // Ordenar alfabéticamente por nombre
+          return (a.nombre || "").localeCompare(b.nombre || "");
+        } else if (orderBy === "codigo") {
+          // Ordenar alfabéticamente por código
+          return (a.codigo || "").localeCompare(b.codigo || "");
+        }
+        return 0;
+      });
+
+      setTiposVia(sortedData);
       setPagination(paginationData);
     } catch (error) {
       console.error("❌ Error al cargar tipos de vía:", error);
@@ -217,7 +236,7 @@ export default function TiposViaPage() {
       )}
 
       {/* ============================================
-          BÚSQUEDA
+          BÚSQUEDA Y ORDENAMIENTO
           ============================================ */}
       <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
         <form onSubmit={handleSearch} className="flex gap-2">
@@ -244,6 +263,16 @@ export default function TiposViaPage() {
               </button>
             )}
           </div>
+          <select
+            value={orderBy}
+            onChange={(e) => setOrderBy(e.target.value)}
+            className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
+            title="Ordenar por"
+          >
+            <option value="orden">Ordenar por: Orden</option>
+            <option value="nombre">Ordenar por: Nombre</option>
+            <option value="codigo">Ordenar por: Código</option>
+          </select>
           <button
             type="submit"
             className="rounded-lg bg-primary-700 px-4 py-2 text-sm font-medium text-white hover:bg-primary-800"
@@ -269,6 +298,9 @@ export default function TiposViaPage() {
               <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 dark:text-slate-300 uppercase">
+                    Orden
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 dark:text-slate-300 uppercase">
                     Nombre
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 dark:text-slate-300 uppercase">
@@ -288,6 +320,9 @@ export default function TiposViaPage() {
                     key={tipoVia.id}
                     className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition"
                   >
+                    <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
+                      {tipoVia.orden || "-"}
+                    </td>
                     <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-slate-100">
                       {tipoVia.nombre}
                     </td>
