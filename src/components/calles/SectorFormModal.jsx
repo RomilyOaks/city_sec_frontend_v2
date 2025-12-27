@@ -234,17 +234,9 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
         return;
       }
 
-      // Para crear: usar "codigo", para actualizar: usar "sector_code"
-      const dataToSend = sector ? {
+      // Backend ahora usa "sector_code" tanto para crear como para actualizar
+      const dataToSend = {
         sector_code: formData.codigo.trim(),
-        nombre: formData.nombre.trim(),
-        descripcion: formData.descripcion?.trim() || null,
-        ubigeo: formData.ubigeo?.trim() || null,
-        zona_code: formData.zona_code?.trim() || null,
-        poligono_json: formData.poligono_json?.trim() || null,
-        color_mapa: formData.color_mapa || "#4A6126",
-      } : {
-        codigo: formData.codigo.trim(),
         nombre: formData.nombre.trim(),
         descripcion: formData.descripcion?.trim() || null,
         ubigeo: formData.ubigeo?.trim() || null,
