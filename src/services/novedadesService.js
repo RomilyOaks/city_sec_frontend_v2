@@ -151,6 +151,44 @@ export async function listUbigeos(search = "") {
 }
 
 /**
+ * Obtener ubigeo por código exacto
+ */
+export async function getUbigeoByCode(code) {
+  try {
+    // Intentar obtener por código exacto usando el parámetro ubigeo_code
+    const url = `/catalogos/ubigeo?ubigeo_code=${code}`;
+    console.log("🔍 [GET UBIGEO] Intentando obtener ubigeo por código:", url);
+    const res = await api.get(url);
+    const data = res?.data?.data || res?.data || [];
+
+    if (Array.isArray(data) && data.length > 0) {
+      console.log("✅ [GET UBIGEO] Ubigeo encontrado por código:", data[0]);
+      return data[0];
+    }
+
+    // Si no funcionó con ubigeo_code, intentar buscar por search
+    console.log("🔄 [GET UBIGEO] No encontrado por código, intentando con search");
+    const searchRes = await listUbigeos(code);
+    if (searchRes && searchRes.length > 0) {
+      // Buscar el que coincida exactamente con el código
+      const exact = searchRes.find(u => u.ubigeo_code === code);
+      if (exact) {
+        console.log("✅ [GET UBIGEO] Ubigeo encontrado por búsqueda exacta:", exact);
+        return exact;
+      }
+      console.log("⚠️ [GET UBIGEO] Usando primer resultado de búsqueda:", searchRes[0]);
+      return searchRes[0];
+    }
+
+    console.warn("❌ [GET UBIGEO] No se encontró ubigeo para código:", code);
+    return null;
+  } catch (err) {
+    console.error("❌ [GET UBIGEO] Error obteniendo ubigeo:", err);
+    return null;
+  }
+}
+
+/**
  * Listar cuadrantes por sector
  */
 export async function listCuadrantes(sectorId) {

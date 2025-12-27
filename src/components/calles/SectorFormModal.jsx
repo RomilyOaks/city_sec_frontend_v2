@@ -7,7 +7,7 @@
 import { useState, useEffect } from "react";
 import { X, MapPin, FileText } from "lucide-react";
 import { createSector, updateSector } from "../../services/sectoresService";
-import { listUbigeos } from "../../services/novedadesService";
+import { listUbigeos, getUbigeoByCode } from "../../services/novedadesService";
 import toast from "react-hot-toast";
 
 export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) {
@@ -51,9 +51,16 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
         console.log("✅ [EDIT MODE] Usando objeto Ubigeo completo:", ubigeoText);
         setUbigeoSearch(ubigeoText);
       } else if (sector.ubigeo) {
-        // Caso 2: Solo código, buscar vía API
-        console.log("🔄 [EDIT MODE] Solo tenemos código, buscando en API:", sector.ubigeo);
-        fetchUbigeoByCode(sector.ubigeo);
+        // Caso 2: Solo código, mostrar el código como fallback
+        console.log("🔄 [EDIT MODE] Solo tenemos código:", sector.ubigeo);
+        // Intentar buscar por código, pero si falla mostrar solo el código
+        fetchUbigeoByCode(sector.ubigeo).then((found) => {
+          if (!found) {
+            // Si no se encuentra, mostrar el código como fallback
+            console.log("ℹ️ [EDIT MODE] Usando código como fallback:", sector.ubigeo);
+            setUbigeoSearch(sector.ubigeo);
+          }
+        });
       } else {
         console.log("⚠️ [EDIT MODE] No hay ubigeo disponible");
         setUbigeoSearch("");
@@ -78,20 +85,20 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
   async function fetchUbigeoByCode(code) {
     try {
       console.log("🔍 [UBIGEO FETCH] Buscando ubigeo con código:", code);
-      const res = await listUbigeos(code);
-      console.log("📋 [UBIGEO FETCH] Respuesta de listUbigeos:", res);
-      console.log("📋 [UBIGEO FETCH] Cantidad de resultados:", res?.length);
+      const ubigeo = await getUbigeoByCode(code);
 
-      if (res && res.length > 0) {
-        const ubigeo = res[0];
+      if (ubigeo) {
         const ubigeoText = `${ubigeo.departamento}/${ubigeo.provincia}/${ubigeo.distrito}`;
         console.log("✅ [UBIGEO FETCH] Estableciendo texto:", ubigeoText);
         setUbigeoSearch(ubigeoText);
+        return true; // Encontrado
       } else {
-        console.warn("⚠️ [UBIGEO FETCH] No se encontraron resultados para código:", code);
+        console.warn("⚠️ [UBIGEO FETCH] No se encontró ubigeo para código:", code);
+        return false; // No encontrado
       }
     } catch (err) {
       console.error("❌ [UBIGEO FETCH] Error buscando UBIGEO por código:", err);
+      return false; // Error
     }
   }
 
