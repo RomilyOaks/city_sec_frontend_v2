@@ -105,7 +105,7 @@ export default function CalleCuadranteFormModal({
     }
   }, [isOpen]);
 
-  // Keyboard shortcuts: ESC para cerrar, ALT+G para guardar
+  // Keyboard shortcuts: ESC para cerrar, ALT+G para guardar, P/I/A para cambiar Lado
   useEffect(() => {
     const handleKeyDown = (e) => {
       // ESC - Cerrar modal
@@ -118,6 +118,27 @@ export default function CalleCuadranteFormModal({
         e.preventDefault();
         // Trigger form submit
         document.getElementById("calle-cuadrante-form")?.requestSubmit();
+      }
+      // Atajos de teclado para el campo Lado (solo si el select está enfocado)
+      const activeElement = document.activeElement;
+      const isLadoSelect = activeElement?.name === "lado";
+
+      if (isOpen && !loading && isLadoSelect) {
+        // P = PAR
+        if (e.key === "p" || e.key === "P") {
+          e.preventDefault();
+          setFormData((prev) => ({ ...prev, lado: "PAR" }));
+        }
+        // I = IMPAR
+        if (e.key === "i" || e.key === "I") {
+          e.preventDefault();
+          setFormData((prev) => ({ ...prev, lado: "IMPAR" }));
+        }
+        // A = AMBOS
+        if (e.key === "a" || e.key === "A") {
+          e.preventDefault();
+          setFormData((prev) => ({ ...prev, lado: "AMBOS" }));
+        }
       }
     };
 
@@ -269,8 +290,8 @@ export default function CalleCuadranteFormModal({
               value={formData.cuadrante_id}
               onChange={handleChange}
               required
-              disabled={loadingCuadrantes}
-              className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:text-white"
+              disabled={loadingCuadrantes || !!calleCuadrante}
+              className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
             >
               <option value="">
                 {loadingCuadrantes ? "Cargando..." : "Seleccione un cuadrante"}
@@ -284,7 +305,9 @@ export default function CalleCuadranteFormModal({
               ))}
             </select>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Seleccione el cuadrante por donde pasa esta calle. Puede asignar el mismo cuadrante con diferente "Lado" (PAR/IMPAR/AMBOS).
+              {calleCuadrante
+                ? "No puede modificar el cuadrante al editar. Si necesita cambiarlo, elimine este registro y cree uno nuevo."
+                : "Seleccione el cuadrante por donde pasa esta calle. Puede asignar el mismo cuadrante con diferente \"Lado\" (PAR/IMPAR/AMBOS)."}
             </p>
           </div>
 

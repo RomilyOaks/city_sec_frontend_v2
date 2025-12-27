@@ -215,7 +215,7 @@ export default function CallesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50">
-            Gestión de Calles
+            Maestro de Calles
           </h1>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
             Administra el catálogo de calles del distrito

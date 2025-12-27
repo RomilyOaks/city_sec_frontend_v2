@@ -67,7 +67,12 @@ export default function CallesCuadrantesPage() {
 
   useEffect(() => {
     if (view === "cuadrantes" && selectedCalle) {
-      loadCuadrantes();
+      // Debounce para búsqueda
+      const timeoutId = setTimeout(() => {
+        loadCuadrantes();
+      }, 300);
+
+      return () => clearTimeout(timeoutId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, selectedCalle, currentPageCuadrantes, searchCuadrantes]);
@@ -417,18 +422,21 @@ export default function CallesCuadrantesPage() {
               Volver a Calles
             </button>
 
-            <form onSubmit={handleSearchCuadrantes} className="flex-1 flex gap-2">
+            <div className="flex-1 flex gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
                 <input
                   type="text"
-                  placeholder="Buscar cuadrantes..."
+                  placeholder="Buscar por cuadrante, sector o número..."
                   value={searchCuadrantes}
-                  onChange={(e) => setSearchCuadrantes(e.target.value)}
+                  onChange={(e) => {
+                    setSearchCuadrantes(e.target.value);
+                    setCurrentPageCuadrantes(1); // Reset a página 1 al buscar
+                  }}
                   className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:text-white"
                 />
               </div>
-            </form>
+            </div>
 
             {can("calles_cuadrantes_create") && (
               <button
