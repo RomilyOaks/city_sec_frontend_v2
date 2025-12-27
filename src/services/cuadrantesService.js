@@ -27,7 +27,11 @@ export async function listCuadrantes({
 
   const url = `/cuadrantes?${params.toString()}`;
 
+  console.log("🔗 [cuadrantesService] URL de solicitud:", url);
+
   const res = await api.get(url);
+
+  console.log("📦 [cuadrantesService] Respuesta raw:", res);
 
   // El backend puede devolver varios formatos:
   // Formato 1: { success: true, data: Array }

@@ -87,10 +87,13 @@ export default function CalleCuadranteFormModal({
     const loadCuadrantes = async () => {
       try {
         setLoadingCuadrantes(true);
-        const result = await listCuadrantes({ limit: 1000 }); // Obtener todos
+        console.log("📡 [Modal] Cargando cuadrantes para dropdown...");
+        const result = await listCuadrantes({ limit: 100 }); // Límite razonable
+        console.log("✅ [Modal] Cuadrantes recibidos:", result);
         setCuadrantes(result.items || []);
       } catch (error) {
-        console.error("Error al cargar cuadrantes:", error);
+        console.error("❌ [Modal] Error al cargar cuadrantes:", error);
+        console.error("❌ [Modal] Error response:", error.response?.data);
         toast.error("Error al cargar cuadrantes");
       } finally {
         setLoadingCuadrantes(false);
