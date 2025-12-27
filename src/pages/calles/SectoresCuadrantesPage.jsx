@@ -81,12 +81,7 @@ export default function SectoresCuadrantesPage() {
         search: searchSectores || undefined,
       });
 
-      console.log("✅ [PAGE DEBUG] Sectores cargados:", result.items?.length);
-      console.log("✅ [PAGE DEBUG] Primeros 3 sectores:", result.items?.slice(0, 3).map(s => ({ codigo: s.sector_code || s.codigo, nombre: s.nombre })));
-
-      const newSectores = result.items || [];
-      console.log("✅ [PAGE DEBUG] Actualizando state con", newSectores.length, "sectores");
-      setSectores(newSectores);
+      setSectores(result.items || []);
       setPaginationSectores(result.pagination);
     } catch (error) {
       console.error("Error al cargar sectores:", error);
@@ -337,11 +332,6 @@ export default function SectoresCuadrantesPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                  {(() => {
-                    console.log("🎨 [RENDER DEBUG] Renderizando tabla con sectores.length:", sectores.length);
-                    console.log("🎨 [RENDER DEBUG] sectores:", sectores.map(s => s.sector_code || s.codigo));
-                    return null;
-                  })()}
                   {loadingSectores ? (
                     <tr>
                       <td colSpan="4" className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
