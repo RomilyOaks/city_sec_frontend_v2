@@ -33,6 +33,7 @@ import TiposViaPage from "../pages/calles/TiposViaPage.jsx";
 import SectoresCuadrantesPage from "../pages/calles/SectoresCuadrantesPage.jsx";
 import CallesCuadrantesPage from "../pages/calles/CallesCuadrantesPage.jsx";
 import DireccionesPage from "../pages/direcciones/DireccionesPage.jsx";
+import DireccionesEliminadasPage from "../pages/direcciones/DireccionesEliminadasPage.jsx";
 
 /**
  * AppRouter - Router principal con rutas públicas y protegidas
@@ -149,6 +150,14 @@ export default function AppRouter() {
           element={
             <ProtectedRoute allowedRoles={ROUTE_ACCESS.calles_direcciones}>
               <DireccionesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="calles/direcciones-eliminadas"
+          element={
+            <ProtectedRoute allowedRoles={[ROUTE_ACCESS.calles_direcciones]}>
+              <DireccionesEliminadasPage />
             </ProtectedRoute>
           }
         />

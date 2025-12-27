@@ -15,11 +15,12 @@
  */
 
 import { useState, useEffect } from "react";
-import { Plus, Search, Edit, Trash2, MapPin, Filter, X, Map as MapIcon, Navigation, RefreshCw } from "lucide-react";
+import { Plus, Search, Edit, Trash2, MapPin, Filter, X, Map as MapIcon, Navigation, RefreshCw, Eye } from "lucide-react";
 import { listDirecciones, deleteDireccion } from "../../services/direccionesService";
 import { listCallesActivas } from "../../services/callesService";
 import { useAuthStore } from "../../store/useAuthStore";
 import DireccionFormModal from "../../components/direcciones/DireccionFormModal";
+import DireccionViewModal from "../../components/direcciones/DireccionViewModal";
 import { toast } from "react-hot-toast";
 
 /**
@@ -51,6 +52,7 @@ export default function DireccionesPage() {
   // Modales
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
   const [selectedDireccion, setSelectedDireccion] = useState(null);
 
   // Permisos
@@ -148,6 +150,11 @@ export default function DireccionesPage() {
     setCurrentPage(1);
   }
 
+  function handleView(direccion) {
+    setSelectedDireccion(direccion);
+    setShowViewModal(true);
+  }
+
   function handleEdit(direccion) {
     setSelectedDireccion(direccion);
     setShowEditModal(true);
@@ -243,8 +250,21 @@ export default function DireccionesPage() {
                 placeholder="Buscar por dirección, número, manzana, lote..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 dark:border-slate-600 pl-10 pr-4 py-2 focus:ring-2 focus:ring-primary-500 dark:bg-slate-800 dark:text-white"
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-600 pl-10 pr-10 py-2 focus:ring-2 focus:ring-primary-500 dark:bg-slate-800 dark:text-white"
               />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch("");
+                    setCurrentPage(1);
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  title="Limpiar búsqueda"
+                >
+                  <X size={18} />
+                </button>
+              )}
             </div>
 
             <button
@@ -407,6 +427,13 @@ export default function DireccionesPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
                       <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => handleView(dir)}
+                          className="text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+                          title="Ver información completa"
+                        >
+                          <Eye size={18} />
+                        </button>
                         {canUpdate && (
                           <button
                             onClick={() => handleEdit(dir)}
@@ -476,6 +503,17 @@ export default function DireccionesPage() {
         <DireccionFormModal
           isOpen={showEditModal}
           onClose={handleModalClose}
+          direccion={selectedDireccion}
+        />
+      )}
+
+      {showViewModal && selectedDireccion && (
+        <DireccionViewModal
+          isOpen={showViewModal}
+          onClose={() => {
+            setShowViewModal(false);
+            setSelectedDireccion(null);
+          }}
           direccion={selectedDireccion}
         />
       )}

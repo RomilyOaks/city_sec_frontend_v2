@@ -162,6 +162,16 @@ export const getDireccionesMasUsadas = async (limit = 20) => {
   return res.data?.data || res.data;
 };
 
+/**
+ * Reactivar dirección eliminada (soft-deleted)
+ * @param {number} id - ID de la dirección a reactivar
+ * @returns {Promise<Object>} Dirección reactivada
+ */
+export const reactivarDireccion = async (id) => {
+  const res = await api.patch(`/direcciones/${id}/reactivar`);
+  return res.data?.data || res.data;
+};
+
 export default {
   listDirecciones,
   listDireccionesActivas,
@@ -173,4 +183,5 @@ export default {
   deleteDireccion,
   geocodificarDireccion,
   getDireccionesMasUsadas,
+  reactivarDireccion,
 };

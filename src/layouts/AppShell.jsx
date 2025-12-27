@@ -26,6 +26,7 @@ import {
   Type,
   Map,
   Navigation,
+  Trash2,
 } from "lucide-react";
 
 import ThemeToggle from "../components/common/ThemeToggle.jsx";
@@ -263,6 +264,11 @@ export default function AppShell() {
                 {canAccess("calles_direcciones") && (
                   <SidebarLink to="/calles/direcciones" icon={Navigation}>
                     Direcciones
+                  </SidebarLink>
+                )}
+                {user?.roles?.some(r => r.slug === "super_admin") && (
+                  <SidebarLink to="/calles/direcciones-eliminadas" icon={Trash2}>
+                    Direcciones Eliminadas
                   </SidebarLink>
                 )}
               </SidebarDropdown>
