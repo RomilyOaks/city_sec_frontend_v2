@@ -60,7 +60,10 @@ import {
   getHistorialEstados,
   getNovedadById,
 } from "../../services/novedadesService.js";
-import { searchDirecciones, createDireccion } from "../../services/direccionesService.js";
+import {
+  searchDirecciones,
+  createDireccion,
+} from "../../services/direccionesService.js";
 import { listCargos } from "../../services/catalogosService.js";
 import { listCalles } from "../../services/callesService.js";
 import { listSectores as listSectoresService } from "../../services/sectoresService.js";
@@ -87,23 +90,29 @@ const PRIORIDAD_OPTIONS = ["ALTA", "MEDIA", "BAJA"];
 
 // 🆕 Constantes para Panel REGISTRO DE LA NOVEDAD
 const PAGE_TABS = {
-  LISTADO: 'listado',
-  REGISTRO: 'registro'
+  LISTADO: "listado",
+  REGISTRO: "registro",
 };
 
 const REGISTRO_STAGES = {
-  REGISTRO: 'registro',
-  DESPACHADOR: 'despachador',
-  ATENCION: 'atencion',
-  CIERRE: 'cierre'
+  REGISTRO: "registro",
+  DESPACHADOR: "despachador",
+  ATENCION: "atencion",
+  CIERRE: "cierre",
 };
 
 const NUEVOS_ORIGEN_LLAMADA_OPTIONS = [
   { value: "TELEFONO_107", label: "Llamada Telefónica (107)" },
   { value: "RADIO_TETRA", label: "Llamada Radio TETRA" },
   { value: "REDES_SOCIALES", label: "Redes Sociales" },
-  { value: "BOTON_EMERGENCIA_ALERTA_SURCO", label: "Botón Emergencia (App ALERTA SURCO)" },
-  { value: "BOTON_DENUNCIA_VECINO_ALERTA", label: "Botón Denuncia (App VECINO ALERTA)" },
+  {
+    value: "BOTON_EMERGENCIA_ALERTA_SURCO",
+    label: "Botón Emergencia (App ALERTA SURCO)",
+  },
+  {
+    value: "BOTON_DENUNCIA_VECINO_ALERTA",
+    label: "Botón Denuncia (App VECINO ALERTA)",
+  },
   { value: "ANALITICA", label: "Analítica" },
   { value: "APP_PODER_JUDICIAL", label: "APP Poder Judicial" },
   { value: "VIDEO_CCO", label: "Video CCO" },
@@ -131,10 +140,10 @@ const TIPO_COMPLEMENTO_OPTIONS = [
 const getCurrentDateTimeLocal = () => {
   const now = new Date();
   const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  const hours = String(now.getHours()).padStart(2, '0');
-  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
@@ -142,7 +151,7 @@ const getCurrentDateTimeLocal = () => {
  * Helper para formatear dirección completa para display
  */
 const formatDireccionCompleta = (direccion) => {
-  if (!direccion) return '';
+  if (!direccion) return "";
 
   const parts = [];
 
@@ -168,7 +177,9 @@ const formatDireccionCompleta = (direccion) => {
 
   // Complemento
   if (direccion.tipo_complemento && direccion.numero_complemento) {
-    parts.push(`(${direccion.tipo_complemento} ${direccion.numero_complemento})`);
+    parts.push(
+      `(${direccion.tipo_complemento} ${direccion.numero_complemento})`
+    );
   }
 
   // Referencia
@@ -176,7 +187,7 @@ const formatDireccionCompleta = (direccion) => {
     parts.push(`(${direccion.referencia})`);
   }
 
-  return parts.join(' ');
+  return parts.join(" ");
 };
 
 /**
@@ -283,45 +294,45 @@ export default function NovedadesPage() {
   const [searchingDireccion, setSearchingDireccion] = useState(false);
   const [showManualLocation, setShowManualLocation] = useState(false);
   const [direccionesOptions, setDireccionesOptions] = useState([]);
-  const [selectedDireccionId, setSelectedDireccionId] = useState('');
+  const [selectedDireccionId, setSelectedDireccionId] = useState("");
 
   // Datos del formulario REGISTRO
   const [registroFormData, setRegistroFormData] = useState({
     // Origen
-    origen_llamada: 'TELEFONO_107',
-    reportante_telefono: '',
+    origen_llamada: "TELEFONO_107",
+    reportante_telefono: "",
     fecha_hora_ocurrencia: getCurrentDateTimeLocal(),
 
     // Reportante
     es_anonimo: 0,
-    reportante_tipo_doc: 'DNI',
-    reportante_doc_identidad: '',
-    reportante_nombre: '',
+    reportante_tipo_doc: "DNI",
+    reportante_doc_identidad: "",
+    reportante_nombre: "",
 
     // Ubicación
-    referencia_ubicacion: '',
-    direccion_id: '',
-    calle_id: '',
-    numero_municipal: '',
-    sector_id: '',
-    cuadrante_id: '',
-    localizacion: '',
+    referencia_ubicacion: "",
+    direccion_id: "",
+    calle_id: "",
+    numero_municipal: "",
+    sector_id: "",
+    cuadrante_id: "",
+    localizacion: "",
 
     // Complemento (solo si dirección nueva)
-    tipo_complemento: '',
-    numero_complemento: '',
-    manzana: '',
-    lote: '',
-    urbanizacion: '',
+    tipo_complemento: "",
+    numero_complemento: "",
+    manzana: "",
+    lote: "",
+    urbanizacion: "",
 
     // Incidente
-    tipo_novedad_id: '',
-    subtipo_novedad_id: '',
-    descripcion: '',
+    tipo_novedad_id: "",
+    subtipo_novedad_id: "",
+    descripcion: "",
 
     // Asignación
-    personal_cargo_id: '',
-    estado_novedad_id: 1 // Default "Pendiente"
+    personal_cargo_id: "",
+    estado_novedad_id: 1, // Default "Pendiente"
   });
 
   // Catálogos para REGISTRO
@@ -538,9 +549,15 @@ export default function NovedadesPage() {
       if (e.key === "Escape") {
         // 🆕 ESC en tab REGISTRO con confirmación
         if (pageTab === PAGE_TABS.REGISTRO) {
-          const hasData = registroFormData.descripcion || registroFormData.referencia_ubicacion;
+          const hasData =
+            registroFormData.descripcion ||
+            registroFormData.referencia_ubicacion;
           if (hasData) {
-            if (window.confirm('¿Cancelar registro? Se perderán los datos ingresados.')) {
+            if (
+              window.confirm(
+                "¿Cancelar registro? Se perderán los datos ingresados."
+              )
+            ) {
               resetRegistroForm();
               setPageTab(PAGE_TABS.LISTADO);
             }
@@ -588,7 +605,15 @@ export default function NovedadesPage() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [canCreate, showCreateForm, showAtencionModal, viewingNovedad, saving, pageTab, registroFormData]);
+  }, [
+    canCreate,
+    showCreateForm,
+    showAtencionModal,
+    viewingNovedad,
+    saving,
+    pageTab,
+    registroFormData,
+  ]);
 
   // 🆕 useEffect hooks para Panel REGISTRO DE LA NOVEDAD
 
@@ -613,12 +638,14 @@ export default function NovedadesPage() {
           const [cargosData, callesData, sectoresData] = await Promise.all([
             listCargos(),
             listCalles({ limit: 1000 }),
-            listSectoresService({ limit: 100 })
+            listSectoresService({ limit: 100 }),
           ]);
 
           setCargos(cargosData || []);
           setCalles(callesData?.items || callesData?.data || callesData || []);
-          setSectoresRegistro(sectoresData?.items || sectoresData?.data || sectoresData || []);
+          setSectoresRegistro(
+            sectoresData?.items || sectoresData?.data || sectoresData || []
+          );
         } catch (error) {
           console.error("Error al cargar catálogos:", error);
           toast.error("Error al cargar catálogos");
@@ -631,14 +658,23 @@ export default function NovedadesPage() {
 
   // Cargar cuadrantes cuando cambia sector (manual)
   useEffect(() => {
-    if (pageTab === PAGE_TABS.REGISTRO && registroFormData.sector_id && showManualLocation) {
+    if (
+      pageTab === PAGE_TABS.REGISTRO &&
+      registroFormData.sector_id &&
+      showManualLocation
+    ) {
       const loadCuadrantes = async () => {
         try {
           const cuadrantesData = await listCuadrantesService({
             sector_id: registroFormData.sector_id,
-            limit: 100
+            limit: 100,
           });
-          setCuadrantesRegistro(cuadrantesData?.items || cuadrantesData?.data || cuadrantesData || []);
+          setCuadrantesRegistro(
+            cuadrantesData?.items ||
+              cuadrantesData?.data ||
+              cuadrantesData ||
+              []
+          );
         } catch (error) {
           console.error("Error al cargar cuadrantes:", error);
           toast.error("Error al cargar cuadrantes");
@@ -1037,7 +1073,7 @@ export default function NovedadesPage() {
       setDireccionMatch(null);
       setShowManualLocation(false);
       setDireccionesOptions([]);
-      setSelectedDireccionId('');
+      setSelectedDireccionId("");
       return;
     }
 
@@ -1069,22 +1105,24 @@ export default function NovedadesPage() {
    */
   const handleSelectDireccion = (direccionId) => {
     if (!direccionId) {
-      setSelectedDireccionId('');
+      setSelectedDireccionId("");
       setDireccionMatch(null);
       setShowManualLocation(false);
       return;
     }
 
-    const selected = direccionesOptions.find(d => d.id === parseInt(direccionId));
+    const selected = direccionesOptions.find(
+      (d) => d.id === parseInt(direccionId)
+    );
     if (selected) {
       setSelectedDireccionId(direccionId);
       setDireccionMatch(selected);
       setShowManualLocation(false);
-      setRegistroFormData(prev => ({
+      setRegistroFormData((prev) => ({
         ...prev,
         direccion_id: selected.id,
-        sector_id: selected.sector_id || selected.cuadrante?.sector_id || '',
-        cuadrante_id: selected.cuadrante_id || '',
+        sector_id: selected.sector_id || selected.cuadrante?.sector_id || "",
+        cuadrante_id: selected.cuadrante_id || "",
       }));
     }
   };
@@ -1097,34 +1135,41 @@ export default function NovedadesPage() {
 
     // Campos requeridos básicos
     if (!registroFormData.fecha_hora_ocurrencia) {
-      errors.push('Fecha y hora de ocurrencia es requerida');
+      errors.push("Fecha y hora de ocurrencia es requerida");
     }
 
     if (!registroFormData.referencia_ubicacion) {
-      errors.push('Dirección de referencia es requerida');
+      errors.push("Dirección de referencia es requerida");
     }
 
     // Si no hay match de dirección, validar campos manuales
     if (!direccionMatch) {
-      if (!registroFormData.calle_id) errors.push('Debe seleccionar una calle');
-      if (!registroFormData.sector_id) errors.push('Debe seleccionar un sector');
-      if (!registroFormData.cuadrante_id) errors.push('Debe seleccionar un cuadrante');
+      if (!registroFormData.calle_id) errors.push("Debe seleccionar una calle");
+      if (!registroFormData.sector_id)
+        errors.push("Debe seleccionar un sector");
+      if (!registroFormData.cuadrante_id)
+        errors.push("Debe seleccionar un cuadrante");
     }
 
     // Incidente
-    if (!registroFormData.tipo_novedad_id) errors.push('Tipo de novedad es requerido');
-    if (!registroFormData.subtipo_novedad_id) errors.push('Subtipo es requerido');
-    if (!registroFormData.descripcion || registroFormData.descripcion.trim().length < 10) {
-      errors.push('Descripción debe tener al menos 10 caracteres');
+    if (!registroFormData.tipo_novedad_id)
+      errors.push("Tipo de novedad es requerido");
+    if (!registroFormData.subtipo_novedad_id)
+      errors.push("Subtipo es requerido");
+    if (
+      !registroFormData.descripcion ||
+      registroFormData.descripcion.trim().length < 10
+    ) {
+      errors.push("Descripción debe tener al menos 10 caracteres");
     }
 
     // Reportante (solo si NO es anónimo)
     if (registroFormData.es_anonimo === 0) {
       if (!registroFormData.reportante_nombre) {
-        errors.push('Nombre del reportante es requerido');
+        errors.push("Nombre del reportante es requerido");
       }
       if (!registroFormData.reportante_doc_identidad) {
-        errors.push('Documento de identidad es requerido');
+        errors.push("Documento de identidad es requerido");
       }
     }
 
@@ -1138,7 +1183,7 @@ export default function NovedadesPage() {
     // 1. Validar formulario
     const errors = validateRegistroForm();
     if (errors.length > 0) {
-      errors.forEach(err => toast.error(err));
+      errors.forEach((err) => toast.error(err));
       return;
     }
 
@@ -1158,10 +1203,10 @@ export default function NovedadesPage() {
           manzana: registroFormData.manzana || null,
           lote: registroFormData.lote || null,
           urbanizacion: registroFormData.urbanizacion || null,
-          verificada: 0 // Marcar como no verificada
+          verificada: 0, // Marcar como no verificada
         });
         finalDireccionId = nuevaDireccion.id;
-        toast.success('Nueva dirección creada');
+        toast.success("Nueva dirección creada");
       }
 
       // 3. Crear novedad
@@ -1186,7 +1231,9 @@ export default function NovedadesPage() {
 
       const resultado = await createNovedad(novedadPayload);
 
-      toast.success(`Novedad ${resultado?.data?.novedad_code || 'creada'} exitosamente`);
+      toast.success(
+        `Novedad ${resultado?.data?.novedad_code || "creada"} exitosamente`
+      );
       resetRegistroForm();
       setPageTab(PAGE_TABS.LISTADO);
 
@@ -1194,7 +1241,7 @@ export default function NovedadesPage() {
       await fetchNovedades({ nextPage: 1 });
     } catch (error) {
       console.error("Error al guardar novedad:", error);
-      toast.error(error.response?.data?.message || 'Error al crear novedad');
+      toast.error(error.response?.data?.message || "Error al crear novedad");
     } finally {
       setSaving(false);
     }
@@ -1205,11 +1252,14 @@ export default function NovedadesPage() {
    */
   const loadCuadrantesForSector = async (sectorId) => {
     try {
-      const data = await listCuadrantesService({ sector_id: sectorId, limit: 1000 });
+      const data = await listCuadrantesService({
+        sector_id: sectorId,
+        limit: 1000,
+      });
       setCuadrantesRegistro(data.items || data || []);
     } catch (error) {
-      console.error('Error al cargar cuadrantes:', error);
-      toast.error('Error al cargar cuadrantes del sector');
+      console.error("Error al cargar cuadrantes:", error);
+      toast.error("Error al cargar cuadrantes del sector");
     }
   };
 
@@ -1221,8 +1271,8 @@ export default function NovedadesPage() {
       const data = await listSubtiposNovedad(tipoId);
       setSubtipos(data || []);
     } catch (error) {
-      console.error('Error al cargar subtipos:', error);
-      toast.error('Error al cargar subtipos de novedad');
+      console.error("Error al cargar subtipos:", error);
+      toast.error("Error al cargar subtipos de novedad");
     }
   };
 
@@ -1231,36 +1281,36 @@ export default function NovedadesPage() {
    */
   const resetRegistroForm = () => {
     setRegistroFormData({
-      origen_llamada: 'TELEFONO_107',
-      reportante_telefono: '',
+      origen_llamada: "TELEFONO_107",
+      reportante_telefono: "",
       fecha_hora_ocurrencia: getCurrentDateTimeLocal(),
       es_anonimo: 0,
-      reportante_tipo_doc: 'DNI',
-      reportante_doc_identidad: '',
-      reportante_nombre: '',
-      referencia_ubicacion: '',
-      direccion_id: '',
-      calle_id: '',
-      numero_municipal: '',
-      sector_id: '',
-      cuadrante_id: '',
-      localizacion: '',
-      tipo_complemento: '',
-      numero_complemento: '',
-      manzana: '',
-      lote: '',
-      urbanizacion: '',
-      tipo_novedad_id: '',
-      subtipo_novedad_id: '',
-      descripcion: '',
-      personal_cargo_id: '',
-      estado_novedad_id: 1
+      reportante_tipo_doc: "DNI",
+      reportante_doc_identidad: "",
+      reportante_nombre: "",
+      referencia_ubicacion: "",
+      direccion_id: "",
+      calle_id: "",
+      numero_municipal: "",
+      sector_id: "",
+      cuadrante_id: "",
+      localizacion: "",
+      tipo_complemento: "",
+      numero_complemento: "",
+      manzana: "",
+      lote: "",
+      urbanizacion: "",
+      tipo_novedad_id: "",
+      subtipo_novedad_id: "",
+      descripcion: "",
+      personal_cargo_id: "",
+      estado_novedad_id: 1,
     });
     setDireccionMatch(null);
     setSearchingDireccion(false);
     setShowManualLocation(false);
     setDireccionesOptions([]);
-    setSelectedDireccionId('');
+    setSelectedDireccionId("");
   };
 
   // Abrir modal de consulta con datos completos
@@ -1407,8 +1457,8 @@ export default function NovedadesPage() {
             onClick={() => setPageTab(PAGE_TABS.LISTADO)}
             className={`flex-1 sm:flex-none px-6 py-3 text-sm font-medium transition-colors ${
               pageTab === PAGE_TABS.LISTADO
-                ? 'bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 border-b-2 border-primary-600 dark:border-primary-400'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 border-b-2 border-primary-600 dark:border-primary-400"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
             }`}
           >
             <div className="flex items-center gap-2">
@@ -1424,8 +1474,8 @@ export default function NovedadesPage() {
               }}
               className={`flex-1 sm:flex-none px-6 py-3 text-sm font-medium transition-colors ${
                 pageTab === PAGE_TABS.REGISTRO
-                  ? 'bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 border-b-2 border-primary-600 dark:border-primary-400'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                  ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 border-b-2 border-primary-600 dark:border-primary-400"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
               }`}
             >
               <div className="flex items-center gap-2">
@@ -1439,241 +1489,240 @@ export default function NovedadesPage() {
         {/* Tab Content - LISTADO */}
         {pageTab === PAGE_TABS.LISTADO && (
           <div className="p-6 space-y-6">
-
-      {/* Filtros */}
-      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
-          <div className="relative lg:col-span-2">
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-              size={18}
-            />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              placeholder="Buscar por código, descripción, ubicación, teléfono..."
-              className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
-            />
-          </div>
-          <select
-            value={filterTipo}
-            onChange={(e) => setFilterTipo(e.target.value)}
-            className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
-          >
-            <option value="">Todos los tipos</option>
-            {tipos.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.nombre}
-              </option>
-            ))}
-          </select>
-          <select
-            value={filterEstado}
-            onChange={(e) => setFilterEstado(e.target.value)}
-            className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
-          >
-            <option value="">Todos los estados</option>
-            {estados.map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.nombre}
-              </option>
-            ))}
-          </select>
-          <select
-            value={filterPrioridad}
-            onChange={(e) => setFilterPrioridad(e.target.value)}
-            className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
-          >
-            <option value="">Todas las prioridades</option>
-            {PRIORIDAD_OPTIONS.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
-          <div className="flex gap-2">
-            <button
-              onClick={handleSearch}
-              className="flex-1 rounded-lg bg-slate-800 dark:bg-slate-700 text-white px-4 py-2 text-sm font-medium hover:bg-slate-900 dark:hover:bg-slate-600"
-            >
-              Buscar
-            </button>
-            <button
-              onClick={handleLimpiarFiltros}
-              className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-              title="Limpiar filtros"
-            >
-              <X size={16} />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Tabla */}
-      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
-              <tr>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">
-                  Código
-                </th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">
-                  Fecha/Hora
-                </th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">
-                  Tipo
-                </th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200 hidden md:table-cell">
-                  Ubicación
-                </th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">
-                  Prioridad
-                </th>
-                <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">
-                  Estado
-                </th>
-                <th className="px-4 py-3 text-right font-semibold text-slate-700 dark:text-slate-200">
-                  Acciones
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {loading ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-4 py-8 text-center text-slate-500"
+            {/* Filtros */}
+            <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+                <div className="relative lg:col-span-2">
+                  <Search
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                    size={18}
+                  />
+                  <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                    placeholder="Buscar por código, descripción, ubicación, teléfono..."
+                    className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
+                  />
+                </div>
+                <select
+                  value={filterTipo}
+                  onChange={(e) => setFilterTipo(e.target.value)}
+                  className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
+                >
+                  <option value="">Todos los tipos</option>
+                  {tipos.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.nombre}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={filterEstado}
+                  onChange={(e) => setFilterEstado(e.target.value)}
+                  className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
+                >
+                  <option value="">Todos los estados</option>
+                  {estados.map((e) => (
+                    <option key={e.id} value={e.id}>
+                      {e.nombre}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={filterPrioridad}
+                  onChange={(e) => setFilterPrioridad(e.target.value)}
+                  className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
+                >
+                  <option value="">Todas las prioridades</option>
+                  {PRIORIDAD_OPTIONS.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSearch}
+                    className="flex-1 rounded-lg bg-slate-800 dark:bg-slate-700 text-white px-4 py-2 text-sm font-medium hover:bg-slate-900 dark:hover:bg-slate-600"
                   >
-                    Cargando...
-                  </td>
-                </tr>
-              ) : novedades.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-4 py-8 text-center text-slate-500"
+                    Buscar
+                  </button>
+                  <button
+                    onClick={handleLimpiarFiltros}
+                    className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                    title="Limpiar filtros"
                   >
-                    No hay registros
-                  </td>
-                </tr>
-              ) : (
-                novedades.map((n) => (
-                  <tr
-                    key={n.id}
-                    className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
-                      n.deleted_at ? "opacity-50" : ""
-                    }`}
-                  >
-                    <td className="px-4 py-3 text-slate-900 dark:text-slate-50 font-mono font-medium whitespace-nowrap">
-                      {n.novedad_code || "—"}
-                    </td>
-                    <td className="px-4 py-3 text-slate-700 dark:text-slate-200 whitespace-nowrap">
-                      {formatFecha(n.fecha_hora_ocurrencia)}
-                    </td>
-                    <td className="px-4 py-3 text-slate-700 dark:text-slate-200">
-                      <div className="flex flex-col">
-                        <span className="font-medium">
-                          {n.novedadTipoNovedad?.nombre || "—"}
-                        </span>
-                        <span className="text-xs text-slate-500">
-                          {n.novedadSubtipoNovedad?.nombre || ""}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-slate-700 dark:text-slate-200 max-w-xs truncate hidden md:table-cell">
-                      {n.localizacion || n.referencia_ubicacion || "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${prioridadColor(
-                          n.prioridad_actual
-                        )}`}
-                      >
-                        {n.prioridad_actual || "MEDIA"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                          typeof estadoColor(n.novedadEstado) === "string"
-                            ? estadoColor(n.novedadEstado)
-                            : ""
-                        }`}
-                        style={
-                          typeof estadoColor(n.novedadEstado) === "object"
-                            ? estadoColor(n.novedadEstado)
-                            : {}
-                        }
-                      >
-                        {n.novedadEstado?.nombre || "—"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => openViewingModal(n)}
-                          className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                          title="Ver detalle"
-                        >
-                          <Eye size={14} />
-                        </button>
-                        {canEdit && !n.deleted_at && (
-                          <button
-                            onClick={() => openAtencionModal(n)}
-                            className="p-2 rounded-lg text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
-                            title="Atender novedad"
-                          >
-                            <Shield size={14} />
-                          </button>
-                        )}
-                        {canDelete && !n.deleted_at && (
-                          <button
-                            onClick={() => handleDelete(n)}
-                            className="p-2 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                            title="Eliminar"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Paginación */}
-        {pagination && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 dark:border-slate-700">
-            <span className="text-sm text-slate-500">
-              Mostrando {novedades.length} de {pagination.total || 0}
-            </span>
-            <div className="flex gap-1">
-              <button
-                disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="p-2 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-50"
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <span className="px-3 py-2 text-sm">
-                {page} / {pagination.totalPages || 1}
-              </span>
-              <button
-                disabled={page >= (pagination.totalPages || 1)}
-                onClick={() => setPage((p) => p + 1)}
-                className="p-2 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-50"
-              >
-                <ChevronRight size={16} />
-              </button>
+                    <X size={16} />
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+
+            {/* Tabla */}
+            <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">
+                        Código
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">
+                        Fecha/Hora
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">
+                        Tipo
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200 hidden md:table-cell">
+                        Ubicación
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">
+                        Prioridad
+                      </th>
+                      <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">
+                        Estado
+                      </th>
+                      <th className="px-4 py-3 text-right font-semibold text-slate-700 dark:text-slate-200">
+                        Acciones
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {loading ? (
+                      <tr>
+                        <td
+                          colSpan={7}
+                          className="px-4 py-8 text-center text-slate-500"
+                        >
+                          Cargando...
+                        </td>
+                      </tr>
+                    ) : novedades.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={7}
+                          className="px-4 py-8 text-center text-slate-500"
+                        >
+                          No hay registros
+                        </td>
+                      </tr>
+                    ) : (
+                      novedades.map((n) => (
+                        <tr
+                          key={n.id}
+                          className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
+                            n.deleted_at ? "opacity-50" : ""
+                          }`}
+                        >
+                          <td className="px-4 py-3 text-slate-900 dark:text-slate-50 font-mono font-medium whitespace-nowrap">
+                            {n.novedad_code || "—"}
+                          </td>
+                          <td className="px-4 py-3 text-slate-700 dark:text-slate-200 whitespace-nowrap">
+                            {formatFecha(n.fecha_hora_ocurrencia)}
+                          </td>
+                          <td className="px-4 py-3 text-slate-700 dark:text-slate-200">
+                            <div className="flex flex-col">
+                              <span className="font-medium">
+                                {n.novedadTipoNovedad?.nombre || "—"}
+                              </span>
+                              <span className="text-xs text-slate-500">
+                                {n.novedadSubtipoNovedad?.nombre || ""}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-slate-700 dark:text-slate-200 max-w-xs truncate hidden md:table-cell">
+                            {n.localizacion || n.referencia_ubicacion || "—"}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${prioridadColor(
+                                n.prioridad_actual
+                              )}`}
+                            >
+                              {n.prioridad_actual || "MEDIA"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                                typeof estadoColor(n.novedadEstado) === "string"
+                                  ? estadoColor(n.novedadEstado)
+                                  : ""
+                              }`}
+                              style={
+                                typeof estadoColor(n.novedadEstado) === "object"
+                                  ? estadoColor(n.novedadEstado)
+                                  : {}
+                              }
+                            >
+                              {n.novedadEstado?.nombre || "—"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() => openViewingModal(n)}
+                                className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                                title="Ver detalle"
+                              >
+                                <Eye size={14} />
+                              </button>
+                              {canEdit && !n.deleted_at && (
+                                <button
+                                  onClick={() => openAtencionModal(n)}
+                                  className="p-2 rounded-lg text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
+                                  title="Atender novedad"
+                                >
+                                  <Shield size={14} />
+                                </button>
+                              )}
+                              {canDelete && !n.deleted_at && (
+                                <button
+                                  onClick={() => handleDelete(n)}
+                                  className="p-2 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                  title="Eliminar"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Paginación */}
+              {pagination && (
+                <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 dark:border-slate-700">
+                  <span className="text-sm text-slate-500">
+                    Mostrando {novedades.length} de {pagination.total || 0}
+                  </span>
+                  <div className="flex gap-1">
+                    <button
+                      disabled={page <= 1}
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      className="p-2 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-50"
+                    >
+                      <ChevronLeft size={16} />
+                    </button>
+                    <span className="px-3 py-2 text-sm">
+                      {page} / {pagination.totalPages || 1}
+                    </span>
+                    <button
+                      disabled={page >= (pagination.totalPages || 1)}
+                      onClick={() => setPage((p) => p + 1)}
+                      className="p-2 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-50"
+                    >
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -1682,9 +1731,7 @@ export default function NovedadesPage() {
           <div className="p-6">
             {/* Sub-tabs de etapas */}
             <div className="flex gap-2 mb-6 overflow-x-auto">
-              <button
-                className="px-4 py-2 rounded-lg bg-primary-600 text-white text-sm font-medium"
-              >
+              <button className="px-4 py-2 rounded-lg bg-primary-600 text-white text-sm font-medium">
                 REGISTRO
               </button>
               <button
@@ -1712,7 +1759,10 @@ export default function NovedadesPage() {
               {/* Grupo 1: Información de Origen */}
               <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-6 bg-slate-50/50 dark:bg-slate-800/50">
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                  <Phone className="text-primary-600 dark:text-primary-400" size={20} />
+                  <Phone
+                    className="text-primary-600 dark:text-primary-400"
+                    size={20}
+                  />
                   Información de Origen
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1722,11 +1772,18 @@ export default function NovedadesPage() {
                     </label>
                     <select
                       value={registroFormData.origen_llamada}
-                      onChange={(e) => setRegistroFormData({ ...registroFormData, origen_llamada: e.target.value })}
+                      onChange={(e) =>
+                        setRegistroFormData({
+                          ...registroFormData,
+                          origen_llamada: e.target.value,
+                        })
+                      }
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
                     >
-                      {NUEVOS_ORIGEN_LLAMADA_OPTIONS.map(opt => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      {NUEVOS_ORIGEN_LLAMADA_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -1737,19 +1794,30 @@ export default function NovedadesPage() {
                     <input
                       type="tel"
                       value={registroFormData.reportante_telefono}
-                      onChange={(e) => setRegistroFormData({ ...registroFormData, reportante_telefono: e.target.value })}
+                      onChange={(e) =>
+                        setRegistroFormData({
+                          ...registroFormData,
+                          reportante_telefono: e.target.value,
+                        })
+                      }
                       placeholder="999 999 999"
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      Fecha y Hora de Ocurrencia <span className="text-red-500">*</span>
+                      Fecha y Hora de Ocurrencia{" "}
+                      <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="datetime-local"
                       value={registroFormData.fecha_hora_ocurrencia}
-                      onChange={(e) => setRegistroFormData({ ...registroFormData, fecha_hora_ocurrencia: e.target.value })}
+                      onChange={(e) =>
+                        setRegistroFormData({
+                          ...registroFormData,
+                          fecha_hora_ocurrencia: e.target.value,
+                        })
+                      }
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 [color-scheme:light] dark:[color-scheme:dark]"
                     />
                   </div>
@@ -1759,7 +1827,10 @@ export default function NovedadesPage() {
               {/* Grupo 2: Información del Reportante */}
               <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-6 bg-slate-50/50 dark:bg-slate-800/50">
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                  <User className="text-primary-600 dark:text-primary-400" size={20} />
+                  <User
+                    className="text-primary-600 dark:text-primary-400"
+                    size={20}
+                  />
                   Información del Reportante
                 </h3>
                 <div className="space-y-4">
@@ -1768,12 +1839,18 @@ export default function NovedadesPage() {
                       <input
                         type="checkbox"
                         checked={registroFormData.es_anonimo === 1}
-                        onChange={(e) => setRegistroFormData({
-                          ...registroFormData,
-                          es_anonimo: e.target.checked ? 1 : 0,
-                          reportante_nombre: e.target.checked ? '' : registroFormData.reportante_nombre,
-                          reportante_doc_identidad: e.target.checked ? '' : registroFormData.reportante_doc_identidad
-                        })}
+                        onChange={(e) =>
+                          setRegistroFormData({
+                            ...registroFormData,
+                            es_anonimo: e.target.checked ? 1 : 0,
+                            reportante_nombre: e.target.checked
+                              ? ""
+                              : registroFormData.reportante_nombre,
+                            reportante_doc_identidad: e.target.checked
+                              ? ""
+                              : registroFormData.reportante_doc_identidad,
+                          })
+                        }
                         className="rounded border-slate-300 dark:border-slate-600"
                       />
                       <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -1785,38 +1862,58 @@ export default function NovedadesPage() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                          Nombre Completo <span className="text-red-500">*</span>
+                          Nombre Completo{" "}
+                          <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="text"
                           value={registroFormData.reportante_nombre}
-                          onChange={(e) => setRegistroFormData({ ...registroFormData, reportante_nombre: e.target.value.toUpperCase() })}
+                          onChange={(e) =>
+                            setRegistroFormData({
+                              ...registroFormData,
+                              reportante_nombre: e.target.value.toUpperCase(),
+                            })
+                          }
                           placeholder="Nombres y apellidos"
                           className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 uppercase"
                         />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                          Tipo de Documento <span className="text-red-500">*</span>
+                          Tipo de Documento{" "}
+                          <span className="text-red-500">*</span>
                         </label>
                         <select
                           value={registroFormData.reportante_tipo_doc}
-                          onChange={(e) => setRegistroFormData({ ...registroFormData, reportante_tipo_doc: e.target.value })}
+                          onChange={(e) =>
+                            setRegistroFormData({
+                              ...registroFormData,
+                              reportante_tipo_doc: e.target.value,
+                            })
+                          }
                           className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
                         >
-                          {TIPO_DOCUMENTO_OPTIONS.map(opt => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          {TIPO_DOCUMENTO_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
                           ))}
                         </select>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                          Documento de Identidad <span className="text-red-500">*</span>
+                          Documento de Identidad{" "}
+                          <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="text"
                           value={registroFormData.reportante_doc_identidad}
-                          onChange={(e) => setRegistroFormData({ ...registroFormData, reportante_doc_identidad: e.target.value })}
+                          onChange={(e) =>
+                            setRegistroFormData({
+                              ...registroFormData,
+                              reportante_doc_identidad: e.target.value,
+                            })
+                          }
                           placeholder="Ej: 12345678"
                           className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
                         />
@@ -1829,7 +1926,10 @@ export default function NovedadesPage() {
               {/* Grupo 3: Información de Ubicación */}
               <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-6 bg-slate-50/50 dark:bg-slate-800/50">
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                  <MapPin className="text-primary-600 dark:text-primary-400" size={20} />
+                  <MapPin
+                    className="text-primary-600 dark:text-primary-400"
+                    size={20}
+                  />
                   Información de Ubicación
                 </h3>
                 <div className="space-y-4">
@@ -1843,7 +1943,10 @@ export default function NovedadesPage() {
                         type="text"
                         value={registroFormData.referencia_ubicacion}
                         onChange={(e) => {
-                          setRegistroFormData({ ...registroFormData, referencia_ubicacion: e.target.value });
+                          setRegistroFormData({
+                            ...registroFormData,
+                            referencia_ubicacion: e.target.value,
+                          });
                           handleDireccionSearch(e.target.value);
                         }}
                         placeholder="Ej: Arequipa, Benavides, etc."
@@ -1854,6 +1957,24 @@ export default function NovedadesPage() {
                           <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-600"></div>
                         </div>
                       )}
+                    </div>
+
+                    {/* Helper visible para descubrir la entrada manual */}
+                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 pl-1">
+                      ¿No encuentras la dirección?{" "}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // Preparar el formulario de ingreso manual
+                          setDireccionesOptions([]);
+                          setDireccionMatch(null);
+                          setSelectedDireccionId("");
+                          setShowManualLocation(true);
+                        }}
+                        className="text-primary-600 hover:underline"
+                      >
+                        Ingresar manualmente
+                      </button>
                     </div>
                   </div>
 
@@ -1869,7 +1990,7 @@ export default function NovedadesPage() {
                         className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
                       >
                         <option value="">Seleccionar dirección...</option>
-                        {direccionesOptions.map(dir => (
+                        {direccionesOptions.map((dir) => (
                           <option key={dir.id} value={dir.id}>
                             {formatDireccionCompleta(dir)}
                           </option>
@@ -1891,18 +2012,27 @@ export default function NovedadesPage() {
                           </p>
                           <div className="flex flex-wrap gap-2">
                             <span className="inline-flex items-center px-3 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-xs font-medium">
-                              Sector: {direccionMatch.sector?.nombre || direccionMatch.cuadrante?.sector?.nombre || 'N/A'}
+                              Sector:{" "}
+                              {direccionMatch.sector?.nombre ||
+                                direccionMatch.cuadrante?.sector?.nombre ||
+                                "N/A"}
                             </span>
                             <span className="inline-flex items-center px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs font-medium">
-                              Cuadrante: {direccionMatch.cuadrante?.nombre || 'N/A'}
+                              Cuadrante:{" "}
+                              {direccionMatch.cuadrante?.nombre || "N/A"}
                             </span>
                           </div>
                         </div>
                         <button
                           onClick={() => {
                             setDireccionMatch(null);
-                            setSelectedDireccionId('');
-                            setRegistroFormData(prev => ({ ...prev, direccion_id: '', sector_id: '', cuadrante_id: '' }));
+                            setSelectedDireccionId("");
+                            setRegistroFormData((prev) => ({
+                              ...prev,
+                              direccion_id: "",
+                              sector_id: "",
+                              cuadrante_id: "",
+                            }));
                           }}
                           className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                           title="Cambiar dirección"
@@ -1914,17 +2044,21 @@ export default function NovedadesPage() {
                   )}
 
                   {/* Checkbox para entrada manual */}
-                  {!direccionMatch && direccionesOptions.length === 0 && registroFormData.referencia_ubicacion.length >= 3 && !searchingDireccion && (
+                  {/* Mostrar siempre la opción de ingreso manual cuando NO hay una dirección seleccionada y no está en búsqueda. */}
+                  {!direccionMatch && !searchingDireccion && (
                     <div>
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
                           type="checkbox"
                           checked={showManualLocation}
-                          onChange={(e) => setShowManualLocation(e.target.checked)}
+                          onChange={(e) =>
+                            setShowManualLocation(e.target.checked)
+                          }
                           className="rounded border-slate-300 dark:border-slate-600"
                         />
                         <span className="text-sm font-medium text-amber-700 dark:text-amber-400">
-                          No se encontró la dirección. Ingresar datos manualmente
+                          No se encontró la dirección. Ingresar datos
+                          manualmente
                         </span>
                       </label>
                     </div>
@@ -1945,12 +2079,19 @@ export default function NovedadesPage() {
                           </label>
                           <select
                             value={registroFormData.calle_id}
-                            onChange={(e) => setRegistroFormData({ ...registroFormData, calle_id: e.target.value })}
+                            onChange={(e) =>
+                              setRegistroFormData({
+                                ...registroFormData,
+                                calle_id: e.target.value,
+                              })
+                            }
                             className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
                           >
                             <option value="">Seleccionar calle</option>
-                            {calles.map(c => (
-                              <option key={c.id} value={c.id}>{c.nombre_completo}</option>
+                            {calles.map((c) => (
+                              <option key={c.id} value={c.id}>
+                                {c.nombre_completo}
+                              </option>
                             ))}
                           </select>
                         </div>
@@ -1962,8 +2103,13 @@ export default function NovedadesPage() {
                           </label>
                           <input
                             type="text"
-                            value={registroFormData.numero_municipal || ''}
-                            onChange={(e) => setRegistroFormData({ ...registroFormData, numero_municipal: e.target.value })}
+                            value={registroFormData.numero_municipal || ""}
+                            onChange={(e) =>
+                              setRegistroFormData({
+                                ...registroFormData,
+                                numero_municipal: e.target.value,
+                              })
+                            }
                             placeholder="Ej: 123, 45-A"
                             className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
                           />
@@ -1977,7 +2123,12 @@ export default function NovedadesPage() {
                           <input
                             type="text"
                             value={registroFormData.manzana}
-                            onChange={(e) => setRegistroFormData({ ...registroFormData, manzana: e.target.value })}
+                            onChange={(e) =>
+                              setRegistroFormData({
+                                ...registroFormData,
+                                manzana: e.target.value,
+                              })
+                            }
                             placeholder="Ej: A, B, 1"
                             className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
                           />
@@ -1991,7 +2142,12 @@ export default function NovedadesPage() {
                           <input
                             type="text"
                             value={registroFormData.lote}
-                            onChange={(e) => setRegistroFormData({ ...registroFormData, lote: e.target.value })}
+                            onChange={(e) =>
+                              setRegistroFormData({
+                                ...registroFormData,
+                                lote: e.target.value,
+                              })
+                            }
                             placeholder="Ej: 10, 15"
                             className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
                           />
@@ -2006,7 +2162,12 @@ export default function NovedadesPage() {
                             <input
                               type="text"
                               value={registroFormData.urbanizacion}
-                              onChange={(e) => setRegistroFormData({ ...registroFormData, urbanizacion: e.target.value })}
+                              onChange={(e) =>
+                                setRegistroFormData({
+                                  ...registroFormData,
+                                  urbanizacion: e.target.value,
+                                })
+                              }
                               placeholder="Nombre de urbanización o AAHH"
                               className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
                             />
@@ -2020,12 +2181,19 @@ export default function NovedadesPage() {
                           </label>
                           <select
                             value={registroFormData.tipo_complemento}
-                            onChange={(e) => setRegistroFormData({ ...registroFormData, tipo_complemento: e.target.value })}
+                            onChange={(e) =>
+                              setRegistroFormData({
+                                ...registroFormData,
+                                tipo_complemento: e.target.value,
+                              })
+                            }
                             className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
                           >
                             <option value="">Sin complemento</option>
-                            {TIPO_COMPLEMENTO_OPTIONS.map(opt => (
-                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            {TIPO_COMPLEMENTO_OPTIONS.map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </option>
                             ))}
                           </select>
                         </div>
@@ -2039,7 +2207,12 @@ export default function NovedadesPage() {
                             <input
                               type="text"
                               value={registroFormData.numero_complemento}
-                              onChange={(e) => setRegistroFormData({ ...registroFormData, numero_complemento: e.target.value })}
+                              onChange={(e) =>
+                                setRegistroFormData({
+                                  ...registroFormData,
+                                  numero_complemento: e.target.value,
+                                })
+                              }
                               placeholder="Ej: 101, A, B"
                               className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
                             />
@@ -2054,7 +2227,11 @@ export default function NovedadesPage() {
                           <select
                             value={registroFormData.sector_id}
                             onChange={(e) => {
-                              setRegistroFormData({ ...registroFormData, sector_id: e.target.value, cuadrante_id: '' });
+                              setRegistroFormData({
+                                ...registroFormData,
+                                sector_id: e.target.value,
+                                cuadrante_id: "",
+                              });
                               if (e.target.value) {
                                 loadCuadrantesForSector(e.target.value);
                               }
@@ -2062,8 +2239,10 @@ export default function NovedadesPage() {
                             className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
                           >
                             <option value="">Seleccionar sector</option>
-                            {sectoresRegistro.map(s => (
-                              <option key={s.id} value={s.id}>{s.sector_code} - {s.nombre}</option>
+                            {sectoresRegistro.map((s) => (
+                              <option key={s.id} value={s.id}>
+                                {s.sector_code} - {s.nombre}
+                              </option>
                             ))}
                           </select>
                         </div>
@@ -2075,13 +2254,20 @@ export default function NovedadesPage() {
                           </label>
                           <select
                             value={registroFormData.cuadrante_id}
-                            onChange={(e) => setRegistroFormData({ ...registroFormData, cuadrante_id: e.target.value })}
+                            onChange={(e) =>
+                              setRegistroFormData({
+                                ...registroFormData,
+                                cuadrante_id: e.target.value,
+                              })
+                            }
                             disabled={!registroFormData.sector_id}
                             className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
                           >
                             <option value="">Seleccionar cuadrante</option>
-                            {cuadrantesRegistro.map(c => (
-                              <option key={c.id} value={c.id}>{c.cuadrante_code} - {c.nombre}</option>
+                            {cuadrantesRegistro.map((c) => (
+                              <option key={c.id} value={c.id}>
+                                {c.cuadrante_code} - {c.nombre}
+                              </option>
                             ))}
                           </select>
                         </div>
@@ -2096,7 +2282,12 @@ export default function NovedadesPage() {
                     </label>
                     <textarea
                       value={registroFormData.localizacion}
-                      onChange={(e) => setRegistroFormData({ ...registroFormData, localizacion: e.target.value })}
+                      onChange={(e) =>
+                        setRegistroFormData({
+                          ...registroFormData,
+                          localizacion: e.target.value,
+                        })
+                      }
                       placeholder="Ej: Frente al parque, al costado del colegio..."
                       rows={3}
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
@@ -2108,7 +2299,10 @@ export default function NovedadesPage() {
               {/* Grupo 4: Información del Incidente */}
               <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-6 bg-slate-50/50 dark:bg-slate-800/50">
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                  <AlertTriangle className="text-primary-600 dark:text-primary-400" size={20} />
+                  <AlertTriangle
+                    className="text-primary-600 dark:text-primary-400"
+                    size={20}
+                  />
                   Información del Incidente
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2119,7 +2313,11 @@ export default function NovedadesPage() {
                     <select
                       value={registroFormData.tipo_novedad_id}
                       onChange={(e) => {
-                        setRegistroFormData({ ...registroFormData, tipo_novedad_id: e.target.value, subtipo_novedad_id: '' });
+                        setRegistroFormData({
+                          ...registroFormData,
+                          tipo_novedad_id: e.target.value,
+                          subtipo_novedad_id: "",
+                        });
                         // Cargar subtipos
                         if (e.target.value) {
                           loadSubtipos(e.target.value);
@@ -2128,8 +2326,10 @@ export default function NovedadesPage() {
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
                     >
                       <option value="">Seleccionar tipo</option>
-                      {tipos.map(t => (
-                        <option key={t.id} value={t.id}>{t.nombre}</option>
+                      {tipos.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.nombre}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -2139,26 +2339,43 @@ export default function NovedadesPage() {
                     </label>
                     <select
                       value={registroFormData.subtipo_novedad_id}
-                      onChange={(e) => setRegistroFormData({ ...registroFormData, subtipo_novedad_id: e.target.value })}
+                      onChange={(e) =>
+                        setRegistroFormData({
+                          ...registroFormData,
+                          subtipo_novedad_id: e.target.value,
+                        })
+                      }
                       disabled={!registroFormData.tipo_novedad_id}
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
                     >
                       <option value="">Seleccionar subtipo</option>
                       {subtipos
-                        .filter(st => st.tipo_novedad_id == registroFormData.tipo_novedad_id)
-                        .map(st => (
-                          <option key={st.id} value={st.id}>{st.nombre}</option>
+                        .filter(
+                          (st) =>
+                            st.tipo_novedad_id ==
+                            registroFormData.tipo_novedad_id
+                        )
+                        .map((st) => (
+                          <option key={st.id} value={st.id}>
+                            {st.nombre}
+                          </option>
                         ))}
                     </select>
                   </div>
                 </div>
                 <div className="mt-4">
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    Descripción del Incidente <span className="text-red-500">*</span>
+                    Descripción del Incidente{" "}
+                    <span className="text-red-500">*</span>
                   </label>
                   <textarea
                     value={registroFormData.descripcion}
-                    onChange={(e) => setRegistroFormData({ ...registroFormData, descripcion: e.target.value })}
+                    onChange={(e) =>
+                      setRegistroFormData({
+                        ...registroFormData,
+                        descripcion: e.target.value,
+                      })
+                    }
                     placeholder="Describa el incidente con el mayor detalle posible (mínimo 10 caracteres)..."
                     rows={4}
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
@@ -2172,7 +2389,10 @@ export default function NovedadesPage() {
               {/* Grupo 5: Asignación */}
               <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-6 bg-slate-50/50 dark:bg-slate-800/50">
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                  <Shield className="text-primary-600 dark:text-primary-400" size={20} />
+                  <Shield
+                    className="text-primary-600 dark:text-primary-400"
+                    size={20}
+                  />
                   Asignación
                 </h3>
                 <div>
@@ -2181,16 +2401,24 @@ export default function NovedadesPage() {
                   </label>
                   <select
                     value={registroFormData.personal_cargo_id}
-                    onChange={(e) => setRegistroFormData({ ...registroFormData, personal_cargo_id: e.target.value })}
+                    onChange={(e) =>
+                      setRegistroFormData({
+                        ...registroFormData,
+                        personal_cargo_id: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
                   >
                     <option value="">Sin asignar (se asignará después)</option>
-                    {cargos.map(c => (
-                      <option key={c.id} value={c.id}>{c.cargo}</option>
+                    {cargos.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.cargo}
+                      </option>
                     ))}
                   </select>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Puede derivar la novedad a un personal específico o dejarlo sin asignar para derivarlo posteriormente
+                    Puede derivar la novedad a un personal específico o dejarlo
+                    sin asignar para derivarlo posteriormente
                   </p>
                 </div>
               </div>
@@ -2199,9 +2427,15 @@ export default function NovedadesPage() {
               <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
                 <button
                   onClick={() => {
-                    const hasData = registroFormData.descripcion || registroFormData.referencia_ubicacion;
+                    const hasData =
+                      registroFormData.descripcion ||
+                      registroFormData.referencia_ubicacion;
                     if (hasData) {
-                      if (window.confirm('¿Cancelar registro? Se perderán los datos ingresados.')) {
+                      if (
+                        window.confirm(
+                          "¿Cancelar registro? Se perderán los datos ingresados."
+                        )
+                      ) {
                         resetRegistroForm();
                         setPageTab(PAGE_TABS.LISTADO);
                       }
@@ -2219,7 +2453,7 @@ export default function NovedadesPage() {
                   disabled={saving}
                   className="px-4 py-2 rounded-lg bg-primary-700 text-white hover:bg-primary-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  {saving ? 'Guardando...' : 'Guardar (ALT+G)'}
+                  {saving ? "Guardando..." : "Guardar (ALT+G)"}
                 </button>
               </div>
             </div>
