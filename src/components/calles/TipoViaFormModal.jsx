@@ -56,37 +56,19 @@ export default function TipoViaFormModal({
     async function calcularSiguienteOrden() {
       if (isOpen && mode === "create") {
         try {
-          console.log("🔢 [TipoViaFormModal] Calculando siguiente orden...");
           // Obtener TODOS los tipos de vía (activos e inactivos) para calcular el orden
           const result = await listTiposVia({ page: 1, limit: 1000, includeInactive: true });
           const items = result?.items || result?.data || [];
 
-          console.log("🔢 [TipoViaFormModal] Total items recibidos:", items.length);
-          console.log("🔢 [TipoViaFormModal] Items completos:", items);
-
           // Encontrar el máximo orden (excluyendo órdenes "especiales" >= 900)
-          const ordenesValidos = [];
           const maxOrden = items.reduce((max, item) => {
             const orden = parseInt(item.orden) || 0;
-            console.log(`🔢 [TipoViaFormModal] Procesando item: ${item.nombre}, orden: ${orden}`);
-
             // Ignorar órdenes especiales (999, etc.)
-            if (orden >= 900) {
-              console.log(`  ⏭️  Ignorando orden ${orden} (>= 900)`);
-              return max;
-            }
-
-            ordenesValidos.push(orden);
-            const newMax = orden > max ? orden : max;
-            console.log(`  ✓ Orden válido: ${orden}, max actual: ${newMax}`);
-            return newMax;
+            if (orden >= 900) return max;
+            return orden > max ? orden : max;
           }, 0);
 
-          console.log("🔢 [TipoViaFormModal] Órdenes válidos encontrados:", ordenesValidos);
-          console.log("🔢 [TipoViaFormModal] Máximo orden encontrado:", maxOrden);
-
           const siguienteOrden = maxOrden + 1;
-          console.log("🔢 [TipoViaFormModal] Siguiente orden:", siguienteOrden);
 
           setFormData(prev => ({
             ...prev,
