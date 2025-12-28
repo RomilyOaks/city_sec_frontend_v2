@@ -1121,6 +1121,32 @@ export default function NovedadesPage() {
   };
 
   /**
+   * loadCuadrantesForSector - Carga cuadrantes cuando se selecciona un sector manualmente
+   */
+  const loadCuadrantesForSector = async (sectorId) => {
+    try {
+      const data = await listCuadrantesService({ sector_id: sectorId, limit: 1000 });
+      setCuadrantesRegistro(data.items || data || []);
+    } catch (error) {
+      console.error('Error al cargar cuadrantes:', error);
+      toast.error('Error al cargar cuadrantes del sector');
+    }
+  };
+
+  /**
+   * loadSubtipos - Carga subtipos cuando se selecciona un tipo de novedad
+   */
+  const loadSubtipos = async (tipoId) => {
+    try {
+      const data = await listSubtiposNovedad({ tipo_novedad_id: tipoId });
+      setSubtipos(data || []);
+    } catch (error) {
+      console.error('Error al cargar subtipos:', error);
+      toast.error('Error al cargar subtipos de novedad');
+    }
+  };
+
+  /**
    * resetRegistroForm - Limpia el formulario REGISTRO
    */
   const resetRegistroForm = () => {
@@ -1598,11 +1624,402 @@ export default function NovedadesPage() {
               </button>
             </div>
 
-            {/* Formulario REGISTRO - Simplified version */}
-            <div className="space-y-6">
-              <p className="text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
-                ⚠️ Formulario REGISTRO en construcción - Esta es una versión simplificada para testing inicial
-              </p>
+            {/* Formulario REGISTRO - Versión Completa */}
+            <div className="space-y-8">
+              {/* Grupo 1: Información de Origen */}
+              <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-6 bg-slate-50/50 dark:bg-slate-800/50">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                  <Phone className="text-primary-600 dark:text-primary-400" size={20} />
+                  Información de Origen
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Origen de Llamada <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={registroFormData.origen_llamada}
+                      onChange={(e) => setRegistroFormData({ ...registroFormData, origen_llamada: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                    >
+                      {NUEVOS_ORIGEN_LLAMADA_OPTIONS.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Teléfono del Reportante
+                    </label>
+                    <input
+                      type="tel"
+                      value={registroFormData.reportante_telefono}
+                      onChange={(e) => setRegistroFormData({ ...registroFormData, reportante_telefono: e.target.value })}
+                      placeholder="999 999 999"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Fecha y Hora de Ocurrencia <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={registroFormData.fecha_hora_ocurrencia}
+                      onChange={(e) => setRegistroFormData({ ...registroFormData, fecha_hora_ocurrencia: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Grupo 2: Información del Reportante */}
+              <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-6 bg-slate-50/50 dark:bg-slate-800/50">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                  <User className="text-primary-600 dark:text-primary-400" size={20} />
+                  Información del Reportante
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={registroFormData.es_anonimo === 1}
+                        onChange={(e) => setRegistroFormData({
+                          ...registroFormData,
+                          es_anonimo: e.target.checked ? 1 : 0,
+                          reportante_nombre: e.target.checked ? '' : registroFormData.reportante_nombre,
+                          reportante_doc_identidad: e.target.checked ? '' : registroFormData.reportante_doc_identidad
+                        })}
+                        className="rounded border-slate-300 dark:border-slate-600"
+                      />
+                      <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                        Reportante Anónimo
+                      </span>
+                    </label>
+                  </div>
+                  {registroFormData.es_anonimo === 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                          Tipo de Documento <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          value={registroFormData.reportante_tipo_doc}
+                          onChange={(e) => setRegistroFormData({ ...registroFormData, reportante_tipo_doc: e.target.value })}
+                          className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                        >
+                          {TIPO_DOCUMENTO_OPTIONS.map(opt => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                          Documento de Identidad <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={registroFormData.reportante_doc_identidad}
+                          onChange={(e) => setRegistroFormData({ ...registroFormData, reportante_doc_identidad: e.target.value })}
+                          placeholder="Ej: 12345678"
+                          className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                          Nombre Completo <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={registroFormData.reportante_nombre}
+                          onChange={(e) => setRegistroFormData({ ...registroFormData, reportante_nombre: e.target.value })}
+                          placeholder="Nombres y apellidos"
+                          className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Grupo 3: Información de Ubicación */}
+              <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-6 bg-slate-50/50 dark:bg-slate-800/50">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                  <MapPin className="text-primary-600 dark:text-primary-400" size={20} />
+                  Información de Ubicación
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Dirección de Referencia <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={registroFormData.referencia_ubicacion}
+                        onChange={(e) => {
+                          setRegistroFormData({ ...registroFormData, referencia_ubicacion: e.target.value });
+                          handleDireccionSearch(e.target.value);
+                        }}
+                        placeholder="Ej: Av. Benavides 123, Miraflores"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                      />
+                      {searchingDireccion && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-600"></div>
+                        </div>
+                      )}
+                      {direccionMatch && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-green-600">
+                          ✓
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {direccionMatch && (
+                    <div className="flex gap-2">
+                      <span className="inline-flex items-center px-3 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-sm font-medium">
+                        Sector: {direccionMatch.sector?.nombre || 'N/A'}
+                      </span>
+                      <span className="inline-flex items-center px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-sm font-medium">
+                        Cuadrante: {direccionMatch.cuadrante?.nombre || 'N/A'}
+                      </span>
+                    </div>
+                  )}
+
+                  {showManualLocation && !direccionMatch && (
+                    <div className="space-y-4 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                      <p className="text-sm text-amber-800 dark:text-amber-300">
+                        No se encontró la dirección. Por favor, ingrese los datos manualmente:
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            Calle <span className="text-red-500">*</span>
+                          </label>
+                          <select
+                            value={registroFormData.calle_id}
+                            onChange={(e) => setRegistroFormData({ ...registroFormData, calle_id: e.target.value })}
+                            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                          >
+                            <option value="">Seleccionar calle</option>
+                            {calles.map(c => (
+                              <option key={c.id} value={c.id}>{c.nombre_completo}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            Sector <span className="text-red-500">*</span>
+                          </label>
+                          <select
+                            value={registroFormData.sector_id}
+                            onChange={(e) => {
+                              setRegistroFormData({ ...registroFormData, sector_id: e.target.value, cuadrante_id: '' });
+                              // Cargar cuadrantes del sector
+                              if (e.target.value) {
+                                loadCuadrantesForSector(e.target.value);
+                              }
+                            }}
+                            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                          >
+                            <option value="">Seleccionar sector</option>
+                            {sectoresRegistro.map(s => (
+                              <option key={s.id} value={s.id}>{s.sector_code} - {s.nombre}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            Cuadrante <span className="text-red-500">*</span>
+                          </label>
+                          <select
+                            value={registroFormData.cuadrante_id}
+                            onChange={(e) => setRegistroFormData({ ...registroFormData, cuadrante_id: e.target.value })}
+                            disabled={!registroFormData.sector_id}
+                            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
+                          >
+                            <option value="">Seleccionar cuadrante</option>
+                            {cuadrantesRegistro.map(c => (
+                              <option key={c.id} value={c.id}>{c.cuadrante_code} - {c.nombre}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            Tipo de Complemento
+                          </label>
+                          <select
+                            value={registroFormData.tipo_complemento}
+                            onChange={(e) => setRegistroFormData({ ...registroFormData, tipo_complemento: e.target.value })}
+                            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                          >
+                            <option value="">Sin complemento</option>
+                            {TIPO_COMPLEMENTO_OPTIONS.map(opt => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            Número/Letra
+                          </label>
+                          <input
+                            type="text"
+                            value={registroFormData.numero_complemento}
+                            onChange={(e) => setRegistroFormData({ ...registroFormData, numero_complemento: e.target.value })}
+                            placeholder="Ej: 101, A, B"
+                            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            Urbanización/AAHH
+                          </label>
+                          <input
+                            type="text"
+                            value={registroFormData.urbanizacion}
+                            onChange={(e) => setRegistroFormData({ ...registroFormData, urbanizacion: e.target.value })}
+                            placeholder="Nombre de urbanización"
+                            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            Manzana
+                          </label>
+                          <input
+                            type="text"
+                            value={registroFormData.manzana}
+                            onChange={(e) => setRegistroFormData({ ...registroFormData, manzana: e.target.value })}
+                            placeholder="Ej: A, B, 1"
+                            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            Lote
+                          </label>
+                          <input
+                            type="text"
+                            value={registroFormData.lote}
+                            onChange={(e) => setRegistroFormData({ ...registroFormData, lote: e.target.value })}
+                            placeholder="Ej: 10, 15"
+                            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Detalles Adicionales de Ubicación
+                    </label>
+                    <textarea
+                      value={registroFormData.localizacion}
+                      onChange={(e) => setRegistroFormData({ ...registroFormData, localizacion: e.target.value })}
+                      placeholder="Ej: Frente al parque, al costado del colegio..."
+                      rows={3}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Grupo 4: Información del Incidente */}
+              <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-6 bg-slate-50/50 dark:bg-slate-800/50">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                  <AlertTriangle className="text-primary-600 dark:text-primary-400" size={20} />
+                  Información del Incidente
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Tipo de Novedad <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={registroFormData.tipo_novedad_id}
+                      onChange={(e) => {
+                        setRegistroFormData({ ...registroFormData, tipo_novedad_id: e.target.value, subtipo_novedad_id: '' });
+                        // Cargar subtipos
+                        if (e.target.value) {
+                          loadSubtipos(e.target.value);
+                        }
+                      }}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                    >
+                      <option value="">Seleccionar tipo</option>
+                      {tipos.map(t => (
+                        <option key={t.id} value={t.id}>{t.nombre}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Subtipo de Novedad <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={registroFormData.subtipo_novedad_id}
+                      onChange={(e) => setRegistroFormData({ ...registroFormData, subtipo_novedad_id: e.target.value })}
+                      disabled={!registroFormData.tipo_novedad_id}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
+                    >
+                      <option value="">Seleccionar subtipo</option>
+                      {subtipos
+                        .filter(st => st.tipo_novedad_id == registroFormData.tipo_novedad_id)
+                        .map(st => (
+                          <option key={st.id} value={st.id}>{st.nombre}</option>
+                        ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    Descripción del Incidente <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    value={registroFormData.descripcion}
+                    onChange={(e) => setRegistroFormData({ ...registroFormData, descripcion: e.target.value })}
+                    placeholder="Describa el incidente con el mayor detalle posible (mínimo 10 caracteres)..."
+                    rows={4}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                  />
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    {registroFormData.descripcion.length} caracteres
+                  </p>
+                </div>
+              </div>
+
+              {/* Grupo 5: Asignación */}
+              <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-6 bg-slate-50/50 dark:bg-slate-800/50">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                  <Shield className="text-primary-600 dark:text-primary-400" size={20} />
+                  Asignación
+                </h3>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    Derivar a
+                  </label>
+                  <select
+                    value={registroFormData.personal_cargo_id}
+                    onChange={(e) => setRegistroFormData({ ...registroFormData, personal_cargo_id: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="">Sin asignar (se asignará después)</option>
+                    {cargos.map(c => (
+                      <option key={c.id} value={c.id}>{c.cargo}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Puede derivar la novedad a un personal específico o dejarlo sin asignar para derivarlo posteriormente
+                  </p>
+                </div>
+              </div>
 
               {/* Botones */}
               <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
