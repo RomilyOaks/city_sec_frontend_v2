@@ -139,6 +139,47 @@ const getCurrentDateTimeLocal = () => {
 };
 
 /**
+ * Helper para formatear dirección completa para display
+ */
+const formatDireccionCompleta = (direccion) => {
+  if (!direccion) return '';
+
+  const parts = [];
+
+  // Calle principal
+  if (direccion.calle?.nombre_completo) {
+    parts.push(direccion.calle.nombre_completo);
+  }
+
+  // Número municipal
+  if (direccion.numero_municipal) {
+    parts.push(`N° ${direccion.numero_municipal}`);
+  }
+
+  // Manzana y Lote
+  if (direccion.manzana && direccion.lote) {
+    parts.push(`Mz. ${direccion.manzana} Lt. ${direccion.lote}`);
+  }
+
+  // Urbanización
+  if (direccion.urbanizacion) {
+    parts.push(`- ${direccion.urbanizacion}`);
+  }
+
+  // Complemento
+  if (direccion.tipo_complemento && direccion.numero_complemento) {
+    parts.push(`(${direccion.tipo_complemento} ${direccion.numero_complemento})`);
+  }
+
+  // Referencia
+  if (direccion.referencia) {
+    parts.push(`(${direccion.referencia})`);
+  }
+
+  return parts.join(' ');
+};
+
+/**
  * NovedadesPage - Página de gestión de incidentes y novedades
  *
  * @version 2.0.0
@@ -241,6 +282,8 @@ export default function NovedadesPage() {
   const [direccionMatch, setDireccionMatch] = useState(null);
   const [searchingDireccion, setSearchingDireccion] = useState(false);
   const [showManualLocation, setShowManualLocation] = useState(false);
+  const [direccionesOptions, setDireccionesOptions] = useState([]);
+  const [selectedDireccionId, setSelectedDireccionId] = useState('');
 
   // Datos del formulario REGISTRO
   const [registroFormData, setRegistroFormData] = useState({
@@ -259,6 +302,7 @@ export default function NovedadesPage() {
     referencia_ubicacion: '',
     direccion_id: '',
     calle_id: '',
+    numero_municipal: '',
     sector_id: '',
     cuadrante_id: '',
     localizacion: '',
@@ -992,6 +1036,8 @@ export default function NovedadesPage() {
     if (!value || value.trim().length < 3) {
       setDireccionMatch(null);
       setShowManualLocation(false);
+      setDireccionesOptions([]);
+      setSelectedDireccionId('');
       return;
     }
 
@@ -999,26 +1045,47 @@ export default function NovedadesPage() {
     try {
       const results = await searchDirecciones({ calle: value });
       if (results && results.length > 0) {
-        // Match encontrado - auto-completar
-        const match = results[0];
-        setDireccionMatch(match);
-        setShowManualLocation(false);
-        setRegistroFormData(prev => ({
-          ...prev,
-          direccion_id: match.id,
-          sector_id: match.sector_id || match.cuadrante?.sector_id || '',
-          cuadrante_id: match.cuadrante_id || '',
-        }));
-      } else {
-        // No match - mostrar campos manuales
+        // Guardar opciones para el dropdown
+        setDireccionesOptions(results);
+        // No auto-completar, esperar selección del usuario
         setDireccionMatch(null);
-        setShowManualLocation(true);
+        setShowManualLocation(false);
+      } else {
+        // No match - no mostrar dropdown
+        setDireccionesOptions([]);
+        setDireccionMatch(null);
+        setShowManualLocation(false);
       }
     } catch (error) {
       console.error("Error al buscar dirección:", error);
-      setShowManualLocation(true);
+      setDireccionesOptions([]);
     } finally {
       setSearchingDireccion(false);
+    }
+  };
+
+  /**
+   * handleSelectDireccion - Cuando el usuario selecciona una dirección del dropdown
+   */
+  const handleSelectDireccion = (direccionId) => {
+    if (!direccionId) {
+      setSelectedDireccionId('');
+      setDireccionMatch(null);
+      setShowManualLocation(false);
+      return;
+    }
+
+    const selected = direccionesOptions.find(d => d.id === parseInt(direccionId));
+    if (selected) {
+      setSelectedDireccionId(direccionId);
+      setDireccionMatch(selected);
+      setShowManualLocation(false);
+      setRegistroFormData(prev => ({
+        ...prev,
+        direccion_id: selected.id,
+        sector_id: selected.sector_id || selected.cuadrante?.sector_id || '',
+        cuadrante_id: selected.cuadrante_id || '',
+      }));
     }
   };
 
@@ -1174,6 +1241,7 @@ export default function NovedadesPage() {
       referencia_ubicacion: '',
       direccion_id: '',
       calle_id: '',
+      numero_municipal: '',
       sector_id: '',
       cuadrante_id: '',
       localizacion: '',
@@ -1191,6 +1259,8 @@ export default function NovedadesPage() {
     setDireccionMatch(null);
     setSearchingDireccion(false);
     setShowManualLocation(false);
+    setDireccionesOptions([]);
+    setSelectedDireccionId('');
   };
 
   // Abrir modal de consulta con datos completos
@@ -1763,9 +1833,10 @@ export default function NovedadesPage() {
                   Información de Ubicación
                 </h3>
                 <div className="space-y-4">
+                  {/* Campo de búsqueda de dirección */}
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      Dirección de Referencia <span className="text-red-500">*</span>
+                      Buscar Dirección <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
                       <input
@@ -1775,7 +1846,7 @@ export default function NovedadesPage() {
                           setRegistroFormData({ ...registroFormData, referencia_ubicacion: e.target.value });
                           handleDireccionSearch(e.target.value);
                         }}
-                        placeholder="Ej: Av. Benavides 123, Miraflores"
+                        placeholder="Ej: Arequipa, Benavides, etc."
                         className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
                       />
                       {searchingDireccion && (
@@ -1783,31 +1854,91 @@ export default function NovedadesPage() {
                           <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-600"></div>
                         </div>
                       )}
-                      {direccionMatch && (
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-green-600">
-                          ✓
-                        </div>
-                      )}
                     </div>
                   </div>
 
-                  {direccionMatch && (
-                    <div className="flex gap-2">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-sm font-medium">
-                        Sector: {direccionMatch.sector?.nombre || 'N/A'}
-                      </span>
-                      <span className="inline-flex items-center px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-sm font-medium">
-                        Cuadrante: {direccionMatch.cuadrante?.nombre || 'N/A'}
-                      </span>
+                  {/* Dropdown de direcciones encontradas */}
+                  {direccionesOptions.length > 0 && !direccionMatch && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Seleccione una Dirección
+                      </label>
+                      <select
+                        value={selectedDireccionId}
+                        onChange={(e) => handleSelectDireccion(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                      >
+                        <option value="">Seleccionar dirección...</option>
+                        {direccionesOptions.map(dir => (
+                          <option key={dir.id} value={dir.id}>
+                            {formatDireccionCompleta(dir)}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   )}
 
+                  {/* Dirección seleccionada con badges */}
+                  {direccionMatch && (
+                    <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-green-900 dark:text-green-100 mb-2">
+                            ✓ Dirección seleccionada:
+                          </p>
+                          <p className="text-sm text-green-800 dark:text-green-200 mb-3">
+                            {formatDireccionCompleta(direccionMatch)}
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-xs font-medium">
+                              Sector: {direccionMatch.sector?.nombre || direccionMatch.cuadrante?.sector?.nombre || 'N/A'}
+                            </span>
+                            <span className="inline-flex items-center px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs font-medium">
+                              Cuadrante: {direccionMatch.cuadrante?.nombre || 'N/A'}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setDireccionMatch(null);
+                            setSelectedDireccionId('');
+                            setRegistroFormData(prev => ({ ...prev, direccion_id: '', sector_id: '', cuadrante_id: '' }));
+                          }}
+                          className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                          title="Cambiar dirección"
+                        >
+                          <X size={18} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Checkbox para entrada manual */}
+                  {!direccionMatch && direccionesOptions.length === 0 && registroFormData.referencia_ubicacion.length >= 3 && !searchingDireccion && (
+                    <div>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={showManualLocation}
+                          onChange={(e) => setShowManualLocation(e.target.checked)}
+                          className="rounded border-slate-300 dark:border-slate-600"
+                        />
+                        <span className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                          No se encontró la dirección. Ingresar datos manualmente
+                        </span>
+                      </label>
+                    </div>
+                  )}
+
+                  {/* Formulario manual de dirección */}
                   {showManualLocation && !direccionMatch && (
                     <div className="space-y-4 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
-                      <p className="text-sm text-amber-800 dark:text-amber-300">
-                        No se encontró la dirección. Por favor, ingrese los datos manualmente:
+                      <p className="text-sm text-amber-800 dark:text-amber-300 font-medium">
+                        Complete los datos de la nueva dirección:
                       </p>
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Calle */}
                         <div>
                           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                             Calle <span className="text-red-500">*</span>
@@ -1823,6 +1954,99 @@ export default function NovedadesPage() {
                             ))}
                           </select>
                         </div>
+
+                        {/* Número Municipal */}
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            Número Municipal/Letra
+                          </label>
+                          <input
+                            type="text"
+                            value={registroFormData.numero_municipal || ''}
+                            onChange={(e) => setRegistroFormData({ ...registroFormData, numero_municipal: e.target.value })}
+                            placeholder="Ej: 123, 45-A"
+                            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                          />
+                        </div>
+
+                        {/* Manzana */}
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            Manzana
+                          </label>
+                          <input
+                            type="text"
+                            value={registroFormData.manzana}
+                            onChange={(e) => setRegistroFormData({ ...registroFormData, manzana: e.target.value })}
+                            placeholder="Ej: A, B, 1"
+                            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                          />
+                        </div>
+
+                        {/* Lote */}
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            Lote
+                          </label>
+                          <input
+                            type="text"
+                            value={registroFormData.lote}
+                            onChange={(e) => setRegistroFormData({ ...registroFormData, lote: e.target.value })}
+                            placeholder="Ej: 10, 15"
+                            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                          />
+                        </div>
+
+                        {/* Urbanización - Solo si hay Manzana Y Lote */}
+                        {registroFormData.manzana && registroFormData.lote && (
+                          <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                              Urbanización/AAHH
+                            </label>
+                            <input
+                              type="text"
+                              value={registroFormData.urbanizacion}
+                              onChange={(e) => setRegistroFormData({ ...registroFormData, urbanizacion: e.target.value })}
+                              placeholder="Nombre de urbanización o AAHH"
+                              className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                            />
+                          </div>
+                        )}
+
+                        {/* Tipo de Complemento */}
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            Tipo de Complemento
+                          </label>
+                          <select
+                            value={registroFormData.tipo_complemento}
+                            onChange={(e) => setRegistroFormData({ ...registroFormData, tipo_complemento: e.target.value })}
+                            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                          >
+                            <option value="">Sin complemento</option>
+                            {TIPO_COMPLEMENTO_OPTIONS.map(opt => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Número de Complemento - Solo si se seleccionó tipo */}
+                        {registroFormData.tipo_complemento && (
+                          <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                              Número de Complemento
+                            </label>
+                            <input
+                              type="text"
+                              value={registroFormData.numero_complemento}
+                              onChange={(e) => setRegistroFormData({ ...registroFormData, numero_complemento: e.target.value })}
+                              placeholder="Ej: 101, A, B"
+                              className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                            />
+                          </div>
+                        )}
+
+                        {/* Sector */}
                         <div>
                           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                             Sector <span className="text-red-500">*</span>
@@ -1831,7 +2055,6 @@ export default function NovedadesPage() {
                             value={registroFormData.sector_id}
                             onChange={(e) => {
                               setRegistroFormData({ ...registroFormData, sector_id: e.target.value, cuadrante_id: '' });
-                              // Cargar cuadrantes del sector
                               if (e.target.value) {
                                 loadCuadrantesForSector(e.target.value);
                               }
@@ -1844,6 +2067,8 @@ export default function NovedadesPage() {
                             ))}
                           </select>
                         </div>
+
+                        {/* Cuadrante */}
                         <div>
                           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                             Cuadrante <span className="text-red-500">*</span>
@@ -1861,74 +2086,10 @@ export default function NovedadesPage() {
                           </select>
                         </div>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                            Tipo de Complemento
-                          </label>
-                          <select
-                            value={registroFormData.tipo_complemento}
-                            onChange={(e) => setRegistroFormData({ ...registroFormData, tipo_complemento: e.target.value })}
-                            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
-                          >
-                            <option value="">Sin complemento</option>
-                            {TIPO_COMPLEMENTO_OPTIONS.map(opt => (
-                              <option key={opt.value} value={opt.value}>{opt.label}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                            Número/Letra
-                          </label>
-                          <input
-                            type="text"
-                            value={registroFormData.numero_complemento}
-                            onChange={(e) => setRegistroFormData({ ...registroFormData, numero_complemento: e.target.value })}
-                            placeholder="Ej: 101, A, B"
-                            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                            Urbanización/AAHH
-                          </label>
-                          <input
-                            type="text"
-                            value={registroFormData.urbanizacion}
-                            onChange={(e) => setRegistroFormData({ ...registroFormData, urbanizacion: e.target.value })}
-                            placeholder="Nombre de urbanización"
-                            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                            Manzana
-                          </label>
-                          <input
-                            type="text"
-                            value={registroFormData.manzana}
-                            onChange={(e) => setRegistroFormData({ ...registroFormData, manzana: e.target.value })}
-                            placeholder="Ej: A, B, 1"
-                            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                            Lote
-                          </label>
-                          <input
-                            type="text"
-                            value={registroFormData.lote}
-                            onChange={(e) => setRegistroFormData({ ...registroFormData, lote: e.target.value })}
-                            placeholder="Ej: 10, 15"
-                            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
-                          />
-                        </div>
-                      </div>
                     </div>
                   )}
 
+                  {/* Detalles Adicionales */}
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                       Detalles Adicionales de Ubicación
