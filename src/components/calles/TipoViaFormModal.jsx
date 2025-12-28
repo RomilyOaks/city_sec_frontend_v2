@@ -10,6 +10,7 @@ import { X, Type, Loader2 } from "lucide-react";
 import {
   createTipoVia,
   updateTipoVia,
+  listTiposVia,
 } from "../../services/tiposViaService";
 
 /**
@@ -49,6 +50,43 @@ export default function TipoViaFormModal({
       });
     }
   }, [isOpen, initialData, mode]);
+
+  // Auto-calcular siguiente número de orden al crear
+  useEffect(() => {
+    async function calcularSiguienteOrden() {
+      if (isOpen && mode === "create") {
+        try {
+          console.log("🔢 [TipoViaFormModal] Calculando siguiente orden...");
+          const result = await listTiposVia({ page: 1, limit: 1000 });
+          const items = result?.items || result?.data || [];
+
+          // Encontrar el máximo orden
+          const maxOrden = items.reduce((max, item) => {
+            const orden = parseInt(item.orden) || 0;
+            return orden > max ? orden : max;
+          }, 0);
+
+          const siguienteOrden = maxOrden + 1;
+          console.log("🔢 [TipoViaFormModal] Máximo orden encontrado:", maxOrden);
+          console.log("🔢 [TipoViaFormModal] Siguiente orden:", siguienteOrden);
+
+          setFormData(prev => ({
+            ...prev,
+            orden: siguienteOrden.toString()
+          }));
+        } catch (error) {
+          console.error("❌ [TipoViaFormModal] Error al calcular orden:", error);
+          // Si hay error, usar 1 como default
+          setFormData(prev => ({
+            ...prev,
+            orden: "1"
+          }));
+        }
+      }
+    }
+
+    calcularSiguienteOrden();
+  }, [isOpen, mode]);
 
   // Shortcuts de teclado
   useEffect(() => {
@@ -96,23 +134,31 @@ export default function TipoViaFormModal({
     try {
       setLoading(true);
 
+      console.log("📤 [TipoViaFormModal] Enviando datos:", formData);
+
       if (mode === "create") {
-        await createTipoVia(formData);
+        const response = await createTipoVia(formData);
+        console.log("✅ [TipoViaFormModal] Respuesta crear:", response);
         window.alert("✅ ÉXITO\n\nTipo de vía creado exitosamente");
       } else {
-        await updateTipoVia(initialData.id, formData);
+        const response = await updateTipoVia(initialData.id, formData);
+        console.log("✅ [TipoViaFormModal] Respuesta actualizar:", response);
         window.alert("✅ ÉXITO\n\nTipo de vía actualizado exitosamente");
       }
 
       onSuccess?.();
       handleClose();
     } catch (error) {
-      console.error("❌ Error al guardar tipo de vía:", error);
+      console.error("❌ [TipoViaFormModal] Error completo:", error);
+      console.error("❌ [TipoViaFormModal] error.response:", error.response);
+      console.error("❌ [TipoViaFormModal] error.response.data:", error.response?.data);
+      console.error("❌ [TipoViaFormModal] error.response.status:", error.response?.status);
 
       const errorData = error.response?.data;
       let errorTitle = "❌ ERROR AL GUARDAR TIPO DE VÍA";
       let errorMessage = "";
 
+      // Mejor manejo de errores con más detalle
       if (errorData?.errors && Array.isArray(errorData.errors)) {
         errorMessage = errorData.errors
           .map((err) => {
@@ -121,12 +167,20 @@ export default function TipoViaFormModal({
             return `• ${field}: ${msg}`;
           })
           .join("\n");
+      } else if (errorData?.error) {
+        // Algunos backends envían {error: "mensaje"}
+        errorMessage = errorData.error;
       } else if (errorData?.message) {
         errorMessage = errorData.message;
       } else if (error.message) {
         errorMessage = error.message;
       } else {
         errorMessage = "Error desconocido al guardar el tipo de vía";
+      }
+
+      // Agregar información del código de estado HTTP si existe
+      if (error.response?.status) {
+        errorMessage = `[HTTP ${error.response.status}] ${errorMessage}`;
       }
 
       window.alert(`${errorTitle}\n\n${errorMessage}`);
