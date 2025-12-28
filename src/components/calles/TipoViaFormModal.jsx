@@ -207,11 +207,11 @@ export default function TipoViaFormModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-md">
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         {/* ============================================
             HEADER
             ============================================ */}
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 p-4">
+        <div className="sticky top-0 bg-white dark:bg-slate-900 flex items-center justify-between border-b border-slate-200 dark:border-slate-700 p-4 z-10">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary-100 dark:bg-primary-900/30">
               <Type
@@ -380,7 +380,7 @@ export default function TipoViaFormModal({
           {/* ============================================
               BOTONES
               ============================================ */}
-          <div className="flex items-center justify-end gap-2 pt-4">
+          <div className="sticky bottom-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 flex items-center justify-end gap-2 pt-4 pb-2 -mx-6 px-6 mt-6">
             <button
               type="button"
               onClick={handleClose}
