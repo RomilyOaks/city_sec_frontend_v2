@@ -40,6 +40,7 @@ export default function CalleCuadranteFormModal({
     cuadrante_id: "",
     numero_inicio: "",
     numero_fin: "",
+    manzana: "",
     lado: "AMBOS",
     desde_interseccion: "",
     hasta_interseccion: "",
@@ -59,6 +60,7 @@ export default function CalleCuadranteFormModal({
           cuadrante_id: calleCuadrante.cuadrante_id || "",
           numero_inicio: calleCuadrante.numero_inicio || "",
           numero_fin: calleCuadrante.numero_fin || "",
+          manzana: calleCuadrante.manzana || "",
           lado: calleCuadrante.lado || "AMBOS",
           desde_interseccion: calleCuadrante.desde_interseccion || "",
           hasta_interseccion: calleCuadrante.hasta_interseccion || "",
@@ -72,6 +74,7 @@ export default function CalleCuadranteFormModal({
           cuadrante_id: "",
           numero_inicio: "",
           numero_fin: "",
+          manzana: "",
           lado: "AMBOS",
           desde_interseccion: "",
           hasta_interseccion: "",
@@ -154,6 +157,7 @@ export default function CalleCuadranteFormModal({
       cuadrante_id: "",
       numero_inicio: "",
       numero_fin: "",
+      manzana: "",
       lado: "AMBOS",
       desde_interseccion: "",
       hasta_interseccion: "",
@@ -165,7 +169,13 @@ export default function CalleCuadranteFormModal({
   };
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    let { name, value } = e.target;
+
+    // Normalizar manzana a MAYÚSCULAS y limitar a 10 caracteres
+    if (name === "manzana") {
+      value = value.toUpperCase().slice(0, 10);
+    }
+
     setFormData((prev) => ({ ...prev, [name]: value }));
     setValidationError(""); // Limpiar error al cambiar
   };
@@ -184,14 +194,31 @@ export default function CalleCuadranteFormModal({
         return;
       }
 
+      // Validar: manzana es obligatoria SOLO si NO hay numeración municipal (numero_inicio y numero_fin)
+      const hasNumericRange = formData.numero_inicio && formData.numero_fin;
+      if (!hasNumericRange && !formData.manzana.trim()) {
+        setValidationError(
+          "La manzana es obligatoria cuando no hay numeración municipal (número inicial + final)"
+        );
+        toast.error(
+          "La manzana es obligatoria cuando no hay numeración municipal"
+        );
+        setLoading(false);
+        return;
+      }
+
       // Validar rango de numeración si se proporciona
       if (formData.numero_inicio && formData.numero_fin) {
         const inicio = parseInt(formData.numero_inicio);
         const fin = parseInt(formData.numero_fin);
 
         if (fin < inicio) {
-          setValidationError("El número final debe ser mayor o igual al número inicial");
-          toast.error("El número final debe ser mayor o igual al número inicial");
+          setValidationError(
+            "El número final debe ser mayor o igual al número inicial"
+          );
+          toast.error(
+            "El número final debe ser mayor o igual al número inicial"
+          );
           setLoading(false);
           return;
         }
@@ -201,8 +228,11 @@ export default function CalleCuadranteFormModal({
       const dataToSend = {
         calle_id: parseInt(formData.calle_id),
         cuadrante_id: parseInt(formData.cuadrante_id),
-        numero_inicio: formData.numero_inicio ? parseInt(formData.numero_inicio) : null,
+        numero_inicio: formData.numero_inicio
+          ? parseInt(formData.numero_inicio)
+          : null,
         numero_fin: formData.numero_fin ? parseInt(formData.numero_fin) : null,
+        manzana: formData.manzana?.trim().toUpperCase() || null,
         lado: formData.lado,
         desde_interseccion: formData.desde_interseccion?.trim() || null,
         hasta_interseccion: formData.hasta_interseccion?.trim() || null,
@@ -235,11 +265,13 @@ export default function CalleCuadranteFormModal({
         errorMessage = backendData.error;
       } else if (backendData?.errors) {
         if (Array.isArray(backendData.errors)) {
-          errorMessage = backendData.errors.map(e => e.message || e).join(", ");
-        } else if (typeof backendData.errors === 'object') {
+          errorMessage = backendData.errors
+            .map((e) => e.message || e)
+            .join(", ");
+        } else if (typeof backendData.errors === "object") {
           errorMessage = Object.values(backendData.errors).join(", ");
         }
-      } else if (typeof backendData === 'string') {
+      } else if (typeof backendData === "string") {
         errorMessage = backendData;
       }
 
@@ -274,12 +306,18 @@ export default function CalleCuadranteFormModal({
         {/* Error de validación */}
         {validationError && (
           <div className="mx-6 mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-            <p className="text-sm text-red-800 dark:text-red-200">{validationError}</p>
+            <p className="text-sm text-red-800 dark:text-red-200">
+              {validationError}
+            </p>
           </div>
         )}
 
         {/* Form */}
-        <form id="calle-cuadrante-form" onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form
+          id="calle-cuadrante-form"
+          onSubmit={handleSubmit}
+          className="p-6 space-y-6"
+        >
           {/* Cuadrante - Campo obligatorio */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -299,7 +337,9 @@ export default function CalleCuadranteFormModal({
               {cuadrantes.map((cuad) => (
                 <option key={cuad.id} value={cuad.id}>
                   {cuad.cuadrante_code || cuad.codigo} -{" "}
-                  {cuad.Sector?.sector_code || cuad.sector?.sector_code || "S/N"}{" "}
+                  {cuad.Sector?.sector_code ||
+                    cuad.sector?.sector_code ||
+                    "S/N"}{" "}
                   {cuad.Sector?.nombre || cuad.sector?.nombre || cuad.nombre}
                 </option>
               ))}
@@ -307,14 +347,41 @@ export default function CalleCuadranteFormModal({
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
               {calleCuadrante
                 ? "No puede modificar el cuadrante al editar. Si necesita cambiarlo, elimine este registro y cree uno nuevo."
-                : "Seleccione el cuadrante por donde pasa esta calle. Puede asignar el mismo cuadrante con diferente \"Lado\" (PAR/IMPAR/AMBOS)."}
+                : 'Seleccione el cuadrante por donde pasa esta calle. Puede asignar el mismo cuadrante con diferente "Lado" (PAR/IMPAR/AMBOS).'}
             </p>
           </div>
 
           {/* Tip de ayuda */}
           <div className="flex justify-end mb-4">
             <p className="text-xs text-slate-600 dark:text-slate-400">
-              <span className="text-blue-600 dark:text-blue-400 font-medium">Tip:</span> ESC para cerrar • ALT+G para guardar
+              <span className="text-blue-600 dark:text-blue-400 font-medium">
+                Tip:
+              </span>{" "}
+              ESC para cerrar • ALT+G para guardar
+            </p>
+          </div>
+
+          {/* Manzana (opcional si hay número, obligatoria si no hay) */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              Manzana{" "}
+              {!formData.numero_inicio && !formData.numero_fin && (
+                <span className="text-red-500">*</span>
+              )}
+            </label>
+            <input
+              type="text"
+              name="manzana"
+              value={formData.manzana}
+              onChange={handleChange}
+              maxLength="10"
+              placeholder="Ej: A1 (se guardará en MAYÚSCULAS)"
+              className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:text-white"
+            />
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              {formData.numero_inicio && formData.numero_fin
+                ? "Opcional — manzana adicional (máx 10 caracteres)."
+                : "Obligatoria si NO hay numeración municipal. Máx 10 caracteres."}
             </p>
           </div>
 
@@ -416,7 +483,8 @@ export default function CalleCuadranteFormModal({
               className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:text-white"
             />
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              1 = mayor prioridad, 10 = menor prioridad (para resolver conflictos de solapamiento)
+              1 = mayor prioridad, 10 = menor prioridad (para resolver
+              conflictos de solapamiento)
             </p>
           </div>
 
@@ -449,7 +517,11 @@ export default function CalleCuadranteFormModal({
               disabled={loading}
               className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {loading ? "Guardando..." : calleCuadrante ? "Actualizar" : "Crear"}
+              {loading
+                ? "Guardando..."
+                : calleCuadrante
+                ? "Actualizar"
+                : "Crear"}
             </button>
           </div>
         </form>
