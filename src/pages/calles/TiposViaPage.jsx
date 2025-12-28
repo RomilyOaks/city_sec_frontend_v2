@@ -6,13 +6,14 @@
  */
 
 import { useState, useEffect } from "react";
-import { Plus, Search, Edit, Trash2, Type, X } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Type, X, Eye } from "lucide-react";
 import {
   listTiposVia,
   deleteTipoVia,
 } from "../../services/tiposViaService";
 import { useAuthStore } from "../../store/useAuthStore";
 import TipoViaFormModal from "../../components/calles/TipoViaFormModal";
+import TipoViaViewModal from "../../components/calles/TipoViaViewModal";
 
 /**
  * TiposViaPage - Página principal de gestión de tipos de vía
@@ -40,6 +41,7 @@ export default function TiposViaPage() {
   // Modales
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
   const [selectedTipoVia, setSelectedTipoVia] = useState(null);
 
   // Permisos
@@ -151,6 +153,11 @@ export default function TiposViaPage() {
   function handleClearSearch() {
     setSearch("");
     setCurrentPage(1);
+  }
+
+  function handleView(tipoVia) {
+    setSelectedTipoVia(tipoVia);
+    setShowViewModal(true);
   }
 
   function handleEdit(tipoVia) {
@@ -342,10 +349,17 @@ export default function TiposViaPage() {
                     </td>
                     <td className="px-4 py-3 text-right text-sm">
                       <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleView(tipoVia)}
+                          className="inline-flex items-center justify-center rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                          title="Ver información completa"
+                        >
+                          <Eye size={16} />
+                        </button>
                         {canUpdate && (
                           <button
                             onClick={() => handleEdit(tipoVia)}
-                            className="inline-flex items-center justify-center rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                            className="inline-flex items-center justify-center rounded-lg p-2 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20"
                             title="Editar"
                           >
                             <Edit size={16} />
@@ -418,6 +432,17 @@ export default function TiposViaPage() {
         initialData={selectedTipoVia}
         mode="edit"
       />
+
+      {showViewModal && selectedTipoVia && (
+        <TipoViaViewModal
+          isOpen={showViewModal}
+          onClose={() => {
+            setShowViewModal(false);
+            setSelectedTipoVia(null);
+          }}
+          tipoVia={selectedTipoVia}
+        />
+      )}
     </div>
   );
 }
