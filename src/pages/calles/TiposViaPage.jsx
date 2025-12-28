@@ -301,6 +301,9 @@ export default function TiposViaPage() {
                     Orden
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 dark:text-slate-300 uppercase">
+                    Código
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 dark:text-slate-300 uppercase">
                     Nombre
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 dark:text-slate-300 uppercase">
@@ -322,6 +325,9 @@ export default function TiposViaPage() {
                   >
                     <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
                       {tipoVia.orden || "-"}
+                    </td>
+                    <td className="px-4 py-3 text-sm font-mono text-slate-900 dark:text-slate-100">
+                      {tipoVia.codigo}
                     </td>
                     <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-slate-100">
                       {tipoVia.nombre}

@@ -279,6 +279,51 @@ export default function TipoViaFormModal({
           </div>
 
           {/* ============================================
+              INFORMACIÓN DE AUDITORÍA (Solo al editar)
+              ============================================ */}
+          {mode === "edit" && initialData && (
+            <div className="border-t border-slate-200 dark:border-slate-700 pt-4 mt-4">
+              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">
+                Información de Auditoría
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                    Creado Por
+                  </label>
+                  <p className="text-sm text-slate-900 dark:text-slate-50">
+                    {initialData.createdByUser?.nombre || initialData.created_by || "-"}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                    Fecha de Creación
+                  </label>
+                  <p className="text-sm text-slate-900 dark:text-slate-50">
+                    {initialData.created_at ? new Date(initialData.created_at).toLocaleString("es-PE") : "-"}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                    Actualizado Por
+                  </label>
+                  <p className="text-sm text-slate-900 dark:text-slate-50">
+                    {initialData.updatedByUser?.nombre || initialData.updated_by || "-"}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                    Última Actualización
+                  </label>
+                  <p className="text-sm text-slate-900 dark:text-slate-50">
+                    {initialData.updated_at ? new Date(initialData.updated_at).toLocaleString("es-PE") : "-"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ============================================
               BOTONES
               ============================================ */}
           <div className="flex items-center justify-end gap-2 pt-4">
