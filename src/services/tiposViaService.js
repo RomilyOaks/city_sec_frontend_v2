@@ -9,22 +9,29 @@ import api from "./api";
 
 /**
  * listTiposVia
- * Lista tipos de vía con paginación y filtros (solo activos)
+ * Lista tipos de vía con paginación y filtros (solo activos por defecto)
  * @param {Object} [options]
  * @param {number} [options.page=1]
  * @param {number} [options.limit=20]
  * @param {string} [options.search]
+ * @param {boolean} [options.includeInactive=false] - Incluir inactivos (no filtrar por estado)
  * @returns {Promise<{items:Array,pagination:Object|null}>}
  */
 export async function listTiposVia({
   page = 1,
   limit = 20,
   search,
+  includeInactive = false,
 } = {}) {
   const params = new URLSearchParams();
   params.append("page", page);
   params.append("limit", limit);
-  params.append("estado", "1"); // Solo tipos de vía activos
+
+  // Solo filtrar por activos si no se pide incluir inactivos
+  if (!includeInactive) {
+    params.append("estado", "1");
+  }
+
   if (search) params.append("search", search);
 
   const res = await api.get(`/tipos-via?${params.toString()}`);
