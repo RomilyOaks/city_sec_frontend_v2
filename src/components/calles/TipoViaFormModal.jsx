@@ -60,9 +60,11 @@ export default function TipoViaFormModal({
           const result = await listTiposVia({ page: 1, limit: 1000 });
           const items = result?.items || result?.data || [];
 
-          // Encontrar el máximo orden
+          // Encontrar el máximo orden (excluyendo órdenes "especiales" >= 900)
           const maxOrden = items.reduce((max, item) => {
             const orden = parseInt(item.orden) || 0;
+            // Ignorar órdenes especiales (999, etc.)
+            if (orden >= 900) return max;
             return orden > max ? orden : max;
           }, 0);
 
