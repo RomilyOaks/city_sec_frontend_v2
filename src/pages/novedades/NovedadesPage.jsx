@@ -1564,6 +1564,8 @@ export default function NovedadesPage() {
             </div>
           </div>
         )}
+          </div>
+        )}
 
         {/* Tab Content - REGISTRO */}
         {pageTab === PAGE_TABS.REGISTRO && (
