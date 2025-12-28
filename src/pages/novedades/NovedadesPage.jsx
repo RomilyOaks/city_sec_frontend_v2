@@ -1564,6 +1564,7 @@ export default function NovedadesPage() {
             </div>
           </div>
         )}
+      </div>
           </div>
         )}
 
