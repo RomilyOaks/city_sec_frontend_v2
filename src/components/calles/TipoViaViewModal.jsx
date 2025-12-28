@@ -130,7 +130,7 @@ export default function TipoViaViewModal({ isOpen, onClose, tipoVia }) {
                   Creado Por
                 </label>
                 <p className="text-base text-slate-900 dark:text-white">
-                  {tipoVia.createdByUser?.nombre || tipoVia.created_by || "-"}
+                  {tipoVia.creadorTipoVia?.username || tipoVia.created_by || "-"}
                 </p>
               </div>
               <div>
@@ -146,7 +146,7 @@ export default function TipoViaViewModal({ isOpen, onClose, tipoVia }) {
                   Actualizado Por
                 </label>
                 <p className="text-base text-slate-900 dark:text-white">
-                  {tipoVia.updatedByUser?.nombre || tipoVia.updated_by || "-"}
+                  {tipoVia.actualizadorTipoVia?.username || tipoVia.updated_by || "-"}
                 </p>
               </div>
               <div>

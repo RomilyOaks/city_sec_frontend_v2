@@ -292,7 +292,7 @@ export default function TipoViaFormModal({
                     Creado Por
                   </label>
                   <p className="text-sm text-slate-900 dark:text-slate-50">
-                    {initialData.createdByUser?.nombre || initialData.created_by || "-"}
+                    {initialData.creadorTipoVia?.username || initialData.created_by || "-"}
                   </p>
                 </div>
                 <div>
@@ -308,7 +308,7 @@ export default function TipoViaFormModal({
                     Actualizado Por
                   </label>
                   <p className="text-sm text-slate-900 dark:text-slate-50">
-                    {initialData.updatedByUser?.nombre || initialData.updated_by || "-"}
+                    {initialData.actualizadorTipoVia?.username || initialData.updated_by || "-"}
                   </p>
                 </div>
                 <div>
