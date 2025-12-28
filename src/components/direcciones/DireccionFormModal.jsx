@@ -17,6 +17,8 @@ import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { createDireccion, updateDireccion, validarDireccion } from "../../services/direccionesService";
 import { listCallesActivas } from "../../services/callesService";
+import { listSectores } from "../../services/sectoresService";
+import { listCuadrantes, getCuadranteById } from "../../services/cuadrantesService";
 import { toast } from "react-hot-toast";
 
 const TIPOS_COMPLEMENTO = [
@@ -43,6 +45,8 @@ export default function DireccionFormModal({ isOpen, onClose, direccion = null }
   const [loading, setLoading] = useState(false);
   const [validationError, setValidationError] = useState("");
   const [calles, setCalles] = useState([]);
+  const [sectores, setSectores] = useState([]);
+  const [cuadrantes, setCuadrantes] = useState([]);
   const [autoAssignInfo, setAutoAssignInfo] = useState(null);
 
   const [formData, setFormData] = useState({
@@ -54,6 +58,9 @@ export default function DireccionFormModal({ isOpen, onClose, direccion = null }
     tipo_complemento: "",
     numero_complemento: "",
     referencia: "",
+    sector_id: "",
+    cuadrante_id: "",
+    ubigeo_code: "",
     latitud: "",
     longitud: "",
     observaciones: "",
@@ -63,6 +70,7 @@ export default function DireccionFormModal({ isOpen, onClose, direccion = null }
   useEffect(() => {
     if (isOpen) {
       loadCalles();
+      loadSectores();
     }
   }, [isOpen]);
 
@@ -78,10 +86,18 @@ export default function DireccionFormModal({ isOpen, onClose, direccion = null }
         tipo_complemento: direccion.tipo_complemento || "",
         numero_complemento: direccion.numero_complemento || "",
         referencia: direccion.referencia || "",
+        sector_id: direccion.sector_id ? String(direccion.sector_id) : "",
+        cuadrante_id: direccion.cuadrante_id ? String(direccion.cuadrante_id) : "",
+        ubigeo_code: direccion.ubigeo_code || "",
         latitud: direccion.latitud || "",
         longitud: direccion.longitud || "",
         observaciones: direccion.observaciones || "",
       });
+
+      // Si la dirección tiene sector, cargar sus cuadrantes
+      if (direccion.sector_id) {
+        loadCuadrantesForSector(direccion.sector_id);
+      }
     } else if (isOpen) {
       // Reset al crear nueva
       setFormData({
@@ -93,23 +109,30 @@ export default function DireccionFormModal({ isOpen, onClose, direccion = null }
         tipo_complemento: "",
         numero_complemento: "",
         referencia: "",
+        sector_id: "",
+        cuadrante_id: "",
+        ubigeo_code: "",
         latitud: "",
         longitud: "",
         observaciones: "",
       });
       setAutoAssignInfo(null);
+      setCuadrantes([]);
     }
   }, [isOpen, direccion]);
 
-  // Validar auto-asignación cuando cambia calle o número
+  // Validar auto-asignación cuando cambia calle o número/AAHH
   useEffect(() => {
-    if (formData.calle_id && formData.numero_municipal) {
+    const hasNumero = formData.numero_municipal && formData.numero_municipal.trim();
+    const hasManzanaLote = formData.manzana && formData.lote && formData.manzana.trim() && formData.lote.trim();
+
+    if (formData.calle_id && (hasNumero || hasManzanaLote)) {
       handleAutoValidate();
     } else {
       setAutoAssignInfo(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.calle_id, formData.numero_municipal]);
+  }, [formData.calle_id, formData.numero_municipal, formData.manzana, formData.lote]);
 
   // Keyboard shortcuts: ESC y ALT+G
   useEffect(() => {
@@ -140,13 +163,68 @@ export default function DireccionFormModal({ isOpen, onClose, direccion = null }
     }
   };
 
+  const loadSectores = async () => {
+    try {
+      const res = await listSectores({ page: 1, limit: 100 });
+      // API puede devolver { items: [...] } o un array
+      setSectores(res?.items || res || []);
+    } catch (err) {
+      console.error("Error al cargar sectores:", err);
+    }
+  };
+
+  const loadCuadrantesForSector = async (sectorId) => {
+    try {
+      if (!sectorId) {
+        setCuadrantes([]);
+        return;
+      }
+      const res = await listCuadrantes({ sector_id: sectorId, limit: 200 });
+      setCuadrantes(res?.items || res || []);
+    } catch (err) {
+      console.error("Error al cargar cuadrantes:", err);
+    }
+  };
+
   const handleAutoValidate = async () => {
     try {
-      const result = await validarDireccion({
+      const payload = {
         calle_id: formData.calle_id,
-        numero_municipal: formData.numero_municipal,
-      });
+        numero_municipal: formData.numero_municipal || null,
+        manzana: formData.manzana || null,
+        lote: formData.lote || null,
+      };
+
+      const result = await validarDireccion(payload);
       setAutoAssignInfo(result);
+
+      // Si la API determinó un sector/cuadrante, rellenarlos
+      if (result?.auto_asignado) {
+        if (result.sector?.id) {
+          setFormData((prev) => ({ ...prev, sector_id: String(result.sector.id) }));
+          // Cargar cuadrantes pertenecientes al sector
+          loadCuadrantesForSector(result.sector.id);
+        }
+
+        if (result.cuadrante?.id) {
+          setFormData((prev) => ({ ...prev, cuadrante_id: String(result.cuadrante.id) }));
+          // Obtener detalles del cuadrante para lat/lng/ubigeo
+          try {
+            const cq = await getCuadranteById(result.cuadrante.id);
+            if (cq) {
+              setFormData((prev) => ({
+                ...prev,
+                latitud: cq.latitud ?? prev.latitud,
+                longitud: cq.longitud ?? prev.longitud,
+                ubigeo_code: cq.ubigeo_code ?? prev.ubigeo_code,
+              }));
+            }
+          } catch (err) {
+            console.error("Error al obtener cuadrante:", err);
+          }
+        }
+      }
+
     } catch (error) {
       console.error("Error en auto-validación:", error);
       setAutoAssignInfo(null);
@@ -163,19 +241,58 @@ export default function DireccionFormModal({ isOpen, onClose, direccion = null }
       tipo_complemento: "",
       numero_complemento: "",
       referencia: "",
+      sector_id: "",
+      cuadrante_id: "",
+      ubigeo_code: "",
       latitud: "",
       longitud: "",
       observaciones: "",
     });
     setValidationError("");
     setAutoAssignInfo(null);
+    setCuadrantes([]);
     onClose();
   };
 
-  const handleChange = (e) => {
+  const handleChange = async (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     setValidationError("");
+
+    // Si se selecciona sector, cargar cuadrantes del sector
+    if (name === "sector_id") {
+      setFormData((prev) => ({ ...prev, cuadrante_id: "" }));
+      loadCuadrantesForSector(value);
+      return;
+    }
+
+    // Si se selecciona cuadrante, intentar rellenar lat/lng y ubigeo
+    if (name === "cuadrante_id") {
+      if (!value) return;
+      const found = cuadrantes.find((c) => String(c.id) === String(value));
+      if (found) {
+        setFormData((prev) => ({
+          ...prev,
+          latitud: found.latitud ?? prev.latitud,
+          longitud: found.longitud ?? prev.longitud,
+          ubigeo_code: found.ubigeo_code ?? prev.ubigeo_code,
+        }));
+      } else {
+        try {
+          const cq = await getCuadranteById(value);
+          if (cq) {
+            setFormData((prev) => ({
+              ...prev,
+              latitud: cq.latitud ?? prev.latitud,
+              longitud: cq.longitud ?? prev.longitud,
+              ubigeo_code: cq.ubigeo_code ?? prev.ubigeo_code,
+            }));
+          }
+        } catch (err) {
+          console.error("Error al obtener cuadrante:", err);
+        }
+      }
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -206,6 +323,9 @@ export default function DireccionFormModal({ isOpen, onClose, direccion = null }
         tipo_complemento: formData.tipo_complemento || null,
         numero_complemento: formData.numero_complemento?.trim() || null,
         referencia: formData.referencia?.trim() || null,
+        sector_id: formData.sector_id ? parseInt(formData.sector_id) : null,
+        cuadrante_id: formData.cuadrante_id ? parseInt(formData.cuadrante_id) : null,
+        ubigeo_code: formData.ubigeo_code || null,
         latitud: formData.latitud ? parseFloat(formData.latitud) : null,
         longitud: formData.longitud ? parseFloat(formData.longitud) : null,
         observaciones: formData.observaciones?.trim() || null,
@@ -470,6 +590,48 @@ export default function DireccionFormModal({ isOpen, onClose, direccion = null }
                   maxLength={255}
                   className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:text-white"
                 />
+              </div>
+            </div>
+          </div>
+
+          {/* Ubicación administrativa: Sector y Cuadrante (se colocan encima de Geocodificación) */}
+          <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">
+              Ubicación Administrativa
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Sector
+                </label>
+                <select
+                  name="sector_id"
+                  value={formData.sector_id}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:text-white"
+                >
+                  <option value="">Seleccione un sector</option>
+                  {(sectores || []).map((s) => (
+                    <option key={s.id} value={s.id}>{s.nombre || s.codigo || s.id}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Cuadrante
+                </label>
+                <select
+                  name="cuadrante_id"
+                  value={formData.cuadrante_id}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:text-white"
+                >
+                  <option value="">Seleccione un cuadrante</option>
+                  {(cuadrantes || []).map((c) => (
+                    <option key={c.id} value={c.id}>{c.codigo || c.nombre || c.id}</option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>
