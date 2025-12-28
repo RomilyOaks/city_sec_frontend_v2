@@ -126,6 +126,19 @@ const TIPO_COMPLEMENTO_OPTIONS = [
 ];
 
 /**
+ * Helper para obtener fecha/hora actual en formato datetime-local
+ */
+const getCurrentDateTimeLocal = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
+/**
  * NovedadesPage - Página de gestión de incidentes y novedades
  *
  * @version 2.0.0
@@ -234,7 +247,7 @@ export default function NovedadesPage() {
     // Origen
     origen_llamada: 'TELEFONO_107',
     reportante_telefono: '',
-    fecha_hora_ocurrencia: '',
+    fecha_hora_ocurrencia: getCurrentDateTimeLocal(),
 
     // Reportante
     es_anonimo: 0,
@@ -1138,7 +1151,7 @@ export default function NovedadesPage() {
    */
   const loadSubtipos = async (tipoId) => {
     try {
-      const data = await listSubtiposNovedad({ tipo_novedad_id: tipoId });
+      const data = await listSubtiposNovedad(tipoId);
       setSubtipos(data || []);
     } catch (error) {
       console.error('Error al cargar subtipos:', error);
@@ -1153,7 +1166,7 @@ export default function NovedadesPage() {
     setRegistroFormData({
       origen_llamada: 'TELEFONO_107',
       reportante_telefono: '',
-      fecha_hora_ocurrencia: '',
+      fecha_hora_ocurrencia: getCurrentDateTimeLocal(),
       es_anonimo: 0,
       reportante_tipo_doc: 'DNI',
       reportante_doc_identidad: '',
@@ -1667,7 +1680,7 @@ export default function NovedadesPage() {
                       type="datetime-local"
                       value={registroFormData.fecha_hora_ocurrencia}
                       onChange={(e) => setRegistroFormData({ ...registroFormData, fecha_hora_ocurrencia: e.target.value })}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 [color-scheme:light] dark:[color-scheme:dark]"
                     />
                   </div>
                 </div>
@@ -1702,6 +1715,18 @@ export default function NovedadesPage() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                          Nombre Completo <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={registroFormData.reportante_nombre}
+                          onChange={(e) => setRegistroFormData({ ...registroFormData, reportante_nombre: e.target.value.toUpperCase() })}
+                          placeholder="Nombres y apellidos"
+                          className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 uppercase"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                           Tipo de Documento <span className="text-red-500">*</span>
                         </label>
                         <select
@@ -1723,18 +1748,6 @@ export default function NovedadesPage() {
                           value={registroFormData.reportante_doc_identidad}
                           onChange={(e) => setRegistroFormData({ ...registroFormData, reportante_doc_identidad: e.target.value })}
                           placeholder="Ej: 12345678"
-                          className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                          Nombre Completo <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={registroFormData.reportante_nombre}
-                          onChange={(e) => setRegistroFormData({ ...registroFormData, reportante_nombre: e.target.value })}
-                          placeholder="Nombres y apellidos"
                           className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
                         />
                       </div>
