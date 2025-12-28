@@ -279,7 +279,7 @@ export default function DireccionViewModal({ isOpen, onClose, direccion }) {
                   Creado Por
                 </label>
                 <p className="text-base text-slate-900 dark:text-white">
-                  {direccion.createdByUser?.nombre || direccion.created_by || "-"}
+                  {direccion.creadorDireccion?.username || direccion.created_by || "-"}
                 </p>
               </div>
               <div>
@@ -295,7 +295,7 @@ export default function DireccionViewModal({ isOpen, onClose, direccion }) {
                   Actualizado Por
                 </label>
                 <p className="text-base text-slate-900 dark:text-white">
-                  {direccion.updatedByUser?.nombre || direccion.updated_by || "-"}
+                  {direccion.actualizadorDireccion?.username || direccion.updated_by || "-"}
                 </p>
               </div>
               <div>

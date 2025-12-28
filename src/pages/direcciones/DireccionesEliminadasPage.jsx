@@ -264,7 +264,7 @@ export default function DireccionesEliminadasPage() {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400">
-                      {dir.deletedByUser?.nombre || dir.deleted_by || "-"}
+                      {dir.eliminadorDireccion?.username || dir.deleted_by || "-"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400">
                       {dir.deleted_at ? new Date(dir.deleted_at).toLocaleString("es-PE") : "-"}
