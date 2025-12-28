@@ -5,8 +5,8 @@
  */
 
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
-import { Plus, Search, Edit, Trash2, ArrowLeft, MapPin } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Plus, Search, Edit, Trash2, ArrowLeft, MapPin, Eye } from "lucide-react";
 import {
   listCalles,
   deleteCalle,
@@ -18,15 +18,20 @@ import {
 import { useAuthStore } from "../../store/useAuthStore";
 import CalleFormModal from "../../components/calles/CalleFormModal";
 import CalleCuadranteFormModal from "../../components/calles/CalleCuadranteFormModal";
+import CalleCuadranteViewModal from "../../components/calles/CalleCuadranteViewModal";
 import toast from "react-hot-toast";
 
 export default function CallesCuadrantesPage() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { can, user } = useAuthStore();
 
   // Vista actual: "calles" o "cuadrantes"
   const [view, setView] = useState(location.state?.calle ? "cuadrantes" : "calles");
   const [selectedCalle, setSelectedCalle] = useState(location.state?.calle || null);
+
+  // Detectar si vino desde otra página (Maestro de Calles)
+  const [cameFromExternalPage] = useState(!!location.state?.calle);
 
   // Estado de Calles
   const [calles, setCalles] = useState([]);
@@ -48,6 +53,9 @@ export default function CallesCuadrantesPage() {
 
   const [showEditCuadranteModal, setShowEditCuadranteModal] = useState(false);
   const [editingCuadrante, setEditingCuadrante] = useState(null);
+
+  const [showViewCuadranteModal, setShowViewCuadranteModal] = useState(false);
+  const [viewingCuadrante, setViewingCuadrante] = useState(null);
 
   const limit = 15;
 
@@ -171,11 +179,19 @@ export default function CallesCuadrantesPage() {
 
   const handleBackToCalles = () => {
     console.log("🔙 Volviendo a vista de calles");
-    setView("calles");
-    setSelectedCalle(null);
-    setCurrentPageCuadrantes(1);
-    setSearchCuadrantes("");
-    setCuadrantes([]);
+
+    // Si vino desde otra página (Maestro de Calles), usar navigate para ir atrás en el historial
+    if (cameFromExternalPage) {
+      console.log("↩️ Regresando a página anterior (Maestro de Calles)");
+      navigate(-1); // Regresar a la página anterior
+    } else {
+      // Si ya estaba en esta página, solo cambiar la vista interna
+      setView("calles");
+      setSelectedCalle(null);
+      setCurrentPageCuadrantes(1);
+      setSearchCuadrantes("");
+      setCuadrantes([]);
+    }
   };
 
   const handleEditCalle = (e, calle) => {
@@ -210,6 +226,11 @@ export default function CallesCuadrantesPage() {
   const handleCreateCuadrante = () => {
     setEditingCuadrante(null);
     setShowEditCuadranteModal(true);
+  };
+
+  const handleViewCuadrante = (cuadrante) => {
+    setViewingCuadrante(cuadrante);
+    setShowViewCuadranteModal(true);
   };
 
   const handleEditCuadrante = (cuadrante) => {
@@ -505,6 +526,13 @@ export default function CallesCuadrantesPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
                           <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => handleViewCuadrante(cuad)}
+                              className="text-slate-600 hover:text-slate-800 dark:text-slate-400"
+                              title="Ver información completa"
+                            >
+                              <Eye size={18} />
+                            </button>
                             {can("calles_cuadrantes_update") && (
                               <button
                                 onClick={() => handleEditCuadrante(cuad)}
@@ -586,6 +614,17 @@ export default function CallesCuadrantesPage() {
             }, 500);
             setShowEditCuadranteModal(false);
           }}
+        />
+      )}
+
+      {showViewCuadranteModal && viewingCuadrante && (
+        <CalleCuadranteViewModal
+          isOpen={showViewCuadranteModal}
+          onClose={() => {
+            setShowViewCuadranteModal(false);
+            setViewingCuadrante(null);
+          }}
+          calleCuadrante={viewingCuadrante}
         />
       )}
     </div>

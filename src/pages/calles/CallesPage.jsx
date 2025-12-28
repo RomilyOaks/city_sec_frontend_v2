@@ -12,7 +12,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Edit, Trash2, MapPin, Filter, X } from "lucide-react";
+import { Plus, Search, Edit, Trash2, MapPin, Filter, X, Eye } from "lucide-react";
 import {
   listCalles,
   deleteCalle,
@@ -20,6 +20,7 @@ import {
 } from "../../services/callesService";
 import { useAuthStore } from "../../store/useAuthStore";
 import CalleFormModal from "../../components/calles/CalleFormModal";
+import CalleViewModal from "../../components/calles/CalleViewModal";
 
 /**
  * CallesPage - Página principal de gestión de calles
@@ -51,6 +52,7 @@ export default function CallesPage() {
   // Modales
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
   const [selectedCalle, setSelectedCalle] = useState(null);
 
   // Permisos
@@ -170,6 +172,11 @@ export default function CallesPage() {
     setTipoViaId("");
     setEsPrincipal("");
     setCurrentPage(1);
+  }
+
+  function handleView(calle) {
+    setSelectedCalle(calle);
+    setShowViewModal(true);
   }
 
   function handleEdit(calle) {
@@ -435,6 +442,13 @@ export default function CallesPage() {
                     </td>
                     <td className="px-4 py-3 text-right text-sm">
                       <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleView(calle)}
+                          className="inline-flex items-center justify-center rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+                          title="Ver información completa"
+                        >
+                          <Eye size={16} />
+                        </button>
                         {canReadCuadrantes && (
                           <button
                             onClick={() => handleViewCuadrantes(calle)}
@@ -520,6 +534,17 @@ export default function CallesPage() {
         initialData={selectedCalle}
         mode="edit"
       />
+
+      {showViewModal && selectedCalle && (
+        <CalleViewModal
+          isOpen={showViewModal}
+          onClose={() => {
+            setShowViewModal(false);
+            setSelectedCalle(null);
+          }}
+          calle={selectedCalle}
+        />
+      )}
     </div>
   );
 }
