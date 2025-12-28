@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { Plus, Search, Edit, Trash2, X, Map, ChevronRight, ArrowLeft } from "lucide-react";
+import { Plus, Search, Edit, Trash2, X, Map, ChevronRight, ArrowLeft, Eye, Info } from "lucide-react";
 import {
   listSectores,
   deleteSector,
@@ -17,6 +17,8 @@ import {
 import { useAuthStore } from "../../store/useAuthStore";
 import SectorFormModal from "../../components/calles/SectorFormModal";
 import CuadranteFormModal from "../../components/calles/CuadranteFormModal";
+import SectorViewModal from "../../components/calles/SectorViewModal";
+import CuadranteViewModal from "../../components/calles/CuadranteViewModal";
 import toast from "react-hot-toast";
 
 export default function SectoresCuadrantesPage() {
@@ -34,7 +36,9 @@ export default function SectoresCuadrantesPage() {
   const [currentPageSectores, setCurrentPageSectores] = useState(1);
   const [showCreateSectorModal, setShowCreateSectorModal] = useState(false);
   const [showEditSectorModal, setShowEditSectorModal] = useState(false);
+  const [showViewSectorModal, setShowViewSectorModal] = useState(false);
   const [editingSector, setEditingSector] = useState(null);
+  const [viewingSector, setViewingSector] = useState(null);
 
   // Estado de Cuadrantes
   const [cuadrantes, setCuadrantes] = useState([]);
@@ -44,7 +48,9 @@ export default function SectoresCuadrantesPage() {
   const [currentPageCuadrantes, setCurrentPageCuadrantes] = useState(1);
   const [showCreateCuadranteModal, setShowCreateCuadranteModal] = useState(false);
   const [showEditCuadranteModal, setShowEditCuadranteModal] = useState(false);
+  const [showViewCuadranteModal, setShowViewCuadranteModal] = useState(false);
   const [editingCuadrante, setEditingCuadrante] = useState(null);
+  const [viewingCuadrante, setViewingCuadrante] = useState(null);
 
   const limit = 15;
 
@@ -140,6 +146,11 @@ export default function SectoresCuadrantesPage() {
     setShowEditSectorModal(true);
   };
 
+  const handleViewSector = (sector) => {
+    setViewingSector(sector);
+    setShowViewSectorModal(true);
+  };
+
   const handleDeleteSector = async (id) => {
     if (!window.confirm("¿Está seguro de eliminar este sector?")) return;
 
@@ -190,6 +201,11 @@ export default function SectoresCuadrantesPage() {
   const handleEditCuadrante = (cuadrante) => {
     setEditingCuadrante(cuadrante);
     setShowEditCuadranteModal(true);
+  };
+
+  const handleViewCuadrante = (cuadrante) => {
+    setViewingCuadrante(cuadrante);
+    setShowViewCuadranteModal(true);
   };
 
   const handleDeleteCuadrante = async (id) => {
@@ -260,11 +276,18 @@ export default function SectoresCuadrantesPage() {
               {view === "sectores" ? "Sectores" : `Cuadrantes de ${selectedSector?.nombre}`}
             </h1>
           </div>
-          <p className="text-slate-600 dark:text-slate-400 mt-1">
-            {view === "sectores"
-              ? "Gestión de división territorial - Seleccione un sector para ver sus cuadrantes"
-              : "Gestión de cuadrantes del sector seleccionado"
-            }
+          <p className="text-slate-600 dark:text-slate-400 mt-1 flex items-center gap-2">
+            {view === "sectores" ? (
+              <>
+                <Info size={16} className="text-primary-600 dark:text-primary-400" />
+                <span>Haz clic en una fila para ver sus cuadrantes</span>
+              </>
+            ) : (
+              <>
+                <Info size={16} className="text-primary-600 dark:text-primary-400" />
+                <span>Presiona Re Pág para regresar a Sectores</span>
+              </>
+            )}
           </p>
         </div>
       </div>
@@ -381,6 +404,16 @@ export default function SectoresCuadrantesPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
                           <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleViewSector(sector);
+                              }}
+                              className="p-1 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700 rounded transition-colors"
+                              title="Ver información completa"
+                            >
+                              <Eye size={18} />
+                            </button>
                             {can("sectores_update") && (
                               <button
                                 onClick={(e) => {
@@ -555,6 +588,13 @@ export default function SectoresCuadrantesPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
                           <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => handleViewCuadrante(cuadrante)}
+                              className="p-1 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700 rounded transition-colors"
+                              title="Ver información completa"
+                            >
+                              <Eye size={18} />
+                            </button>
                             {can("cuadrantes_update") && (
                               <button
                                 onClick={() => handleEditCuadrante(cuadrante)}
@@ -663,6 +703,29 @@ export default function SectoresCuadrantesPage() {
             }, 500);
             setShowEditCuadranteModal(false);
           }}
+        />
+      )}
+
+      {/* View Modals */}
+      {showViewSectorModal && (
+        <SectorViewModal
+          isOpen={showViewSectorModal}
+          onClose={() => {
+            setShowViewSectorModal(false);
+            setViewingSector(null);
+          }}
+          sector={viewingSector}
+        />
+      )}
+
+      {showViewCuadranteModal && (
+        <CuadranteViewModal
+          isOpen={showViewCuadranteModal}
+          onClose={() => {
+            setShowViewCuadranteModal(false);
+            setViewingCuadrante(null);
+          }}
+          cuadrante={viewingCuadrante}
         />
       )}
     </div>
