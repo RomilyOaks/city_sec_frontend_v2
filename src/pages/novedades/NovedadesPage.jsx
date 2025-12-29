@@ -1234,6 +1234,7 @@ export default function NovedadesPage() {
         ubigeo_code: registroFormData.ubigeo_code || null,
       };
 
+      console.log("DEBUG novedadPayload:", novedadPayload);
       const resultado = await createNovedad(novedadPayload);
 
       toast.success(
