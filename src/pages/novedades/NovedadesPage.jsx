@@ -1227,6 +1227,11 @@ export default function NovedadesPage() {
         personal_cargo_id: registroFormData.personal_cargo_id || null,
         estado_novedad_id: 1, // Pendiente
         created_by: user?.id,
+        sector_id: registroFormData.sector_id || null,
+        cuadrante_id: registroFormData.cuadrante_id || null,
+        latitud: registroFormData.latitud || null,
+        longitud: registroFormData.longitud || null,
+        ubigeo_code: registroFormData.ubigeo_code || null,
       };
 
       const resultado = await createNovedad(novedadPayload);

@@ -15,10 +15,17 @@
 
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
-import { createDireccion, updateDireccion, validarDireccion } from "../../services/direccionesService";
+import {
+  createDireccion,
+  updateDireccion,
+  validarDireccion,
+} from "../../services/direccionesService";
 import { listCallesActivas } from "../../services/callesService";
 import { listSectores } from "../../services/sectoresService";
-import { listCuadrantes, getCuadranteById } from "../../services/cuadrantesService";
+import {
+  listCuadrantes,
+  getCuadranteById,
+} from "../../services/cuadrantesService";
 import { toast } from "react-hot-toast";
 
 const TIPOS_COMPLEMENTO = [
@@ -41,7 +48,11 @@ const TIPOS_COMPLEMENTO = [
  * @param {Function} props.onClose - Callback al cerrar
  * @param {Object} props.direccion - Dirección a editar (null para crear)
  */
-export default function DireccionFormModal({ isOpen, onClose, direccion = null }) {
+export default function DireccionFormModal({
+  isOpen,
+  onClose,
+  direccion = null,
+}) {
   const [loading, setLoading] = useState(false);
   const [validationError, setValidationError] = useState("");
   const [calles, setCalles] = useState([]);
@@ -87,7 +98,9 @@ export default function DireccionFormModal({ isOpen, onClose, direccion = null }
         numero_complemento: direccion.numero_complemento || "",
         referencia: direccion.referencia || "",
         sector_id: direccion.sector_id ? String(direccion.sector_id) : "",
-        cuadrante_id: direccion.cuadrante_id ? String(direccion.cuadrante_id) : "",
+        cuadrante_id: direccion.cuadrante_id
+          ? String(direccion.cuadrante_id)
+          : "",
         ubigeo_code: direccion.ubigeo_code || "",
         latitud: direccion.latitud || "",
         longitud: direccion.longitud || "",
@@ -123,16 +136,29 @@ export default function DireccionFormModal({ isOpen, onClose, direccion = null }
 
   // Validar auto-asignación cuando cambia calle o número/AAHH
   useEffect(() => {
-    const hasNumero = formData.numero_municipal && formData.numero_municipal.trim();
-    const hasManzanaLote = formData.manzana && formData.lote && formData.manzana.trim() && formData.lote.trim();
+    const hasNumero =
+      formData.numero_municipal && formData.numero_municipal.trim();
+    const hasManzanaLote =
+      formData.manzana &&
+      formData.lote &&
+      formData.manzana.trim() &&
+      formData.lote.trim();
 
     if (formData.calle_id && (hasNumero || hasManzanaLote)) {
-      handleAutoValidate();
+      // Only auto-assign if cuadrante_id is empty (not manually selected)
+      if (!formData.cuadrante_id) {
+        handleAutoValidate();
+      }
     } else {
       setAutoAssignInfo(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.calle_id, formData.numero_municipal, formData.manzana, formData.lote]);
+  }, [
+    formData.calle_id,
+    formData.numero_municipal,
+    formData.manzana,
+    formData.lote,
+  ]);
 
   // Keyboard shortcuts: ESC y ALT+G
   useEffect(() => {
@@ -200,14 +226,20 @@ export default function DireccionFormModal({ isOpen, onClose, direccion = null }
 
       // Si la API determinó un sector/cuadrante, rellenarlos
       if (result?.auto_asignado) {
-        if (result.sector?.id) {
-          setFormData((prev) => ({ ...prev, sector_id: String(result.sector.id) }));
+        if (result.sector?.id && !formData.sector_id) {
+          setFormData((prev) => ({
+            ...prev,
+            sector_id: String(result.sector.id),
+          }));
           // Cargar cuadrantes pertenecientes al sector
           loadCuadrantesForSector(result.sector.id);
         }
 
-        if (result.cuadrante?.id) {
-          setFormData((prev) => ({ ...prev, cuadrante_id: String(result.cuadrante.id) }));
+        if (result.cuadrante?.id && !formData.cuadrante_id) {
+          setFormData((prev) => ({
+            ...prev,
+            cuadrante_id: String(result.cuadrante.id),
+          }));
           // Obtener detalles del cuadrante para lat/lng/ubigeo
           try {
             const cq = await getCuadranteById(result.cuadrante.id);
@@ -224,7 +256,6 @@ export default function DireccionFormModal({ isOpen, onClose, direccion = null }
           }
         }
       }
-
     } catch (error) {
       console.error("Error en auto-validación:", error);
       setAutoAssignInfo(null);
@@ -324,7 +355,9 @@ export default function DireccionFormModal({ isOpen, onClose, direccion = null }
         numero_complemento: formData.numero_complemento?.trim() || null,
         referencia: formData.referencia?.trim() || null,
         sector_id: formData.sector_id ? parseInt(formData.sector_id) : null,
-        cuadrante_id: formData.cuadrante_id ? parseInt(formData.cuadrante_id) : null,
+        cuadrante_id: formData.cuadrante_id
+          ? parseInt(formData.cuadrante_id)
+          : null,
         ubigeo_code: formData.ubigeo_code || null,
         latitud: formData.latitud ? parseFloat(formData.latitud) : null,
         longitud: formData.longitud ? parseFloat(formData.longitud) : null,
@@ -391,7 +424,9 @@ export default function DireccionFormModal({ isOpen, onClose, direccion = null }
         {/* Error de validación */}
         {validationError && (
           <div className="mx-6 mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-            <p className="text-sm text-red-800 dark:text-red-200">{validationError}</p>
+            <p className="text-sm text-red-800 dark:text-red-200">
+              {validationError}
+            </p>
           </div>
         )}
 
@@ -409,7 +444,11 @@ export default function DireccionFormModal({ isOpen, onClose, direccion = null }
         )}
 
         {/* Form */}
-        <form id="direccion-form" onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form
+          id="direccion-form"
+          onSubmit={handleSubmit}
+          className="p-6 space-y-6"
+        >
           {/* Código - Solo visible al editar (read-only) */}
           {direccion && (
             <div>
@@ -453,8 +492,10 @@ export default function DireccionFormModal({ isOpen, onClose, direccion = null }
           {/* Tip de ayuda */}
           <div className="flex justify-end">
             <p className="text-xs text-slate-600 dark:text-slate-400">
-              <span className="text-blue-600 dark:text-blue-400 font-medium">Tip:</span> ESC para
-              cerrar • ALT+G para guardar
+              <span className="text-blue-600 dark:text-blue-400 font-medium">
+                Tip:
+              </span>{" "}
+              ESC para cerrar • ALT+G para guardar
             </p>
           </div>
 
@@ -612,7 +653,9 @@ export default function DireccionFormModal({ isOpen, onClose, direccion = null }
                 >
                   <option value="">Seleccione un sector</option>
                   {(sectores || []).map((s) => (
-                    <option key={s.id} value={s.id}>{s.nombre || s.codigo || s.id}</option>
+                    <option key={s.id} value={s.id}>
+                      {s.nombre || s.codigo || s.id}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -629,7 +672,9 @@ export default function DireccionFormModal({ isOpen, onClose, direccion = null }
                 >
                   <option value="">Seleccione un cuadrante</option>
                   {(cuadrantes || []).map((c) => (
-                    <option key={c.id} value={c.id}>{c.codigo || c.nombre || c.id}</option>
+                    <option key={c.id} value={c.id}>
+                      {c.codigo || c.nombre || c.id}
+                    </option>
                   ))}
                 </select>
               </div>
