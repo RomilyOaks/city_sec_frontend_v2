@@ -361,29 +361,7 @@ export default function CalleCuadranteFormModal({
             </p>
           </div>
 
-          {/* Manzana (opcional si hay número, obligatoria si no hay) */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-              Manzana{" "}
-              {!formData.numero_inicio && !formData.numero_fin && (
-                <span className="text-red-500">*</span>
-              )}
-            </label>
-            <input
-              type="text"
-              name="manzana"
-              value={formData.manzana}
-              onChange={handleChange}
-              maxLength="10"
-              placeholder="Ej: A1 (se guardará en MAYÚSCULAS)"
-              className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:text-white"
-            />
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              {formData.numero_inicio && formData.numero_fin
-                ? "Opcional — manzana adicional (máx 10 caracteres)."
-                : "Obligatoria si NO hay numeración municipal. Máx 10 caracteres."}
-            </p>
-          </div>
+          {/* NOTE: Manzana moved next to Lado further below */}
 
           {/* Rango de numeración */}
           <div className="grid grid-cols-2 gap-4">
@@ -417,23 +395,48 @@ export default function CalleCuadranteFormModal({
             </div>
           </div>
 
-          {/* Lado */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-              Lado
-            </label>
-            <select
-              name="lado"
-              value={formData.lado}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:text-white"
-            >
-              {LADOS.map((lado) => (
-                <option key={lado.value} value={lado.value}>
-                  {lado.label}
-                </option>
-              ))}
-            </select>
+          {/* Lado + Manzana (Manzana ahora a la derecha del Lado en la misma fila) */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Lado
+              </label>
+              <select
+                name="lado"
+                value={formData.lado}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:text-white"
+              >
+                {LADOS.map((lado) => (
+                  <option key={lado.value} value={lado.value}>
+                    {lado.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Manzana{" "}
+                {!formData.numero_inicio && !formData.numero_fin && (
+                  <span className="text-red-500">*</span>
+                )}
+              </label>
+              <input
+                type="text"
+                name="manzana"
+                value={formData.manzana}
+                onChange={handleChange}
+                maxLength="10"
+                placeholder="Ej: A1 (se guardará en MAYÚSCULAS)"
+                className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:text-white"
+              />
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                {formData.numero_inicio && formData.numero_fin
+                  ? "Opcional — manzana adicional (máx 10 caracteres)."
+                  : "Obligatoria si NO hay numeración municipal. Máx 10 caracteres."}
+              </p>
+            </div>
           </div>
 
           {/* Intersecciones */}

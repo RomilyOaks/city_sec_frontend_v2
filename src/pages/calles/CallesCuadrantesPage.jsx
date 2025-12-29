@@ -6,11 +6,16 @@
 
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Plus, Search, Edit, Trash2, ArrowLeft, MapPin, Eye } from "lucide-react";
 import {
-  listCalles,
-  deleteCalle,
-} from "../../services/callesService";
+  Plus,
+  Search,
+  Edit,
+  Trash2,
+  ArrowLeft,
+  MapPin,
+  Eye,
+} from "lucide-react";
+import { listCalles, deleteCalle } from "../../services/callesService";
 import {
   listCallesCuadrantes,
   deleteCalleCuadrante,
@@ -27,8 +32,12 @@ export default function CallesCuadrantesPage() {
   const { can, user } = useAuthStore();
 
   // Vista actual: "calles" o "cuadrantes"
-  const [view, setView] = useState(location.state?.calle ? "cuadrantes" : "calles");
-  const [selectedCalle, setSelectedCalle] = useState(location.state?.calle || null);
+  const [view, setView] = useState(
+    location.state?.calle ? "cuadrantes" : "calles"
+  );
+  const [selectedCalle, setSelectedCalle] = useState(
+    location.state?.calle || null
+  );
 
   // Detectar si vino desde otra página (Maestro de Calles)
   const [cameFromExternalPage] = useState(!!location.state?.calle);
@@ -94,7 +103,12 @@ export default function CallesCuadrantesPage() {
         handleBackToCalles();
       }
       // ALT + N - Nuevo cuadrante
-      if (e.altKey && e.key === "n" && view === "cuadrantes" && can("calles_cuadrantes_create")) {
+      if (
+        e.altKey &&
+        e.key === "n" &&
+        view === "cuadrantes" &&
+        can("calles_cuadrantes_create")
+      ) {
         e.preventDefault();
         handleCreateCuadrante();
       }
@@ -138,7 +152,7 @@ export default function CallesCuadrantesPage() {
       nombre: selectedCalle.nombre_completo,
       page: currentPageCuadrantes,
       limit,
-      search: searchCuadrantes
+      search: searchCuadrantes,
     });
 
     setLoadingCuadrantes(true);
@@ -153,7 +167,8 @@ export default function CallesCuadrantesPage() {
 
       console.log("📦 Respuesta de cuadrantes:", result);
 
-      const cuadrantesData = result.items || result.data?.items || result.data || [];
+      const cuadrantesData =
+        result.items || result.data?.items || result.data || [];
       console.log("✅ Cuadrantes procesados:", cuadrantesData);
 
       setCuadrantes(cuadrantesData);
@@ -210,7 +225,9 @@ export default function CallesCuadrantesPage() {
       loadCalles();
     } catch (error) {
       console.error("Error al eliminar calle:", error);
-      toast.error(error.response?.data?.message || "Error al eliminar la calle");
+      toast.error(
+        error.response?.data?.message || "Error al eliminar la calle"
+      );
     }
   };
 
@@ -247,7 +264,9 @@ export default function CallesCuadrantesPage() {
       loadCuadrantes();
     } catch (error) {
       console.error("Error al eliminar relación:", error);
-      toast.error(error.response?.data?.message || "Error al eliminar la relación");
+      toast.error(
+        error.response?.data?.message || "Error al eliminar la relación"
+      );
     }
   };
 
@@ -268,7 +287,9 @@ export default function CallesCuadrantesPage() {
           <MapPin className="w-8 h-8 text-primary-600 dark:text-primary-400" />
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-              {view === "calles" ? "Calles" : `Cuadrantes de ${selectedCalle?.nombre_completo}`}
+              {view === "calles"
+                ? "Calles"
+                : `Cuadrantes de ${selectedCalle?.nombre_completo}`}
             </h1>
             <p className="text-sm text-slate-600 dark:text-slate-400">
               {view === "calles"
@@ -286,7 +307,10 @@ export default function CallesCuadrantesPage() {
           <div className="flex items-center gap-4">
             <form onSubmit={handleSearchCalles} className="flex-1 flex gap-2">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
+                <Search
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"
+                  size={20}
+                />
                 <input
                   type="text"
                   placeholder="Buscar calles..."
@@ -327,13 +351,19 @@ export default function CallesCuadrantesPage() {
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                   {loadingCalles ? (
                     <tr>
-                      <td colSpan="4" className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
+                      <td
+                        colSpan="4"
+                        className="px-6 py-8 text-center text-slate-500 dark:text-slate-400"
+                      >
                         Cargando...
                       </td>
                     </tr>
                   ) : calles.length === 0 ? (
                     <tr>
-                      <td colSpan="4" className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
+                      <td
+                        colSpan="4"
+                        className="px-6 py-8 text-center text-slate-500 dark:text-slate-400"
+                      >
                         No hay calles registradas
                       </td>
                     </tr>
@@ -386,19 +416,28 @@ export default function CallesCuadrantesPage() {
             {paginationCalles && paginationCalles.total_pages > 1 && (
               <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
                 <div className="text-sm text-slate-600 dark:text-slate-400">
-                  Mostrando página {paginationCalles.current_page} de {paginationCalles.total_pages}
+                  Mostrando página {paginationCalles.current_page} de{" "}
+                  {paginationCalles.total_pages}
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setCurrentPageCalles((prev) => Math.max(1, prev - 1))}
+                    onClick={() =>
+                      setCurrentPageCalles((prev) => Math.max(1, prev - 1))
+                    }
                     disabled={currentPageCalles === 1}
                     className="px-3 py-1 border border-slate-300 dark:border-slate-600 rounded disabled:opacity-50"
                   >
                     Anterior
                   </button>
                   <button
-                    onClick={() => setCurrentPageCalles((prev) => Math.min(paginationCalles.total_pages, prev + 1))}
-                    disabled={currentPageCalles === paginationCalles.total_pages}
+                    onClick={() =>
+                      setCurrentPageCalles((prev) =>
+                        Math.min(paginationCalles.total_pages, prev + 1)
+                      )
+                    }
+                    disabled={
+                      currentPageCalles === paginationCalles.total_pages
+                    }
                     className="px-3 py-1 border border-slate-300 dark:border-slate-600 rounded disabled:opacity-50"
                   >
                     Siguiente
@@ -417,18 +456,28 @@ export default function CallesCuadrantesPage() {
           <div className="bg-gradient-to-r from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20 border border-primary-200 dark:border-primary-800 rounded-lg p-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <p className="text-sm font-medium text-primary-700 dark:text-primary-400">Código de la Calle</p>
+                <p className="text-sm font-medium text-primary-700 dark:text-primary-400">
+                  Código de la Calle
+                </p>
                 <p className="text-lg font-bold text-primary-900 dark:text-primary-300">
                   {selectedCalle.calle_code || selectedCalle.codigo}
                 </p>
               </div>
               <div>
-                <p className="text-sm font-medium text-primary-700 dark:text-primary-400">Nombre</p>
-                <p className="text-lg font-bold text-primary-900 dark:text-primary-300">{selectedCalle.nombre_completo}</p>
+                <p className="text-sm font-medium text-primary-700 dark:text-primary-400">
+                  Nombre
+                </p>
+                <p className="text-lg font-bold text-primary-900 dark:text-primary-300">
+                  {selectedCalle.nombre_completo}
+                </p>
               </div>
               <div>
-                <p className="text-sm font-medium text-primary-700 dark:text-primary-400">Urbanización</p>
-                <p className="text-lg text-primary-900 dark:text-primary-300">{selectedCalle.urbanizacion || "-"}</p>
+                <p className="text-sm font-medium text-primary-700 dark:text-primary-400">
+                  Urbanización
+                </p>
+                <p className="text-lg text-primary-900 dark:text-primary-300">
+                  {selectedCalle.urbanizacion || "-"}
+                </p>
               </div>
             </div>
           </div>
@@ -445,7 +494,10 @@ export default function CallesCuadrantesPage() {
 
             <div className="flex-1 flex gap-2">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
+                <Search
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"
+                  size={20}
+                />
                 <input
                   type="text"
                   placeholder="Buscar por cuadrante, sector o número..."
@@ -486,6 +538,9 @@ export default function CallesCuadrantesPage() {
                       Números
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                      Manzana
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                       Lado
                     </th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
@@ -496,30 +551,49 @@ export default function CallesCuadrantesPage() {
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                   {loadingCuadrantes ? (
                     <tr>
-                      <td colSpan="5" className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
+                      <td
+                        colSpan="6"
+                        className="px-6 py-8 text-center text-slate-500 dark:text-slate-400"
+                      >
                         Cargando...
                       </td>
                     </tr>
                   ) : cuadrantes.length === 0 ? (
                     <tr>
-                      <td colSpan="5" className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">
+                      <td
+                        colSpan="6"
+                        className="px-6 py-8 text-center text-slate-500 dark:text-slate-400"
+                      >
                         No hay cuadrantes asociados a esta calle
                       </td>
                     </tr>
                   ) : (
                     cuadrantes.map((cuad) => (
-                      <tr key={cuad.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                      <tr
+                        key={cuad.id}
+                        className="hover:bg-slate-50 dark:hover:bg-slate-700/50"
+                      >
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary-700 dark:text-primary-500">
-                          {cuad.cuadrante?.cuadrante_code || cuad.Cuadrante?.cuadrante_code || "-"}
+                          {cuad.cuadrante?.cuadrante_code ||
+                            cuad.Cuadrante?.cuadrante_code ||
+                            "-"}
                         </td>
                         <td className="px-6 py-4 text-sm text-slate-900 dark:text-white">
-                          {cuad.cuadrante?.sector?.sector_code || cuad.Cuadrante?.Sector?.sector_code || "-"} -{" "}
-                          {cuad.cuadrante?.sector?.nombre || cuad.Cuadrante?.Sector?.nombre || ""}
+                          {cuad.cuadrante?.sector?.sector_code ||
+                            cuad.Cuadrante?.Sector?.sector_code ||
+                            "-"}{" "}
+                          -{" "}
+                          {cuad.cuadrante?.sector?.nombre ||
+                            cuad.Cuadrante?.Sector?.nombre ||
+                            ""}
                         </td>
                         <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
                           {cuad.numero_inicio && cuad.numero_fin
                             ? `${cuad.numero_inicio} - ${cuad.numero_fin}`
                             : "-"}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
+                          {cuad.manzana ? cuad.manzana : "-"}
                         </td>
                         <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
                           {cuad.lado || "AMBOS"}
@@ -564,19 +638,28 @@ export default function CallesCuadrantesPage() {
             {paginationCuadrantes && paginationCuadrantes.total_pages > 1 && (
               <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
                 <div className="text-sm text-slate-600 dark:text-slate-400">
-                  Mostrando página {paginationCuadrantes.current_page} de {paginationCuadrantes.total_pages}
+                  Mostrando página {paginationCuadrantes.current_page} de{" "}
+                  {paginationCuadrantes.total_pages}
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setCurrentPageCuadrantes((prev) => Math.max(1, prev - 1))}
+                    onClick={() =>
+                      setCurrentPageCuadrantes((prev) => Math.max(1, prev - 1))
+                    }
                     disabled={currentPageCuadrantes === 1}
                     className="px-3 py-1 border border-slate-300 dark:border-slate-600 rounded disabled:opacity-50"
                   >
                     Anterior
                   </button>
                   <button
-                    onClick={() => setCurrentPageCuadrantes((prev) => Math.min(paginationCuadrantes.total_pages, prev + 1))}
-                    disabled={currentPageCuadrantes === paginationCuadrantes.total_pages}
+                    onClick={() =>
+                      setCurrentPageCuadrantes((prev) =>
+                        Math.min(paginationCuadrantes.total_pages, prev + 1)
+                      )
+                    }
+                    disabled={
+                      currentPageCuadrantes === paginationCuadrantes.total_pages
+                    }
                     className="px-3 py-1 border border-slate-300 dark:border-slate-600 rounded disabled:opacity-50"
                   >
                     Siguiente
