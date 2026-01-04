@@ -17,17 +17,36 @@ import { X, MapPin } from "lucide-react";
  * @param {Function} props.onClose - Callback al cerrar
  * @param {Object} props.calleCuadrante - Relación Calle-Cuadrante a mostrar
  */
-export default function CalleCuadranteViewModal({ isOpen, onClose, calleCuadrante }) {
+export default function CalleCuadranteViewModal({
+  isOpen,
+  onClose,
+  calleCuadrante,
+}) {
   if (!isOpen || !calleCuadrante) return null;
 
   // Debug: Log del objeto completo para ver qué relaciones trae
   useEffect(() => {
     if (calleCuadrante) {
-      console.log("🔍 [CalleCuadranteViewModal] Objeto completo:", calleCuadrante);
-      console.log("🔍 [CalleCuadranteViewModal] created_by:", calleCuadrante.created_by);
-      console.log("🔍 [CalleCuadranteViewModal] updated_by:", calleCuadrante.updated_by);
-      console.log("🔍 [CalleCuadranteViewModal] creadorCalleCuadrante:", calleCuadrante.creadorCalleCuadrante);
-      console.log("🔍 [CalleCuadranteViewModal] actualizadorCalleCuadrante:", calleCuadrante.actualizadorCalleCuadrante);
+      console.log(
+        "🔍 [CalleCuadranteViewModal] Objeto completo:",
+        calleCuadrante
+      );
+      console.log(
+        "🔍 [CalleCuadranteViewModal] created_by:",
+        calleCuadrante.created_by
+      );
+      console.log(
+        "🔍 [CalleCuadranteViewModal] updated_by:",
+        calleCuadrante.updated_by
+      );
+      console.log(
+        "🔍 [CalleCuadranteViewModal] creadorCalleCuadrante:",
+        calleCuadrante.creadorCalleCuadrante
+      );
+      console.log(
+        "🔍 [CalleCuadranteViewModal] actualizadorCalleCuadrante:",
+        calleCuadrante.actualizadorCalleCuadrante
+      );
     }
   }, [calleCuadrante]);
 
@@ -59,7 +78,10 @@ export default function CalleCuadranteViewModal({ isOpen, onClose, calleCuadrant
         <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between">
           <div>
             <h2 className="text-xl font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-              <MapPin size={24} className="text-primary-600 dark:text-primary-400" />
+              <MapPin
+                size={24}
+                className="text-primary-600 dark:text-primary-400"
+              />
               Información de Cuadrante de Calle
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
@@ -94,7 +116,9 @@ export default function CalleCuadranteViewModal({ isOpen, onClose, calleCuadrant
             <p className="text-base text-slate-900 dark:text-white p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
               {calleCuadrante.cuadrante ? (
                 <>
-                  {calleCuadrante.cuadrante.cuadrante_code || calleCuadrante.cuadrante.codigo} - {calleCuadrante.cuadrante.nombre}
+                  {calleCuadrante.cuadrante.cuadrante_code ||
+                    calleCuadrante.cuadrante.codigo}{" "}
+                  - {calleCuadrante.cuadrante.nombre}
                 </>
               ) : (
                 "No especificado"
@@ -110,14 +134,17 @@ export default function CalleCuadranteViewModal({ isOpen, onClose, calleCuadrant
               </label>
               <p className="text-base text-slate-900 dark:text-white">
                 <span className="inline-flex items-center rounded-full bg-primary-100 dark:bg-primary-900/30 px-3 py-1 text-sm font-medium text-primary-800 dark:text-primary-300">
-                  {calleCuadrante.cuadrante.sector.sector_code || calleCuadrante.cuadrante.sector.codigo} - {calleCuadrante.cuadrante.sector.nombre}
+                  {calleCuadrante.cuadrante.sector.sector_code ||
+                    calleCuadrante.cuadrante.sector.codigo}{" "}
+                  - {calleCuadrante.cuadrante.sector.nombre}
                 </span>
               </p>
             </div>
           )}
 
           {/* Numeración */}
-          <div className="grid grid-cols-2 gap-4">
+
+          <div className="grid grid-cols-2 gap-4 items-center">
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Número Inicio
@@ -126,32 +153,60 @@ export default function CalleCuadranteViewModal({ isOpen, onClose, calleCuadrant
                 {calleCuadrante.numero_inicio || "-"}
               </p>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                Número Fin
-              </label>
-              <p className="text-base text-slate-900 dark:text-white">
-                {calleCuadrante.numero_fin || "-"}
-              </p>
+            <div className="flex items-center gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Número Fin
+                </label>
+                <p className="text-base text-slate-900 dark:text-white">
+                  {calleCuadrante.numero_fin || "-"}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Lado
+                </label>
+                <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-700 px-3 py-1 text-sm font-medium text-slate-800 dark:text-slate-300">
+                  {calleCuadrante.lado || "AMBOS"}
+                </span>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Prioridad
+                </label>
+                <span className="inline-flex items-center rounded-full bg-yellow-100 dark:bg-yellow-900/30 px-3 py-1 text-sm font-medium text-yellow-800 dark:text-yellow-300">
+                  {calleCuadrante.prioridad || "-"}
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Lado */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-              Lado
-            </label>
-            <p className="text-base text-slate-900 dark:text-white">
-              {calleCuadrante.lado ? (
-                <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-700 px-3 py-1 text-sm font-medium text-slate-800 dark:text-slate-300">
-                  {calleCuadrante.lado}
-                </span>
-              ) : (
-                <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-700 px-3 py-1 text-sm font-medium text-slate-800 dark:text-slate-300">
-                  AMBOS
-                </span>
-              )}
-            </p>
+          {/* Manzana, Desde/Intersección, Hasta/Intersección */}
+          <div className="grid grid-cols-3 gap-4 mt-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Manzana
+              </label>
+              <p className="text-base text-slate-900 dark:text-white">
+                {calleCuadrante.manzana || "-"}
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Desde Intersección
+              </label>
+              <p className="text-base text-slate-900 dark:text-white">
+                {calleCuadrante.desde_interseccion || "-"}
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Hasta Intersección
+              </label>
+              <p className="text-base text-slate-900 dark:text-white">
+                {calleCuadrante.hasta_interseccion || "-"}
+              </p>
+            </div>
           </div>
 
           {/* Observaciones */}
@@ -166,6 +221,28 @@ export default function CalleCuadranteViewModal({ isOpen, onClose, calleCuadrant
             </div>
           )}
 
+          {/* Coordenadas GPS del Cuadrante */}
+          {calleCuadrante.cuadrante && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Latitud
+                </label>
+                <p className="text-base text-slate-900 dark:text-white p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 font-mono">
+                  {calleCuadrante.cuadrante.latitud || "-"}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Longitud
+                </label>
+                <p className="text-base text-slate-900 dark:text-white p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 font-mono">
+                  {calleCuadrante.cuadrante.longitud || "-"}
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Información de Auditoría */}
           <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
             <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">
@@ -177,7 +254,7 @@ export default function CalleCuadranteViewModal({ isOpen, onClose, calleCuadrant
                   Creado Por
                 </label>
                 <p className="text-base text-slate-900 dark:text-white">
-                  {calleCuadrante.creadorCalleCuadrante?.username || calleCuadrante.created_by || "-"}
+                  {calleCuadrante.creadorCallesCuadrantes?.username || calleCuadrante.created_by || "-"}
                 </p>
               </div>
               <div>
@@ -185,7 +262,11 @@ export default function CalleCuadranteViewModal({ isOpen, onClose, calleCuadrant
                   Fecha de Creación
                 </label>
                 <p className="text-base text-slate-900 dark:text-white">
-                  {calleCuadrante.created_at ? new Date(calleCuadrante.created_at).toLocaleString("es-PE") : "-"}
+                  {calleCuadrante.created_at
+                    ? new Date(calleCuadrante.created_at).toLocaleString(
+                        "es-PE"
+                      )
+                    : "-"}
                 </p>
               </div>
               <div>
@@ -193,7 +274,7 @@ export default function CalleCuadranteViewModal({ isOpen, onClose, calleCuadrant
                   Actualizado Por
                 </label>
                 <p className="text-base text-slate-900 dark:text-white">
-                  {calleCuadrante.actualizadorCalleCuadrante?.username || calleCuadrante.updated_by || "-"}
+                  {calleCuadrante.actualizadorCallesCuadrantes?.username || calleCuadrante.updated_by || "-"}
                 </p>
               </div>
               <div>
@@ -201,7 +282,11 @@ export default function CalleCuadranteViewModal({ isOpen, onClose, calleCuadrant
                   Última Actualización
                 </label>
                 <p className="text-base text-slate-900 dark:text-white">
-                  {calleCuadrante.updated_at ? new Date(calleCuadrante.updated_at).toLocaleString("es-PE") : "-"}
+                  {calleCuadrante.updated_at
+                    ? new Date(calleCuadrante.updated_at).toLocaleString(
+                        "es-PE"
+                      )
+                    : "-"}
                 </p>
               </div>
             </div>

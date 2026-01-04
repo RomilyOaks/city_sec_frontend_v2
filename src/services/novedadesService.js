@@ -33,6 +33,8 @@ export async function listNovedades({
   fecha_inicio,
   fecha_fin,
   search,
+  sort,
+  order,
 } = {}) {
   const params = new URLSearchParams();
   params.append("page", page);
@@ -44,6 +46,8 @@ export async function listNovedades({
   if (fecha_inicio) params.append("fecha_inicio", fecha_inicio);
   if (fecha_fin) params.append("fecha_fin", fecha_fin);
   if (search) params.append("search", search);
+  if (sort) params.append("sort", sort);
+  if (order) params.append("order", order);
 
   const res = await api.get(`/novedades?${params.toString()}`);
   const payload = res?.data || {};
@@ -63,10 +67,56 @@ export async function getNovedadById(id) {
 
 /**
  * Crear nueva novedad
+ * @param {Object} data - Datos de la novedad a crear
+ * @returns {Promise<Object>} Respuesta exitosa del servidor
+ * @throws {Error} Con detalles completos del error del backend
  */
 export async function createNovedad(data) {
-  const res = await api.post("/novedades", data);
-  return res?.data;
+  try {
+    const res = await api.post("/novedades", data);
+
+    // Si todo salió bien (status 2xx)
+    return res?.data;
+  } catch (error) {
+    // Aquí capturamos cualquier error de Axios (o la librería que uses en api)
+
+    console.error("❌ Error al crear la novedad:", error);
+
+    // Si el error tiene respuesta del servidor (como 400, 422, 500, etc.)
+    if (error.response) {
+      console.error("Status:", error.response.status);
+      console.error("Datos del error (backend):", error.response.data);
+      console.error("Headers:", error.response.headers);
+
+      // Puedes relanzar un error más descriptivo para que el componente lo maneje
+      const errorMessage =
+        error.response.data?.message ||
+        error.response.data?.error ||
+        "Error desconocido del servidor";
+
+      const validationErrors = error.response.data?.errors || null; // común en Laravel/validaciones
+
+      throw new Error(errorMessage, {
+        cause: {
+          status: error.response.status,
+          data: error.response.data,
+          validationErrors,
+        },
+      });
+    }
+    // Si el error es por red (no llegó al servidor)
+    else if (error.request) {
+      console.error("No se recibió respuesta del servidor:", error.request);
+      throw new Error(
+        "No se pudo conectar con el servidor. Verifique su conexión."
+      );
+    }
+    // Error de configuración o algo inesperado
+    else {
+      console.error("Error al configurar la petición:", error.message);
+      throw new Error("Error inesperado al crear la novedad: " + error.message);
+    }
+  }
 }
 
 /**
@@ -168,7 +218,7 @@ export async function getUbigeoByCode(code) {
     const searchRes = await listUbigeos(code);
     if (searchRes && searchRes.length > 0) {
       // Buscar el que coincida exactamente con el código
-      const exact = searchRes.find(u => u.ubigeo_code === code);
+      const exact = searchRes.find((u) => u.ubigeo_code === code);
       if (exact) {
         return exact;
       }
@@ -177,6 +227,7 @@ export async function getUbigeoByCode(code) {
 
     return null;
   } catch (err) {
+    console.error("❌ Error al obtener Ubigeo Code:", err);
     return null;
   }
 }

@@ -26,7 +26,7 @@ import {
   updateCalle,
   listTiposVia,
 } from "../../services/callesService";
-import { listUbigeos } from "../../services/novedadesService";
+import { listUbigeos, getUbigeoByCode } from "../../services/novedadesService";
 
 /**
  * Capitaliza la primera letra de cada palabra
@@ -81,7 +81,6 @@ export default function CalleFormModal({
   initialData = null,
   mode = "create", // "create" | "edit"
 }) {
-  console.log("🔄 CalleFormModal RENDER - isOpen:", isOpen, "mode:", mode);
 
   // ============================================
   // ESTADO
@@ -144,16 +143,17 @@ export default function CalleFormModal({
   // Función para buscar UBIGEO por código (modo edit)
   async function fetchUbigeoByCode(code) {
     try {
-      // Buscar solo el distrito del código
-      const res = await listUbigeos(code);
-      if (res && res.length > 0) {
-        const ubigeo = res[0];
+      const ubigeo = await getUbigeoByCode(code);
+      if (ubigeo) {
         setUbigeoSearch(
           `${ubigeo.departamento}/${ubigeo.provincia}/${ubigeo.distrito}`
         );
+      } else {
+        setUbigeoSearch("");
       }
     } catch (err) {
       console.error("Error buscando UBIGEO por código:", err);
+      setUbigeoSearch("");
     }
   }
 
@@ -221,14 +221,12 @@ export default function CalleFormModal({
     }
 
     try {
-      console.log("🔍 Buscando UBIGEOs con:", searchTerm);
       const res = await listUbigeos(searchTerm);
       const ubigeosList = Array.isArray(res) ? res : [];
-      console.log(`📊 Resultados: ${ubigeosList.length} distritos encontrados`);
       setUbigeos(ubigeosList);
       setShowUbigeoDropdown(ubigeosList.length > 0);
     } catch (err) {
-      console.error("❌ Error buscando ubigeos:", err);
+      console.error("Error buscando ubigeos:", err);
       setUbigeos([]);
       setShowUbigeoDropdown(false);
     }
@@ -241,31 +239,15 @@ export default function CalleFormModal({
   }
 
   function handleUbigeoSelect(ubigeo) {
-    console.log("=".repeat(50));
-    console.log("🔍 UBIGEO SELECCIONADO - INICIO");
-    console.log("=".repeat(50));
-    console.log("📍 Objeto completo:", JSON.stringify(ubigeo, null, 2));
-    console.log("📍 ubigeo_code:", ubigeo.ubigeo_code);
-    console.log("📍 distrito:", ubigeo.distrito);
-    console.log("📍 provincia:", ubigeo.provincia);
-    console.log("📍 departamento:", ubigeo.departamento);
-
     // Actualizar formData con el código
-    const nuevoFormData = { ...formData, ubigeo_code: ubigeo.ubigeo_code };
-    console.log("📦 Nuevo formData:", nuevoFormData);
-    setFormData(nuevoFormData);
+    setFormData({ ...formData, ubigeo_code: ubigeo.ubigeo_code });
 
     // Actualizar el texto del campo con el distrito completo (formato: LIMA/LIMA/CHORRILLOS)
     const ubigeoText = `${ubigeo.departamento}/${ubigeo.provincia}/${ubigeo.distrito}`;
-    console.log("📝 Texto UBIGEO a mostrar:", ubigeoText);
     setUbigeoSearch(ubigeoText);
 
     // Cerrar dropdown
-    console.log("🚪 Cerrando dropdown...");
     setShowUbigeoDropdown(false);
-
-    console.log("✅ handleUbigeoSelect - FIN");
-    console.log("=".repeat(50));
   }
 
   function handleUrbanizacionChange(e) {
@@ -290,8 +272,6 @@ export default function CalleFormModal({
   }
 
   async function handleSubmit() {
-    console.log("📤 Intentando guardar calle con datos:", formData);
-
     // Validaciones básicas
     if (!formData.tipo_via_id) {
       window.alert("⚠️ ERROR DE VALIDACIÓN\n\nDebe seleccionar un tipo de vía");
@@ -308,7 +288,6 @@ export default function CalleFormModal({
     }
 
     if (!formData.ubigeo_code) {
-      console.error("❌ ubigeo_code está vacío:", formData.ubigeo_code);
       window.alert(
         "⚠️ ERROR DE VALIDACIÓN\n\nDebe seleccionar un UBIGEO\n\nPor favor, busque y seleccione un distrito válido."
       );
@@ -316,29 +295,20 @@ export default function CalleFormModal({
       return;
     }
 
-    console.log(
-      "✅ Todas las validaciones pasaron. ubigeo_code:",
-      formData.ubigeo_code
-    );
-
     try {
       setLoading(true);
 
-      // 🔥 CONVERTIR es_principal a 0 o 1 y mapear campos
+      // CONVERTIR es_principal a 0 o 1 y mapear campos
       const dataToSend = {
         ...formData,
         es_principal: formData.es_principal ? 1 : 0,
-        observaciones: formData.referencia || null, // ← Mapear referencia → observaciones
+        observaciones: formData.referencia || null, // Mapear referencia → observaciones
       };
 
-      console.log("📦 Datos a enviar:", dataToSend);
-
       if (mode === "create") {
-        console.log("📝 Creando nueva calle...");
         await createCalle(dataToSend);
         window.alert("✅ ÉXITO\n\nCalle creada exitosamente");
       } else {
-        console.log("✏️ Actualizando calle...");
         await updateCalle(initialData.id, dataToSend);
         window.alert("✅ ÉXITO\n\nCalle actualizada exitosamente");
       }
@@ -654,55 +624,6 @@ export default function CalleFormModal({
                 </p>
               </div>
 
-              {/* Coordenadas */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
-                  Coordenadas GPS
-                </label>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs text-slate-600 dark:text-slate-400 mb-1">
-                      Latitud
-                    </label>
-                    <input
-                      type="number"
-                      step="any"
-                      value={formData.latitud}
-                      onChange={(e) =>
-                        setFormData({ ...formData, latitud: e.target.value })
-                      }
-                      className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
-                      placeholder="-12.0464"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-slate-600 dark:text-slate-400 mb-1">
-                      Longitud
-                    </label>
-                    <input
-                      type="number"
-                      step="any"
-                      value={formData.longitud}
-                      onChange={(e) =>
-                        setFormData({ ...formData, longitud: e.target.value })
-                      }
-                      className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
-                      placeholder="-77.0428"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Selector de Mapa (Placeholder) */}
-              <div className="mt-4 p-4 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/30">
-                <div className="text-center text-sm text-slate-600 dark:text-slate-400">
-                  <MapPin size={32} className="mx-auto mb-2 opacity-50" />
-                  <p className="font-medium">Selector de Mapa (Próximamente)</p>
-                  <p className="text-xs mt-1">
-                    Haz clic en el mapa para seleccionar coordenadas
-                  </p>
-                </div>
-              </div>
             </div>
           )}
 

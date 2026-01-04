@@ -1,3 +1,12 @@
+import { useState, useEffect, useCallback } from "react";
+import { X } from "lucide-react";
+import { validarDireccion, createDireccion, updateDireccion } from "../../services/direccionesService";
+import { listCallesActivas } from "../../services/callesService";
+import { listSectores } from "../../services/sectoresService";
+import { listCuadrantes, getCuadranteById } from "../../services/cuadrantesService";
+import { listUbigeos, getUbigeoByCode } from "../../services/novedadesService";
+import { toast } from "react-hot-toast";
+
 /**
  * File: src/components/direcciones/DireccionFormModal.jsx
  * @version 1.0.0
@@ -13,53 +22,25 @@
  * @module src/components/direcciones/DireccionFormModal
  */
 
-import { useState, useEffect } from "react";
-import { X } from "lucide-react";
-import {
-  createDireccion,
-  updateDireccion,
-  validarDireccion,
-} from "../../services/direccionesService";
-import { listCallesActivas } from "../../services/callesService";
-import { listSectores } from "../../services/sectoresService";
-import {
-  listCuadrantes,
-  getCuadranteById,
-} from "../../services/cuadrantesService";
-import { toast } from "react-hot-toast";
-
-const TIPOS_COMPLEMENTO = [
-  { value: "DEPTO", label: "Departamento" },
-  { value: "OFICINA", label: "Oficina" },
-  { value: "PISO", label: "Piso" },
-  { value: "INTERIOR", label: "Interior" },
-  { value: "LOTE", label: "Lote" },
-  { value: "MZ", label: "Manzana" },
-  { value: "BLOCK", label: "Block" },
-  { value: "TORRE", label: "Torre" },
-  { value: "CASA", label: "Casa" },
-];
-
-/**
- * DireccionFormModal - Modal de formulario para direcciones
- * @component
- * @param {Object} props
- * @param {boolean} props.isOpen - Si el modal está abierto
- * @param {Function} props.onClose - Callback al cerrar
- * @param {Object} props.direccion - Dirección a editar (null para crear)
- */
-export default function DireccionFormModal({
-  isOpen,
-  onClose,
-  direccion = null,
-}) {
+export default function DireccionFormModal({ isOpen, onClose, direccion = null }) {
+  const TIPOS_COMPLEMENTO = [
+    { value: "DEPTO", label: "Departamento" },
+    { value: "OFICINA", label: "Oficina" },
+    { value: "PISO", label: "Piso" },
+    { value: "INTERIOR", label: "Interior" },
+    { value: "LOTE", label: "Lote" },
+    { value: "MZ", label: "Manzana" },
+    { value: "BLOCK", label: "Block" },
+    { value: "TORRE", label: "Torre" },
+    { value: "CASA", label: "Casa" },
+  ];
   const [loading, setLoading] = useState(false);
-  const [validationError, setValidationError] = useState("");
+  const [cuadrantes, setCuadrantes] = useState([]);
   const [calles, setCalles] = useState([]);
   const [sectores, setSectores] = useState([]);
-  const [cuadrantes, setCuadrantes] = useState([]);
-  const [autoAssignInfo, setAutoAssignInfo] = useState(null);
-
+  const [ubigeoSearch, setUbigeoSearch] = useState("");
+  const [ubigeoOptions, setUbigeoOptions] = useState([]);
+  const [showUbigeoDropdown, setShowUbigeoDropdown] = useState(false);
   const [formData, setFormData] = useState({
     calle_id: "",
     numero_municipal: "",
@@ -77,6 +58,87 @@ export default function DireccionFormModal({
     observaciones: "",
   });
 
+  // --- Declarar funciones antes de los useEffect que las usan ---
+
+  const loadCalles = async () => {
+    try {
+      const res = await listCallesActivas();
+      setCalles(res?.items || res || []);
+    } catch (error) {}
+  };
+
+  const loadSectores = async () => {
+    try {
+      const res = await listSectores({ page: 1, limit: 100 });
+      setSectores(res?.items || res || []);
+    } catch (err) {}
+  };
+
+  const loadCuadrantesForSector = async (sectorId) => {
+    try {
+      if (!sectorId) {
+        setCuadrantes([]);
+        return;
+      }
+      const res = await listCuadrantes({ sector_id: sectorId, limit: 100 });
+      setCuadrantes(res?.items || res || []);
+    } catch (err) {}
+  };
+
+  const loadUbigeoByCode = async (code) => {
+    try {
+      const ubigeo = await getUbigeoByCode(code);
+      if (ubigeo) {
+        setUbigeoSearch(`${ubigeo.distrito} - ${ubigeo.provincia}, ${ubigeo.departamento}`);
+      } else {
+        setUbigeoSearch("");
+      }
+    } catch (err) {
+      console.error("Error al buscar ubigeo:", err);
+      setUbigeoSearch("");
+    }
+  };
+
+  const handleAutoValidate = async () => {
+    try {
+      const payload = {
+        calle_id: formData.calle_id,
+        numero_municipal: formData.numero_municipal || null,
+        manzana: formData.manzana || null,
+        lote: formData.lote || null,
+      };
+      const result = await validarDireccion(payload);
+      if (result?.auto_asignado) {
+        if (result.sector?.id && !formData.sector_id) {
+          setFormData((prev) => ({
+            ...prev,
+            sector_id: String(result.sector.id),
+          }));
+          await loadCuadrantesForSector(result.sector.id);
+        } else if (result.sector?.id) {
+          await loadCuadrantesForSector(result.sector.id);
+        }
+        if (result.cuadrante?.id && !formData.cuadrante_id) {
+          setFormData((prev) => ({
+            ...prev,
+            cuadrante_id: String(result.cuadrante.id),
+          }));
+          try {
+            const cq = await getCuadranteById(result.cuadrante.id);
+            if (cq) {
+              setFormData((prev) => ({
+                ...prev,
+                latitud: cq.latitud ?? prev.latitud,
+                longitud: cq.longitud ?? prev.longitud,
+                ubigeo_code: cq.ubigeo_code ?? prev.ubigeo_code,
+              }));
+            }
+          } catch (err) {}
+        }
+      }
+    } catch (error) {}
+  };
+
   // Cargar calles activas
   useEffect(() => {
     if (isOpen) {
@@ -89,7 +151,7 @@ export default function DireccionFormModal({
   useEffect(() => {
     if (isOpen && direccion) {
       setFormData({
-        calle_id: direccion.calle_id || "",
+        calle_id: direccion.calle_id ? String(direccion.calle_id) : "",
         numero_municipal: direccion.numero_municipal || "",
         manzana: direccion.manzana || "",
         lote: direccion.lote || "",
@@ -98,171 +160,38 @@ export default function DireccionFormModal({
         numero_complemento: direccion.numero_complemento || "",
         referencia: direccion.referencia || "",
         sector_id: direccion.sector_id ? String(direccion.sector_id) : "",
-        cuadrante_id: direccion.cuadrante_id
-          ? String(direccion.cuadrante_id)
-          : "",
-        ubigeo_code: direccion.ubigeo_code || "",
+        cuadrante_id: direccion.cuadrante_id ? String(direccion.cuadrante_id) : "",
+        ubigeo_code: direccion.ubigeo_code || direccion.calle?.ubigeo_code || "",
         latitud: direccion.latitud || "",
         longitud: direccion.longitud || "",
         observaciones: direccion.observaciones || "",
       });
-
-      // Si la dirección tiene sector, cargar sus cuadrantes
+      // Cargar cuadrantes si hay sector
       if (direccion.sector_id) {
         loadCuadrantesForSector(direccion.sector_id);
       }
-    } else if (isOpen) {
-      // Reset al crear nueva
-      setFormData({
-        calle_id: "",
-        numero_municipal: "",
-        manzana: "",
-        lote: "",
-        urbanizacion: "",
-        tipo_complemento: "",
-        numero_complemento: "",
-        referencia: "",
-        sector_id: "",
-        cuadrante_id: "",
-        ubigeo_code: "",
-        latitud: "",
-        longitud: "",
-        observaciones: "",
-      });
-      setAutoAssignInfo(null);
-      setCuadrantes([]);
+      // Mostrar ubigeo si existe
+      if (direccion.ubigeo_code || direccion.calle?.ubigeo_code) {
+        const code = direccion.ubigeo_code || direccion.calle?.ubigeo_code;
+        if (direccion.ubigeo) {
+          // Si viene la relación ubigeo en la dirección
+          const u = direccion.ubigeo;
+          setUbigeoSearch(`${u.distrito} - ${u.provincia}, ${u.departamento}`);
+        } else if (direccion.calle?.Ubigeo) {
+          // Si viene la relación ubigeo en la calle
+          const u = direccion.calle.Ubigeo;
+          setUbigeoSearch(`${u.distrito} - ${u.provincia}, ${u.departamento}`);
+        } else {
+          // Si no hay relación, buscar el ubigeo por código
+          loadUbigeoByCode(code);
+        }
+      }
     }
   }, [isOpen, direccion]);
 
-  // Validar auto-asignación cuando cambia calle o número/AAHH
-  useEffect(() => {
-    const hasNumero =
-      formData.numero_municipal && formData.numero_municipal.trim();
-    const hasManzanaLote =
-      formData.manzana &&
-      formData.lote &&
-      formData.manzana.trim() &&
-      formData.lote.trim();
 
-    if (formData.calle_id && (hasNumero || hasManzanaLote)) {
-      // Only auto-assign if cuadrante_id is empty (not manually selected)
-      if (!formData.cuadrante_id) {
-        handleAutoValidate();
-      }
-    } else {
-      setAutoAssignInfo(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    formData.calle_id,
-    formData.numero_municipal,
-    formData.manzana,
-    formData.lote,
-  ]);
-
-  // Keyboard shortcuts: ESC y ALT+G
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === "Escape" && isOpen && !loading) {
-        e.preventDefault();
-        handleClose();
-      }
-      if (e.altKey && e.key === "g" && isOpen && !loading) {
-        e.preventDefault();
-        document.getElementById("direccion-form")?.requestSubmit();
-      }
-    };
-
-    if (isOpen) {
-      window.addEventListener("keydown", handleKeyDown);
-      return () => window.removeEventListener("keydown", handleKeyDown);
-    }
-  }, [isOpen, loading]);
-
-  const loadCalles = async () => {
-    try {
-      const result = await listCallesActivas();
-      setCalles(result || []);
-    } catch (error) {
-      console.error("Error al cargar calles:", error);
-      toast.error("Error al cargar calles");
-    }
-  };
-
-  const loadSectores = async () => {
-    try {
-      const res = await listSectores({ page: 1, limit: 100 });
-      // API puede devolver { items: [...] } o un array
-      setSectores(res?.items || res || []);
-    } catch (err) {
-      console.error("Error al cargar sectores:", err);
-    }
-  };
-
-  const loadCuadrantesForSector = async (sectorId) => {
-    try {
-      if (!sectorId) {
-        setCuadrantes([]);
-        return;
-      }
-      const res = await listCuadrantes({ sector_id: sectorId, limit: 200 });
-      setCuadrantes(res?.items || res || []);
-    } catch (err) {
-      console.error("Error al cargar cuadrantes:", err);
-    }
-  };
-
-  const handleAutoValidate = async () => {
-    try {
-      const payload = {
-        calle_id: formData.calle_id,
-        numero_municipal: formData.numero_municipal || null,
-        manzana: formData.manzana || null,
-        lote: formData.lote || null,
-      };
-
-      const result = await validarDireccion(payload);
-      setAutoAssignInfo(result);
-
-      // Si la API determinó un sector/cuadrante, rellenarlos
-      if (result?.auto_asignado) {
-        if (result.sector?.id && !formData.sector_id) {
-          setFormData((prev) => ({
-            ...prev,
-            sector_id: String(result.sector.id),
-          }));
-          // Cargar cuadrantes pertenecientes al sector
-          loadCuadrantesForSector(result.sector.id);
-        }
-
-        if (result.cuadrante?.id && !formData.cuadrante_id) {
-          setFormData((prev) => ({
-            ...prev,
-            cuadrante_id: String(result.cuadrante.id),
-          }));
-          // Obtener detalles del cuadrante para lat/lng/ubigeo
-          try {
-            const cq = await getCuadranteById(result.cuadrante.id);
-            if (cq) {
-              setFormData((prev) => ({
-                ...prev,
-                latitud: cq.latitud ?? prev.latitud,
-                longitud: cq.longitud ?? prev.longitud,
-                ubigeo_code: cq.ubigeo_code ?? prev.ubigeo_code,
-              }));
-            }
-          } catch (err) {
-            console.error("Error al obtener cuadrante:", err);
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Error en auto-validación:", error);
-      setAutoAssignInfo(null);
-    }
-  };
-
-  const handleClose = () => {
+  // Funciones auxiliares declaradas antes de los hooks
+  function handleClose() {
     setFormData({
       calle_id: "",
       numero_municipal: "",
@@ -279,120 +208,87 @@ export default function DireccionFormModal({
       longitud: "",
       observaciones: "",
     });
-    setValidationError("");
-    setAutoAssignInfo(null);
     setCuadrantes([]);
-    onClose();
-  };
+    if (onClose) onClose();
+  }
 
-  const handleChange = async (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    setValidationError("");
-
-    // Si se selecciona sector, cargar cuadrantes del sector
-    if (name === "sector_id") {
-      setFormData((prev) => ({ ...prev, cuadrante_id: "" }));
-      loadCuadrantesForSector(value);
-      return;
-    }
-
-    // Si se selecciona cuadrante, intentar rellenar lat/lng y ubigeo
-    if (name === "cuadrante_id") {
-      if (!value) return;
-      const found = cuadrantes.find((c) => String(c.id) === String(value));
-      if (found) {
-        setFormData((prev) => ({
-          ...prev,
-          latitud: found.latitud ?? prev.latitud,
-          longitud: found.longitud ?? prev.longitud,
-          ubigeo_code: found.ubigeo_code ?? prev.ubigeo_code,
-        }));
-      } else {
-        try {
-          const cq = await getCuadranteById(value);
-          if (cq) {
-            setFormData((prev) => ({
-              ...prev,
-              latitud: cq.latitud ?? prev.latitud,
-              longitud: cq.longitud ?? prev.longitud,
-              ubigeo_code: cq.ubigeo_code ?? prev.ubigeo_code,
-            }));
-          }
-        } catch (err) {
-          console.error("Error al obtener cuadrante:", err);
-        }
+  useEffect(() => {
+    const hasNumero = formData.numero_municipal && formData.numero_municipal.trim();
+    const hasManzanaLote = formData.manzana && formData.lote && formData.manzana.trim() && formData.lote.trim();
+    if (formData.calle_id && (hasNumero || hasManzanaLote)) {
+      if (!formData.cuadrante_id) {
+        handleAutoValidate();
       }
     }
+
+  }, [formData.calle_id, formData.numero_municipal, formData.manzana, formData.lote]);
+
+
+  // Keyboard shortcuts: ESC y ALT+G
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && isOpen && !loading) {
+        e.preventDefault();
+        handleClose();
+      }
+      if (e.altKey && e.key === "g" && isOpen && !loading) {
+        e.preventDefault();
+        document.getElementById("direccion-form")?.requestSubmit();
+      }
+    };
+    if (isOpen) {
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [isOpen, loading, handleClose]);
+
+  // Handler para cambios en el formulario
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Handler para submit del formulario
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setValidationError("");
-
-    // Validar sistema dual
-    const tieneNumeroMunicipal = formData.numero_municipal?.trim();
-    const tieneManzanaLote = formData.manzana?.trim() && formData.lote?.trim();
-
-    if (!tieneNumeroMunicipal && !tieneManzanaLote) {
-      setValidationError(
-        "Debe proporcionar al menos uno: Número Municipal O (Manzana + Lote)"
-      );
-      setLoading(false);
-      return;
-    }
 
     try {
-      // Preparar datos
-      const dataToSend = {
+      setLoading(true);
+
+      // Preparar payload con todos los campos
+      const payload = {
         calle_id: parseInt(formData.calle_id),
-        numero_municipal: formData.numero_municipal?.trim() || null,
-        manzana: formData.manzana?.trim() || null,
-        lote: formData.lote?.trim() || null,
-        urbanizacion: formData.urbanizacion?.trim() || null,
+        numero_municipal: formData.numero_municipal || null,
+        manzana: formData.manzana || null,
+        lote: formData.lote || null,
+        urbanizacion: formData.urbanizacion || null,
         tipo_complemento: formData.tipo_complemento || null,
-        numero_complemento: formData.numero_complemento?.trim() || null,
-        referencia: formData.referencia?.trim() || null,
+        numero_complemento: formData.numero_complemento || null,
+        referencia: formData.referencia || null,
         sector_id: formData.sector_id ? parseInt(formData.sector_id) : null,
-        cuadrante_id: formData.cuadrante_id
-          ? parseInt(formData.cuadrante_id)
-          : null,
+        cuadrante_id: formData.cuadrante_id ? parseInt(formData.cuadrante_id) : null,
         ubigeo_code: formData.ubigeo_code || null,
-        latitud: formData.latitud ? parseFloat(formData.latitud) : null,
-        longitud: formData.longitud ? parseFloat(formData.longitud) : null,
-        observaciones: formData.observaciones?.trim() || null,
+        latitud: formData.latitud || null,
+        longitud: formData.longitud || null,
+        observaciones: formData.observaciones || null,
       };
 
       if (direccion) {
-        // Actualizar
-        await updateDireccion(direccion.id, dataToSend);
-        toast.success("Dirección actualizada exitosamente");
+        // Actualizar dirección existente
+        await updateDireccion(direccion.id, payload);
+        toast.success("Dirección actualizada correctamente");
       } else {
-        // Crear
-        await createDireccion(dataToSend);
-        toast.success("Dirección creada exitosamente");
+        // Crear nueva dirección
+        await createDireccion(payload);
+        toast.success("Dirección creada correctamente");
       }
 
       handleClose();
     } catch (error) {
       console.error("Error al guardar dirección:", error);
 
-      const backendData = error.response?.data;
-      let errorMessage = "Error al guardar la dirección";
-
-      if (backendData?.message) {
-        errorMessage = backendData.message;
-      } else if (backendData?.errors) {
-        if (typeof backendData.errors === "object") {
-          errorMessage = Object.values(backendData.errors).join(", ");
-        }
-      } else if (typeof backendData === "string") {
-        errorMessage = backendData;
-      }
-
-      setValidationError(errorMessage);
-      toast.error(errorMessage);
+      const errorMsg = error.response?.data?.message || error.message || "Error al guardar la dirección";
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -407,10 +303,10 @@ export default function DireccionFormModal({
         <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between">
           <div>
             <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
-              {direccion ? "Editar" : "Nueva"} Dirección
+              {direccion ? "Editar Dirección" : "Nueva Dirección"}
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-              Sistema dual: Número municipal O Manzana+Lote
+              ESC para cerrar • ALT+G para guardar
             </p>
           </div>
           <button
@@ -421,54 +317,9 @@ export default function DireccionFormModal({
           </button>
         </div>
 
-        {/* Error de validación */}
-        {validationError && (
-          <div className="mx-6 mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-            <p className="text-sm text-red-800 dark:text-red-200">
-              {validationError}
-            </p>
-          </div>
-        )}
-
-        {/* Auto-asignación info */}
-        {autoAssignInfo && autoAssignInfo.auto_asignado && (
-          <div className="mx-6 mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <p className="text-sm text-blue-800 dark:text-blue-200">
-              ✓ Auto-asignado:{" "}
-              <strong>
-                Cuadrante {autoAssignInfo.cuadrante?.codigo} • Sector{" "}
-                {autoAssignInfo.sector?.codigo}
-              </strong>
-            </p>
-          </div>
-        )}
-
         {/* Form */}
-        <form
-          id="direccion-form"
-          onSubmit={handleSubmit}
-          className="p-6 space-y-6"
-        >
-          {/* Código - Solo visible al editar (read-only) */}
-          {direccion && (
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                Código de Dirección
-              </label>
-              <input
-                type="text"
-                value={direccion.direccion_code}
-                readOnly
-                disabled
-                className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-not-allowed"
-              />
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Código único generado automáticamente
-              </p>
-            </div>
-          )}
-
-          {/* Calle - Campo obligatorio */}
+        <form id="direccion-form" onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Calle */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
               Calle <span className="text-red-500">*</span>
@@ -478,32 +329,19 @@ export default function DireccionFormModal({
               value={formData.calle_id}
               onChange={handleChange}
               required
-              className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:text-white"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
             >
               <option value="">Seleccione una calle</option>
               {calles.map((calle) => (
                 <option key={calle.id} value={calle.id}>
-                  {calle.nombre_completo}
+                  {calle.nombre_completo || `${calle.tipo_via?.abreviatura || ''} ${calle.nombre_via}`.trim()}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Tip de ayuda */}
-          <div className="flex justify-end">
-            <p className="text-xs text-slate-600 dark:text-slate-400">
-              <span className="text-blue-600 dark:text-blue-400 font-medium">
-                Tip:
-              </span>{" "}
-              ESC para cerrar • ALT+G para guardar
-            </p>
-          </div>
-
-          {/* SISTEMA 1: Numeración Municipal */}
-          <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">
-              Sistema 1: Numeración Municipal
-            </h3>
+          {/* Sistema Dual: Número Municipal O Manzana+Lote */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Número Municipal
@@ -513,209 +351,234 @@ export default function DireccionFormModal({
                 name="numero_municipal"
                 value={formData.numero_municipal}
                 onChange={handleChange}
-                placeholder="Ej: 450, 250-A, S/N"
-                maxLength={10}
-                className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:text-white"
+                placeholder="Ej: 123"
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
               />
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Número de puerta o numeración oficial de la calle
-              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Manzana
+              </label>
+              <input
+                type="text"
+                name="manzana"
+                value={formData.manzana}
+                onChange={handleChange}
+                placeholder="Ej: A"
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Lote
+              </label>
+              <input
+                type="text"
+                name="lote"
+                value={formData.lote}
+                onChange={handleChange}
+                placeholder="Ej: 15"
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+              />
             </div>
           </div>
 
-          {/* SISTEMA 2: Manzana/Lote */}
-          <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">
-              Sistema 2: Manzana y Lote (AAHH)
-            </h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Manzana
-                </label>
-                <input
-                  type="text"
-                  name="manzana"
-                  value={formData.manzana}
-                  onChange={handleChange}
-                  placeholder="Ej: A, B, 01"
-                  maxLength={10}
-                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:text-white"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Lote
-                </label>
-                <input
-                  type="text"
-                  name="lote"
-                  value={formData.lote}
-                  onChange={handleChange}
-                  placeholder="Ej: 1, 15, A"
-                  maxLength={10}
-                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:text-white"
-                />
-              </div>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-              Para urbanizaciones informales o AAHH sin numeración municipal
-            </p>
+          {/* Urbanización */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              Urbanización / AAHH
+            </label>
+            <input
+              type="text"
+              name="urbanizacion"
+              value={formData.urbanizacion}
+              onChange={handleChange}
+              placeholder="Nombre de urbanización o asentamiento"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+            />
           </div>
 
           {/* Complementos */}
-          <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">
-              Complementos Adicionales
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Urbanización / AAHH
-                </label>
-                <input
-                  type="text"
-                  name="urbanizacion"
-                  value={formData.urbanizacion}
-                  onChange={handleChange}
-                  placeholder="Ej: AAHH Villa El Salvador"
-                  maxLength={150}
-                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Tipo de Complemento
-                </label>
-                <select
-                  name="tipo_complemento"
-                  value={formData.tipo_complemento}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:text-white"
-                >
-                  <option value="">Ninguno</option>
-                  {TIPOS_COMPLEMENTO.map((tipo) => (
-                    <option key={tipo.value} value={tipo.value}>
-                      {tipo.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Número de Complemento
-                </label>
-                <input
-                  type="text"
-                  name="numero_complemento"
-                  value={formData.numero_complemento}
-                  onChange={handleChange}
-                  placeholder="Ej: 201, 5B"
-                  maxLength={20}
-                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Referencia
-                </label>
-                <input
-                  type="text"
-                  name="referencia"
-                  value={formData.referencia}
-                  onChange={handleChange}
-                  placeholder="Ej: Frente al parque"
-                  maxLength={255}
-                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:text-white"
-                />
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Tipo de Complemento
+              </label>
+              <select
+                name="tipo_complemento"
+                value={formData.tipo_complemento}
+                onChange={handleChange}
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+              >
+                <option value="">Sin complemento</option>
+                {TIPOS_COMPLEMENTO.map((tipo) => (
+                  <option key={tipo.value} value={tipo.value}>
+                    {tipo.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Número de Complemento
+              </label>
+              <input
+                type="text"
+                name="numero_complemento"
+                value={formData.numero_complemento}
+                onChange={handleChange}
+                placeholder="Ej: 201"
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+              />
             </div>
           </div>
 
-          {/* Ubicación administrativa: Sector y Cuadrante (se colocan encima de Geocodificación) */}
-          <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">
-              Ubicación Administrativa
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Sector
-                </label>
-                <select
-                  name="sector_id"
-                  value={formData.sector_id}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:text-white"
-                >
-                  <option value="">Seleccione un sector</option>
-                  {(sectores || []).map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.nombre || s.codigo || s.id}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Cuadrante
-                </label>
-                <select
-                  name="cuadrante_id"
-                  value={formData.cuadrante_id}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:text-white"
-                >
-                  <option value="">Seleccione un cuadrante</option>
-                  {(cuadrantes || []).map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.codigo || c.nombre || c.id}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          {/* Sector y Cuadrante */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Sector
+              </label>
+              <select
+                name="sector_id"
+                value={formData.sector_id}
+                onChange={(e) => {
+                  handleChange(e);
+                  loadCuadrantesForSector(e.target.value);
+                }}
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+              >
+                <option value="">Seleccione sector</option>
+                {sectores.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.nombre || s.sector_code}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Cuadrante
+              </label>
+              <select
+                name="cuadrante_id"
+                value={formData.cuadrante_id}
+                onChange={handleChange}
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+              >
+                <option value="">Seleccione cuadrante</option>
+                {cuadrantes.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nombre || c.cuadrante_code}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
-          {/* Geocodificación */}
-          <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">
-              Geocodificación (Opcional)
-            </h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Latitud
-                </label>
-                <input
-                  type="number"
-                  step="any"
-                  name="latitud"
-                  value={formData.latitud}
-                  onChange={handleChange}
-                  placeholder="-12.04637800"
-                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:text-white"
-                />
+          {/* UBIGEO */}
+          <div className="relative">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              UBIGEO
+            </label>
+            {formData.ubigeo_code && direccion ? (
+              <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+                <div className="flex flex-col">
+                  <span className="font-mono text-sm text-primary-700 dark:text-primary-400">{formData.ubigeo_code}</span>
+                  {ubigeoSearch && <span className="text-xs text-slate-600 dark:text-slate-400 mt-1">{ubigeoSearch}</span>}
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Longitud
-                </label>
+            ) : (
+              <>
                 <input
-                  type="number"
-                  step="any"
-                  name="longitud"
-                  value={formData.longitud}
-                  onChange={handleChange}
-                  placeholder="-77.03066400"
-                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:text-white"
+                  type="text"
+                  value={ubigeoSearch}
+                  onChange={async (e) => {
+                    const value = e.target.value;
+                    setUbigeoSearch(value);
+                    if (value.length >= 3) {
+                      try {
+                        const results = await listUbigeos(value);
+                        setUbigeoOptions(results || []);
+                        setShowUbigeoDropdown(true);
+                      } catch (err) {
+                        setUbigeoOptions([]);
+                      }
+                    } else {
+                      setUbigeoOptions([]);
+                      setShowUbigeoDropdown(false);
+                    }
+                  }}
+                  onFocus={() => ubigeoOptions.length > 0 && setShowUbigeoDropdown(true)}
+                  placeholder="Buscar distrito..."
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
                 />
-              </div>
+                {showUbigeoDropdown && ubigeoOptions.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    {ubigeoOptions.map((u) => (
+                      <button
+                        key={u.ubigeo_code}
+                        type="button"
+                        onClick={() => {
+                          setFormData((prev) => ({ ...prev, ubigeo_code: u.ubigeo_code }));
+                          setUbigeoSearch(`${u.distrito} - ${u.provincia}, ${u.departamento}`);
+                          setShowUbigeoDropdown(false);
+                        }}
+                        className="w-full px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-700 flex justify-between"
+                      >
+                        <span>{u.distrito}<span className="text-slate-500 ml-2">{u.provincia} - {u.departamento}</span></span>
+                        <span className="text-xs font-mono text-primary-600">{u.ubigeo_code}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Coordenadas GPS */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Latitud
+              </label>
+              <input
+                type="text"
+                name="latitud"
+                value={formData.latitud}
+                onChange={handleChange}
+                placeholder="Ej: -13.5226"
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+              />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Longitud
+              </label>
+              <input
+                type="text"
+                name="longitud"
+                value={formData.longitud}
+                onChange={handleChange}
+                placeholder="Ej: -71.9675"
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+              />
+            </div>
+          </div>
+
+          {/* Referencia */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              Referencia
+            </label>
+            <textarea
+              name="referencia"
+              value={formData.referencia}
+              onChange={handleChange}
+              rows={2}
+              placeholder="Referencias adicionales para ubicar la dirección"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+            />
           </div>
 
           {/* Observaciones */}
@@ -727,32 +590,37 @@ export default function DireccionFormModal({
               name="observaciones"
               value={formData.observaciones}
               onChange={handleChange}
-              rows={3}
-              placeholder="Observaciones adicionales sobre la dirección"
-              className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:text-white"
+              rows={2}
+              placeholder="Notas adicionales"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
             />
           </div>
-
-          {/* Botones */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-            <button
-              type="button"
-              onClick={handleClose}
-              disabled={loading}
-              className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-4 py-2 rounded-lg bg-primary-700 text-white hover:bg-primary-800 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? "Guardando..." : direccion ? "Actualizar" : "Crear"}
-            </button>
-          </div>
         </form>
+
+        {/* Footer */}
+        <div className="border-t border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={handleClose}
+            className="rounded-lg border border-slate-300 dark:border-slate-700 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            form="direccion-form"
+            disabled={loading}
+            className="inline-flex items-center gap-2 rounded-lg bg-primary-700 px-4 py-2 text-sm font-medium text-white hover:bg-primary-800 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? "Guardando..." : direccion ? "Actualizar" : "Crear Dirección"}
+          </button>
+        </div>
       </div>
     </div>
   );
 }
+
+
+
+
+

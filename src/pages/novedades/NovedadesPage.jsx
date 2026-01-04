@@ -1,6 +1,6 @@
 /**
  * File: c:\\Project\\city_sec_frontend_v2\\src\\pages\\novedades\\NovedadesPage.jsx
- * @version 2.0.0
+ * @version 2.1.0
  * @description Página principal para la gestión de novedades/incidentes.
  * Contiene listado con filtros, creación de nuevas novedades, visualización de detalle
  * y modales para atención (asignación de recursos y seguimiento).
@@ -393,6 +393,8 @@ export default function NovedadesPage() {
         fecha_inicio: filterFechaInicio || undefined,
         fecha_fin: filterFechaFin || undefined,
         search: search || undefined,
+        sort: "novedad_code",
+        order: "desc", // Ordenar por novedad_code descendente (más recientes primero)
       });
       setNovedades(Array.isArray(result.novedades) ? result.novedades : []);
       setPagination(result.pagination);
@@ -637,7 +639,7 @@ export default function NovedadesPage() {
         try {
           const [cargosData, callesData, sectoresData] = await Promise.all([
             listCargos(),
-            listCalles({ limit: 1000 }),
+            listCalles({ limit: 100 }), // Backend requiere límite máximo de 100
             listSectoresService({ limit: 100 }),
           ]);
 
@@ -1102,6 +1104,7 @@ export default function NovedadesPage() {
 
   /**
    * handleSelectDireccion - Cuando el usuario selecciona una dirección del dropdown
+   * Ahora también actualiza latitud, longitud y ubigeo_code
    */
   const handleSelectDireccion = (direccionId) => {
     if (!direccionId) {
@@ -1118,12 +1121,26 @@ export default function NovedadesPage() {
       setSelectedDireccionId(direccionId);
       setDireccionMatch(selected);
       setShowManualLocation(false);
+
+      // Obtener sector_id y cuadrante_id de la dirección
+      const sectorId =
+        selected.sector_id || selected.cuadrante?.sector_id || "";
+      const cuadranteId = selected.cuadrante_id || "";
+
       setRegistroFormData((prev) => ({
         ...prev,
         direccion_id: selected.id,
-        sector_id: selected.sector_id || selected.cuadrante?.sector_id || "",
-        cuadrante_id: selected.cuadrante_id || "",
+        sector_id: sectorId ? String(sectorId) : "",
+        cuadrante_id: cuadranteId ? String(cuadranteId) : "",
+        latitud: selected.latitud || "",
+        longitud: selected.longitud || "",
+        ubigeo_code: selected.ubigeo_code || "",
       }));
+
+      // Cargar cuadrantes del sector si existe
+      if (sectorId) {
+        loadCuadrantesForSector(sectorId);
+      }
     }
   };
 
@@ -1220,7 +1237,10 @@ export default function NovedadesPage() {
         reportante_nombre: registroFormData.reportante_nombre,
         direccion_id: finalDireccionId,
         referencia_ubicacion: registroFormData.referencia_ubicacion,
-        localizacion: registroFormData.localizacion,
+        // Si hay dirección seleccionada, usar su direccion_completa, sino usar el campo manual
+        localizacion: direccionMatch
+          ? formatDireccionCompleta(direccionMatch)
+          : registroFormData.localizacion,
         tipo_novedad_id: registroFormData.tipo_novedad_id,
         subtipo_novedad_id: registroFormData.subtipo_novedad_id,
         descripcion: registroFormData.descripcion,
@@ -1258,14 +1278,23 @@ export default function NovedadesPage() {
    */
   const loadCuadrantesForSector = async (sectorId) => {
     try {
+      console.log("🔍 Cargando cuadrantes para sector_id:", sectorId);
       const data = await listCuadrantesService({
         sector_id: sectorId,
-        limit: 1000,
+        limit: 100, // Backend requiere límite máximo de 100
       });
+      console.log("✅ Cuadrantes cargados:", data);
       setCuadrantesRegistro(data.items || data || []);
     } catch (error) {
-      console.error("Error al cargar cuadrantes:", error);
-      toast.error("Error al cargar cuadrantes del sector");
+      console.error("❌ Error al cargar cuadrantes del sector:", sectorId);
+      console.error("Detalles del error:", error);
+      console.error("Response:", error.response?.data);
+      console.error("Status:", error.response?.status);
+      toast.error(
+        `Error al cargar cuadrantes del sector: ${
+          error.response?.data?.message || error.message
+        }`
+      );
     }
   };
 
@@ -1829,7 +1858,6 @@ export default function NovedadesPage() {
                   </div>
                 </div>
               </div>
-
               {/* Grupo 2: Información del Reportante */}
               <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-6 bg-slate-50/50 dark:bg-slate-800/50">
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
@@ -1928,7 +1956,6 @@ export default function NovedadesPage() {
                   )}
                 </div>
               </div>
-
               {/* Grupo 3: Información de Ubicación */}
               <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-6 bg-slate-50/50 dark:bg-slate-800/50">
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
@@ -1983,7 +2010,6 @@ export default function NovedadesPage() {
                       </button>
                     </div>
                   </div>
-
                   {/* Dropdown de direcciones encontradas */}
                   {direccionesOptions.length > 0 && !direccionMatch && (
                     <div>
@@ -2004,7 +2030,6 @@ export default function NovedadesPage() {
                       </select>
                     </div>
                   )}
-
                   {/* Dirección seleccionada con badges */}
                   {direccionMatch && (
                     <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
@@ -2021,11 +2046,32 @@ export default function NovedadesPage() {
                               Sector:{" "}
                               {direccionMatch.sector?.nombre ||
                                 direccionMatch.cuadrante?.sector?.nombre ||
-                                "N/A"}
+                                sectoresRegistro.find(
+                                  (s) => s.id === direccionMatch.sector_id
+                                )?.nombre ||
+                                sectoresRegistro.find(
+                                  (s) =>
+                                    s.id ===
+                                    parseInt(registroFormData.sector_id)
+                                )?.nombre ||
+                                (registroFormData.sector_id
+                                  ? `ID: ${registroFormData.sector_id}`
+                                  : "N/A")}
                             </span>
                             <span className="inline-flex items-center px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs font-medium">
                               Cuadrante:{" "}
-                              {direccionMatch.cuadrante?.nombre || "N/A"}
+                              {direccionMatch.cuadrante?.nombre ||
+                                cuadrantesRegistro.find(
+                                  (c) => c.id === direccionMatch.cuadrante_id
+                                )?.nombre ||
+                                cuadrantesRegistro.find(
+                                  (c) =>
+                                    c.id ===
+                                    parseInt(registroFormData.cuadrante_id)
+                                )?.nombre ||
+                                (registroFormData.cuadrante_id
+                                  ? `ID: ${registroFormData.cuadrante_id}`
+                                  : "N/A")}
                             </span>
                           </div>
                         </div>
@@ -2048,7 +2094,6 @@ export default function NovedadesPage() {
                       </div>
                     </div>
                   )}
-
                   {/* Checkbox para entrada manual */}
                   {/* Mostrar siempre la opción de ingreso manual cuando NO hay una dirección seleccionada y no está en búsqueda. */}
                   {!direccionMatch && !searchingDireccion && (
@@ -2069,7 +2114,6 @@ export default function NovedadesPage() {
                       </label>
                     </div>
                   )}
-
                   {/* Formulario manual de dirección */}
                   {showManualLocation && !direccionMatch && (
                     <div className="space-y-4 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
@@ -2280,12 +2324,12 @@ export default function NovedadesPage() {
                       </div>
                     </div>
                   )}
-
                   {/* Detalles Adicionales */}
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                       Detalles Adicionales de Ubicación
                     </label>
+                    {/*
                     <textarea
                       value={registroFormData.localizacion}
                       onChange={(e) =>
@@ -2298,10 +2342,109 @@ export default function NovedadesPage() {
                       rows={3}
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
                     />
+                    */}
+                    <input
+                      type="text"
+                      value={registroFormData.referencia_ubicacion}
+                      onChange={(e) =>
+                        setRegistroFormData({
+                          ...registroFormData,
+                          referencia_ubicacion: e.target.value,
+                        })
+                      }
+                      placeholder="Ej. Frente al parque, al costado del colegio..."
+                      className="w-full rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50"
+                    />
                   </div>
-                </div>
-              </div>
-
+                  {/* 🆕 Campos para latitud, longitud y ubigeo (editables si dirección no tiene datos) */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
+                        Latitud{" "}
+                        {direccionMatch && direccionMatch.latitud && (
+                          <span className="text-xs text-slate-500">
+                            (desde dirección)
+                          </span>
+                        )}
+                      </label>
+                      <input
+                        type="text"
+                        value={registroFormData.latitud || ""}
+                        onChange={(e) => {
+                          setRegistroFormData({
+                            ...registroFormData,
+                            latitud: e.target.value,
+                          });
+                        }}
+                        readOnly={direccionMatch && direccionMatch.latitud}
+                        className={`w-full rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-slate-900 dark:text-slate-50 ${
+                          direccionMatch && direccionMatch.latitud
+                            ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
+                            : "bg-white dark:bg-slate-950/40"
+                        }`}
+                        placeholder="-12.0464"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
+                        Longitud{" "}
+                        {direccionMatch && direccionMatch.longitud && (
+                          <span className="text-xs text-slate-500">
+                            (desde dirección)
+                          </span>
+                        )}
+                      </label>
+                      <input
+                        type="text"
+                        value={registroFormData.longitud || ""}
+                        onChange={(e) => {
+                          setRegistroFormData({
+                            ...registroFormData,
+                            longitud: e.target.value,
+                          });
+                        }}
+                        readOnly={direccionMatch && direccionMatch.longitud}
+                        className={`w-full rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-slate-900 dark:text-slate-50 ${
+                          direccionMatch && direccionMatch.longitud
+                            ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
+                            : "bg-white dark:bg-slate-950/40"
+                        }`}
+                        placeholder="-77.0428"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
+                        Código Ubigeo{" "}
+                        {direccionMatch && direccionMatch.ubigeo_code && (
+                          <span className="text-xs text-slate-500">
+                            (desde dirección)
+                          </span>
+                        )}
+                      </label>
+                      <input
+                        type="text"
+                        value={registroFormData.ubigeo_code || ""}
+                        onChange={(e) => {
+                          setRegistroFormData({
+                            ...registroFormData,
+                            ubigeo_code: e.target.value,
+                          });
+                        }}
+                        readOnly={direccionMatch && direccionMatch.ubigeo_code}
+                        className={`w-full rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-slate-900 dark:text-slate-50 ${
+                          direccionMatch && direccionMatch.ubigeo_code
+                            ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
+                            : "bg-white dark:bg-slate-950/40"
+                        }`}
+                        placeholder="150101"
+                      />
+                    </div>
+                  </div>{" "}
+                  {/* Fin grid latitud/longitud/ubigeo */}
+                </div>{" "}
+                {/* Fin space-y-4 del Grupo 3 */}
+              </div>{" "}
+              {/* Fin Grupo 3: Información de Ubicación */}
               {/* Grupo 4: Información del Incidente */}
               <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-6 bg-slate-50/50 dark:bg-slate-800/50">
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
@@ -2345,12 +2488,12 @@ export default function NovedadesPage() {
                     </label>
                     <select
                       value={registroFormData.subtipo_novedad_id}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setRegistroFormData({
                           ...registroFormData,
                           subtipo_novedad_id: e.target.value,
-                        })
-                      }
+                        });
+                      }}
                       disabled={!registroFormData.tipo_novedad_id}
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
                     >
@@ -2376,12 +2519,12 @@ export default function NovedadesPage() {
                   </label>
                   <textarea
                     value={registroFormData.descripcion}
-                    onChange={(e) =>
+                    onChange={(e) => {
                       setRegistroFormData({
                         ...registroFormData,
                         descripcion: e.target.value,
-                      })
-                    }
+                      });
+                    }}
                     placeholder="Describa el incidente con el mayor detalle posible (mínimo 10 caracteres)..."
                     rows={4}
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
@@ -2389,9 +2532,10 @@ export default function NovedadesPage() {
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                     {registroFormData.descripcion.length} caracteres
                   </p>
-                </div>
-              </div>
-
+                </div>{" "}
+                {/* Fin div mt-4 descripción */}
+              </div>{" "}
+              {/* Fin Grupo 4: Información del Incidente */}
               {/* Grupo 5: Asignación */}
               <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-6 bg-slate-50/50 dark:bg-slate-800/50">
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
@@ -2407,12 +2551,12 @@ export default function NovedadesPage() {
                   </label>
                   <select
                     value={registroFormData.personal_cargo_id}
-                    onChange={(e) =>
+                    onChange={(e) => {
                       setRegistroFormData({
                         ...registroFormData,
                         personal_cargo_id: e.target.value,
-                      })
-                    }
+                      });
+                    }}
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
                   >
                     <option value="">Sin asignar (se asignará después)</option>
@@ -2428,7 +2572,6 @@ export default function NovedadesPage() {
                   </p>
                 </div>
               </div>
-
               {/* Botones */}
               <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
                 <button
@@ -3351,6 +3494,13 @@ export default function NovedadesPage() {
                       <p className="text-sm text-slate-900 dark:text-slate-50">
                         {viewingNovedad.ubigeo_code || "—"}
                       </p>
+                      {viewingNovedad.ubigeo && (
+                        <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                          {viewingNovedad.ubigeo.departamento} /{" "}
+                          {viewingNovedad.ubigeo.provincia} /{" "}
+                          {viewingNovedad.ubigeo.distrito}
+                        </p>
+                      )}
                     </div>
                     <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
                       <span className="text-xs font-medium text-slate-500">

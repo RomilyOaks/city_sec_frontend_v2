@@ -6,8 +6,9 @@
  * @module src/components/direcciones/DireccionViewModal
  */
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { X, MapPin, Navigation, Map as MapIcon } from "lucide-react";
+import { getUbigeoByCode } from "../../services/novedadesService";
 
 /**
  * DireccionViewModal - Modal de solo consulta
@@ -18,7 +19,27 @@ import { X, MapPin, Navigation, Map as MapIcon } from "lucide-react";
  * @param {Object} props.direccion - Dirección a mostrar
  */
 export default function DireccionViewModal({ isOpen, onClose, direccion }) {
-  if (!isOpen || !direccion) return null;
+  const [ubigeoInfo, setUbigeoInfo] = useState(null);
+
+  // Cargar información de ubigeo si no viene en la relación
+  useEffect(() => {
+    const loadUbigeo = async () => {
+      if (direccion?.ubigeo_code && !direccion?.ubigeo) {
+        try {
+          const ubigeo = await getUbigeoByCode(direccion.ubigeo_code);
+          if (ubigeo) {
+            setUbigeoInfo(ubigeo);
+          }
+        } catch (err) {
+          console.error("Error al cargar ubigeo:", err);
+        }
+      }
+    };
+
+    if (isOpen && direccion) {
+      loadUbigeo();
+    }
+  }, [isOpen, direccion]);
 
   // Manejo de tecla ESC para cerrar
   useEffect(() => {
@@ -37,9 +58,14 @@ export default function DireccionViewModal({ isOpen, onClose, direccion }) {
     };
   }, [isOpen]);
 
+  if (!isOpen || !direccion) return null;
+
   const handleClose = () => {
     onClose();
   };
+
+  // Obtener el ubigeo, ya sea de la relación o del state
+  const ubigeo = direccion.ubigeo || ubigeoInfo;
 
   // Formatear dirección completa
   const formatDireccion = () => {
@@ -104,7 +130,7 @@ export default function DireccionViewModal({ isOpen, onClose, direccion }) {
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
               Calle
             </label>
-            <p className="text-base text-slate-900 dark:text-white">
+            <p className="text-base text-slate-900 dark:text-white p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
               {direccion.calle?.nombre_completo || "No especificado"}
             </p>
           </div>
@@ -115,7 +141,7 @@ export default function DireccionViewModal({ isOpen, onClose, direccion }) {
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Número Municipal
               </label>
-              <p className="text-base text-slate-900 dark:text-white">
+              <p className="text-base text-slate-900 dark:text-white p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
                 {direccion.numero_municipal || "-"}
               </p>
             </div>
@@ -123,7 +149,7 @@ export default function DireccionViewModal({ isOpen, onClose, direccion }) {
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Manzana / Lote
               </label>
-              <p className="text-base text-slate-900 dark:text-white">
+              <p className="text-base text-slate-900 dark:text-white p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
                 {direccion.manzana && direccion.lote
                   ? `Mz. ${direccion.manzana} Lt. ${direccion.lote}`
                   : "-"}
@@ -137,7 +163,7 @@ export default function DireccionViewModal({ isOpen, onClose, direccion }) {
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Urbanización / AAHH
               </label>
-              <p className="text-base text-slate-900 dark:text-white">
+              <p className="text-base text-slate-900 dark:text-white p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
                 {direccion.urbanizacion}
               </p>
             </div>
@@ -150,7 +176,7 @@ export default function DireccionViewModal({ isOpen, onClose, direccion }) {
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   Tipo de Complemento
                 </label>
-                <p className="text-base text-slate-900 dark:text-white">
+                <p className="text-base text-slate-900 dark:text-white p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
                   {direccion.tipo_complemento || "-"}
                 </p>
               </div>
@@ -158,7 +184,7 @@ export default function DireccionViewModal({ isOpen, onClose, direccion }) {
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   Número
                 </label>
-                <p className="text-base text-slate-900 dark:text-white">
+                <p className="text-base text-slate-900 dark:text-white p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
                   {direccion.numero_complemento || "-"}
                 </p>
               </div>
@@ -171,7 +197,7 @@ export default function DireccionViewModal({ isOpen, onClose, direccion }) {
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Referencia
               </label>
-              <p className="text-base text-slate-900 dark:text-white">
+              <p className="text-base text-slate-900 dark:text-white p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
                 {direccion.referencia}
               </p>
             </div>
@@ -188,7 +214,7 @@ export default function DireccionViewModal({ isOpen, onClose, direccion }) {
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   Cuadrante
                 </label>
-                <p className="text-base text-slate-900 dark:text-white">
+                <p className="text-base text-slate-900 dark:text-white p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
                   {direccion.cuadrante?.cuadrante_code
                     ? `${direccion.cuadrante.cuadrante_code} - ${direccion.cuadrante.nombre || ""}`
                     : "No asignado"}
@@ -198,7 +224,7 @@ export default function DireccionViewModal({ isOpen, onClose, direccion }) {
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   Sector
                 </label>
-                <p className="text-base text-slate-900 dark:text-white">
+                <p className="text-base text-slate-900 dark:text-white p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
                   {direccion.sector?.sector_code
                     ? `${direccion.sector.sector_code} - ${direccion.sector.nombre || ""}`
                     : "No asignado"}
@@ -224,7 +250,7 @@ export default function DireccionViewModal({ isOpen, onClose, direccion }) {
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                       Latitud
                     </label>
-                    <p className="text-base font-mono text-slate-900 dark:text-white">
+                    <p className="text-base font-mono text-slate-900 dark:text-white p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
                       {direccion.latitud}
                     </p>
                   </div>
@@ -232,17 +258,34 @@ export default function DireccionViewModal({ isOpen, onClose, direccion }) {
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                       Longitud
                     </label>
-                    <p className="text-base font-mono text-slate-900 dark:text-white">
+                    <p className="text-base font-mono text-slate-900 dark:text-white p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
                       {direccion.longitud}
                     </p>
                   </div>
                 </div>
+                {direccion.ubigeo_code && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      UBIGEO
+                    </label>
+                    <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+                      <p className="font-mono text-sm text-primary-700 dark:text-primary-400">
+                        {direccion.ubigeo_code}
+                      </p>
+                      {ubigeo && (
+                        <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                          {ubigeo.distrito} - {ubigeo.provincia}, {ubigeo.departamento}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
                 {direccion.fuente_geocodificacion && (
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                       Fuente
                     </label>
-                    <p className="text-base text-slate-900 dark:text-white">
+                    <p className="text-base text-slate-900 dark:text-white p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
                       {direccion.fuente_geocodificacion}
                     </p>
                   </div>
@@ -262,7 +305,7 @@ export default function DireccionViewModal({ isOpen, onClose, direccion }) {
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Observaciones
               </label>
-              <p className="text-base text-slate-900 dark:text-white whitespace-pre-wrap">
+              <p className="text-base text-slate-900 dark:text-white whitespace-pre-wrap p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
                 {direccion.observaciones}
               </p>
             </div>
