@@ -27,8 +27,6 @@ export async function listCallesCuadrantes({
 
   const url = `/calles-cuadrantes?${params.toString()}`;
 
-  console.log("🔗 URL de solicitud:", url);
-
   const res = await api.get(url);
 
   // El backend puede devolver varios formatos:

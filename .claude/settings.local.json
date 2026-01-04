@@ -11,7 +11,14 @@
       "Bash(npm run dev:*)",
       "Bash(find:*)",
       "Bash(npx eslint:*)",
-      "Bash(timeout 10 npm run dev:*)"
+      "Bash(timeout 10 npm run dev:*)",
+      "Bash(cat:*)",
+      "Bash(awk:*)",
+      "Bash(node -e:*)",
+      "Bash(timeout 15 npm run dev)",
+      "Bash(npx kill-port:*)",
+      "Bash(python3:*)",
+      "Bash(1)"
     ]
   }
 }

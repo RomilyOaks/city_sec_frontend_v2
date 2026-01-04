@@ -48,7 +48,10 @@ export default function CalleViewModal({ isOpen, onClose, calle }) {
         <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between">
           <div>
             <h2 className="text-xl font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-              <MapPin size={24} className="text-primary-600 dark:text-primary-400" />
+              <MapPin
+                size={24}
+                className="text-primary-600 dark:text-primary-400"
+              />
               Información de Calle
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
@@ -89,12 +92,27 @@ export default function CalleViewModal({ isOpen, onClose, calle }) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Código UBIGEO
+              </label>
+              <p className="text-base text-slate-900 dark:text-white p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+                <span className="font-mono text-primary-700 dark:text-primary-400">
+                  {calle.ubigeo_code || "-"}
+                </span>
+                {calle.Ubigeo && (
+                  <span className="text-xs text-slate-600 dark:text-slate-400 block mt-1">
+                    {calle.Ubigeo.distrito} - {calle.Ubigeo.provincia}, {calle.Ubigeo.departamento}
+                  </span>
+                )}
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Tipo de Vía
               </label>
-              <p className="text-base text-slate-900 dark:text-white">
-                {calle.tipo_via?.nombre ? (
+              <p className="text-base text-slate-900 dark:text-white p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+                {calle.tipoVia?.nombre || calle.tipo_via?.nombre ? (
                   <span className="inline-flex items-center rounded-full bg-primary-100 dark:bg-primary-900/30 px-3 py-1 text-sm font-medium text-primary-800 dark:text-primary-300">
-                    {calle.tipo_via.abreviatura} - {calle.tipo_via.nombre}
+                    {(calle.tipoVia?.abreviatura || calle.tipo_via?.abreviatura)} - {(calle.tipoVia?.nombre || calle.tipo_via?.nombre)}
                   </span>
                 ) : (
                   "No especificado"
@@ -105,8 +123,8 @@ export default function CalleViewModal({ isOpen, onClose, calle }) {
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Nombre
               </label>
-              <p className="text-base text-slate-900 dark:text-white">
-                {calle.nombre}
+              <p className="text-base text-slate-900 dark:text-white p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+                {calle.nombre || calle.nombre_via}
               </p>
             </div>
           </div>
@@ -117,7 +135,7 @@ export default function CalleViewModal({ isOpen, onClose, calle }) {
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Urbanización / AAHH
               </label>
-              <p className="text-base text-slate-900 dark:text-white">
+              <p className="text-base text-slate-900 dark:text-white p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
                 {calle.urbanizacion}
               </p>
             </div>
@@ -129,7 +147,7 @@ export default function CalleViewModal({ isOpen, onClose, calle }) {
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Vía Principal
               </label>
-              <p className="text-base text-slate-900 dark:text-white">
+              <p className="text-base text-slate-900 dark:text-white p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
                 {calle.es_principal ? (
                   <span className="inline-flex items-center rounded-full bg-green-100 dark:bg-green-900/30 px-3 py-1 text-sm font-medium text-green-800 dark:text-green-300">
                     Sí
@@ -145,20 +163,20 @@ export default function CalleViewModal({ isOpen, onClose, calle }) {
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Categoría
               </label>
-              <p className="text-base text-slate-900 dark:text-white">
+              <p className="text-base text-slate-900 dark:text-white p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
                 {calle.categoria_via || "-"}
               </p>
             </div>
           </div>
 
-          {/* Descripción */}
-          {calle.descripcion && (
+          {/* Observaciones/Descripción */}
+          {(calle.observaciones || calle.descripcion) && (
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                Descripción
+                Observaciones
               </label>
               <p className="text-base text-slate-900 dark:text-white whitespace-pre-wrap p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
-                {calle.descripcion}
+                {calle.observaciones || calle.descripcion}
               </p>
             </div>
           )}
@@ -182,7 +200,9 @@ export default function CalleViewModal({ isOpen, onClose, calle }) {
                   Fecha de Creación
                 </label>
                 <p className="text-base text-slate-900 dark:text-white">
-                  {calle.created_at ? new Date(calle.created_at).toLocaleString("es-PE") : "-"}
+                  {calle.created_at
+                    ? new Date(calle.created_at).toLocaleString("es-PE")
+                    : "-"}
                 </p>
               </div>
               <div>
@@ -198,7 +218,9 @@ export default function CalleViewModal({ isOpen, onClose, calle }) {
                   Última Actualización
                 </label>
                 <p className="text-base text-slate-900 dark:text-white">
-                  {calle.updated_at ? new Date(calle.updated_at).toLocaleString("es-PE") : "-"}
+                  {calle.updated_at
+                    ? new Date(calle.updated_at).toLocaleString("es-PE")
+                    : "-"}
                 </p>
               </div>
             </div>
