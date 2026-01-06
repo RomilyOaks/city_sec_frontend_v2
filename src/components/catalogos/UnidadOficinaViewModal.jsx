@@ -28,8 +28,27 @@ export default function UnidadOficinaViewModal({ isOpen, onClose, unidad: unidad
   // Cargar unidad completa con todas las relaciones desde el backend
   useEffect(() => {
     const loadUnidadCompleta = async () => {
-      if (!unidadInicial?.id) {
-        console.warn("⚠️ No hay unidadInicial o no tiene ID");
+      if (!unidadInicial) {
+        console.warn("⚠️ [UnidadOficinaViewModal] No hay unidadInicial");
+        setUnidad(null);
+        setLoading(false);
+        return;
+      }
+
+      // Si la unidad inicial ya tiene todos los datos necesarios, usarla directamente
+      // Verificar si tiene los campos esenciales
+      const tieneDatosCompletos = unidadInicial.nombre && unidadInicial.tipo_unidad;
+
+      if (tieneDatosCompletos) {
+        console.log("✅ [UnidadOficinaViewModal] Usando datos de unidadInicial (ya completos):", unidadInicial);
+        setUnidad(unidadInicial);
+        setLoading(false);
+        return;
+      }
+
+      // Si no tiene datos completos, intentar cargar desde el backend
+      if (!unidadInicial.id) {
+        console.warn("⚠️ [UnidadOficinaViewModal] unidadInicial no tiene ID y tampoco datos completos");
         setUnidad(unidadInicial);
         setLoading(false);
         return;
@@ -38,7 +57,7 @@ export default function UnidadOficinaViewModal({ isOpen, onClose, unidad: unidad
       try {
         setLoading(true);
         setError(null);
-        console.log("🏢 [UnidadOficinaViewModal] Cargando unidad/oficina completa con relaciones, ID:", unidadInicial.id);
+        console.log("🏢 [UnidadOficinaViewModal] Cargando unidad/oficina completa desde backend, ID:", unidadInicial.id);
 
         const unidadCompleta = await getUnidadOficinaById(unidadInicial.id);
 
