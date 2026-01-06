@@ -21,6 +21,7 @@ import {
   Car,
   Shield,
   Radio,
+  Truck,
 } from "lucide-react";
 import {
   getNovedadById,
@@ -98,7 +99,7 @@ const estadoColor = (estado) => {
 /**
  * NovedadDetalleModal - Modal de detalle de novedad
  *
- * @version 2.0.0
+ * @version 2.2.0
  * @component
  * @category Components | Modals
  * @description Muestra información completa de una novedad e historial de cambios de estado. Si no se pasa `novedad` cargará los datos desde `getNovedadById`.
@@ -108,6 +109,8 @@ const estadoColor = (estado) => {
  * @param {Object|null} [props.novedad] - Objeto novedad inicial (opcional)
  * @param {boolean} props.isOpen - Indica si el modal está abierto
  * @param {Function} props.onClose - Callback para cerrar el modal
+ * @param {Function} [props.onDespachar] - Callback para abrir modal de despacho (solo si estado_novedad_id === 1)
+ * @param {boolean} [props.showDespacharButton=false] - Mostrar botón Despachar (true solo desde Truck, false desde Eye)
  * @returns {JSX.Element}
  */
 export default function NovedadDetalleModal({
@@ -115,6 +118,8 @@ export default function NovedadDetalleModal({
   novedad: initialNovedad = null,
   isOpen,
   onClose,
+  onDespachar,
+  showDespacharButton = false,
 }) {
   const [novedad, setNovedad] = useState(initialNovedad);
   const [loading, setLoading] = useState(!initialNovedad);
@@ -150,13 +155,38 @@ export default function NovedadDetalleModal({
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === "Escape" && isOpen) {
+      if (!isOpen) return;
+
+      // ESC para cerrar
+      if (e.key === "Escape") {
         onClose();
       }
+
+      // PageDown (Av Pag)
+      if (e.key === "PageDown") {
+        e.preventDefault();
+
+        // Si está en la última pestaña (4 - Seguimiento) y el botón Despachar está visible
+        if (activeTab === 4 && showDespacharButton && novedad?.estado_novedad_id === 1 && onDespachar) {
+          // Simular click en botón Despachar
+          onDespachar(novedad);
+          onClose();
+        } else if (activeTab < 4) {
+          // Avanzar a siguiente pestaña
+          setActiveTab((prev) => prev + 1);
+        }
+      }
+
+      // PageUp (Re Pag) para pestaña anterior
+      if (e.key === "PageUp") {
+        e.preventDefault();
+        setActiveTab((prev) => (prev > 0 ? prev - 1 : prev));
+      }
     };
+
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, activeTab, showDespacharButton, novedad, onDespachar]);
 
   if (!isOpen) return null;
 
@@ -444,15 +474,7 @@ export default function NovedadDetalleModal({
                       </div>
                       <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
                         <span className="text-xs font-medium text-slate-500">
-                          Tipo Documento
-                        </span>
-                        <p className="text-sm text-slate-900 dark:text-slate-50">
-                          {novedad.reportante_tipo_doc || "—"}
-                        </p>
-                      </div>
-                      <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                        <span className="text-xs font-medium text-slate-500">
-                          Documento
+                          Documento de Identidad
                         </span>
                         <p className="text-sm text-slate-900 dark:text-slate-50">
                           {novedad.reportante_doc_identidad || "—"}
@@ -587,7 +609,14 @@ export default function NovedadDetalleModal({
                       </p>
                     ) : (
                       <div className="space-y-3 max-h-60 overflow-y-auto">
-                        {historial.map((h) => (
+                        {[...historial]
+                          .sort((a, b) => {
+                            // Ordenar por fecha_cambio descendente (más reciente primero)
+                            const fechaA = new Date(a.fecha_cambio || a.created_at);
+                            const fechaB = new Date(b.fecha_cambio || b.created_at);
+                            return fechaB - fechaA;
+                          })
+                          .map((h) => (
                           <div
                             key={h.id}
                             className="flex items-start gap-3 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50"
@@ -632,6 +661,8 @@ export default function NovedadDetalleModal({
                                     h.historialEstadoNovedadUsuario.nombres ||
                                     h.historialEstadoNovedadUsuario.username
                                   }`}
+                                {h.tiempo_en_estado_min !== null && h.tiempo_en_estado_min !== undefined &&
+                                  ` • ${h.tiempo_en_estado_min} min en estado anterior`}
                               </p>
                               {h.observaciones && (
                                 <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 italic">
@@ -662,6 +693,20 @@ export default function NovedadDetalleModal({
           >
             Cerrar
           </button>
+
+          {/* Botón Despachar - solo visible cuando showDespacharButton=true y estado_novedad_id === 1 */}
+          {showDespacharButton && novedad?.estado_novedad_id === 1 && onDespachar && (
+            <button
+              onClick={() => {
+                onDespachar(novedad);
+                onClose(); // Cerrar modal de detalle al abrir modal de despacho
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-700 text-white hover:bg-primary-800 font-medium"
+            >
+              <Truck size={18} />
+              Despachar
+            </button>
+          )}
         </div>
       </div>
     </div>

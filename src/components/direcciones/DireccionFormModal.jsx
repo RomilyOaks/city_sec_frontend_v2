@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { X } from "lucide-react";
-import { validarDireccion, createDireccion, updateDireccion } from "../../services/direccionesService";
+import { validarDireccion, createDireccion, updateDireccion, getDireccionById } from "../../services/direccionesService";
 import { listCallesActivas } from "../../services/callesService";
 import { listSectores } from "../../services/sectoresService";
 import { listCuadrantes, getCuadranteById } from "../../services/cuadrantesService";
 import { listUbigeos, getUbigeoByCode } from "../../services/novedadesService";
 import { toast } from "react-hot-toast";
+import { getDefaultUbigeo } from "../../config/defaults";
 
 /**
  * File: src/components/direcciones/DireccionFormModal.jsx
@@ -22,7 +23,7 @@ import { toast } from "react-hot-toast";
  * @module src/components/direcciones/DireccionFormModal
  */
 
-export default function DireccionFormModal({ isOpen, onClose, direccion = null }) {
+export default function DireccionFormModal({ isOpen, onClose, direccion: direccionInicial = null }) {
   const TIPOS_COMPLEMENTO = [
     { value: "DEPTO", label: "Departamento" },
     { value: "OFICINA", label: "Oficina" },
@@ -35,12 +36,18 @@ export default function DireccionFormModal({ isOpen, onClose, direccion = null }
     { value: "CASA", label: "Casa" },
   ];
   const [loading, setLoading] = useState(false);
+  const [loadingDireccion, setLoadingDireccion] = useState(true);
+  const [direccion, setDireccion] = useState(null);
   const [cuadrantes, setCuadrantes] = useState([]);
   const [calles, setCalles] = useState([]);
+  const [callesFiltered, setCallesFiltered] = useState([]);
+  const [calleSearch, setCalleSearch] = useState("");
+  const [showCalleDropdown, setShowCalleDropdown] = useState(false);
   const [sectores, setSectores] = useState([]);
   const [ubigeoSearch, setUbigeoSearch] = useState("");
   const [ubigeoOptions, setUbigeoOptions] = useState([]);
   const [showUbigeoDropdown, setShowUbigeoDropdown] = useState(false);
+  const [defaultUbigeo, setDefaultUbigeo] = useState(null); // Ubigeo por defecto
   const [formData, setFormData] = useState({
     calle_id: "",
     numero_municipal: "",
@@ -139,6 +146,18 @@ export default function DireccionFormModal({ isOpen, onClose, direccion = null }
     } catch (error) {}
   };
 
+  // Cargar ubigeo por defecto al montar
+  useEffect(() => {
+    getDefaultUbigeo()
+      .then((ubigeo) => {
+        setDefaultUbigeo(ubigeo);
+        console.log("📍 Ubigeo default cargado (Direcciones):", ubigeo);
+      })
+      .catch((err) => {
+        console.error("Error cargando ubigeo default:", err);
+      });
+  }, []);
+
   // Cargar calles activas
   useEffect(() => {
     if (isOpen) {
@@ -147,9 +166,47 @@ export default function DireccionFormModal({ isOpen, onClose, direccion = null }
     }
   }, [isOpen]);
 
-  // Cargar datos de dirección al editar
+  // Cargar dirección completa con relaciones cuando se abre en modo edit
+  useEffect(() => {
+    const loadDireccionCompleta = async () => {
+      if (!direccionInicial?.id) {
+        setLoadingDireccion(false);
+        return;
+      }
+
+      try {
+        setLoadingDireccion(true);
+        console.log("📍 [DireccionFormModal] Cargando dirección completa con relaciones, ID:", direccionInicial.id);
+
+        const direccionCompleta = await getDireccionById(direccionInicial.id);
+        setDireccion(direccionCompleta);
+
+        console.log("✅ [DireccionFormModal] Dirección completa cargada:", direccionCompleta);
+        console.log("  - Sector:", direccionCompleta.sector);
+        console.log("  - Cuadrante:", direccionCompleta.cuadrante);
+        console.log("  - Calle:", direccionCompleta.calle);
+      } catch (error) {
+        console.error("❌ [DireccionFormModal] Error al cargar dirección completa:", error);
+        // Si falla, usar la dirección inicial sin relaciones
+        setDireccion(direccionInicial);
+      } finally {
+        setLoadingDireccion(false);
+      }
+    };
+
+    if (isOpen && direccionInicial) {
+      loadDireccionCompleta();
+    } else if (isOpen && !direccionInicial) {
+      // Modo CREATE: No hay dirección a cargar
+      setDireccion(null);
+      setLoadingDireccion(false);
+    }
+  }, [isOpen, direccionInicial]);
+
+  // Cargar datos de dirección al editar O inicializar en modo create
   useEffect(() => {
     if (isOpen && direccion) {
+      // MODO EDIT
       setFormData({
         calle_id: direccion.calle_id ? String(direccion.calle_id) : "",
         numero_municipal: direccion.numero_municipal || "",
@@ -166,6 +223,12 @@ export default function DireccionFormModal({ isOpen, onClose, direccion = null }
         longitud: direccion.longitud || "",
         observaciones: direccion.observaciones || "",
       });
+      // Mostrar nombre de calle si existe
+      if (direccion.calle) {
+        const nombreCalle = direccion.calle.nombre_completo ||
+          `${direccion.calle.tipo_via?.abreviatura || ''} ${direccion.calle.nombre_via}`.trim();
+        setCalleSearch(nombreCalle);
+      }
       // Cargar cuadrantes si hay sector
       if (direccion.sector_id) {
         loadCuadrantesForSector(direccion.sector_id);
@@ -186,11 +249,62 @@ export default function DireccionFormModal({ isOpen, onClose, direccion = null }
           loadUbigeoByCode(code);
         }
       }
+    } else if (isOpen && !direccion && defaultUbigeo) {
+      // MODO CREATE: Inicializar con ubigeo default
+      setFormData({
+        calle_id: "",
+        numero_municipal: "",
+        manzana: "",
+        lote: "",
+        urbanizacion: "",
+        tipo_complemento: "",
+        numero_complemento: "",
+        referencia: "",
+        sector_id: "",
+        cuadrante_id: "",
+        ubigeo_code: defaultUbigeo.code,
+        latitud: "",
+        longitud: "",
+        observaciones: "",
+      });
+      setUbigeoSearch(`${defaultUbigeo.distrito} - ${defaultUbigeo.provincia}, ${defaultUbigeo.departamento}`);
     }
-  }, [isOpen, direccion]);
+  }, [isOpen, direccion, defaultUbigeo]);
 
+  // Filtrar calles cuando cambia el texto de búsqueda
+  useEffect(() => {
+    if (!calleSearch || calleSearch.length < 2) {
+      setCallesFiltered([]);
+      return;
+    }
+
+    const searchLower = calleSearch.toLowerCase().trim();
+    const filtered = calles.filter((calle) => {
+      const nombreCompleto = (calle.nombre_completo || `${calle.tipo_via?.abreviatura || ''} ${calle.nombre_via}`.trim()).toLowerCase();
+      return nombreCompleto.includes(searchLower);
+    });
+
+    setCallesFiltered(filtered.slice(0, 20)); // Limitar a 20 resultados
+  }, [calleSearch, calles]);
 
   // Funciones auxiliares declaradas antes de los hooks
+
+  // Función para seleccionar una calle del dropdown
+  function handleCalleSelect(calle) {
+    setFormData((prev) => ({ ...prev, calle_id: String(calle.id) }));
+    setCalleSearch(calle.nombre_completo || `${calle.tipo_via?.abreviatura || ''} ${calle.nombre_via}`.trim());
+    setShowCalleDropdown(false);
+    setCallesFiltered([]);
+  }
+
+  // Función para limpiar la selección de calle
+  function handleClearCalle() {
+    setFormData((prev) => ({ ...prev, calle_id: "" }));
+    setCalleSearch("");
+    setCallesFiltered([]);
+    setShowCalleDropdown(false);
+  }
+
   function handleClose() {
     setFormData({
       calle_id: "",
@@ -203,12 +317,15 @@ export default function DireccionFormModal({ isOpen, onClose, direccion = null }
       referencia: "",
       sector_id: "",
       cuadrante_id: "",
-      ubigeo_code: "",
+      ubigeo_code: defaultUbigeo?.code || "", // Usar ubigeo por defecto
       latitud: "",
       longitud: "",
       observaciones: "",
     });
     setCuadrantes([]);
+    setCalleSearch("");
+    setCallesFiltered([]);
+    setShowCalleDropdown(false);
     if (onClose) onClose();
   }
 
@@ -248,6 +365,48 @@ export default function DireccionFormModal({ isOpen, onClose, direccion = null }
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Handler específico para cuando cambia el cuadrante
+  const handleCuadranteChange = async (e) => {
+    const cuadranteId = e.target.value;
+
+    if (!cuadranteId) {
+      // Si se limpia el cuadrante, solo actualizar el formData
+      setFormData((prev) => ({ ...prev, cuadrante_id: "" }));
+      return;
+    }
+
+    // Actualizar cuadrante_id en formData
+    setFormData((prev) => ({ ...prev, cuadrante_id: cuadranteId }));
+
+    // Buscar el cuadrante seleccionado para obtener sus coordenadas
+    try {
+      const cuadranteData = await getCuadranteById(cuadranteId);
+
+      if (cuadranteData) {
+        // Actualizar latitud, longitud, sector y ubigeo del cuadrante
+        setFormData((prev) => ({
+          ...prev,
+          cuadrante_id: cuadranteId,
+          latitud: cuadranteData.latitud ?? prev.latitud,
+          longitud: cuadranteData.longitud ?? prev.longitud,
+          sector_id: cuadranteData.sector_id ? String(cuadranteData.sector_id) : prev.sector_id,
+          ubigeo_code: cuadranteData.ubigeo_code ?? prev.ubigeo_code,
+        }));
+
+        console.log("📍 Cuadrante seleccionado - Datos asignados:", {
+          cuadrante_id: cuadranteId,
+          latitud: cuadranteData.latitud,
+          longitud: cuadranteData.longitud,
+          sector_id: cuadranteData.sector_id,
+          ubigeo_code: cuadranteData.ubigeo_code,
+        });
+      }
+    } catch (error) {
+      console.error("Error al obtener datos del cuadrante:", error);
+      // Si falla, al menos mantener el cuadrante_id seleccionado
+    }
+  };
+
   // Handler para submit del formulario
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -267,7 +426,7 @@ export default function DireccionFormModal({ isOpen, onClose, direccion = null }
         referencia: formData.referencia || null,
         sector_id: formData.sector_id ? parseInt(formData.sector_id) : null,
         cuadrante_id: formData.cuadrante_id ? parseInt(formData.cuadrante_id) : null,
-        ubigeo_code: formData.ubigeo_code || null,
+        ubigeo_code: formData.ubigeo_code || defaultUbigeo?.code || null,
         latitud: formData.latitud || null,
         longitud: formData.longitud || null,
         observaciones: formData.observaciones || null,
@@ -319,25 +478,93 @@ export default function DireccionFormModal({ isOpen, onClose, direccion = null }
 
         {/* Form */}
         <form id="direccion-form" onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Loading Spinner */}
+          {loadingDireccion && direccionInicial && (
+            <div className="flex items-center justify-center py-8">
+              <div className="flex flex-col items-center gap-3">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600"></div>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Cargando datos de la dirección...
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Calle */}
-          <div>
+          {!loadingDireccion && (
+          <>
+          <div className="relative">
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
               Calle <span className="text-red-500">*</span>
             </label>
-            <select
-              name="calle_id"
-              value={formData.calle_id}
-              onChange={handleChange}
-              required
-              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
-            >
-              <option value="">Seleccione una calle</option>
-              {calles.map((calle) => (
-                <option key={calle.id} value={calle.id}>
-                  {calle.nombre_completo || `${calle.tipo_via?.abreviatura || ''} ${calle.nombre_via}`.trim()}
-                </option>
-              ))}
-            </select>
+
+            {/* Input de búsqueda */}
+            <div className="relative">
+              <input
+                type="text"
+                value={calleSearch}
+                onChange={(e) => {
+                  setCalleSearch(e.target.value);
+                  setShowCalleDropdown(true);
+                }}
+                onFocus={() => {
+                  if (calleSearch.length >= 2) {
+                    setShowCalleDropdown(true);
+                  }
+                }}
+                placeholder="Escriba para buscar una calle..."
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+                required={!formData.calle_id}
+              />
+
+              {/* Indicador de calle seleccionada */}
+              {formData.calle_id && (
+                <button
+                  type="button"
+                  onClick={handleClearCalle}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-red-500"
+                  title="Limpiar selección"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+
+            {/* Dropdown de resultados */}
+            {showCalleDropdown && callesFiltered.length > 0 && (
+              <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                {callesFiltered.map((calle) => (
+                  <button
+                    key={calle.id}
+                    type="button"
+                    onClick={() => handleCalleSelect(calle)}
+                    className="w-full px-4 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-700 border-b border-slate-200 dark:border-slate-600 last:border-0"
+                  >
+                    <div className="font-medium text-slate-900 dark:text-slate-50">
+                      {calle.nombre_completo || `${calle.tipo_via?.abreviatura || ''} ${calle.nombre_via}`.trim()}
+                    </div>
+                    {calle.urbanizacion && (
+                      <div className="text-xs text-slate-500 dark:text-slate-400">
+                        {calle.urbanizacion}
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Mensaje de ayuda */}
+            {calleSearch && calleSearch.length < 2 && (
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Escriba al menos 2 caracteres para buscar
+              </p>
+            )}
+
+            {calleSearch && calleSearch.length >= 2 && callesFiltered.length === 0 && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                No se encontraron calles. Intente con otro término.
+              </p>
+            )}
           </div>
 
           {/* Sistema Dual: Número Municipal O Manzana+Lote */}
@@ -463,7 +690,7 @@ export default function DireccionFormModal({ isOpen, onClose, direccion = null }
               <select
                 name="cuadrante_id"
                 value={formData.cuadrante_id}
-                onChange={handleChange}
+                onChange={handleCuadranteChange}
                 className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
               >
                 <option value="">Seleccione cuadrante</option>
@@ -595,6 +822,8 @@ export default function DireccionFormModal({ isOpen, onClose, direccion = null }
               className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
             />
           </div>
+          </>
+          )}
         </form>
 
         {/* Footer */}

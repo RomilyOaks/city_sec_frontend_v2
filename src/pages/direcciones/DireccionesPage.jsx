@@ -16,12 +16,13 @@
 
 import { useState, useEffect } from "react";
 import { Plus, Search, Edit, Trash2, MapPin, Filter, X, Map as MapIcon, Navigation, RefreshCw, Eye } from "lucide-react";
-import { listDirecciones, deleteDireccion } from "../../services/direccionesService";
+import { listDirecciones, deleteDireccion, checkDireccionCanDelete, getDireccionById } from "../../services/direccionesService";
 import { listCallesActivas } from "../../services/callesService";
 import { useAuthStore } from "../../store/useAuthStore";
 import DireccionFormModal from "../../components/direcciones/DireccionFormModal";
 import DireccionViewModal from "../../components/direcciones/DireccionViewModal";
 import { toast } from "react-hot-toast";
+import { normalizeDireccionCode, looksLikeDireccionCode } from "../../utils/direccionCodeHelper";
 
 /**
  * DireccionesPage - Página principal de gestión de direcciones
@@ -40,7 +41,8 @@ export default function DireccionesPage() {
   const [calles, setCalles] = useState([]);
 
   // Filtros
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState(""); // Input del usuario (puede ser D-123)
+  const [search, setSearch] = useState(""); // Búsqueda normalizada (D-000123)
   const [calle_id, setCalleId] = useState("");
   const [geocodificada, setGeocodificada] = useState("");
   const [showFilters, setShowFilters] = useState(false);
@@ -144,10 +146,31 @@ export default function DireccionesPage() {
   }
 
   function handleClearFilters() {
+    setSearchInput("");
     setSearch("");
     setCalleId("");
     setGeocodificada("");
     setCurrentPage(1);
+  }
+
+  /**
+   * Handler para el input de búsqueda con auto-completado de códigos
+   * Si el usuario escribe algo que parece un código (D-123 o 123),
+   * lo normaliza automáticamente a D-000123
+   */
+  function handleSearchChange(e) {
+    const rawValue = e.target.value;
+    setSearchInput(rawValue);
+
+    // Si parece un código de dirección, normalizar automáticamente
+    if (looksLikeDireccionCode(rawValue)) {
+      const normalized = normalizeDireccionCode(rawValue);
+      console.log(`🔍 Búsqueda normalizada: "${rawValue}" → "${normalized}"`);
+      setSearch(normalized);
+    } else {
+      // Búsqueda normal por otros campos
+      setSearch(rawValue);
+    }
   }
 
   function handleView(direccion) {
@@ -161,16 +184,68 @@ export default function DireccionesPage() {
   }
 
   async function handleDelete(id) {
-    if (!window.confirm("¿Está seguro de eliminar esta dirección?")) return;
-
     try {
+      // Primero obtener la información de la dirección para mostrarla en los mensajes
+      console.log("🔍 Obteniendo información de la dirección, ID:", id);
+      let direccionInfo = null;
+      let direccionCompleta = "";
+
+      try {
+        direccionInfo = await getDireccionById(id);
+        direccionCompleta = direccionInfo?.direccion_completa || "";
+        console.log("📍 Dirección obtenida:", direccionCompleta);
+      } catch (error) {
+        console.warn("⚠️ No se pudo obtener información de la dirección:", error);
+      }
+
+      // Verificar si la dirección puede ser eliminada
+      console.log("🔍 Verificando si la dirección puede ser eliminada, ID:", id);
+      const checkResult = await checkDireccionCanDelete(id);
+
+      console.log("📋 Resultado de verificación:", checkResult);
+
+      // Si no se puede eliminar, mostrar el error y detener
+      if (checkResult && !checkResult.canDelete) {
+        const count = checkResult.count || 0;
+        let message = checkResult.message ||
+          `No se puede eliminar. Hay ${count} novedad(es) asociada(s)`;
+
+        // Agregar la dirección completa al mensaje si está disponible
+        if (direccionCompleta) {
+          message = `No se puede eliminar la dirección:\n"${direccionCompleta}"\n\nHay ${count} novedad(es) asociada(s)`;
+        }
+
+        toast.error(message);
+        alert(message);
+        return;
+      }
+
+      // Si se puede eliminar, pedir confirmación con la dirección completa
+      const confirmMessage = direccionCompleta
+        ? `¿Está seguro de eliminar esta dirección?\n\n"${direccionCompleta}"`
+        : "¿Está seguro de eliminar esta dirección?";
+
+      if (!window.confirm(confirmMessage)) return;
+
+      // Proceder con la eliminación
       await deleteDireccion(id);
       toast.success("Dirección eliminada exitosamente");
       loadDirecciones();
     } catch (err) {
-      console.error("Error al eliminar dirección:", err);
+      console.error("❌ Error al eliminar dirección:", err);
+
+      // Si el error es porque hay referencias, mostrarlo claramente
       const errorMsg = err.response?.data?.message || "Error al eliminar dirección";
-      toast.error(errorMsg);
+
+      // Verificar si el error menciona referencias/asociaciones
+      if (errorMsg.toLowerCase().includes("asociad") ||
+          errorMsg.toLowerCase().includes("referencia") ||
+          errorMsg.toLowerCase().includes("novedad")) {
+        toast.error(errorMsg);
+        alert(errorMsg);
+      } else {
+        toast.error(errorMsg);
+      }
     }
   }
 
@@ -247,15 +322,16 @@ export default function DireccionesPage() {
               />
               <input
                 type="text"
-                placeholder="Buscar por dirección, número, manzana, lote..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar por código (ej: D-123), dirección, número..."
+                value={searchInput}
+                onChange={handleSearchChange}
                 className="w-full rounded-lg border border-slate-300 dark:border-slate-600 pl-10 pr-10 py-2 focus:ring-2 focus:ring-primary-500 dark:bg-slate-800 dark:text-white"
               />
-              {search && (
+              {searchInput && (
                 <button
                   type="button"
                   onClick={() => {
+                    setSearchInput("");
                     setSearch("");
                     setCurrentPage(1);
                   }}
@@ -266,6 +342,15 @@ export default function DireccionesPage() {
                 </button>
               )}
             </div>
+
+            {/* Feedback visual de código normalizado */}
+            {searchInput && searchInput !== search && looksLikeDireccionCode(searchInput) && (
+              <div className="col-span-full -mt-2">
+                <p className="text-xs text-slate-600 dark:text-slate-400">
+                  Buscando: <span className="font-mono font-semibold text-primary-600 dark:text-primary-400">{search}</span>
+                </p>
+              </div>
+            )}
 
             <button
               type="button"

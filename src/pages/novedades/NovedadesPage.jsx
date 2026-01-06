@@ -41,7 +41,10 @@ import {
   Car,
   Users,
   Shield,
+  Truck,
 } from "lucide-react";
+import SeguimientoModal from "../../components/novedades/SeguimientoModal";
+import NovedadDetalleModal from "../../components/NovedadDetalleModal";
 
 import {
   listNovedades,
@@ -53,6 +56,7 @@ import {
   listSectores,
   listCuadrantes,
   listUbigeos,
+  getUbigeoByCode,
   asignarRecursos,
   listUnidadesOficina,
   listVehiculos,
@@ -70,6 +74,7 @@ import { listSectores as listSectoresService } from "../../services/sectoresServ
 import { listCuadrantes as listCuadrantesService } from "../../services/cuadrantesService.js";
 import { useAuthStore } from "../../store/useAuthStore.js";
 import { canPerformAction, canAccessRoute } from "../../rbac/rbac.js";
+import { getDefaultUbigeo } from "../../config/defaults.js";
 
 // Constantes
 const ORIGEN_LLAMADA_OPTIONS = [
@@ -236,6 +241,8 @@ export default function NovedadesPage() {
   const [cuadrantes, setCuadrantes] = useState([]);
   const [ubigeos, setUbigeos] = useState([]);
   const [ubigeoSearch, setUbigeoSearch] = useState("");
+  const [registroUbigeoInfo, setRegistroUbigeoInfo] = useState(null);
+  const [defaultUbigeo, setDefaultUbigeo] = useState(null); // Ubigeo por defecto desde backend
 
   // Modal de atención
   const [showAtencionModal, setShowAtencionModal] = useState(false);
@@ -257,8 +264,11 @@ export default function NovedadesPage() {
   const [viewingTab, setViewingTab] = useState(0);
   const [activeTab, setActiveTab] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [viewingFromTruck, setViewingFromTruck] = useState(false); // Track si se abrió desde Truck o Eye
   const [gpsEnabled, setGpsEnabled] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
+  const [showSeguimientoModal, setShowSeguimientoModal] = useState(false);
+  const [selectedNovedadSeguimiento, setSelectedNovedadSeguimiento] = useState(null);
 
   // Form data para creación
   const [formData, setFormData] = useState({
@@ -317,6 +327,7 @@ export default function NovedadesPage() {
     sector_id: "",
     cuadrante_id: "",
     localizacion: "",
+    ubigeo_code: "",
 
     // Complemento (solo si dirección nueva)
     tipo_complemento: "",
@@ -329,10 +340,11 @@ export default function NovedadesPage() {
     tipo_novedad_id: "",
     subtipo_novedad_id: "",
     descripcion: "",
+    prioridad_actual: "",
 
     // Asignación
     personal_cargo_id: "",
-    estado_novedad_id: 1, // Default "Pendiente"
+    estado_novedad_id: 2, // Default "DESPACHADO"
   });
 
   // Catálogos para REGISTRO
@@ -393,8 +405,8 @@ export default function NovedadesPage() {
         fecha_inicio: filterFechaInicio || undefined,
         fecha_fin: filterFechaFin || undefined,
         search: search || undefined,
-        sort: "novedad_code",
-        order: "desc", // Ordenar por novedad_code descendente (más recientes primero)
+        sort: "prioridad_actual,novedad_code",
+        order: "asc,desc", // Ordenar por prioridad ASC, luego novedad_code DESC (usando índice idx_novedad_prioridad)
       });
       setNovedades(Array.isArray(result.novedades) ? result.novedades : []);
       setPagination(result.pagination);
@@ -503,6 +515,18 @@ export default function NovedadesPage() {
     fetchCatalogos();
   }, []);
 
+  // Cargar ubigeo por defecto al montar el componente
+  useEffect(() => {
+    getDefaultUbigeo()
+      .then((ubigeo) => {
+        setDefaultUbigeo(ubigeo);
+        console.log("📍 Ubigeo default cargado:", ubigeo);
+      })
+      .catch((err) => {
+        console.error("Error cargando ubigeo default:", err);
+      });
+  }, []);
+
   useEffect(() => {
     fetchNovedades({ nextPage: page });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -604,6 +628,24 @@ export default function NovedadesPage() {
           document.getElementById("btn_guardar_atencion")?.click();
         }
       }
+
+      // ALT+N para abrir Nueva Novedad
+      if (e.altKey && e.key.toLowerCase() === "n") {
+        e.preventDefault();
+        if (canCreate && !showCreateForm && !showAtencionModal && !viewingNovedad) {
+          console.log("⌨️ ALT+N presionado - Abriendo Nueva Novedad");
+          setPageTab(PAGE_TABS.REGISTRO);
+          resetRegistroForm();
+
+          // Hacer focus en el campo Origen de Llamada después de un pequeño delay
+          setTimeout(() => {
+            const origenLlamadaSelect = document.getElementById("select_origen_llamada");
+            if (origenLlamadaSelect) {
+              origenLlamadaSelect.focus();
+            }
+          }, 100);
+        }
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
@@ -688,6 +730,29 @@ export default function NovedadesPage() {
       setCuadrantesRegistro([]);
     }
   }, [registroFormData.sector_id, pageTab, showManualLocation]);
+
+  // Cargar información de ubigeo cuando cambia el ubigeo_code
+  useEffect(() => {
+    const loadUbigeoInfo = async () => {
+      if (registroFormData.ubigeo_code && registroFormData.ubigeo_code.length === 6) {
+        try {
+          const ubigeo = await getUbigeoByCode(registroFormData.ubigeo_code);
+          if (ubigeo) {
+            setRegistroUbigeoInfo(ubigeo);
+          } else {
+            setRegistroUbigeoInfo(null);
+          }
+        } catch (error) {
+          console.error("Error al cargar ubigeo:", error);
+          setRegistroUbigeoInfo(null);
+        }
+      } else {
+        setRegistroUbigeoInfo(null);
+      }
+    };
+
+    loadUbigeoInfo();
+  }, [registroFormData.ubigeo_code]);
 
   const handleSearch = () => {
     setPage(1);
@@ -946,6 +1011,100 @@ export default function NovedadesPage() {
     }
     // Cargar historial de estados
     fetchHistorialEstados(novedad.id);
+  };
+
+  /**
+   * openSeguimientoModal
+   * - Abre el modal de seguimiento para una novedad
+   * - Carga los catálogos si no están disponibles
+   */
+  const openSeguimientoModal = async (novedad) => {
+    setSelectedNovedadSeguimiento(novedad);
+    setShowSeguimientoModal(true);
+    // Cargar catálogos si no están cargados
+    if (
+      unidadesOficina.length === 0 ||
+      vehiculos.length === 0 ||
+      personalSeguridad.length === 0
+    ) {
+      await fetchCatalogosAtencion();
+    }
+  };
+
+  /**
+   * handleSaveSeguimiento
+   * - Guarda la información de seguimiento de una novedad
+   * - Cambia estado a DESPACHADO (2)
+   * - Calcula tiempo transcurrido desde el estado anterior
+   * - Guarda en historial_estado_novedades
+   */
+  const handleSaveSeguimiento = async (seguimientoData) => {
+    try {
+      console.log("🔵 INICIO handleSaveSeguimiento - timestamp:", new Date().toISOString());
+
+      // Calcular tiempo transcurrido en minutos desde el estado anterior
+      const fechaActual = new Date(seguimientoData.fecha_despacho);
+      const fechaEstadoAnterior = selectedNovedadSeguimiento.updated_at
+        ? new Date(selectedNovedadSeguimiento.updated_at)
+        : new Date(selectedNovedadSeguimiento.created_at);
+
+      const tiempoTranscurridoMs = fechaActual - fechaEstadoAnterior;
+      const tiempo_en_estado_min = Math.floor(tiempoTranscurridoMs / (1000 * 60));
+
+      // Buscar descripción del estado DESPACHADO (id=2) para usar si no hay observaciones
+      const estadoDespachado = estados.find((e) => e.id === 2);
+      const observacionesFinal = seguimientoData.observaciones?.trim()
+        ? seguimientoData.observaciones
+        : (estadoDespachado?.descripcion || "Novedad despachada");
+
+      const payload = {
+        novedad_id: selectedNovedadSeguimiento.id,
+
+        // Cambio de estado
+        estado_novedad_id: 2, // DESPACHADO
+
+        // Asignación de recursos
+        vehiculo_id: seguimientoData.vehiculo_id,
+        personal_cargo_id: seguimientoData.personal_cargo_id,
+
+        // Fechas y kilometraje
+        fecha_despacho: seguimientoData.fecha_despacho,
+        km_inicial: seguimientoData.km_inicial,
+
+        // Observaciones de la novedad (se graba en novedades_incidentes.observaciones)
+        observaciones: observacionesFinal,
+
+        // Historial de estados (el trigger fue eliminado, frontend envía el historial)
+        historial: {
+          novedad_id: selectedNovedadSeguimiento.id,
+          estado_anterior_id: selectedNovedadSeguimiento.estado_novedad_id || 1,
+          estado_nuevo_id: 2, // DESPACHADO
+          observaciones: observacionesFinal,
+          fecha_cambio: seguimientoData.fecha_despacho,
+          tiempo_en_estado_min: tiempo_en_estado_min >= 0 ? tiempo_en_estado_min : 0,
+          created_by: user?.id || null,
+          updated_by: user?.id || null,
+        },
+      };
+
+      console.log("📋 DEBUG - Payload de seguimiento:", payload);
+      console.log("⏱️ DEBUG - Tiempo transcurrido:", tiempo_en_estado_min, "minutos");
+      console.log("🚀 ANTES de llamar asignarRecursos - timestamp:", new Date().toISOString());
+
+      await asignarRecursos(selectedNovedadSeguimiento.id, payload);
+
+      console.log("✅ DESPUÉS de llamar asignarRecursos - timestamp:", new Date().toISOString());
+
+      toast.success("Novedad despachada exitosamente");
+      setShowSeguimientoModal(false);
+      setSelectedNovedadSeguimiento(null);
+      // Recargar lista de novedades
+      fetchNovedades({ nextPage: page });
+    } catch (error) {
+      console.error("❌ Error al guardar seguimiento:", error);
+      toast.error(error.response?.data?.message || "Error al despachar novedad");
+      throw error;
+    }
   };
 
   // Guardar atención de novedad
@@ -1233,29 +1392,37 @@ export default function NovedadesPage() {
         fecha_hora_ocurrencia: registroFormData.fecha_hora_ocurrencia,
         es_anonimo: registroFormData.es_anonimo,
         reportante_tipo_doc: registroFormData.reportante_tipo_doc,
-        reportante_doc_identidad: registroFormData.reportante_doc_identidad,
+        // Concatenar tipo de documento con número
+        reportante_doc_identidad: registroFormData.reportante_doc_identidad
+          ? `${registroFormData.reportante_tipo_doc} ${registroFormData.reportante_doc_identidad}`
+          : "",
         reportante_nombre: registroFormData.reportante_nombre,
-        direccion_id: finalDireccionId,
+        direccion_id: finalDireccionId ? Number(finalDireccionId) : null,
         referencia_ubicacion: registroFormData.referencia_ubicacion,
         // Si hay dirección seleccionada, usar su direccion_completa, sino usar el campo manual
         localizacion: direccionMatch
           ? formatDireccionCompleta(direccionMatch)
           : registroFormData.localizacion,
-        tipo_novedad_id: registroFormData.tipo_novedad_id,
-        subtipo_novedad_id: registroFormData.subtipo_novedad_id,
+        tipo_novedad_id: Number(registroFormData.tipo_novedad_id),
+        subtipo_novedad_id: Number(registroFormData.subtipo_novedad_id),
         descripcion: registroFormData.descripcion,
-        personal_cargo_id: registroFormData.personal_cargo_id || null,
-        estado_novedad_id: 1, // Pendiente
+        prioridad_actual: registroFormData.prioridad_actual || "MEDIA",
+        personal_cargo_id: registroFormData.personal_cargo_id ? Number(registroFormData.personal_cargo_id) : null,
+        estado_novedad_id: 1, // Pendiente De Registro
         created_by: user?.id,
-        sector_id: registroFormData.sector_id || null,
-        cuadrante_id: registroFormData.cuadrante_id || null,
+        sector_id: registroFormData.sector_id ? Number(registroFormData.sector_id) : null,
+        cuadrante_id: registroFormData.cuadrante_id ? Number(registroFormData.cuadrante_id) : null,
         latitud: registroFormData.latitud || null,
         longitud: registroFormData.longitud || null,
-        ubigeo_code: registroFormData.ubigeo_code || null,
+        ubigeo_code: registroFormData.ubigeo_code || defaultUbigeo?.code || null,
       };
 
-      console.log("DEBUG novedadPayload:", novedadPayload);
+      console.log("🔍 DEBUG - Final direccion_id:", finalDireccionId);
+      console.log("🔍 DEBUG - direccionMatch:", direccionMatch);
+      console.log("🔍 DEBUG - registroFormData.direccion_id:", registroFormData.direccion_id);
+      console.log("🔍 DEBUG - novedadPayload completo:", novedadPayload);
       const resultado = await createNovedad(novedadPayload);
+      console.log("✅ DEBUG - Novedad creada, resultado:", resultado);
 
       toast.success(
         `Novedad ${resultado?.data?.novedad_code || "creada"} exitosamente`
@@ -1330,6 +1497,7 @@ export default function NovedadesPage() {
       sector_id: "",
       cuadrante_id: "",
       localizacion: "",
+      ubigeo_code: defaultUbigeo?.code || "", // Usar ubigeo por defecto
       tipo_complemento: "",
       numero_complemento: "",
       manzana: "",
@@ -1338,8 +1506,9 @@ export default function NovedadesPage() {
       tipo_novedad_id: "",
       subtipo_novedad_id: "",
       descripcion: "",
+      prioridad_actual: "",
       personal_cargo_id: "",
-      estado_novedad_id: 1,
+      estado_novedad_id: 2,
     });
     setDireccionMatch(null);
     setSearchingDireccion(false);
@@ -1352,11 +1521,42 @@ export default function NovedadesPage() {
   /**
    * openViewingModal
    * - Muestra el modal de detalle y carga información completa y el historial en paralelo.
+   * - Se abre desde el botón Eye (consulta solamente, sin botón Despachar)
    *
    * @param {Object} novedad - novedad básica (puede venir de la lista)
    * @returns {Promise<void>}
    */
   const openViewingModal = async (novedad) => {
+    setViewingFromTruck(false); // Abierto desde Eye
+    setViewingNovedad(novedad); // Mostrar datos básicos inmediatamente
+    setViewingTab(0);
+    setViewingHistorial([]);
+    setLoadingViewingHistorial(true);
+    try {
+      const [novedadCompleta, historialData] = await Promise.all([
+        getNovedadById(novedad.id),
+        getHistorialEstados(novedad.id),
+      ]);
+      if (novedadCompleta) {
+        setViewingNovedad(novedadCompleta);
+      }
+      setViewingHistorial(historialData || []);
+    } catch (err) {
+      console.error("Error cargando detalles de novedad:", err);
+    } finally {
+      setLoadingViewingHistorial(false);
+    }
+  };
+
+  /**
+   * openViewingModalFromTruck
+   * - Muestra el modal de detalle desde el botón Truck (con botón Despachar visible)
+   *
+   * @param {Object} novedad - novedad básica (puede venir de la lista)
+   * @returns {Promise<void>}
+   */
+  const openViewingModalFromTruck = async (novedad) => {
+    setViewingFromTruck(true); // Abierto desde Truck - DEBE SER ANTES
     setViewingNovedad(novedad); // Mostrar datos básicos inmediatamente
     setViewingTab(0);
     setViewingHistorial([]);
@@ -1447,6 +1647,7 @@ export default function NovedadesPage() {
       year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
+      hour12: false,
     });
   };
 
@@ -1595,31 +1796,31 @@ export default function NovedadesPage() {
             </div>
 
             {/* Tabla */}
-            <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+            <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900">
+              <div className="overflow-x-auto" style={{ overflowX: 'auto', maxWidth: '100%' }}>
+                <table className="w-full text-xs">
                   <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
                     <tr>
-                      <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">
+                      <th className="px-3 py-2 text-left font-semibold text-slate-700 dark:text-slate-200 w-20">
                         Código
                       </th>
-                      <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">
+                      <th className="px-3 py-2 text-left font-semibold text-slate-700 dark:text-slate-200 w-32">
                         Fecha/Hora
                       </th>
-                      <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">
+                      <th className="px-3 py-2 text-left font-semibold text-slate-700 dark:text-slate-200 w-48">
                         Tipo
                       </th>
-                      <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200 hidden md:table-cell">
+                      <th className="px-3 py-2 text-left font-semibold text-slate-700 dark:text-slate-200 w-36 hidden md:table-cell">
                         Ubicación
                       </th>
-                      <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">
+                      <th className="px-3 py-2 text-left font-semibold text-slate-700 dark:text-slate-200 w-20">
                         Prioridad
                       </th>
-                      <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">
-                        Estado
-                      </th>
-                      <th className="px-4 py-3 text-right font-semibold text-slate-700 dark:text-slate-200">
+                      <th className="px-3 py-2 text-right font-semibold text-slate-700 dark:text-slate-200 w-32">
                         Acciones
+                      </th>
+                      <th className="px-3 py-2 text-left font-semibold text-slate-700 dark:text-slate-200 w-32">
+                        Estado
                       </th>
                     </tr>
                   </thead>
@@ -1650,37 +1851,73 @@ export default function NovedadesPage() {
                             n.deleted_at ? "opacity-50" : ""
                           }`}
                         >
-                          <td className="px-4 py-3 text-slate-900 dark:text-slate-50 font-mono font-medium whitespace-nowrap">
+                          <td className="px-3 py-2 text-slate-900 dark:text-slate-50 font-mono font-medium whitespace-nowrap">
                             {n.novedad_code || "—"}
                           </td>
-                          <td className="px-4 py-3 text-slate-700 dark:text-slate-200 whitespace-nowrap">
+                          <td className="px-3 py-2 text-slate-700 dark:text-slate-200 whitespace-nowrap">
                             {formatFecha(n.fecha_hora_ocurrencia)}
                           </td>
-                          <td className="px-4 py-3 text-slate-700 dark:text-slate-200">
+                          <td className="px-3 py-2 text-slate-700 dark:text-slate-200">
                             <div className="flex flex-col">
                               <span className="font-medium">
                                 {n.novedadTipoNovedad?.nombre || "—"}
                               </span>
-                              <span className="text-xs text-slate-500">
+                              <span className="text-[10px] text-slate-500">
                                 {n.novedadSubtipoNovedad?.nombre || ""}
                               </span>
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-slate-700 dark:text-slate-200 max-w-xs truncate hidden md:table-cell">
+                          <td className="px-3 py-2 text-slate-700 dark:text-slate-200 max-w-[150px] truncate hidden md:table-cell">
                             {n.localizacion || n.referencia_ubicacion || "—"}
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-3 py-2">
                             <span
-                              className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${prioridadColor(
+                              className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium ${prioridadColor(
                                 n.prioridad_actual
                               )}`}
                             >
                               {n.prioridad_actual || "MEDIA"}
                             </span>
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-3 py-2 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() => openViewingModal(n)}
+                                className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                                title="Ver detalle"
+                              >
+                                <Eye size={14} />
+                              </button>
+                              <button
+                                onClick={() => openViewingModalFromTruck(n)}
+                                className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                title="Despachar novedad"
+                              >
+                                <Truck size={14} />
+                              </button>
+                              {canEdit && !n.deleted_at && (
+                                <button
+                                  onClick={() => openAtencionModal(n)}
+                                  className="p-1.5 rounded-lg text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
+                                  title="Atender novedad"
+                                >
+                                  <Shield size={14} />
+                                </button>
+                              )}
+                              {canDelete && !n.deleted_at && (
+                                <button
+                                  onClick={() => handleDelete(n)}
+                                  className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                  title="Eliminar"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2">
                             <span
-                              className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                              className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium ${
                                 typeof estadoColor(n.novedadEstado) === "string"
                                   ? estadoColor(n.novedadEstado)
                                   : ""
@@ -1693,35 +1930,6 @@ export default function NovedadesPage() {
                             >
                               {n.novedadEstado?.nombre || "—"}
                             </span>
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <button
-                                onClick={() => openViewingModal(n)}
-                                className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                                title="Ver detalle"
-                              >
-                                <Eye size={14} />
-                              </button>
-                              {canEdit && !n.deleted_at && (
-                                <button
-                                  onClick={() => openAtencionModal(n)}
-                                  className="p-2 rounded-lg text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
-                                  title="Atender novedad"
-                                >
-                                  <Shield size={14} />
-                                </button>
-                              )}
-                              {canDelete && !n.deleted_at && (
-                                <button
-                                  onClick={() => handleDelete(n)}
-                                  className="p-2 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                                  title="Eliminar"
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                              )}
-                            </div>
                           </td>
                         </tr>
                       ))
@@ -1764,31 +1972,6 @@ export default function NovedadesPage() {
         {/* Tab Content - REGISTRO */}
         {pageTab === PAGE_TABS.REGISTRO && (
           <div className="p-6">
-            {/* Sub-tabs de etapas */}
-            <div className="flex gap-2 mb-6 overflow-x-auto">
-              <button className="px-4 py-2 rounded-lg bg-primary-600 text-white text-sm font-medium">
-                REGISTRO
-              </button>
-              <button
-                disabled
-                className="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-400 text-sm font-medium cursor-not-allowed"
-              >
-                DESPACHADOR
-              </button>
-              <button
-                disabled
-                className="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-400 text-sm font-medium cursor-not-allowed"
-              >
-                ATENCION
-              </button>
-              <button
-                disabled
-                className="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-400 text-sm font-medium cursor-not-allowed"
-              >
-                CIERRE
-              </button>
-            </div>
-
             {/* Formulario REGISTRO - Versión Completa */}
             <div className="space-y-8">
               {/* Grupo 1: Información de Origen */}
@@ -1806,6 +1989,7 @@ export default function NovedadesPage() {
                       Origen de Llamada <span className="text-red-500">*</span>
                     </label>
                     <select
+                      id="select_origen_llamada"
                       value={registroFormData.origen_llamada}
                       onChange={(e) =>
                         setRegistroFormData({
@@ -1847,14 +2031,12 @@ export default function NovedadesPage() {
                     <input
                       type="datetime-local"
                       value={registroFormData.fecha_hora_ocurrencia}
-                      onChange={(e) =>
-                        setRegistroFormData({
-                          ...registroFormData,
-                          fecha_hora_ocurrencia: e.target.value,
-                        })
-                      }
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 [color-scheme:light] dark:[color-scheme:dark]"
+                      readOnly
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-not-allowed"
                     />
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      Se asigna automáticamente la fecha y hora actual
+                    </p>
                   </div>
                 </div>
               </div>
@@ -2438,6 +2620,11 @@ export default function NovedadesPage() {
                         }`}
                         placeholder="150101"
                       />
+                      {registroUbigeoInfo && (
+                        <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
+                          {registroUbigeoInfo.distrito} - {registroUbigeoInfo.provincia}, {registroUbigeoInfo.departamento}
+                        </p>
+                      )}
                     </div>
                   </div>{" "}
                   {/* Fin grid latitud/longitud/ubigeo */}
@@ -2489,9 +2676,14 @@ export default function NovedadesPage() {
                     <select
                       value={registroFormData.subtipo_novedad_id}
                       onChange={(e) => {
+                        const selectedSubtipoId = e.target.value;
+                        const selectedSubtipo = subtipos.find(
+                          (st) => st.id === Number(selectedSubtipoId)
+                        );
                         setRegistroFormData({
                           ...registroFormData,
-                          subtipo_novedad_id: e.target.value,
+                          subtipo_novedad_id: selectedSubtipoId,
+                          prioridad_actual: selectedSubtipo?.prioridad || "",
                         });
                       }}
                       disabled={!registroFormData.tipo_novedad_id}
@@ -2536,42 +2728,6 @@ export default function NovedadesPage() {
                 {/* Fin div mt-4 descripción */}
               </div>{" "}
               {/* Fin Grupo 4: Información del Incidente */}
-              {/* Grupo 5: Asignación */}
-              <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-6 bg-slate-50/50 dark:bg-slate-800/50">
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                  <Shield
-                    className="text-primary-600 dark:text-primary-400"
-                    size={20}
-                  />
-                  Asignación
-                </h3>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    Derivar a
-                  </label>
-                  <select
-                    value={registroFormData.personal_cargo_id}
-                    onChange={(e) => {
-                      setRegistroFormData({
-                        ...registroFormData,
-                        personal_cargo_id: e.target.value,
-                      });
-                    }}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
-                  >
-                    <option value="">Sin asignar (se asignará después)</option>
-                    {cargos.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.cargo}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Puede derivar la novedad a un personal específico o dejarlo
-                    sin asignar para derivarlo posteriormente
-                  </p>
-                </div>
-              </div>
               {/* Botones */}
               <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
                 <button
@@ -3216,604 +3372,21 @@ export default function NovedadesPage() {
         </div>
       )}
 
-      {/* ✅ Modal Ver Detalle con Pestañas - MANTENER */}
-      {viewingNovedad && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-3xl rounded-2xl bg-white dark:bg-slate-900 shadow-xl max-h-[90vh] flex flex-col">
-            {/* Header */}
-            <div className="flex items-start justify-between p-6 border-b border-slate-200 dark:border-slate-700">
-              <div className="flex items-start gap-4">
-                <svg
-                  className="w-10 h-10"
-                  viewBox="0 0 32 32"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <defs>
-                    <linearGradient
-                      id="shieldGradView"
-                      x1="0%"
-                      y1="0%"
-                      x2="0%"
-                      y2="100%"
-                    >
-                      <stop
-                        offset="0%"
-                        style={{ stopColor: "#4F7942", stopOpacity: 1 }}
-                      />
-                      <stop
-                        offset="100%"
-                        style={{ stopColor: "#2D4A22", stopOpacity: 1 }}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <path
-                    d="M16 2 L28 6 L28 14 C28 22 22 28 16 30 C10 28 4 22 4 14 L4 6 Z"
-                    fill="url(#shieldGradView)"
-                    stroke="#1a2e14"
-                    strokeWidth="1"
-                  />
-                  <text
-                    x="16"
-                    y="20"
-                    fontFamily="Arial, sans-serif"
-                    fontSize="14"
-                    fontWeight="bold"
-                    fill="#FFFFFF"
-                    textAnchor="middle"
-                  >
-                    C
-                  </text>
-                </svg>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-sm text-slate-500">
-                      #{viewingNovedad.novedad_code}
-                    </span>
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${prioridadColor(
-                        viewingNovedad.prioridad_actual
-                      )}`}
-                    >
-                      {viewingNovedad.prioridad_actual || "MEDIA"}
-                    </span>
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                        typeof estadoColor(viewingNovedad.novedadEstado) ===
-                        "string"
-                          ? estadoColor(viewingNovedad.novedadEstado)
-                          : ""
-                      }`}
-                      style={
-                        typeof estadoColor(viewingNovedad.novedadEstado) ===
-                        "object"
-                          ? estadoColor(viewingNovedad.novedadEstado)
-                          : {}
-                      }
-                    >
-                      {viewingNovedad.novedadEstado?.nombre || "—"}
-                    </span>
-                  </div>
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50 mt-1">
-                    {viewingNovedad.novedadTipoNovedad?.nombre || "Novedad"}
-                  </h3>
-                  <p className="text-sm text-slate-500">
-                    {viewingNovedad.novedadSubtipoNovedad?.nombre || ""}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  setViewingNovedad(null);
-                  setViewingTab(0);
-                }}
-                className="p-2 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Tabs */}
-            <div className="flex border-b border-slate-200 dark:border-slate-700">
-              <button
-                onClick={() => setViewingTab(0)}
-                className={`flex-1 px-4 py-3 text-sm font-medium ${
-                  viewingTab === 0
-                    ? "text-primary-600 border-b-2 border-primary-600"
-                    : "text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                <FileText size={16} className="inline mr-2" />
-                Datos Básicos
-              </button>
-              <button
-                onClick={() => setViewingTab(1)}
-                className={`flex-1 px-4 py-3 text-sm font-medium ${
-                  viewingTab === 1
-                    ? "text-primary-600 border-b-2 border-primary-600"
-                    : "text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                <MapPin size={16} className="inline mr-2" />
-                Ubicación
-              </button>
-              <button
-                onClick={() => setViewingTab(2)}
-                className={`flex-1 px-4 py-3 text-sm font-medium ${
-                  viewingTab === 2
-                    ? "text-primary-600 border-b-2 border-primary-600"
-                    : "text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                <User size={16} className="inline mr-2" />
-                Reportante
-              </button>
-              <button
-                onClick={() => setViewingTab(3)}
-                className={`flex-1 px-4 py-3 text-sm font-medium ${
-                  viewingTab === 3
-                    ? "text-primary-600 border-b-2 border-primary-600"
-                    : "text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                <Users size={16} className="inline mr-2" />
-                Recursos
-              </button>
-              <button
-                onClick={() => setViewingTab(4)}
-                className={`flex-1 px-4 py-3 text-sm font-medium ${
-                  viewingTab === 4
-                    ? "text-primary-600 border-b-2 border-primary-600"
-                    : "text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                <Clock size={16} className="inline mr-2" />
-                Seguimiento
-              </button>
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto p-6">
-              {/* Tab 0: Datos Básicos */}
-              {viewingTab === 0 && (
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">
-                      Descripción
-                    </h4>
-                    <p className="text-slate-900 dark:text-slate-50 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      {viewingNovedad.descripcion || "—"}
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Tipo de Novedad
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50 font-medium">
-                        {viewingNovedad.novedadTipoNovedad?.nombre || "—"}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Subtipo
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {viewingNovedad.novedadSubtipoNovedad?.nombre || "—"}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Fecha/Hora Ocurrencia
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {formatFecha(viewingNovedad.fecha_hora_ocurrencia)}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Origen de Llamada
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {ORIGEN_LLAMADA_OPTIONS.find(
-                          (o) => o.value === viewingNovedad.origen_llamada
-                        )?.label ||
-                          viewingNovedad.origen_llamada ||
-                          "—"}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Prioridad
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {viewingNovedad.prioridad_actual || "MEDIA"}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Estado
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {viewingNovedad.novedadEstado?.nombre || "—"}
-                      </p>
-                    </div>
-                  </div>
-                  {viewingNovedad.observaciones && (
-                    <div>
-                      <h4 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">
-                        Observaciones
-                      </h4>
-                      <p className="text-sm text-slate-700 dark:text-slate-300 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                        {viewingNovedad.observaciones}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Tab 1: Ubicación */}
-              {viewingTab === 1 && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Localización
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {viewingNovedad.localizacion || "—"}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Referencia
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {viewingNovedad.referencia_ubicacion || "—"}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Sector
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {viewingNovedad.novedadSector?.nombre || "—"}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Cuadrante
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {viewingNovedad.novedadCuadrante?.nombre || "—"}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Ubigeo
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {viewingNovedad.ubigeo_code || "—"}
-                      </p>
-                      {viewingNovedad.ubigeo && (
-                        <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-                          {viewingNovedad.ubigeo.departamento} /{" "}
-                          {viewingNovedad.ubigeo.provincia} /{" "}
-                          {viewingNovedad.ubigeo.distrito}
-                        </p>
-                      )}
-                    </div>
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Coordenadas GPS
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {viewingNovedad.latitud && viewingNovedad.longitud
-                          ? `${viewingNovedad.latitud}, ${viewingNovedad.longitud}`
-                          : "—"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Tab 2: Reportante */}
-              {viewingTab === 2 && (
-                <div className="space-y-4">
-                  {viewingNovedad.es_anonimo ? (
-                    <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/50 text-center">
-                      <User size={32} className="mx-auto text-slate-400 mb-2" />
-                      <p className="text-sm text-slate-500">Reporte anónimo</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                        <span className="text-xs font-medium text-slate-500">
-                          Nombre
-                        </span>
-                        <p className="text-sm text-slate-900 dark:text-slate-50">
-                          {viewingNovedad.reportante_nombre || "—"}
-                        </p>
-                      </div>
-                      <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                        <span className="text-xs font-medium text-slate-500">
-                          Teléfono
-                        </span>
-                        <p className="text-sm text-slate-900 dark:text-slate-50">
-                          {viewingNovedad.reportante_telefono || "—"}
-                        </p>
-                      </div>
-                      <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                        <span className="text-xs font-medium text-slate-500">
-                          Documento de Identidad
-                        </span>
-                        <p className="text-sm text-slate-900 dark:text-slate-50">
-                          {viewingNovedad.reportante_doc_identidad || "—"}
-                        </p>
-                      </div>
-                      <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                        <span className="text-xs font-medium text-slate-500">
-                          Personas Afectadas
-                        </span>
-                        <p className="text-sm text-slate-900 dark:text-slate-50">
-                          {viewingNovedad.num_personas_afectadas || "—"}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Tab 3: Recursos Asignados */}
-              {viewingTab === 3 && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Unidad/Oficina
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {viewingNovedad.novedadUnidadOficina?.nombre || "—"}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Vehículo
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {viewingNovedad.novedadVehiculo?.placa || "—"}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Personal a Cargo
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {viewingNovedad.novedadPersonalCargo
-                          ? `${viewingNovedad.novedadPersonalCargo.nombres} ${viewingNovedad.novedadPersonalCargo.apellido_paterno}`
-                          : "—"}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Personal #2
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {viewingNovedad.novedadPersonal2
-                          ? `${viewingNovedad.novedadPersonal2.nombres} ${viewingNovedad.novedadPersonal2.apellido_paterno}`
-                          : "—"}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Personal #3
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {viewingNovedad.novedadPersonal3
-                          ? `${viewingNovedad.novedadPersonal3.nombres} ${viewingNovedad.novedadPersonal3.apellido_paterno}`
-                          : "—"}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Personal #4
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {viewingNovedad.novedadPersonal4
-                          ? `${viewingNovedad.novedadPersonal4.nombres} ${viewingNovedad.novedadPersonal4.apellido_paterno}`
-                          : "—"}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Fecha Despacho
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {viewingNovedad.fecha_despacho
-                          ? formatFecha(viewingNovedad.fecha_despacho)
-                          : "—"}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Turno
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {viewingNovedad.turno || "—"}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Tiempo Respuesta
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {viewingNovedad.tiempo_respuesta_minutos
-                          ? `${viewingNovedad.tiempo_respuesta_minutos} min`
-                          : "—"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Tab 4: Seguimiento */}
-              {viewingTab === 4 && (
-                <div className="space-y-4">
-                  <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-                    <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                      Requiere Seguimiento:{" "}
-                      {viewingNovedad.requiere_seguimiento ? "Sí" : "No"}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Fecha Llegada
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {viewingNovedad.fecha_llegada
-                          ? formatFecha(viewingNovedad.fecha_llegada)
-                          : "—"}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Fecha Cierre
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {viewingNovedad.fecha_cierre
-                          ? formatFecha(viewingNovedad.fecha_cierre)
-                          : "—"}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Km Inicial
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {viewingNovedad.km_inicial || "—"}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Km Final
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {viewingNovedad.km_final || "—"}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Fecha Próxima Revisión
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {viewingNovedad.fecha_proxima_revision || "—"}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Pérdidas Materiales Estimadas
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {viewingNovedad.perdidas_materiales_estimadas
-                          ? `S/. ${viewingNovedad.perdidas_materiales_estimadas}`
-                          : "—"}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Historial de Estados */}
-                  <div className="p-4 rounded-lg border border-slate-200 dark:border-slate-700">
-                    <h4 className="font-medium text-slate-900 dark:text-slate-50 mb-3">
-                      Historial de Estados
-                    </h4>
-                    {loadingViewingHistorial ? (
-                      <p className="text-sm text-slate-500">
-                        Cargando historial...
-                      </p>
-                    ) : viewingHistorial.length === 0 ? (
-                      <p className="text-sm text-slate-500">
-                        No hay cambios de estado registrados.
-                      </p>
-                    ) : (
-                      <div className="space-y-3 max-h-48 overflow-y-auto">
-                        {viewingHistorial.map((h) => (
-                          <div
-                            key={h.id}
-                            className="flex items-start gap-3 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50"
-                          >
-                            <div
-                              className="flex-shrink-0 w-2 h-2 mt-2 rounded-full"
-                              style={{
-                                backgroundColor:
-                                  h.estadoNuevo?.color_hex || "#6b7280",
-                              }}
-                            ></div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                {h.estadoAnterior && (
-                                  <>
-                                    <span
-                                      className="text-xs px-2 py-0.5 rounded"
-                                      style={{
-                                        backgroundColor: `${h.estadoAnterior?.color_hex}20`,
-                                        color: h.estadoAnterior?.color_hex,
-                                      }}
-                                    >
-                                      {h.estadoAnterior?.nombre}
-                                    </span>
-                                    <span className="text-slate-400">→</span>
-                                  </>
-                                )}
-                                <span
-                                  className="text-xs px-2 py-0.5 rounded font-medium"
-                                  style={{
-                                    backgroundColor: `${h.estadoNuevo?.color_hex}30`,
-                                    color: h.estadoNuevo?.color_hex,
-                                  }}
-                                >
-                                  {h.estadoNuevo?.nombre}
-                                </span>
-                              </div>
-                              <p className="text-xs text-slate-500 mt-1">
-                                {formatFecha(h.fecha_cambio || h.created_at)}
-                                {h.historialEstadoNovedadUsuario &&
-                                  ` • ${
-                                    h.historialEstadoNovedadUsuario.nombres ||
-                                    h.historialEstadoNovedadUsuario.username
-                                  }`}
-                                {h.tiempo_en_estado_min &&
-                                  ` • ${h.tiempo_en_estado_min} min en estado anterior`}
-                              </p>
-                              {h.observaciones && (
-                                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 italic">
-                                  "{h.observaciones}"
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Footer */}
-            <div className="flex justify-end gap-2 p-6 border-t border-slate-200 dark:border-slate-700">
-              <button
-                onClick={() => {
-                  setViewingNovedad(null);
-                  setViewingTab(0);
-                }}
-                className="rounded-lg border border-slate-300 dark:border-slate-700 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-              >
-                Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal Ver Detalle con componente NovedadDetalleModal */}
+      <NovedadDetalleModal
+        isOpen={!!viewingNovedad}
+        novedad={viewingNovedad}
+        onClose={() => {
+          setViewingNovedad(null);
+          setViewingTab(0);
+          setViewingFromTruck(false);
+        }}
+        onDespachar={(novedad) => {
+          // Abrir modal de despacho/seguimiento
+          openSeguimientoModal(novedad);
+        }}
+        showDespacharButton={viewingFromTruck}
+      />
 
       {/* Modal de Atención/Seguimiento */}
       {showAtencionModal && selectedNovedad && (
@@ -4234,7 +3807,14 @@ export default function NovedadesPage() {
                       </p>
                     ) : (
                       <div className="space-y-3 max-h-48 overflow-y-auto">
-                        {historialEstados.map((h) => (
+                        {[...historialEstados]
+                          .sort((a, b) => {
+                            // Ordenar por fecha_cambio descendente (más reciente primero)
+                            const fechaA = new Date(a.fecha_cambio || a.created_at);
+                            const fechaB = new Date(b.fecha_cambio || b.created_at);
+                            return fechaB - fechaA;
+                          })
+                          .map((h) => (
                           <div
                             key={h.id}
                             className="flex items-start gap-3 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50"
@@ -4516,6 +4096,19 @@ export default function NovedadesPage() {
           </div>
         </div>
       )}
+
+      {/* Modal de Seguimiento */}
+      <SeguimientoModal
+        isOpen={showSeguimientoModal}
+        onClose={() => {
+          setShowSeguimientoModal(false);
+          setSelectedNovedadSeguimiento(null);
+        }}
+        novedad={selectedNovedadSeguimiento}
+        vehiculos={vehiculos}
+        personalSeguridad={personalSeguridad}
+        onSubmit={handleSaveSeguimiento}
+      />
     </div>
   );
 }
