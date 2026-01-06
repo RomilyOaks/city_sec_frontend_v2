@@ -23,29 +23,42 @@ export default function UnidadOficinaViewModal({ isOpen, onClose, unidad: unidad
   const [ubigeoInfo, setUbigeoInfo] = useState(null);
   const [unidad, setUnidad] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Cargar unidad completa con todas las relaciones desde el backend
   useEffect(() => {
     const loadUnidadCompleta = async () => {
       if (!unidadInicial?.id) {
+        console.warn("⚠️ No hay unidadInicial o no tiene ID");
+        setUnidad(unidadInicial);
         setLoading(false);
         return;
       }
 
       try {
         setLoading(true);
-        console.log("🏢 Cargando unidad/oficina completa con relaciones, ID:", unidadInicial.id);
+        setError(null);
+        console.log("🏢 [UnidadOficinaViewModal] Cargando unidad/oficina completa con relaciones, ID:", unidadInicial.id);
 
         const unidadCompleta = await getUnidadOficinaById(unidadInicial.id);
-        setUnidad(unidadCompleta);
 
-        console.log("✅ Unidad/oficina completa cargada:", unidadCompleta);
-        console.log("  - Nombre:", unidadCompleta.nombre);
-        console.log("  - Tipo:", unidadCompleta.tipo_unidad);
-        console.log("  - Ubigeo:", unidadCompleta.ubigeo);
+        console.log("✅ [UnidadOficinaViewModal] Unidad/oficina completa cargada:", unidadCompleta);
+        console.log("  - Nombre:", unidadCompleta?.nombre);
+        console.log("  - Tipo:", unidadCompleta?.tipo_unidad);
+        console.log("  - Ubigeo:", unidadCompleta?.ubigeo);
+
+        if (unidadCompleta && unidadCompleta.id) {
+          setUnidad(unidadCompleta);
+        } else {
+          console.warn("⚠️ La respuesta no contiene datos válidos, usando unidadInicial");
+          setUnidad(unidadInicial);
+        }
       } catch (error) {
-        console.error("❌ Error al cargar unidad/oficina completa:", error);
+        console.error("❌ [UnidadOficinaViewModal] Error al cargar unidad/oficina completa:", error);
+        console.error("  - Error mensaje:", error.message);
+        console.error("  - Error response:", error.response?.data);
         // Si falla, usar la unidad inicial
+        setError(error.message);
         setUnidad(unidadInicial);
       } finally {
         setLoading(false);
@@ -54,9 +67,9 @@ export default function UnidadOficinaViewModal({ isOpen, onClose, unidad: unidad
 
     if (isOpen && unidadInicial) {
       loadUnidadCompleta();
-    } else {
+    } else if (isOpen && !unidadInicial) {
       setUnidad(null);
-      setLoading(true);
+      setLoading(false);
     }
   }, [isOpen, unidadInicial]);
 
@@ -104,12 +117,30 @@ export default function UnidadOficinaViewModal({ isOpen, onClose, unidad: unidad
   };
 
   // Mostrar loading mientras se cargan los datos
-  if (loading || !unidad) {
+  if (loading) {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
         <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-8 text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
           <p className="text-slate-600 dark:text-slate-400">Cargando información...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Si no hay unidad después de cargar, mostrar error
+  if (!unidad) {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-8 text-center max-w-md">
+          <p className="text-red-600 dark:text-red-400 mb-4">No se pudo cargar la información</p>
+          {error && <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">{error}</p>}
+          <button
+            onClick={handleClose}
+            className="rounded-lg bg-primary-700 px-4 py-2 text-sm font-medium text-white hover:bg-primary-800"
+          >
+            Cerrar
+          </button>
         </div>
       </div>
     );

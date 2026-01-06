@@ -73,7 +73,20 @@ export const listUnidadesOficinaActivas = async () => {
  */
 export const getUnidadOficinaById = async (id) => {
   const res = await api.get(`/unidades-oficina/${id}`);
-  return res.data?.data || res.data;
+  console.log("📦 [getUnidadOficinaById] Respuesta completa:", res);
+  console.log("📦 [getUnidadOficinaById] res.data:", res.data);
+
+  // Manejar diferentes estructuras de respuesta del backend
+  if (res.data?.data) {
+    return res.data.data;
+  } else if (res.data?.unidad) {
+    return res.data.unidad;
+  } else if (res.data && typeof res.data === 'object' && res.data.id) {
+    // La respuesta directa es el objeto
+    return res.data;
+  }
+
+  return res.data;
 };
 
 /**
