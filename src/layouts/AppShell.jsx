@@ -1,7 +1,13 @@
 /**
  * File: src/layouts/AppShell.jsx
- * @version 2.1.0
+ * @version 2.2.0
  * @description Layout principal (AppShell) con barra superior, sidebar y outlet de rutas.
+ *
+ * CHANGELOG v2.2.0:
+ * - ✅ Reorganizado menú de navegación según nueva estructura UX
+ * - ✅ Creado menú "Catálogos" con opción "Unidades y Oficinas"
+ * - ✅ Creado menú "Control de Accesos" con "Usuarios" y "Roles y Permisos"
+ * - ✅ Reordenado: Dashboard → Novedades → Personal → Vehículos → Gestión Vial → Catálogos → Control de Accesos
  *
  * CHANGELOG v2.1.0:
  * - ✅ Agregado menú desplegable para módulo Calles
@@ -27,6 +33,8 @@ import {
   Map,
   Navigation,
   Trash2,
+  Building2,
+  Lock,
 } from "lucide-react";
 
 import ThemeToggle from "../components/common/ThemeToggle.jsx";
@@ -214,37 +222,29 @@ export default function AppShell() {
               Dashboard
             </SidebarLink>
 
-            {/* Administración */}
-            {canAccess("admin_usuarios") && (
-              <SidebarLink to="/admin/usuarios" icon={User}>
-                Usuarios
-              </SidebarLink>
-            )}
-            {canAccess("admin_roles") && (
-              <SidebarLink to="/admin/roles" icon={Shield}>
-                Roles y Permisos
-              </SidebarLink>
-            )}
-
-            {/* Operaciones */}
-            {canAccess("personal") && (
-              <SidebarLink to="/personal" icon={Users}>
-                Personal
-              </SidebarLink>
-            )}
-            {canAccess("vehiculos") && (
-              <SidebarLink to="/vehiculos" icon={Car}>
-                Vehículos
-              </SidebarLink>
-            )}
+            {/* Novedades */}
             {canAccess("novedades") && (
               <SidebarLink to="/novedades" icon={AlertTriangle}>
                 Novedades
               </SidebarLink>
             )}
 
+            {/* Personal */}
+            {canAccess("personal") && (
+              <SidebarLink to="/personal" icon={Users}>
+                Personal
+              </SidebarLink>
+            )}
+
+            {/* Vehículos */}
+            {canAccess("vehiculos") && (
+              <SidebarLink to="/vehiculos" icon={Car}>
+                Vehículos
+              </SidebarLink>
+            )}
+
             {/* ============================================
-                MÓDULO CALLES - MENÚ DESPLEGABLE
+                GESTIÓN VIAL - MENÚ DESPLEGABLE
                 ============================================ */}
             {canAccess("calles") && (
               <SidebarDropdown icon={MapPin} label="Gestión Vial">
@@ -273,6 +273,31 @@ export default function AppShell() {
                 )}
               </SidebarDropdown>
             )}
+
+            {/* ============================================
+                CATÁLOGOS - MENÚ DESPLEGABLE
+                ============================================ */}
+            <SidebarDropdown icon={Building2} label="Catálogos">
+              <SidebarLink to="/catalogos/unidades-oficinas" icon={Building2}>
+                Unidades y Oficinas
+              </SidebarLink>
+            </SidebarDropdown>
+
+            {/* ============================================
+                CONTROL DE ACCESOS - MENÚ DESPLEGABLE
+                ============================================ */}
+            <SidebarDropdown icon={Lock} label="Control de Accesos">
+              {canAccess("admin_usuarios") && (
+                <SidebarLink to="/admin/usuarios" icon={User}>
+                  Usuarios
+                </SidebarLink>
+              )}
+              {canAccess("admin_roles") && (
+                <SidebarLink to="/admin/roles" icon={Shield}>
+                  Roles y Permisos
+                </SidebarLink>
+              )}
+            </SidebarDropdown>
           </nav>
 
           {/* Versión de la aplicación */}

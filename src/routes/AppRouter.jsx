@@ -1,7 +1,10 @@
 /**
  * File: src/routes/AppRouter.jsx
- * @version 2.1.0
+ * @version 2.2.0
  * @description Router principal de la aplicación con rutas públicas y protegidas.
+ *
+ * CHANGELOG v2.2.0:
+ * - ✅ Agregada ruta del módulo Catálogos (Unidades y Oficinas)
  *
  * CHANGELOG v2.1.0:
  * - ✅ Agregadas rutas del módulo Calles
@@ -34,6 +37,11 @@ import SectoresCuadrantesPage from "../pages/calles/SectoresCuadrantesPage.jsx";
 import CallesCuadrantesPage from "../pages/calles/CallesCuadrantesPage.jsx";
 import DireccionesPage from "../pages/direcciones/DireccionesPage.jsx";
 import DireccionesEliminadasPage from "../pages/direcciones/DireccionesEliminadasPage.jsx";
+
+// ============================================
+// IMPORTAR PÁGINAS DEL MÓDULO CATÁLOGOS
+// ============================================
+import UnidadesOficinaPage from "../pages/catalogos/UnidadesOficinaPage.jsx";
 
 /**
  * AppRouter - Router principal con rutas públicas y protegidas
@@ -160,6 +168,14 @@ export default function AppRouter() {
               <DireccionesEliminadasPage />
             </ProtectedRoute>
           }
+        />
+
+        {/* ============================================
+            MÓDULO CATÁLOGOS
+            ============================================ */}
+        <Route
+          path="catalogos/unidades-oficinas"
+          element={<UnidadesOficinaPage />}
         />
       </Route>
 
