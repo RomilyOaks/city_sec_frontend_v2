@@ -9,6 +9,7 @@ import { X, MapPin, FileText } from "lucide-react";
 import { createSector, updateSector } from "../../services/sectoresService";
 import { listUbigeos, getUbigeoByCode } from "../../services/novedadesService";
 import toast from "react-hot-toast";
+import { getDefaultUbigeo } from "../../config/defaults";
 
 export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) {
   const [activeTab, setActiveTab] = useState("basicos");
@@ -26,6 +27,19 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
   const [ubigeoSearch, setUbigeoSearch] = useState("");
   const [showUbigeoDropdown, setShowUbigeoDropdown] = useState(false);
   const [validationError, setValidationError] = useState("");
+  const [defaultUbigeo, setDefaultUbigeo] = useState(null); // Ubigeo por defecto
+
+  // Cargar ubigeo por defecto al montar
+  useEffect(() => {
+    getDefaultUbigeo()
+      .then((ubigeo) => {
+        setDefaultUbigeo(ubigeo);
+        console.log("📍 Ubigeo default cargado (Sectores):", ubigeo);
+      })
+      .catch((err) => {
+        console.error("Error cargando ubigeo default:", err);
+      });
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -59,20 +73,25 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
         setUbigeoSearch("");
       }
     } else {
+      // Modo create: usar ubigeo por defecto
       setFormData({
         codigo: "",
         nombre: "",
         descripcion: "",
-        ubigeo: "",
+        ubigeo: defaultUbigeo?.code || "",
         zona_code: "",
         poligono_json: "",
         color_mapa: "#4A6126",
       });
-      setUbigeoSearch("");
+      if (defaultUbigeo) {
+        setUbigeoSearch(`${defaultUbigeo.departamento}/${defaultUbigeo.provincia}/${defaultUbigeo.distrito}`);
+      } else {
+        setUbigeoSearch("");
+      }
     }
     setActiveTab("basicos");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sector, isOpen]);
+  }, [sector, isOpen, defaultUbigeo]);
 
   // Función para buscar UBIGEO por código (modo edit)
   async function fetchUbigeoByCode(code) {
@@ -258,6 +277,9 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
       onSuccess();
       handleClose();
     } catch (error) {
+      console.error("❌ Error al guardar sector:", error);
+      console.error("📦 Response data:", error.response?.data);
+      console.error("📊 Response status:", error.response?.status);
 
       // Extraer mensaje de error del backend en diferentes formatos posibles
       const backendData = error.response?.data;
@@ -305,9 +327,20 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
         errorMessage = backendData;
       }
 
-      // Si no se encontró mensaje, usar genérico
+      // Si no se encontró mensaje, usar genérico con más info
       if (!errorMessage) {
-        errorMessage = "Error de validación. Por favor, revise los datos ingresados.";
+        const statusCode = error.response?.status;
+        if (statusCode === 400) {
+          errorMessage = "Error de validación. Por favor, revise los datos ingresados.";
+        } else if (statusCode === 409) {
+          errorMessage = "Conflicto: El sector ya existe o hay datos duplicados.";
+        } else if (statusCode === 422) {
+          errorMessage = "Datos inválidos. Verifique que todos los campos cumplan los requisitos.";
+        } else if (statusCode === 500) {
+          errorMessage = "Error interno del servidor. Contacte al administrador.";
+        } else {
+          errorMessage = `Error ${statusCode || 'desconocido'}. No se pudo procesar la solicitud.`;
+        }
       }
 
       // Determinar qué campo tiene el error y enfocar

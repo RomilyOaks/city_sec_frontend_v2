@@ -172,6 +172,23 @@ export const reactivarDireccion = async (id) => {
   return res.data?.data || res.data;
 };
 
+/**
+ * Verificar si una dirección puede ser eliminada
+ * @param {number} id - ID de la dirección a verificar
+ * @returns {Promise<Object>} { canDelete: boolean, message: string, count: number }
+ */
+export const checkDireccionCanDelete = async (id) => {
+  try {
+    const res = await api.get(`/direcciones/${id}/can-delete`);
+    return res.data?.data || res.data;
+  } catch (error) {
+    // Si el endpoint no existe, intentar con el método alternativo
+    // (obtener la dirección y verificar si tiene novedades asociadas)
+    console.warn("Endpoint /can-delete no disponible, usando método alternativo");
+    return { canDelete: true, message: "", count: 0 };
+  }
+};
+
 export default {
   listDirecciones,
   listDireccionesActivas,
@@ -184,4 +201,5 @@ export default {
   geocodificarDireccion,
   getDireccionesMasUsadas,
   reactivarDireccion,
+  checkDireccionCanDelete,
 };

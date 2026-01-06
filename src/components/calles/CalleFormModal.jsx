@@ -27,6 +27,7 @@ import {
   listTiposVia,
 } from "../../services/callesService";
 import { listUbigeos, getUbigeoByCode } from "../../services/novedadesService";
+import { getDefaultUbigeo } from "../../config/defaults";
 
 /**
  * Capitaliza la primera letra de cada palabra
@@ -91,6 +92,7 @@ export default function CalleFormModal({
   const [ubigeos, setUbigeos] = useState([]);
   const [ubigeoSearch, setUbigeoSearch] = useState("");
   const [showUbigeoDropdown, setShowUbigeoDropdown] = useState(false);
+  const [defaultUbigeo, setDefaultUbigeo] = useState(null); // Ubigeo por defecto
 
   const [formData, setFormData] = useState({
     tipo_via_id: "",
@@ -107,6 +109,18 @@ export default function CalleFormModal({
   // ============================================
   // EFECTOS
   // ============================================
+  // Cargar ubigeo por defecto al montar
+  useEffect(() => {
+    getDefaultUbigeo()
+      .then((ubigeo) => {
+        setDefaultUbigeo(ubigeo);
+        console.log("📍 Ubigeo default cargado (Calles):", ubigeo);
+      })
+      .catch((err) => {
+        console.error("Error cargando ubigeo default:", err);
+      });
+  }, []);
+
   useEffect(() => {
     if (isOpen) {
       loadTiposVia();
@@ -136,9 +150,16 @@ export default function CalleFormModal({
           // Caso 2: Buscar el UBIGEO por código via API
           fetchUbigeoByCode(initialData.ubigeo_code);
         }
+      } else if (mode === "create" && defaultUbigeo) {
+        // Modo create: usar ubigeo por defecto
+        setFormData(prev => ({
+          ...prev,
+          ubigeo_code: defaultUbigeo.code,
+        }));
+        setUbigeoSearch(`${defaultUbigeo.departamento}/${defaultUbigeo.provincia}/${defaultUbigeo.distrito}`);
       }
     }
-  }, [isOpen, initialData, mode]);
+  }, [isOpen, initialData, mode, defaultUbigeo]);
 
   // Función para buscar UBIGEO por código (modo edit)
   async function fetchUbigeoByCode(code) {

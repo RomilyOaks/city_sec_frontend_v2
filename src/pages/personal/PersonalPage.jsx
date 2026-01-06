@@ -40,6 +40,7 @@ import { listCargos, buscarUbigeo } from "../../services/catalogosService.js";
 import { listVehiculosDisponibles } from "../../services/vehiculosService.js";
 import { useAuthStore } from "../../store/useAuthStore.js";
 import { canPerformAction, canAccessRoute } from "../../rbac/rbac.js";
+import { getDefaultUbigeo } from "../../config/defaults.js";
 
 const STATUS_OPTIONS = ["Activo", "Inactivo", "Suspendido", "Retirado"];
 const DOC_TIPOS = ["DNI", "Carnet Extranjeria", "Pasaporte", "PTP"];
@@ -158,6 +159,19 @@ export default function PersonalPage() {
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("basicos");
   const [docDuplicadoError, setDocDuplicadoError] = useState("");
+  const [defaultUbigeo, setDefaultUbigeo] = useState(null); // Ubigeo por defecto desde backend
+
+  // Cargar ubigeo por defecto al montar el componente
+  useEffect(() => {
+    getDefaultUbigeo()
+      .then((ubigeo) => {
+        setDefaultUbigeo(ubigeo);
+        console.log("📍 Ubigeo default cargado (Personal):", ubigeo);
+      })
+      .catch((err) => {
+        console.error("Error cargando ubigeo default:", err);
+      });
+  }, []);
 
   // Hotkeys: Alt+G = Guardar, Alt+N = Nuevo, Escape = Cerrar
   useEffect(() => {
@@ -351,7 +365,10 @@ export default function PersonalPage() {
    * Restaura el formulario a sus valores iniciales y limpia búsquedas relacionadas (ubigeo).
    */
   const resetForm = () => {
-    setFormData(initialFormData);
+    setFormData({
+      ...initialFormData,
+      ubigeo_code: defaultUbigeo?.code || "", // Usar ubigeo por defecto
+    });
     setActiveTab("basicos");
     setUbigeoSearch("");
   };
@@ -441,6 +458,10 @@ export default function PersonalPage() {
       if (payload.cargo_id) payload.cargo_id = Number(payload.cargo_id);
       if (payload.vehiculo_id)
         payload.vehiculo_id = Number(payload.vehiculo_id);
+      // Usar ubigeo por defecto si no hay uno especificado
+      if (!payload.ubigeo_code && defaultUbigeo?.code) {
+        payload.ubigeo_code = defaultUbigeo.code;
+      }
       // Limpiar campos vacíos
       Object.keys(payload).forEach((k) => {
         if (payload[k] === "") delete payload[k];
@@ -476,6 +497,10 @@ export default function PersonalPage() {
         updateData.cargo_id = Number(updateData.cargo_id);
       if (updateData.vehiculo_id)
         updateData.vehiculo_id = Number(updateData.vehiculo_id);
+      // Usar ubigeo por defecto si no hay uno especificado
+      if (!updateData.ubigeo_code && defaultUbigeo?.code) {
+        updateData.ubigeo_code = defaultUbigeo.code;
+      }
       Object.keys(updateData).forEach((k) => {
         if (updateData[k] === "") delete updateData[k];
       });

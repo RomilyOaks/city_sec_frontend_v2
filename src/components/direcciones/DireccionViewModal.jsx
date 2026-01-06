@@ -9,6 +9,7 @@
 import { useEffect, useState } from "react";
 import { X, MapPin, Navigation, Map as MapIcon } from "lucide-react";
 import { getUbigeoByCode } from "../../services/novedadesService";
+import { getDireccionById } from "../../services/direccionesService";
 
 /**
  * DireccionViewModal - Modal de solo consulta
@@ -16,10 +17,49 @@ import { getUbigeoByCode } from "../../services/novedadesService";
  * @param {Object} props
  * @param {boolean} props.isOpen - Si el modal está abierto
  * @param {Function} props.onClose - Callback al cerrar
- * @param {Object} props.direccion - Dirección a mostrar
+ * @param {Object} props.direccion - Dirección inicial (puede no tener relaciones)
  */
-export default function DireccionViewModal({ isOpen, onClose, direccion }) {
+export default function DireccionViewModal({ isOpen, onClose, direccion: direccionInicial }) {
   const [ubigeoInfo, setUbigeoInfo] = useState(null);
+  const [direccion, setDireccion] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Cargar dirección completa con todas las relaciones desde el backend
+  useEffect(() => {
+    const loadDireccionCompleta = async () => {
+      if (!direccionInicial?.id) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        console.log("📍 Cargando dirección completa con relaciones, ID:", direccionInicial.id);
+
+        const direccionCompleta = await getDireccionById(direccionInicial.id);
+        setDireccion(direccionCompleta);
+
+        console.log("✅ Dirección completa cargada:", direccionCompleta);
+        console.log("  - Sector:", direccionCompleta.sector);
+        console.log("  - Cuadrante:", direccionCompleta.cuadrante);
+        console.log("  - Calle:", direccionCompleta.calle);
+        console.log("  - Ubigeo:", direccionCompleta.ubigeo);
+      } catch (error) {
+        console.error("❌ Error al cargar dirección completa:", error);
+        // Si falla, usar la dirección inicial
+        setDireccion(direccionInicial);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (isOpen && direccionInicial) {
+      loadDireccionCompleta();
+    } else {
+      setDireccion(null);
+      setLoading(true);
+    }
+  }, [isOpen, direccionInicial]);
 
   // Cargar información de ubigeo si no viene en la relación
   useEffect(() => {
@@ -58,11 +98,23 @@ export default function DireccionViewModal({ isOpen, onClose, direccion }) {
     };
   }, [isOpen]);
 
-  if (!isOpen || !direccion) return null;
+  if (!isOpen) return null;
 
   const handleClose = () => {
     onClose();
   };
+
+  // Mostrar loading mientras se cargan los datos
+  if (loading || !direccion) {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-8 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <p className="text-slate-600 dark:text-slate-400">Cargando información...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Obtener el ubigeo, ya sea de la relación o del state
   const ubigeo = direccion.ubigeo || ubigeoInfo;
@@ -125,15 +177,17 @@ export default function DireccionViewModal({ isOpen, onClose, direccion }) {
             </p>
           </div>
 
-          {/* Calle */}
+          {/* Calle - Solo mostrar si existe */}
+          {direccion.calle?.nombre_completo && (
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
               Calle
             </label>
             <p className="text-base text-slate-900 dark:text-white p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
-              {direccion.calle?.nombre_completo || "No especificado"}
+              {direccion.calle.nombre_completo}
             </p>
           </div>
+          )}
 
           {/* Sistema de Direccionamiento */}
           <div className="grid grid-cols-2 gap-4">
