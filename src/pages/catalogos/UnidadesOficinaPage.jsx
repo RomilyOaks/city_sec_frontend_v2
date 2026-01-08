@@ -7,7 +7,17 @@
  */
 
 import { useState, useEffect } from "react";
-import { Plus, Eye, Edit2, Trash2, Search, Building2, MapPin, Clock, Phone } from "lucide-react";
+import {
+  Plus,
+  Eye,
+  Edit2,
+  Trash2,
+  Search,
+  Building2,
+  MapPin,
+  Clock,
+  Phone,
+} from "lucide-react";
 import {
   listUnidadesOficina,
   deleteUnidadOficina,
@@ -18,13 +28,44 @@ import UnidadOficinaFormModal from "../../components/catalogos/UnidadOficinaForm
 import UnidadOficinaViewModal from "../../components/catalogos/UnidadOficinaViewModal";
 
 const TIPOS_UNIDAD = [
-  { value: "SERENAZGO", label: "Serenazgo", color: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200" },
-  { value: "PNP", label: "PNP", color: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" },
-  { value: "BOMBEROS", label: "Bomberos", color: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200" },
-  { value: "AMBULANCIA", label: "Ambulancia", color: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200" },
-  { value: "DEFENSA_CIVIL", label: "Defensa Civil", color: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200" },
-  { value: "TRANSITO", label: "Tránsito", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200" },
-  { value: "OTROS", label: "Otros", color: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200" },
+  {
+    value: "SERENAZGO",
+    label: "Serenazgo",
+    color: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+  },
+  {
+    value: "PNP",
+    label: "PNP",
+    color: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+  },
+  {
+    value: "BOMBEROS",
+    label: "Bomberos",
+    color: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+  },
+  {
+    value: "AMBULANCIA",
+    label: "Ambulancia",
+    color:
+      "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+  },
+  {
+    value: "DEFENSA_CIVIL",
+    label: "Defensa Civil",
+    color:
+      "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
+  },
+  {
+    value: "TRANSITO",
+    label: "Tránsito",
+    color:
+      "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+  },
+  {
+    value: "OTROS",
+    label: "Otros",
+    color: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
+  },
 ];
 
 export default function UnidadesOficinaPage() {
@@ -44,7 +85,7 @@ export default function UnidadesOficinaPage() {
   const [showFormModal, setShowFormModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedUnidad, setSelectedUnidad] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
+  //const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     loadUnidades();
@@ -75,13 +116,13 @@ export default function UnidadesOficinaPage() {
 
   function handleCreate() {
     setSelectedUnidad(null);
-    setIsEditing(false);
+    //setIsEditing(false);
     setShowFormModal(true);
   }
 
   function handleEdit(unidad) {
     setSelectedUnidad(unidad);
-    setIsEditing(true);
+    //setIsEditing(true);
     setShowFormModal(true);
   }
 
@@ -110,20 +151,26 @@ export default function UnidadesOficinaPage() {
       }
     } catch (error) {
       console.error("Error al eliminar unidad:", error);
-      alert(error.response?.data?.message || "Error al eliminar la unidad/oficina");
+      alert(
+        error.response?.data?.message || "Error al eliminar la unidad/oficina"
+      );
     }
   }
 
   function handleCloseFormModal() {
     setShowFormModal(false);
-    setSelectedUnidad(null);
-    setIsEditing(false);
+    // Delay clearing state to avoid passing undefined to modal during close animation
+    setTimeout(() => {
+      setSelectedUnidad(null);
+      //setIsEditing(false);
+    }, 300);
     loadUnidades();
   }
 
   function handleCloseViewModal() {
     setShowViewModal(false);
-    setSelectedUnidad(null);
+    // Delay clearing selectedUnidad to avoid passing undefined to modal during close animation
+    setTimeout(() => setSelectedUnidad(null), 300);
   }
 
   function handleClearFilters() {
@@ -135,12 +182,12 @@ export default function UnidadesOficinaPage() {
   }
 
   function getTipoUnidadLabel(tipo) {
-    const found = TIPOS_UNIDAD.find(t => t.value === tipo);
+    const found = TIPOS_UNIDAD.find((t) => t.value === tipo);
     return found ? found.label : tipo;
   }
 
   function getTipoUnidadColor(tipo) {
-    const found = TIPOS_UNIDAD.find(t => t.value === tipo);
+    const found = TIPOS_UNIDAD.find((t) => t.value === tipo);
     return found ? found.color : "bg-gray-100 text-gray-800";
   }
 
@@ -173,7 +220,10 @@ export default function UnidadesOficinaPage() {
               Buscar
             </label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <Search
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                size={18}
+              />
               <input
                 type="text"
                 placeholder="Buscar por nombre, código, teléfono..."
@@ -194,8 +244,10 @@ export default function UnidadesOficinaPage() {
               className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:border-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
             >
               <option value="">Todos los tipos</option>
-              {TIPOS_UNIDAD.map(tipo => (
-                <option key={tipo.value} value={tipo.value}>{tipo.label}</option>
+              {TIPOS_UNIDAD.map((tipo) => (
+                <option key={tipo.value} value={tipo.value}>
+                  {tipo.label}
+                </option>
               ))}
             </select>
           </div>
@@ -243,7 +295,8 @@ export default function UnidadesOficinaPage() {
 
       {/* Results count */}
       <div className="text-sm text-slate-600 dark:text-slate-400">
-        {totalRecords} {totalRecords === 1 ? "registro encontrado" : "registros encontrados"}
+        {totalRecords}{" "}
+        {totalRecords === 1 ? "registro encontrado" : "registros encontrados"}
       </div>
 
       {/* Table */}
@@ -295,7 +348,10 @@ export default function UnidadesOficinaPage() {
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                 {unidades.map((unidad) => (
-                  <tr key={unidad.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                  <tr
+                    key={unidad.id}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                  >
                     <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-slate-100">
                       <div className="flex items-center gap-2">
                         <Building2 size={16} className="text-slate-400" />
@@ -303,7 +359,11 @@ export default function UnidadesOficinaPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm">
-                      <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${getTipoUnidadColor(unidad.tipo_unidad)}`}>
+                      <span
+                        className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${getTipoUnidadColor(
+                          unidad.tipo_unidad
+                        )}`}
+                      >
                         {getTipoUnidadLabel(unidad.tipo_unidad)}
                       </span>
                     </td>
@@ -319,7 +379,10 @@ export default function UnidadesOficinaPage() {
                     <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
                       <div className="flex items-center gap-1">
                         <MapPin size={14} className="text-slate-400" />
-                        <span className="truncate max-w-[200px]" title={unidad.direccion}>
+                        <span
+                          className="truncate max-w-[200px]"
+                          title={unidad.direccion}
+                        >
                           {unidad.direccion || "-"}
                         </span>
                       </div>
@@ -328,7 +391,9 @@ export default function UnidadesOficinaPage() {
                       <div className="flex items-center gap-1">
                         <Clock size={14} className="text-slate-400" />
                         {unidad.activo_24h ? (
-                          <span className="text-green-600 dark:text-green-400 font-medium">24h</span>
+                          <span className="text-green-600 dark:text-green-400 font-medium">
+                            24h
+                          </span>
                         ) : (
                           <span className="text-xs">
                             {unidad.horario_inicio && unidad.horario_fin
@@ -390,14 +455,14 @@ export default function UnidadesOficinaPage() {
           </div>
           <div className="flex gap-2">
             <button
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
               className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Anterior
             </button>
             <button
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
               className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -412,16 +477,18 @@ export default function UnidadesOficinaPage() {
         <UnidadOficinaFormModal
           isOpen={showFormModal}
           onClose={handleCloseFormModal}
-          unidadInicial={selectedUnidad}
-          isEditing={isEditing}
+          /* unidadInicial={selectedUnidad} */
+          unidadOficina={selectedUnidad}
+          //isEditing={isEditing}
         />
       )}
 
-      {showViewModal && (
+      {showViewModal && selectedUnidad && (
         <UnidadOficinaViewModal
           isOpen={showViewModal}
           onClose={handleCloseViewModal}
-          unidadInicial={selectedUnidad}
+          //unidadInicial={selectedUnidad}
+          unidad={selectedUnidad}
         />
       )}
     </div>

@@ -1,19 +1,23 @@
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
-import { createUnidadOficina, updateUnidadOficina, getUnidadOficinaById } from "../../services/unidadesOficinaService";
+import {
+  createUnidadOficina,
+  updateUnidadOficina,
+  getUnidadOficinaById,
+} from "../../services/unidadesOficinaService";
 import { listUbigeos, getUbigeoByCode } from "../../services/novedadesService";
 import { toast } from "react-hot-toast";
 import { getDefaultUbigeo } from "../../config/defaults";
 
 /**
  * File: src/components/catalogos/UnidadOficinaFormModal.jsx
- * @version 1.0.0
+ * @version 1.0.2
  * @description Modal para crear/editar Unidades y Oficinas
  *
  * FEATURES:
  * - 7 tipos de unidades (SERENAZGO, PNP, BOMBEROS, AMBULANCIA, DEFENSA_CIVIL, TRANSITO, OTROS)
  * - Ubicación GPS con radio de cobertura
- * - Horarios de operación (24h o limitado)
+ * - Horarios de operación (24h o limitado) - Formato HH:MM:SS para backend
  * - Validación en tiempo real
  * - UBIGEO autocomplete
  * - Shortcuts: ESC para cerrar, ALT+G para guardar
@@ -21,7 +25,11 @@ import { getDefaultUbigeo } from "../../config/defaults";
  * @module src/components/catalogos/UnidadOficinaFormModal
  */
 
-export default function UnidadOficinaFormModal({ isOpen, onClose, unidadOficina: unidadOficinaInicial = null }) {
+export default function UnidadOficinaFormModal({
+  isOpen,
+  onClose,
+  unidadOficina: unidadOficinaInicial = null,
+}) {
   const TIPOS_UNIDAD = [
     { value: "SERENAZGO", label: "Serenazgo" },
     { value: "PNP", label: "PNP (Policía Nacional)" },
@@ -56,6 +64,27 @@ export default function UnidadOficinaFormModal({ isOpen, onClose, unidadOficina:
     estado: true,
   });
 
+  // Funciones para convertir formato de tiempo
+  const parseTimeFromBackend = (timeString) => {
+    if (!timeString) return "";
+    // Convierte HH:MM:SS a HH:MM para el input type="time"
+    const parts = timeString.split(":");
+    if (parts.length >= 2) {
+      return `${parts[0]}:${parts[1]}`;
+    }
+    return timeString;
+  };
+
+  const formatTimeForBackend = (timeString) => {
+    if (!timeString) return null;
+    // Asegura formato HH:MM:SS para el backend
+    const parts = timeString.split(":");
+    if (parts.length === 2) {
+      return `${timeString}:00`;
+    }
+    return timeString;
+  };
+
   // Cargar ubigeo por defecto al montar
   useEffect(() => {
     getDefaultUbigeo()
@@ -78,14 +107,25 @@ export default function UnidadOficinaFormModal({ isOpen, onClose, unidadOficina:
 
       try {
         setLoadingUnidad(true);
-        console.log("📍 [UnidadOficinaFormModal] Cargando unidad completa, ID:", unidadOficinaInicial.id);
+        console.log(
+          "📍 [UnidadOficinaFormModal] Cargando unidad completa, ID:",
+          unidadOficinaInicial.id
+        );
 
-        const unidadCompleta = await getUnidadOficinaById(unidadOficinaInicial.id);
+        const unidadCompleta = await getUnidadOficinaById(
+          unidadOficinaInicial.id
+        );
         setUnidadOficina(unidadCompleta);
 
-        console.log("✅ [UnidadOficinaFormModal] Unidad completa cargada:", unidadCompleta);
+        console.log(
+          "✅ [UnidadOficinaFormModal] Unidad completa cargada:",
+          unidadCompleta
+        );
       } catch (error) {
-        console.error("❌ [UnidadOficinaFormModal] Error al cargar unidad completa:", error);
+        console.error(
+          "❌ [UnidadOficinaFormModal] Error al cargar unidad completa:",
+          error
+        );
         setUnidadOficina(unidadOficinaInicial);
       } finally {
         setLoadingUnidad(false);
@@ -104,6 +144,15 @@ export default function UnidadOficinaFormModal({ isOpen, onClose, unidadOficina:
   useEffect(() => {
     if (isOpen && unidadOficina) {
       // MODO EDIT
+      // Si está activo 24h y no tiene horarios, establecer valores por defecto
+      let horario_inicio = parseTimeFromBackend(unidadOficina.horario_inicio);
+      let horario_fin = parseTimeFromBackend(unidadOficina.horario_fin);
+
+      if (unidadOficina.activo_24h && (!horario_inicio || !horario_fin)) {
+        horario_inicio = "00:00";
+        horario_fin = "23:59";
+      }
+
       setFormData({
         nombre: unidadOficina.nombre || "",
         tipo_unidad: unidadOficina.tipo_unidad || "",
@@ -115,10 +164,14 @@ export default function UnidadOficinaFormModal({ isOpen, onClose, unidadOficina:
         latitud: unidadOficina.latitud || "",
         longitud: unidadOficina.longitud || "",
         radio_cobertura_km: unidadOficina.radio_cobertura_km || "",
-        activo_24h: unidadOficina.activo_24h !== undefined ? unidadOficina.activo_24h : true,
-        horario_inicio: unidadOficina.horario_inicio || "",
-        horario_fin: unidadOficina.horario_fin || "",
-        estado: unidadOficina.estado !== undefined ? unidadOficina.estado : true,
+        activo_24h:
+          unidadOficina.activo_24h !== undefined
+            ? unidadOficina.activo_24h
+            : true,
+        horario_inicio: horario_inicio,
+        horario_fin: horario_fin,
+        estado:
+          unidadOficina.estado !== undefined ? unidadOficina.estado : true,
       });
 
       // Mostrar ubigeo si existe
@@ -133,6 +186,10 @@ export default function UnidadOficinaFormModal({ isOpen, onClose, unidadOficina:
       }
     } else if (isOpen && !unidadOficina && defaultUbigeo) {
       // MODO CREATE: Inicializar con valores por defecto
+      // Al crear, si activo_24h es true, llenar automáticamente los horarios
+      const horario_inicio = "00:00";
+      const horario_fin = "23:59";
+
       setFormData({
         nombre: "",
         tipo_unidad: "",
@@ -145,11 +202,13 @@ export default function UnidadOficinaFormModal({ isOpen, onClose, unidadOficina:
         longitud: "",
         radio_cobertura_km: "",
         activo_24h: true,
-        horario_inicio: "",
-        horario_fin: "",
+        horario_inicio: horario_inicio,
+        horario_fin: horario_fin,
         estado: true,
       });
-      setUbigeoSearch(`${defaultUbigeo.distrito} - ${defaultUbigeo.provincia}, ${defaultUbigeo.departamento}`);
+      setUbigeoSearch(
+        `${defaultUbigeo.distrito} - ${defaultUbigeo.provincia}, ${defaultUbigeo.departamento}`
+      );
     }
   }, [isOpen, unidadOficina, defaultUbigeo]);
 
@@ -157,7 +216,9 @@ export default function UnidadOficinaFormModal({ isOpen, onClose, unidadOficina:
     try {
       const ubigeo = await getUbigeoByCode(code);
       if (ubigeo) {
-        setUbigeoSearch(`${ubigeo.distrito} - ${ubigeo.provincia}, ${ubigeo.departamento}`);
+        setUbigeoSearch(
+          `${ubigeo.distrito} - ${ubigeo.provincia}, ${ubigeo.departamento}`
+        );
       } else {
         setUbigeoSearch("");
       }
@@ -210,10 +271,35 @@ export default function UnidadOficinaFormModal({ isOpen, onClose, unidadOficina:
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+
+    // Si es el checkbox de 24h, manejar lógica especial
+    if (name === "activo_24h") {
+      const newActivo24h = checked;
+
+      // Si se marca 24h, llenar automáticamente los horarios
+      if (newActivo24h) {
+        setFormData((prev) => ({
+          ...prev,
+          activo_24h: newActivo24h,
+          horario_inicio: "00:00",
+          horario_fin: "23:59",
+        }));
+      } else {
+        // Si se desmarca 24h, limpiar los horarios
+        setFormData((prev) => ({
+          ...prev,
+          activo_24h: newActivo24h,
+          horario_inicio: "",
+          horario_fin: "",
+        }));
+      }
+    } else {
+      // Para otros campos, comportamiento normal
+      setFormData((prev) => ({
+        ...prev,
+        [name]: type === "checkbox" ? checked : value,
+      }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -235,10 +321,18 @@ export default function UnidadOficinaFormModal({ isOpen, onClose, unidadOficina:
       return;
     }
 
-    // Si no es activo_24h, validar horarios
+    // Si no es activo_24h, validar que los horarios estén completos
     if (!formData.activo_24h) {
       if (!formData.horario_inicio || !formData.horario_fin) {
-        toast.error("Debe especificar horario de inicio y fin cuando no opera 24h");
+        toast.error(
+          "Debe especificar horario de inicio y fin cuando no opera 24h"
+        );
+        return;
+      }
+
+      // Validar que la hora de fin sea mayor a la hora de inicio
+      if (formData.horario_inicio >= formData.horario_fin) {
+        toast.error("La hora de fin debe ser mayor a la hora de inicio");
         return;
       }
     }
@@ -246,7 +340,7 @@ export default function UnidadOficinaFormModal({ isOpen, onClose, unidadOficina:
     try {
       setLoading(true);
 
-      // Preparar payload
+      // Preparar payload con formato correcto para backend
       const payload = {
         nombre: formData.nombre.trim(),
         tipo_unidad: formData.tipo_unidad,
@@ -259,8 +353,13 @@ export default function UnidadOficinaFormModal({ isOpen, onClose, unidadOficina:
         longitud: formData.longitud || null,
         radio_cobertura_km: formData.radio_cobertura_km || null,
         activo_24h: formData.activo_24h,
-        horario_inicio: formData.activo_24h ? null : formData.horario_inicio || null,
-        horario_fin: formData.activo_24h ? null : formData.horario_fin || null,
+        // Siempre enviar en formato HH:MM:SS, incluso para 24h
+        horario_inicio: formData.activo_24h
+          ? "00:00:00"
+          : formatTimeForBackend(formData.horario_inicio) || null,
+        horario_fin: formData.activo_24h
+          ? "23:59:59"
+          : formatTimeForBackend(formData.horario_fin) || null,
         estado: formData.estado,
       };
 
@@ -329,7 +428,11 @@ export default function UnidadOficinaFormModal({ isOpen, onClose, unidadOficina:
         </div>
 
         {/* Form */}
-        <form id="unidad-oficina-form" onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form
+          id="unidad-oficina-form"
+          onSubmit={handleSubmit}
+          className="p-6 space-y-6"
+        >
           {/* Loading Spinner */}
           {loadingUnidad && unidadOficinaInicial && (
             <div className="flex items-center justify-center py-8">
@@ -447,7 +550,10 @@ export default function UnidadOficinaFormModal({ isOpen, onClose, unidadOficina:
                     onChange={handleChange}
                     className="w-4 h-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
                   />
-                  <label htmlFor="estado" className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                  <label
+                    htmlFor="estado"
+                    className="text-sm font-medium text-slate-700 dark:text-slate-200"
+                  >
                     Unidad activa
                   </label>
                 </div>
@@ -514,7 +620,10 @@ export default function UnidadOficinaFormModal({ isOpen, onClose, unidadOficina:
                             setShowUbigeoDropdown(false);
                           }
                         }}
-                        onFocus={() => ubigeoOptions.length > 0 && setShowUbigeoDropdown(true)}
+                        onFocus={() =>
+                          ubigeoOptions.length > 0 &&
+                          setShowUbigeoDropdown(true)
+                        }
                         placeholder="Buscar distrito..."
                         className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
                         required
@@ -526,8 +635,13 @@ export default function UnidadOficinaFormModal({ isOpen, onClose, unidadOficina:
                               key={u.ubigeo_code}
                               type="button"
                               onClick={() => {
-                                setFormData((prev) => ({ ...prev, ubigeo_code: u.ubigeo_code }));
-                                setUbigeoSearch(`${u.distrito} - ${u.provincia}, ${u.departamento}`);
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  ubigeo_code: u.ubigeo_code,
+                                }));
+                                setUbigeoSearch(
+                                  `${u.distrito} - ${u.provincia}, ${u.departamento}`
+                                );
                                 setShowUbigeoDropdown(false);
                               }}
                               className="w-full px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-700 flex justify-between"
@@ -538,7 +652,9 @@ export default function UnidadOficinaFormModal({ isOpen, onClose, unidadOficina:
                                   {u.provincia} - {u.departamento}
                                 </span>
                               </span>
-                              <span className="text-xs font-mono text-primary-600">{u.ubigeo_code}</span>
+                              <span className="text-xs font-mono text-primary-600">
+                                {u.ubigeo_code}
+                              </span>
                             </button>
                           ))}
                         </div>
@@ -616,44 +732,96 @@ export default function UnidadOficinaFormModal({ isOpen, onClose, unidadOficina:
                     onChange={handleChange}
                     className="w-4 h-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
                   />
-                  <label htmlFor="activo_24h" className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                  <label
+                    htmlFor="activo_24h"
+                    className="text-sm font-medium text-slate-700 dark:text-slate-200"
+                  >
                     Opera 24 horas
                   </label>
+                  {formData.activo_24h && (
+                    <span className="text-xs text-green-600 dark:text-green-400 italic">
+                      (Se enviará como 00:00:00 - 23:59:59 al backend)
+                    </span>
+                  )}
                 </div>
 
-                {/* Horarios (solo si NO es 24h) */}
-                {!formData.activo_24h && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                        Hora Inicio <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="time"
-                        step="1"
-                        name="horario_inicio"
-                        value={formData.horario_inicio}
-                        onChange={handleChange}
-                        className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
-                        required={!formData.activo_24h}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                        Hora Fin <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="time"
-                        step="1"
-                        name="horario_fin"
-                        value={formData.horario_fin}
-                        onChange={handleChange}
-                        className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
-                        required={!formData.activo_24h}
-                      />
-                    </div>
+                {/* Horarios */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Hora Inicio{" "}
+                      {!formData.activo_24h && (
+                        <span className="text-red-500">*</span>
+                      )}
+                    </label>
+                    <input
+                      type="time"
+                      step="1"
+                      name="horario_inicio"
+                      value={formData.horario_inicio}
+                      onChange={handleChange}
+                      className={`w-full rounded-lg border px-3 py-2 ${
+                        formData.activo_24h
+                          ? "border-slate-300 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 cursor-not-allowed"
+                          : "border-slate-300 bg-white text-slate-900 dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-50"
+                      }`}
+                      required={!formData.activo_24h}
+                      disabled={formData.activo_24h}
+                      title={
+                        formData.activo_24h
+                          ? "Horario automático para 24 horas"
+                          : ""
+                      }
+                    />
+                    {formData.activo_24h && (
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        Se enviará como 00:00:00 al backend
+                      </p>
+                    )}
+                    {!formData.activo_24h && (
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        Formato: HH:MM (se convertirá a HH:MM:SS)
+                      </p>
+                    )}
                   </div>
-                )}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      Hora Fin{" "}
+                      {!formData.activo_24h && (
+                        <span className="text-red-500">*</span>
+                      )}
+                    </label>
+                    <input
+                      type="time"
+                      step="1"
+                      name="horario_fin"
+                      value={formData.horario_fin}
+                      onChange={handleChange}
+                      className={`w-full rounded-lg border px-3 py-2 ${
+                        formData.activo_24h
+                          ? "border-slate-300 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 cursor-not-allowed"
+                          : "border-slate-300 bg-white text-slate-900 dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-50"
+                      }`}
+                      required={!formData.activo_24h}
+                      disabled={formData.activo_24h}
+                      title={
+                        formData.activo_24h
+                          ? "Horario automático para 24 horas"
+                          : ""
+                      }
+                    />
+                    {formData.activo_24h && (
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        Se enviará como 23:59:59 al backend
+                      </p>
+                    )}
+                    {!formData.activo_24h && (
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        Formato: HH:MM (se convertirá a HH:MM:SS)
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
             </>
           )}
@@ -674,7 +842,11 @@ export default function UnidadOficinaFormModal({ isOpen, onClose, unidadOficina:
             disabled={loading}
             className="inline-flex items-center gap-2 rounded-lg bg-primary-700 px-4 py-2 text-sm font-medium text-white hover:bg-primary-800 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? "Guardando..." : unidadOficina ? "Actualizar" : "Crear Unidad/Oficina"}
+            {loading
+              ? "Guardando..."
+              : unidadOficina
+              ? "Actualizar"
+              : "Crear Unidad/Oficina"}
           </button>
         </div>
       </div>

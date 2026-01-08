@@ -19,7 +19,18 @@ import { getUnidadOficinaById } from "../../services/unidadesOficinaService";
  * @param {Function} props.onClose - Callback al cerrar
  * @param {Object} props.unidad - Unidad inicial (puede no tener relaciones)
  */
-export default function UnidadOficinaViewModal({ isOpen, onClose, unidad: unidadInicial }) {
+export default function UnidadOficinaViewModal({
+  isOpen,
+  onClose,
+  unidad: unidadInicial,
+}) {
+  console.log(
+    "🔵 [UnidadOficinaViewModal] Renderizando componente. isOpen:",
+    isOpen,
+    "unidadInicial:",
+    unidadInicial
+  );
+
   const [ubigeoInfo, setUbigeoInfo] = useState(null);
   const [unidad, setUnidad] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -27,6 +38,13 @@ export default function UnidadOficinaViewModal({ isOpen, onClose, unidad: unidad
 
   // Cargar unidad completa con todas las relaciones desde el backend
   useEffect(() => {
+    console.log(
+      "🔶 [UnidadOficinaViewModal] useEffect disparado. isOpen:",
+      isOpen,
+      "unidadInicial:",
+      unidadInicial
+    );
+
     const loadUnidadCompleta = async () => {
       if (!unidadInicial) {
         console.warn("⚠️ [UnidadOficinaViewModal] No hay unidadInicial");
@@ -37,10 +55,14 @@ export default function UnidadOficinaViewModal({ isOpen, onClose, unidad: unidad
 
       // Si la unidad inicial ya tiene todos los datos necesarios, usarla directamente
       // Verificar si tiene los campos esenciales
-      const tieneDatosCompletos = unidadInicial.nombre && unidadInicial.tipo_unidad;
+      const tieneDatosCompletos =
+        unidadInicial.nombre && unidadInicial.tipo_unidad;
 
       if (tieneDatosCompletos) {
-        console.log("✅ [UnidadOficinaViewModal] Usando datos de unidadInicial (ya completos):", unidadInicial);
+        console.log(
+          "✅ [UnidadOficinaViewModal] Usando datos de unidadInicial (ya completos):",
+          unidadInicial
+        );
         setUnidad(unidadInicial);
         setLoading(false);
         return;
@@ -48,7 +70,9 @@ export default function UnidadOficinaViewModal({ isOpen, onClose, unidad: unidad
 
       // Si no tiene datos completos, intentar cargar desde el backend
       if (!unidadInicial.id) {
-        console.warn("⚠️ [UnidadOficinaViewModal] unidadInicial no tiene ID y tampoco datos completos");
+        console.warn(
+          "⚠️ [UnidadOficinaViewModal] unidadInicial no tiene ID y tampoco datos completos"
+        );
         setUnidad(unidadInicial);
         setLoading(false);
         return;
@@ -57,11 +81,17 @@ export default function UnidadOficinaViewModal({ isOpen, onClose, unidad: unidad
       try {
         setLoading(true);
         setError(null);
-        console.log("🏢 [UnidadOficinaViewModal] Cargando unidad/oficina completa desde backend, ID:", unidadInicial.id);
+        console.log(
+          "🏢 [UnidadOficinaViewModal] Cargando unidad/oficina completa desde backend, ID:",
+          unidadInicial.id
+        );
 
         const unidadCompleta = await getUnidadOficinaById(unidadInicial.id);
 
-        console.log("✅ [UnidadOficinaViewModal] Unidad/oficina completa cargada:", unidadCompleta);
+        console.log(
+          "✅ [UnidadOficinaViewModal] Unidad/oficina completa cargada:",
+          unidadCompleta
+        );
         console.log("  - Nombre:", unidadCompleta?.nombre);
         console.log("  - Tipo:", unidadCompleta?.tipo_unidad);
         console.log("  - Ubigeo:", unidadCompleta?.ubigeo);
@@ -69,11 +99,16 @@ export default function UnidadOficinaViewModal({ isOpen, onClose, unidad: unidad
         if (unidadCompleta && unidadCompleta.id) {
           setUnidad(unidadCompleta);
         } else {
-          console.warn("⚠️ La respuesta no contiene datos válidos, usando unidadInicial");
+          console.warn(
+            "⚠️ La respuesta no contiene datos válidos, usando unidadInicial"
+          );
           setUnidad(unidadInicial);
         }
       } catch (error) {
-        console.error("❌ [UnidadOficinaViewModal] Error al cargar unidad/oficina completa:", error);
+        console.error(
+          "❌ [UnidadOficinaViewModal] Error al cargar unidad/oficina completa:",
+          error
+        );
         console.error("  - Error mensaje:", error.message);
         console.error("  - Error response:", error.response?.data);
         // Si falla, usar la unidad inicial
@@ -141,7 +176,9 @@ export default function UnidadOficinaViewModal({ isOpen, onClose, unidad: unidad
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
         <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-8 text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-          <p className="text-slate-600 dark:text-slate-400">Cargando información...</p>
+          <p className="text-slate-600 dark:text-slate-400">
+            Cargando información...
+          </p>
         </div>
       </div>
     );
@@ -152,8 +189,14 @@ export default function UnidadOficinaViewModal({ isOpen, onClose, unidad: unidad
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
         <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-8 text-center max-w-md">
-          <p className="text-red-600 dark:text-red-400 mb-4">No se pudo cargar la información</p>
-          {error && <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">{error}</p>}
+          <p className="text-red-600 dark:text-red-400 mb-4">
+            No se pudo cargar la información
+          </p>
+          {error && (
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+              {error}
+            </p>
+          )}
           <button
             onClick={handleClose}
             className="rounded-lg bg-primary-700 px-4 py-2 text-sm font-medium text-white hover:bg-primary-800"
@@ -183,7 +226,8 @@ export default function UnidadOficinaViewModal({ isOpen, onClose, unidad: unidad
 
   // Formatear estado
   const formatEstado = (estado) => {
-    return estado === 1 ? "Activo" : "Inactivo";
+    const estadoNum = Number(estado);
+    return estadoNum === 1 ? "Activo" : "Inactivo";
   };
 
   return (
@@ -193,7 +237,10 @@ export default function UnidadOficinaViewModal({ isOpen, onClose, unidad: unidad
         <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between">
           <div>
             <h2 className="text-xl font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-              <Building2 size={24} className="text-primary-600 dark:text-primary-400" />
+              <Building2
+                size={24}
+                className="text-primary-600 dark:text-primary-400"
+              />
               Información de Unidad/Oficina
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
@@ -250,7 +297,7 @@ export default function UnidadOficinaViewModal({ isOpen, onClose, unidad: unidad
             <p className="text-base text-slate-900 dark:text-white p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
               <span
                 className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  unidad.estado === 1
+                  Number(unidad.estado) === 1
                     ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
                     : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
                 }`}
@@ -319,7 +366,8 @@ export default function UnidadOficinaViewModal({ isOpen, onClose, unidad: unidad
                     </p>
                     {ubigeo && (
                       <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-                        {ubigeo.distrito} - {ubigeo.provincia}, {ubigeo.departamento}
+                        {ubigeo.distrito} - {ubigeo.provincia},{" "}
+                        {ubigeo.departamento}
                       </p>
                     )}
                   </div>
@@ -379,26 +427,27 @@ export default function UnidadOficinaViewModal({ isOpen, onClose, unidad: unidad
                   )}
                 </p>
               </div>
-              {unidad.activo_24h === 0 && (unidad.horario_inicio || unidad.horario_fin) && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      Hora de Inicio
-                    </label>
-                    <p className="text-base font-mono text-slate-900 dark:text-white p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
-                      {unidad.horario_inicio || "-"}
-                    </p>
+              {unidad.activo_24h === 0 &&
+                (unidad.horario_inicio || unidad.horario_fin) && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Hora de Inicio
+                      </label>
+                      <p className="text-base font-mono text-slate-900 dark:text-white p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+                        {unidad.horario_inicio || "-"}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Hora de Fin
+                      </label>
+                      <p className="text-base font-mono text-slate-900 dark:text-white p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+                        {unidad.horario_fin || "-"}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      Hora de Fin
-                    </label>
-                    <p className="text-base font-mono text-slate-900 dark:text-white p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
-                      {unidad.horario_fin || "-"}
-                    </p>
-                  </div>
-                </div>
-              )}
+                )}
             </div>
           </div>
 
@@ -413,7 +462,9 @@ export default function UnidadOficinaViewModal({ isOpen, onClose, unidad: unidad
                   Creado Por
                 </label>
                 <p className="text-base text-slate-900 dark:text-white">
-                  {unidad.creadorUnidadOficina?.username || unidad.created_by || "-"}
+                  {unidad.creadorUnidadOficina?.username ||
+                    unidad.created_by ||
+                    "-"}
                 </p>
               </div>
               <div>
@@ -421,7 +472,9 @@ export default function UnidadOficinaViewModal({ isOpen, onClose, unidad: unidad
                   Fecha de Creación
                 </label>
                 <p className="text-base text-slate-900 dark:text-white">
-                  {unidad.created_at ? new Date(unidad.created_at).toLocaleString("es-PE") : "-"}
+                  {unidad.created_at
+                    ? new Date(unidad.created_at).toLocaleString("es-PE")
+                    : "-"}
                 </p>
               </div>
               <div>
@@ -429,7 +482,9 @@ export default function UnidadOficinaViewModal({ isOpen, onClose, unidad: unidad
                   Actualizado Por
                 </label>
                 <p className="text-base text-slate-900 dark:text-white">
-                  {unidad.actualizadorUnidadOficina?.username || unidad.updated_by || "-"}
+                  {unidad.actualizadorUnidadOficina?.username ||
+                    unidad.updated_by ||
+                    "-"}
                 </p>
               </div>
               <div>
@@ -437,7 +492,9 @@ export default function UnidadOficinaViewModal({ isOpen, onClose, unidad: unidad
                   Última Actualización
                 </label>
                 <p className="text-base text-slate-900 dark:text-white">
-                  {unidad.updated_at ? new Date(unidad.updated_at).toLocaleString("es-PE") : "-"}
+                  {unidad.updated_at
+                    ? new Date(unidad.updated_at).toLocaleString("es-PE")
+                    : "-"}
                 </p>
               </div>
             </div>
