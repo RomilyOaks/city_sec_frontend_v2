@@ -11,13 +11,13 @@ import api from "./api";
  */
 export async function listSectores({
   page = 1,
-  limit = 20,
+  limit = 100,
   search,
 } = {}) {
   const params = new URLSearchParams();
   params.append("page", page);
   params.append("limit", limit);
-  params.append("estado", "1"); // Solo sectores activos
+  // No enviamos el parámetro estado ya que el backend no lo acepta
   if (search) params.append("search", search);
 
   const url = `/sectores?${params.toString()}`;

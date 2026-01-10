@@ -63,6 +63,13 @@ export const ROUTE_ACCESS = {
     ROLE_SLUGS.OPERADOR,
     ROLE_SLUGS.CONSULTA,
   ],
+  operativos_turnos: [
+    ROLE_SLUGS.SUPER_ADMIN,
+    ROLE_SLUGS.ADMIN,
+    ROLE_SLUGS.SUPERVISOR,
+    ROLE_SLUGS.OPERADOR,
+    ROLE_SLUGS.CONSULTA,
+  ],
 };
 
 // Mapeo de rutas a permisos requeridos (del backend)
@@ -77,6 +84,7 @@ export const ROUTE_PERMISSIONS = {
   calles_sectores_cuadrantes: ["calles.sectores.read", "calles.cuadrantes.read"],
   calles_calles_cuadrantes: ["calles.calles_cuadrantes.read"],
   calles_direcciones: ["calles.direcciones.read"],
+  operativos_turnos: ["operativos.turnos.read"],
   reportes: [
     "reportes.novedades.read",
     "reportes.personal.read",
@@ -148,6 +156,11 @@ export const ACTION_PERMISSIONS = {
   direcciones_update: ["calles.direcciones.update"],
   direcciones_delete: ["calles.direcciones.delete"],
   direcciones_geocodificar: ["calles.direcciones.geocodificar", "calles.direcciones.update"],
+
+  // Operativos de Turno
+  operativos_turnos_create: ["operativos.turnos.create"],
+  operativos_turnos_update: ["operativos.turnos.update"],
+  operativos_turnos_delete: ["operativos.turnos.delete"],
 };
 
 export function getUserRoleSlugs(user) {

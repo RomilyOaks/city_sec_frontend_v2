@@ -35,6 +35,7 @@ import {
   Trash2,
   Building2,
   Lock,
+  Clipboard,
 } from "lucide-react";
 
 import ThemeToggle from "../components/common/ThemeToggle.jsx";
@@ -241,6 +242,17 @@ export default function AppShell() {
               <SidebarLink to="/vehiculos" icon={Car}>
                 Vehículos
               </SidebarLink>
+            )}
+
+            {/* ============================================
+                OPERATIVOS DE PATRULLAJE - MENÚ DESPLEGABLE
+                ============================================ */}
+            {canAccess("operativos_turnos") && (
+              <SidebarDropdown icon={Clipboard} label="Operativos de Patrullaje">
+                <SidebarLink to="/operativos/turnos" icon={Clipboard}>
+                  Operativos por Turnos
+                </SidebarLink>
+              </SidebarDropdown>
             )}
 
             {/* ============================================

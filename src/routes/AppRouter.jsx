@@ -43,6 +43,11 @@ import DireccionesEliminadasPage from "../pages/direcciones/DireccionesEliminada
 // ============================================
 import UnidadesOficinaPage from "../pages/catalogos/UnidadesOficinaPage.jsx";
 
+// ============================================
+// IMPORTAR PÁGINAS DEL MÓDULO OPERATIVOS
+// ============================================
+import OperativosTurnoPage from "../pages/operativos/OperativosTurnoPage.jsx";
+
 /**
  * AppRouter - Router principal con rutas públicas y protegidas
  *
@@ -114,6 +119,18 @@ export default function AppRouter() {
           element={
             <ProtectedRoute allowedRoles={ROUTE_ACCESS.novedades}>
               <NovedadesPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ============================================
+            MÓDULO OPERATIVOS DE PATRULLAJE
+            ============================================ */}
+        <Route
+          path="operativos/turnos"
+          element={
+            <ProtectedRoute allowedRoles={ROUTE_ACCESS.operativos_turnos}>
+              <OperativosTurnoPage />
             </ProtectedRoute>
           }
         />
