@@ -9,6 +9,7 @@
 import { useEffect, useState, useRef } from "react";
 import toast from "react-hot-toast";
 import {
+  Car,
   ChevronLeft,
   ChevronRight,
   Clock,
@@ -35,6 +36,7 @@ import { listPersonal } from "../../services/personalService.js";
 import { listSectores } from "../../services/sectoresService.js";
 import { useAuthStore } from "../../store/useAuthStore.js";
 import { canPerformAction } from "../../rbac/rbac.js";
+import OperativosVehiculosModal from "./vehiculos/OperativosVehiculosModal.jsx";
 
 // Opciones de turno según documentación
 const TURNO_OPTIONS = [
@@ -170,6 +172,8 @@ export default function OperativosTurnoPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingOperativo, setEditingOperativo] = useState(null);
   const [viewingOperativo, setViewingOperativo] = useState(null);
+  const [showVehiculosModal, setShowVehiculosModal] = useState(false);
+  const [selectedTurno, setSelectedTurno] = useState(null);
   const [formData, setFormData] = useState(initialFormData);
   const [saving, setSaving] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
@@ -1031,6 +1035,16 @@ export default function OperativosTurnoPage() {
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <button
+                          onClick={() => {
+                            setSelectedTurno(op);
+                            setShowVehiculosModal(true);
+                          }}
+                          className="p-2 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                          title="Vehículos del turno"
+                        >
+                          <Car size={14} />
+                        </button>
+                        <button
                           onClick={() => setViewingOperativo(op)}
                           className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                           title="Ver detalle"
@@ -1302,6 +1316,16 @@ export default function OperativosTurnoPage() {
           </div>
         </div>
       )}
+
+      {/* Modal Vehículos */}
+      <OperativosVehiculosModal
+        isOpen={showVehiculosModal}
+        onClose={() => {
+          setShowVehiculosModal(false);
+          setSelectedTurno(null);
+        }}
+        turno={selectedTurno}
+      />
     </div>
   );
 }
