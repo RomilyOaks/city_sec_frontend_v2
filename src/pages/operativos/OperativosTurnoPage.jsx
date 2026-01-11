@@ -158,7 +158,9 @@ export default function OperativosTurnoPage() {
   const [page, setPage] = useState(1);
 
   // Filtros
-  const [search, setSearch] = useState("");
+  const [searchTerm, setSearchTerm] = useState(""); // Valor inmediato del input
+  const [search, setSearch] = useState(""); // Valor con debounce que se envía al backend
+  const [isSearching, setIsSearching] = useState(false); // Indicador de búsqueda activa
   const [filterSector, setFilterSector] = useState("");
   const [filterFecha, setFilterFecha] = useState("");
   const [filterTurno, setFilterTurno] = useState("");
@@ -252,7 +254,7 @@ export default function OperativosTurnoPage() {
         sector_id: filterSector || undefined,
         fecha: filterFecha || undefined,
         turno: filterTurno || undefined,
-        estado: filterEstado !== "" ? Number(filterEstado) : undefined,
+        estado: filterEstado || undefined,
         search: search || undefined,
       });
 
@@ -266,9 +268,26 @@ export default function OperativosTurnoPage() {
     }
   };
 
+  // Debounce para el campo de búsqueda de texto
+  // Espera 500ms después de que el usuario deje de escribir antes de aplicar el filtro
+  useEffect(() => {
+    // Si hay texto en búsqueda y es diferente al valor actual, activar indicador
+    if (searchTerm !== search) {
+      setIsSearching(true);
+    }
+
+    const timer = setTimeout(() => {
+      setSearch(searchTerm);
+      setPage(1); // Resetear a página 1 cuando cambia la búsqueda
+      setIsSearching(false); // Desactivar indicador cuando se ejecuta la búsqueda
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
   useEffect(() => {
     fetchOperativos({ nextPage: page });
-  }, [page, filterSector, filterTurno, filterEstado, filterFecha]);
+  }, [page, filterSector, filterTurno, filterEstado, filterFecha, search]);
 
   // Pre-cargar operador_id cuando se abra el modal de creación
   useEffect(() => {
@@ -279,11 +298,6 @@ export default function OperativosTurnoPage() {
       }));
     }
   }, [showCreateModal, user]);
-
-  const handleSearch = () => {
-    setPage(1);
-    fetchOperativos({ nextPage: 1 });
-  };
 
   const handleDelete = async (operativo) => {
     const confirmed = window.confirm(
@@ -407,15 +421,25 @@ export default function OperativosTurnoPage() {
     try {
       const payload = {
         operador_id: Number(formData.operador_id),
-        supervisor_id: formData.supervisor_id ? Number(formData.supervisor_id) : undefined,
         sector_id: Number(formData.sector_id),
         fecha: formData.fecha,
-        fecha_hora_inicio: formData.fecha_hora_inicio || undefined,
-        fecha_hora_fin: formData.fecha_hora_fin || undefined,
         turno: formData.turno,
-        estado: (formData.estado === 0 || formData.estado === false) ? "INACTIVO" : "ACTIVO",
-        observaciones: formData.observaciones?.trim() || undefined,
+        estado: formData.estado === "ACTIVO" || formData.estado === 1 || formData.estado === true ? "ACTIVO" : "INACTIVO",
       };
+
+      // Agregar campos opcionales solo si tienen valor
+      if (formData.supervisor_id) {
+        payload.supervisor_id = Number(formData.supervisor_id);
+      }
+      if (formData.fecha_hora_inicio) {
+        payload.fecha_hora_inicio = formData.fecha_hora_inicio;
+      }
+      if (formData.fecha_hora_fin) {
+        payload.fecha_hora_fin = formData.fecha_hora_fin;
+      }
+      if (formData.observaciones?.trim()) {
+        payload.observaciones = formData.observaciones.trim();
+      }
 
       await updateOperativosTurno(editingOperativo.id, payload);
       toast.success("Turno operativo actualizado exitosamente");
@@ -541,7 +565,7 @@ export default function OperativosTurnoPage() {
         <div className="col-span-2">
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
             <User size={16} className="inline mr-1" />
-            Operador * <span className="text-xs text-slate-500 dark:text-slate-400">(Usuario actual)</span>
+            Operador * {!editingOperativo && <span className="text-xs text-slate-500 dark:text-slate-400">(Pre-cargado)</span>}
           </label>
           <select
             value={formData.operador_id}
@@ -549,7 +573,11 @@ export default function OperativosTurnoPage() {
               setFormData({ ...formData, operador_id: e.target.value })
             }
             disabled={!editingOperativo}
-            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/50 px-3 py-2 text-slate-900 dark:text-slate-50 cursor-not-allowed"
+            className={`w-full rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-slate-900 dark:text-slate-50 ${
+              !editingOperativo
+                ? 'bg-slate-100 dark:bg-slate-800/50 cursor-not-allowed'
+                : 'bg-white dark:bg-slate-950/40'
+            }`}
           >
             <option value="">— Seleccione operador —</option>
             {personal.length === 0 ? (
@@ -582,7 +610,7 @@ export default function OperativosTurnoPage() {
         <div className="col-span-2">
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
             <MapPin size={16} className="inline mr-1" />
-            Sector *
+            Sector * {editingOperativo && <span className="text-xs text-slate-500 dark:text-slate-400">(No editable)</span>}
           </label>
           <select
             value={formData.sector_id}
@@ -599,7 +627,12 @@ export default function OperativosTurnoPage() {
                 supervisor_id: nuevoSupervisor
               });
             }}
-            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+            disabled={!!editingOperativo}
+            className={`w-full rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-slate-900 dark:text-slate-50 ${
+              editingOperativo
+                ? 'bg-slate-100 dark:bg-slate-800/50 cursor-not-allowed'
+                : 'bg-white dark:bg-slate-950/40'
+            }`}
           >
             <option value="">— Seleccione sector —</option>
             {sectores.length === 0 ? (
@@ -654,7 +687,7 @@ export default function OperativosTurnoPage() {
         <div>
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
             <Calendar size={16} className="inline mr-1" />
-            Fecha *
+            Fecha * {editingOperativo && <span className="text-xs text-slate-500 dark:text-slate-400">(No editable)</span>}
           </label>
           <input
             type="date"
@@ -662,7 +695,12 @@ export default function OperativosTurnoPage() {
             onChange={(e) =>
               setFormData({ ...formData, fecha: e.target.value })
             }
-            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+            disabled={!!editingOperativo}
+            className={`w-full rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-slate-900 dark:text-slate-50 ${
+              editingOperativo
+                ? 'bg-slate-100 dark:bg-slate-800/50 cursor-not-allowed'
+                : 'bg-white dark:bg-slate-950/40'
+            }`}
           />
         </div>
 
@@ -670,14 +708,19 @@ export default function OperativosTurnoPage() {
         <div>
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
             <Clock size={16} className="inline mr-1" />
-            Turno *
+            Turno * {editingOperativo && <span className="text-xs text-slate-500 dark:text-slate-400">(No editable)</span>}
           </label>
           <select
             value={formData.turno}
             onChange={(e) =>
               setFormData({ ...formData, turno: e.target.value })
             }
-            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+            disabled={!!editingOperativo}
+            className={`w-full rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-slate-900 dark:text-slate-50 ${
+              editingOperativo
+                ? 'bg-slate-100 dark:bg-slate-800/50 cursor-not-allowed'
+                : 'bg-white dark:bg-slate-950/40'
+            }`}
           >
             {TURNO_OPTIONS.map((t) => (
               <option key={t.value} value={t.value}>
@@ -790,50 +833,17 @@ export default function OperativosTurnoPage() {
 
       {/* Filtros */}
       <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-          {/* Búsqueda */}
-          <div className="relative lg:col-span-2">
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-              size={18}
-            />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              placeholder="Buscar por operador, supervisor..."
-              className="w-full pl-10 pr-10 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50 placeholder:text-slate-400"
-            />
-            {search && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearch("");
-                  setPage(1);
-                }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-              >
-                <X size={16} />
-              </button>
-            )}
-          </div>
-
-          {/* Filtro Sector */}
-          <select
-            value={filterSector}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
+          {/* Filtro Fecha */}
+          <input
+            type="date"
+            value={filterFecha}
             onChange={(e) => {
-              setFilterSector(e.target.value);
+              setFilterFecha(e.target.value);
               setPage(1);
             }}
             className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
-          >
-            <option value="">Todos los sectores</option>
-            {sectores.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.nombre || s.sector}
-              </option>
-            ))}
-          </select>
+          />
 
           {/* Filtro Turno */}
           <select
@@ -852,30 +862,77 @@ export default function OperativosTurnoPage() {
             ))}
           </select>
 
-          {/* Filtro Fecha */}
-          <input
-            type="date"
-            value={filterFecha}
+          {/* Filtro Sector */}
+          <select
+            value={filterSector}
             onChange={(e) => {
-              setFilterFecha(e.target.value);
+              setFilterSector(e.target.value);
               setPage(1);
             }}
             className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
-          />
-
-          {/* Botón Buscar */}
-          <button
-            onClick={handleSearch}
-            className="rounded-lg bg-slate-800 dark:bg-slate-700 text-white px-4 py-2 text-sm font-medium hover:bg-slate-900 dark:hover:bg-slate-600"
           >
-            Buscar
-          </button>
+            <option value="">Todos los sectores</option>
+            {sectores.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.nombre || s.sector}
+              </option>
+            ))}
+          </select>
+
+          {/* Búsqueda por Supervisor/Operador */}
+          <div className="relative">
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              size={18}
+            />
+            <input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Supervisor/Operador..."
+              className="w-full pl-10 pr-10 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50 placeholder:text-slate-400"
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+              {isSearching && (
+                <div className="flex items-center gap-1 text-xs text-slate-500">
+                  <div className="w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              )}
+              {searchTerm && !isSearching && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setPage(1);
+                  }}
+                  className="text-slate-400 hover:text-slate-600"
+                  title="Limpiar búsqueda"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Filtro Estado */}
+          <select
+            value={filterEstado}
+            onChange={(e) => {
+              setFilterEstado(e.target.value);
+              setPage(1);
+            }}
+            className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+          >
+            <option value="">Todos</option>
+            <option value="ACTIVO">Activo</option>
+            <option value="CERRADO">Cerrado</option>
+            <option value="ANULADO">Anulado</option>
+          </select>
 
           {/* Botón Limpiar Filtros */}
-          {(search || filterSector || filterTurno || filterFecha || filterEstado !== "") && (
+          {(searchTerm || filterSector || filterTurno || filterFecha || filterEstado !== "") && (
             <button
               onClick={() => {
-                setSearch("");
+                setSearchTerm("");
                 setFilterSector("");
                 setFilterTurno("");
                 setFilterFecha("");
@@ -883,7 +940,7 @@ export default function OperativosTurnoPage() {
                 setPage(1);
               }}
               className="inline-flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 p-2 text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800"
-              title="Limpiar filtros"
+              title="Limpiar todos los filtros"
             >
               <X size={20} />
             </button>
@@ -904,13 +961,13 @@ export default function OperativosTurnoPage() {
                   Turno
                 </th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">
-                  Operador
+                  Sector
                 </th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">
                   Supervisor
                 </th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">
-                  Sector
+                  Operador
                 </th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">
                   Estado
@@ -952,13 +1009,13 @@ export default function OperativosTurnoPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-slate-700 dark:text-slate-200">
-                      {op.operador ? formatPersonalNombre(op.operador) : getPersonalNombre(op.operador_id)}
+                      {getSectorNombre(op.sector_id)}
                     </td>
                     <td className="px-4 py-3 text-slate-700 dark:text-slate-200">
                       {op.supervisor ? formatPersonalNombre(op.supervisor) : (op.supervisor_id ? getPersonalNombre(op.supervisor_id) : "—")}
                     </td>
                     <td className="px-4 py-3 text-slate-700 dark:text-slate-200">
-                      {getSectorNombre(op.sector_id)}
+                      {op.operador ? formatPersonalNombre(op.operador) : getPersonalNombre(op.operador_id)}
                     </td>
                     <td className="px-4 py-3">
                       <span
