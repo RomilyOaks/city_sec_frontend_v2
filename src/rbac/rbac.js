@@ -70,6 +70,13 @@ export const ROUTE_ACCESS = {
     ROLE_SLUGS.OPERADOR,
     ROLE_SLUGS.CONSULTA,
   ],
+  operativos_vehiculos: [
+    ROLE_SLUGS.SUPER_ADMIN,
+    ROLE_SLUGS.ADMIN,
+    ROLE_SLUGS.SUPERVISOR,
+    ROLE_SLUGS.OPERADOR,
+    ROLE_SLUGS.CONSULTA,
+  ],
 };
 
 // Mapeo de rutas a permisos requeridos (del backend)
@@ -80,9 +87,9 @@ export const ROUTE_PERMISSIONS = {
   vehiculos: ["vehiculos.vehiculos.read"],
   novedades: ["novedades.incidentes.read"],
   calles: ["calles.calles.read"],
-  calles_tipos_via: ["calles.tipos_via.read"],
+  calles_tipos_via: ["calles.tipos.via.read"],
   calles_sectores_cuadrantes: ["calles.sectores.read", "calles.cuadrantes.read"],
-  calles_calles_cuadrantes: ["calles.calles_cuadrantes.read"],
+  calles_calles_cuadrantes: ["calles.calles.cuadrantes.read"],
   calles_direcciones: ["calles.direcciones.read"],
   operativos_turnos: ["operativos.turnos.read"],
   reportes: [
@@ -132,9 +139,9 @@ export const ACTION_PERMISSIONS = {
   calles_delete: ["calles.calles.delete"],
 
   // Tipos de Vía
-  tipos_via_create: ["calles.tipos_via.create"],
-  tipos_via_update: ["calles.tipos_via.update"],
-  tipos_via_delete: ["calles.tipos_via.delete"],
+  tipos_via_create: ["calles.tipos.via.create"],
+  tipos_via_update: ["calles.tipos.via.update"],
+  tipos_via_delete: ["calles.tipos.via.delete"],
 
   // Sectores
   sectores_create: ["calles.sectores.create"],
@@ -147,9 +154,9 @@ export const ACTION_PERMISSIONS = {
   cuadrantes_delete: ["calles.cuadrantes.delete"],
 
   // Calles-Cuadrantes
-  calles_cuadrantes_create: ["calles.calles_cuadrantes.create"],
-  calles_cuadrantes_update: ["calles.calles_cuadrantes.update"],
-  calles_cuadrantes_delete: ["calles.calles_cuadrantes.delete"],
+  calles_cuadrantes_create: ["calles.calles.cuadrantes.create"],
+  calles_cuadrantes_update: ["calles.calles.cuadrantes.update"],
+  calles_cuadrantes_delete: ["calles.calles.cuadrantes.delete"],
 
   // Direcciones
   direcciones_create: ["calles.direcciones.create"],
@@ -161,6 +168,11 @@ export const ACTION_PERMISSIONS = {
   operativos_turnos_create: ["operativos.turnos.create"],
   operativos_turnos_update: ["operativos.turnos.update"],
   operativos_turnos_delete: ["operativos.turnos.delete"],
+
+  // Operativos Vehículos
+  operativos_vehiculos_create: ["operativos.vehiculos.create"],
+  operativos_vehiculos_update: ["operativos.vehiculos.update"],
+  operativos_vehiculos_delete: ["operativos.vehiculos.delete"],
 };
 
 export function getUserRoleSlugs(user) {
