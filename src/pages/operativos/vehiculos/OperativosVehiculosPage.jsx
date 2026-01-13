@@ -69,9 +69,12 @@ export default function OperativosVehiculosPage() {
     const handleKeyDown = (event) => {
       if (event.key === "Escape") {
         if (showCreateForm || showViewModal || showEditForm) {
+          event.preventDefault();
+          event.stopPropagation();
           setShowCreateForm(false);
           setShowViewModal(false);
           setShowEditForm(false);
+          setSelectedVehiculo(null);
         } else {
           handleBack();
         }
@@ -223,6 +226,7 @@ export default function OperativosVehiculosPage() {
           <EditarVehiculoForm
             turnoId={turnoId}
             vehiculo={selectedVehiculo}
+            vehiculosAsignados={vehiculos}
             onSuccess={handleVehiculoUpdated}
             onCancel={() => setShowEditForm(false)}
           />
@@ -231,18 +235,24 @@ export default function OperativosVehiculosPage() {
         {/* Modal de visualización */}
         {showViewModal && selectedVehiculo && (
           <VerVehiculoModal
+            isOpen={showViewModal}
             vehiculo={selectedVehiculo}
-            onClose={() => setShowViewModal(false)}
+            onClose={() => {
+              setShowViewModal(false);
+              setSelectedVehiculo(null);
+            }}
           />
         )}
 
-        {/* Estado de carga */}
-        {loading ? (
+        {/* Estado de carga o tabla (solo si no hay formulario de edición abierto) */}
+        {!showEditForm && !showCreateForm && loading && (
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-12 text-center">
             <div className="w-12 h-12 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
             <p className="text-slate-600 dark:text-slate-400">Cargando vehículos...</p>
           </div>
-        ) : vehiculos.length === 0 ? (
+        )}
+
+        {!showEditForm && !showCreateForm && !loading && vehiculos.length === 0 && (
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-12 text-center">
             <Car size={48} className="mx-auto text-slate-300 dark:text-slate-700 mb-4" />
             <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50 mb-2">
@@ -261,7 +271,9 @@ export default function OperativosVehiculosPage() {
               </button>
             )}
           </div>
-        ) : (
+        )}
+
+        {!showEditForm && !showCreateForm && !loading && vehiculos.length > 0 && (
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">

@@ -70,6 +70,22 @@ export default function EditarVehiculoForm({
     }
   }, [vehiculo]);
 
+  // Manejar tecla ESC para cancelar
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        onCancel();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown, true); // true = capture phase
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown, true);
+    };
+  }, [onCancel]);
+
   // Cargar catálogos
   useEffect(() => {
     const fetchCatalogos = async () => {
@@ -111,6 +127,7 @@ export default function EditarVehiculoForm({
 
   // Filtrar conductores ya asignados (excepto el actual)
   const conductoresDisponibles = personalActivo.filter((p) => {
+    if (!vehiculosAsignados || !vehiculo) return true;
     const conductoresAsignados = vehiculosAsignados
       .filter((v) => v.id !== vehiculo.id) // Excluir el vehículo actual
       .map((v) => v.conductor_id)
