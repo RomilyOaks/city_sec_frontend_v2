@@ -21,12 +21,14 @@ export default function VerVehiculoModal({ isOpen, onClose, vehiculo }) {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === "Escape" && isOpen) {
+        e.preventDefault();
+        e.stopPropagation();
         onClose();
       }
     };
 
     if (isOpen) {
-      document.addEventListener("keydown", handleKeyDown, true);
+      document.addEventListener("keydown", handleKeyDown, true); // capture phase
       return () => document.removeEventListener("keydown", handleKeyDown, true);
     }
   }, [isOpen, onClose]);
@@ -180,7 +182,7 @@ export default function VerVehiculoModal({ isOpen, onClose, vehiculo }) {
                     Tipo Copiloto
                   </label>
                   <p className="text-base text-slate-900 dark:text-slate-50">
-                    {vehiculo.tipo_copiloto?.descripcion || vehiculo.tipo_copiloto?.nombre || "—"}
+                    {vehiculo.tipo_copiloto?.descripcion || vehiculo.tipo_copiloto?.codigo || "—"}
                   </p>
                 </div>
               </div>
@@ -197,9 +199,7 @@ export default function VerVehiculoModal({ isOpen, onClose, vehiculo }) {
                     Radio TETRA
                   </label>
                   <p className="text-base text-slate-900 dark:text-slate-50">
-                    {vehiculo.radio_tetra?.radio_tetra_code
-                      ? `${vehiculo.radio_tetra.radio_tetra_code} - ${vehiculo.radio_tetra.descripcion || ''}`
-                      : vehiculo.radio_tetra?.numero || "—"}
+                    {vehiculo.radio_tetra?.radio_tetra_code || vehiculo.radio_tetra?.codigo || vehiculo.radio_tetra?.numero || "—"}
                   </p>
                 </div>
                 <div>
