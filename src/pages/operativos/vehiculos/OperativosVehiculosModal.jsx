@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
   X,
@@ -15,6 +16,7 @@ import {
   Pencil,
   Trash2,
   Car,
+  MapPin,
 } from "lucide-react";
 
 import {
@@ -24,6 +26,8 @@ import {
 import { canPerformAction } from "../../../rbac/rbac.js";
 import { useAuthStore } from "../../../store/useAuthStore.js";
 import AsignarVehiculoForm from "./AsignarVehiculoForm.jsx";
+import VerVehiculoModal from "./VerVehiculoModal.jsx";
+import EditarVehiculoForm from "./EditarVehiculoForm.jsx";
 
 /**
  * OperativosVehiculosModal
@@ -35,19 +39,24 @@ import AsignarVehiculoForm from "./AsignarVehiculoForm.jsx";
  */
 export default function OperativosVehiculosModal({ isOpen, onClose, turno }) {
   const user = useAuthStore((s) => s.user);
+  const navigate = useNavigate();
   const canCreate = canPerformAction(user, "operativos_vehiculos_create");
   const canEdit = canPerformAction(user, "operativos_vehiculos_update");
   const canDelete = canPerformAction(user, "operativos_vehiculos_delete");
+  const canReadCuadrantes = canPerformAction(user, "operativos.vehiculos.cuadrantes.read");
 
   const [vehiculos, setVehiculos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [selectedVehiculo, setSelectedVehiculo] = useState(null);
 
   // Manejar teclas ESC, Alt+N y Alt+V
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // ESC para cerrar (solo si no estamos en el formulario)
-      if (e.key === "Escape" && isOpen && !showCreateForm) {
+      // ESC para cerrar (solo si no estamos en el formulario/modal de edición/vista)
+      if (e.key === "Escape" && isOpen && !showCreateForm && !showEditForm && !showViewModal) {
         onClose();
       }
       // Alt+N: prevenir que se abra Nuevo Turno cuando estamos en este modal
@@ -57,7 +66,7 @@ export default function OperativosVehiculosModal({ isOpen, onClose, turno }) {
         // No cerramos el modal, solo prevenimos que se abra el modal de Nuevo Turno
       }
       // Alt+V: abrir formulario de asignación de vehículo (solo si tiene permiso y no está ya en el formulario)
-      if (e.altKey && e.key === "v" && isOpen && !showCreateForm && canCreate) {
+      if (e.altKey && e.key === "v" && isOpen && !showCreateForm && !showEditForm && canCreate) {
         e.preventDefault();
         setShowCreateForm(true);
       }
@@ -67,7 +76,7 @@ export default function OperativosVehiculosModal({ isOpen, onClose, turno }) {
       document.addEventListener("keydown", handleKeyDown, true); // Usar capture phase
       return () => document.removeEventListener("keydown", handleKeyDown, true);
     }
-  }, [isOpen, onClose, showCreateForm, canCreate]);
+  }, [isOpen, onClose, showCreateForm, showEditForm, showViewModal, canCreate]);
 
   // Cargar vehículos del turno
   const fetchVehiculos = useCallback(async () => {
@@ -91,6 +100,21 @@ export default function OperativosVehiculosModal({ isOpen, onClose, turno }) {
       fetchVehiculos();
     }
   }, [isOpen, turno?.id, fetchVehiculos]);
+
+  const handleView = (vehiculo) => {
+    setSelectedVehiculo(vehiculo);
+    setShowViewModal(true);
+  };
+
+  const handleEdit = (vehiculo) => {
+    setSelectedVehiculo(vehiculo);
+    setShowEditForm(true);
+  };
+
+  const handleCuadrantes = (vehiculo) => {
+    // Navegar a la página de cuadrantes del vehículo
+    navigate(`/operativos/turnos/${turno.id}/vehiculos/${vehiculo.id}/cuadrantes`);
+  };
 
   const handleDelete = async (vehiculo) => {
     const confirmed = window.confirm(
@@ -140,15 +164,15 @@ export default function OperativosVehiculosModal({ isOpen, onClose, turno }) {
           <div className="flex-1">
             <div className="flex items-center gap-3">
               <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-50 flex items-center gap-2">
-                <Car size={24} className="text-primary-600" />
+                <Car size={24} className="text-blue-600" />
                 Vehículos del Turno Operativo
               </h2>
-              {canCreate && !showCreateForm && (
+              {canCreate && !showCreateForm && !showEditForm && (
                 <span className="text-xs px-2 py-1 rounded bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-medium">
                   Alt+V = Asignar Vehículo
                 </span>
               )}
-              {showCreateForm && (
+              {(showCreateForm || showEditForm) && (
                 <span className="text-xs px-2 py-1 rounded bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-medium">
                   Alt+G = Guardar | Esc = Cancelar
                 </span>
@@ -186,8 +210,8 @@ export default function OperativosVehiculosModal({ isOpen, onClose, turno }) {
           </button>
         </div>
 
-        {/* Toolbar - solo mostrar si NO estamos en modo crear Y hay registros */}
-        {!showCreateForm && vehiculos.length > 0 && (
+        {/* Toolbar - solo mostrar si NO estamos en modo crear/editar Y hay registros */}
+        {!showCreateForm && !showEditForm && vehiculos.length > 0 && (
           <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
             <div className="flex items-center gap-2">
               {canCreate && (
@@ -223,6 +247,22 @@ export default function OperativosVehiculosModal({ isOpen, onClose, turno }) {
                 fetchVehiculos();
               }}
               onCancel={() => setShowCreateForm(false)}
+            />
+          ) : showEditForm && selectedVehiculo ? (
+            <EditarVehiculoForm
+              turnoId={turno.id}
+              turno={turno}
+              vehiculo={selectedVehiculo}
+              vehiculosAsignados={vehiculos}
+              onSuccess={() => {
+                setShowEditForm(false);
+                setSelectedVehiculo(null);
+                fetchVehiculos();
+              }}
+              onCancel={() => {
+                setShowEditForm(false);
+                setSelectedVehiculo(null);
+              }}
             />
           ) : loading ? (
             <div className="flex items-center justify-center py-12">
@@ -312,7 +352,17 @@ export default function OperativosVehiculosModal({ isOpen, onClose, turno }) {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
+                          {canReadCuadrantes && (
+                            <button
+                              onClick={() => handleCuadrantes(v)}
+                              className="p-2 rounded-lg text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
+                              title="Ver Cuadrantes"
+                            >
+                              <MapPin size={14} />
+                            </button>
+                          )}
                           <button
+                            onClick={() => handleView(v)}
                             className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                             title="Ver detalle"
                           >
@@ -320,6 +370,7 @@ export default function OperativosVehiculosModal({ isOpen, onClose, turno }) {
                           </button>
                           {canEdit && (
                             <button
+                              onClick={() => handleEdit(v)}
                               className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                               title="Editar"
                             >
@@ -345,8 +396,8 @@ export default function OperativosVehiculosModal({ isOpen, onClose, turno }) {
           )}
         </div>
 
-        {/* Footer - solo mostrar si NO estamos en modo crear */}
-        {!showCreateForm && (
+        {/* Footer - solo mostrar si NO estamos en modo crear/editar */}
+        {!showCreateForm && !showEditForm && (
           <div className="flex items-center justify-between p-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
             <span className="text-sm text-slate-600 dark:text-slate-400">
               {vehiculos.length} vehículo{vehiculos.length !== 1 ? "s" : ""} asignado
@@ -361,6 +412,16 @@ export default function OperativosVehiculosModal({ isOpen, onClose, turno }) {
           </div>
         )}
       </div>
+
+      {/* Modal de Ver Detalle */}
+      <VerVehiculoModal
+        isOpen={showViewModal}
+        onClose={() => {
+          setShowViewModal(false);
+          setSelectedVehiculo(null);
+        }}
+        vehiculo={selectedVehiculo}
+      />
     </div>
   );
 }

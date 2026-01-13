@@ -7,6 +7,7 @@
  */
 
 import { useEffect, useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
   Car,
@@ -148,6 +149,7 @@ const formatDateTime = (dateString) => {
  * @component
  */
 export default function OperativosTurnoPage() {
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const canCreate = canPerformAction(user, "operativos_turnos_create");
   const canEdit = canPerformAction(user, "operativos_turnos_update");
@@ -1036,8 +1038,7 @@ export default function OperativosTurnoPage() {
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => {
-                            setSelectedTurno(op);
-                            setShowVehiculosModal(true);
+                            navigate(`/operativos/turnos/${op.id}/vehiculos?sector_id=${op.sector_id}`);
                           }}
                           className="p-2 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                           title="Vehículos del turno"

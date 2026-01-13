@@ -16,7 +16,7 @@ import { DEBUG } from "../config/constants";
 export async function login({ username_or_email, password }) {
   const res = await api.post("/auth/login", { username_or_email, password });
   if (DEBUG) {
-    // eslint-disable-next-line no-console
+     
     console.debug("[authService.login] raw response", res?.data);
   }
 
@@ -74,7 +74,7 @@ export async function register({
     telefono,
   });
   if (DEBUG) {
-    // eslint-disable-next-line no-console
+     
     console.debug("[authService.register] raw response", res?.data);
   }
   return res?.data;

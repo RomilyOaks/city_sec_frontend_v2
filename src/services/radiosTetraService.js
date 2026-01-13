@@ -13,7 +13,8 @@ import api from "./api.js";
  */
 export async function listRadiosTetraActivos() {
   const response = await api.get("/radios-tetra/disponibles");
-  return response.data;
+  // El backend devuelve { success: { radios: [...] } }
+  return response.data?.success?.radios || response.data?.radios || response.data;
 }
 
 /**
@@ -25,5 +26,12 @@ export async function listRadiosTetraActivos() {
  */
 export async function listRadiosTetra(params = {}) {
   const response = await api.get("/radios-tetra", { params });
+  // El backend devuelve { success: { radios: [...], pagination: {...} } }
+  if (response.data?.success?.radios) {
+    return {
+      data: response.data.success.radios,
+      pagination: response.data.success.pagination
+    };
+  }
   return response.data;
 }
