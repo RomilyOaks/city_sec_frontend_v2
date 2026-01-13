@@ -177,6 +177,13 @@ export default function AsignarVehiculoForm({ turnoId, vehiculosAsignados = [], 
     if (!formData.estado_operativo_id) return false;
     if (!formData.kilometraje_inicio) return false;
     if (!formData.hora_inicio) return false;
+
+    // Si hay copiloto, debe tener tipo_copiloto
+    if (formData.copiloto_id && !formData.tipo_copiloto_id) {
+      toast.error("Si selecciona un copiloto, debe indicar el tipo de copiloto");
+      return false;
+    }
+
     return true;
   }, [formData]);
 
@@ -221,7 +228,41 @@ export default function AsignarVehiculoForm({ turnoId, vehiculosAsignados = [], 
       onSuccess();
     } catch (err) {
       console.error("Error asignando vehículo:", err);
-      const errorMsg = err?.response?.data?.message || err?.response?.data?.error || "Error al asignar vehículo";
+
+      // Extraer mensaje de error detallado del backend
+      const data = err?.response?.data;
+      let errorMsg = "Error al asignar vehículo";
+
+      // PRIORIZAR: Si hay array de errores específicos, usar eso primero
+      if (data?.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+        const firstError = data.errors[0];
+        const field = firstError.path || firstError.param || firstError.field || "";
+        const msg = firstError.msg || firstError.message || "";
+
+        if (field && msg) {
+          const fieldNames = {
+            vehiculo_id: "Vehículo",
+            conductor_id: "Conductor",
+            copiloto_id: "Copiloto",
+            tipo_copiloto_id: "Tipo Copiloto",
+            radio_tetra_id: "Radio TETRA",
+            estado_operativo_id: "Estado Operativo",
+            kilometraje_inicio: "Kilometraje Inicial",
+            hora_inicio: "Hora Inicio",
+            nivel_combustible_inicio: "Nivel Combustible Inicial"
+          };
+          const translatedField = fieldNames[field] || field;
+          errorMsg = `${translatedField}: ${msg}`;
+        } else if (msg) {
+          errorMsg = msg;
+        }
+      } else if (data?.message) {
+        // FALLBACK: Mensaje genérico solo si no hay errores específicos
+        errorMsg = data.message;
+      } else if (data?.error) {
+        errorMsg = data.error;
+      }
+
       toast.error(errorMsg);
     } finally {
       setSaving(false);
@@ -350,7 +391,15 @@ export default function AsignarVehiculoForm({ turnoId, vehiculosAsignados = [], 
                 </label>
                 <select
                   value={formData.copiloto_id}
-                  onChange={(e) => setFormData({ ...formData, copiloto_id: e.target.value })}
+                  onChange={(e) => {
+                    const newValue = e.target.value;
+                    setFormData({
+                      ...formData,
+                      copiloto_id: newValue,
+                      // Si se quita el copiloto, también quitar el tipo
+                      tipo_copiloto_id: newValue ? formData.tipo_copiloto_id : ""
+                    });
+                  }}
                   className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
                 >
                   <option value="">— Sin copiloto —</option>
@@ -365,20 +414,24 @@ export default function AsignarVehiculoForm({ turnoId, vehiculosAsignados = [], 
               {/* Tipo Copiloto */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
-                  Tipo Copiloto
+                  Tipo Copiloto {formData.copiloto_id && <span className="text-red-500">*</span>}
                 </label>
                 <select
                   value={formData.tipo_copiloto_id}
                   onChange={(e) => setFormData({ ...formData, tipo_copiloto_id: e.target.value })}
-                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+                  disabled={!formData.copiloto_id}
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <option value="">— Sin tipo —</option>
+                  <option value="">— Seleccione tipo —</option>
                   {tiposCopiloto.map((t) => (
                     <option key={t.id} value={t.id}>
-                      {t.descripcion}
+                      {t.nombre || t.descripcion}
                     </option>
                   ))}
                 </select>
+                {showValidation && formData.copiloto_id && !formData.tipo_copiloto_id && (
+                  <p className="mt-1 text-xs text-red-500">Requerido cuando hay copiloto</p>
+                )}
               </div>
 
               {/* Radio TETRA */}
@@ -394,7 +447,7 @@ export default function AsignarVehiculoForm({ turnoId, vehiculosAsignados = [], 
                   <option value="">— Sin radio —</option>
                   {radios.map((r) => (
                     <option key={r.id} value={r.id}>
-                      {r.codigo} - {r.descripcion || r.numero_serie}
+                      {r.radio_tetra_code || r.codigo} - {r.descripcion || r.numero_serie}
                     </option>
                   ))}
                 </select>

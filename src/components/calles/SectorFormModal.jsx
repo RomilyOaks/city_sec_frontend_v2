@@ -90,7 +90,7 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
       }
     }
     setActiveTab("basicos");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [sector, isOpen, defaultUbigeo]);
 
   // Función para buscar UBIGEO por código (modo edit)

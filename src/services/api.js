@@ -30,7 +30,7 @@ const api = axios.create({
  * @returns {import('axios').AxiosRequestConfig}
  */ api.interceptors.request.use((config) => {
   if (DEBUG) {
-    // eslint-disable-next-line no-console
+     
     console.debug("[api] request", {
       baseURL: config.baseURL,
       url: config.url,
@@ -57,7 +57,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (DEBUG) {
-      // eslint-disable-next-line no-console
+       
       console.debug("[api] error", {
         message: error?.message,
         code: error?.code,

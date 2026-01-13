@@ -11,10 +11,17 @@ import api from "./api.js";
 /**
  * Listar vehículos de un turno específico
  * @param {number} turnoId - ID del turno operativo
+ * @param {Object} params - Parámetros adicionales
+ * @param {boolean} [params.include_relations=true] - Incluir relaciones (vehiculo, conductor, copiloto, etc.)
  * @returns {Promise<Array>} - Lista de vehículos del turno
  */
-export async function listVehiculosByTurno(turnoId) {
-  const response = await api.get(`/operativos/${turnoId}/vehiculos`);
+export async function listVehiculosByTurno(turnoId, params = {}) {
+  // Por defecto, solicitamos que incluya las relaciones
+  const queryParams = {
+    include_relations: true,
+    ...params
+  };
+  const response = await api.get(`/operativos/${turnoId}/vehiculos`, { params: queryParams });
   return response.data;
 }
 
