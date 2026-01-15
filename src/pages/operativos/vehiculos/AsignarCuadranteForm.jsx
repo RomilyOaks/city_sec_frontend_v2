@@ -18,13 +18,25 @@ import {
 
 import api from "../../../services/api.js";
 
-/**
- * Formatea fecha/hora a formato legible
- */
 const formatDateTime = (dateString) => {
   if (!dateString) return "";
   const date = new Date(dateString);
-  return date.toISOString().slice(0, 16); // Formato para input datetime-local
+  // Usar zona horaria local en lugar de UTC
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
+/**
+ * Convierte hora local a formato UTC para enviar al backend
+ */
+const toUTCDateTime = (dateString) => {
+  if (!dateString) return null;
+  const date = new Date(dateString);
+  return date.toISOString(); // Convierte a UTC
 };
 
 /**
@@ -36,6 +48,7 @@ export default function AsignarCuadranteForm({
   turnoId, 
   vehiculoId,
   sectorId,
+  cuadrantesAsignados = [], // IDs de cuadrantes ya asignados al vehículo
   onSuccess, 
   onCancel 
 }) {
@@ -155,11 +168,12 @@ export default function AsignarCuadranteForm({
       const payload = {
         operativo_vehiculo_id: parseInt(vehiculoId),
         cuadrante_id: parseInt(formData.cuadrante_id),
-        hora_ingreso: formData.hora_ingreso,
-        hora_salida: formData.hora_salida || null,
-        observaciones: formData.observaciones || null,
+        hora_ingreso: toUTCDateTime(formData.hora_ingreso),
+        hora_salida: toUTCDateTime(formData.hora_salida),
+        observaciones: formData.observaciones && formData.observaciones.trim() !== "" ? formData.observaciones : null,
       };
       
+      console.log("Payload enviado en creación:", payload); // Debug
       // Llamada real al API
       const response = await api.post(`/operativos/${turnoId}/vehiculos/${vehiculoId}/cuadrantes`, payload);
       console.log("Cuadrante asignado:", response.data);
@@ -232,7 +246,9 @@ export default function AsignarCuadranteForm({
               <option value="">
                 {loadingCuadrantes ? "Cargando cuadrantes..." : "Seleccione un cuadrante"}
               </option>
-              {cuadrantesDisponibles.map((cuadrante) => (
+              {cuadrantesDisponibles
+                .filter((cuadrante) => !cuadrantesAsignados.includes(cuadrante.id))
+                .map((cuadrante) => (
                 <option key={cuadrante.id} value={cuadrante.id}>
                   {cuadrante.cuadrante_code} - {cuadrante.nombre}
                 </option>
@@ -311,17 +327,28 @@ export default function AsignarCuadranteForm({
 
         {/* Observaciones */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
             Observaciones
+            <span className="text-xs text-slate-400 ml-2">
+              ({formData.observaciones.length}/500)
+            </span>
           </label>
           <textarea
             name="observaciones"
             value={formData.observaciones}
             onChange={handleInputChange}
             rows={3}
-            placeholder="Notas sobre el patrullaje en este cuadrante..."
-            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
+            maxLength={500}
+            placeholder="Observaciones adicionales..."
+            className={`w-full px-3 py-2 rounded-lg border ${
+              errors.observaciones 
+                ? "border-red-500 dark:border-red-500" 
+                : "border-slate-300 dark:border-slate-700"
+            } bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none`}
           />
+          {errors.observaciones && (
+            <p className="mt-1 text-xs text-red-500">{errors.observaciones}</p>
+          )}
         </div>
 
         {/* Botones */}
