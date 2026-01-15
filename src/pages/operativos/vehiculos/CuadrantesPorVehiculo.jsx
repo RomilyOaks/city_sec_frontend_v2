@@ -10,22 +10,23 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
   ArrowLeft,
-  MapPin,
-  Clock,
-  AlertTriangle,
-  RefreshCw,
-  Car,
-  Calendar,
-  User,
   Plus,
+  RefreshCw,
+  Eye,
   Pencil,
   Trash2,
+  Car,
+  MapPin,
+  AlertTriangle,
+  FileText,
+  Clock,
 } from "lucide-react";
 
 import api from "../../../services/api.js";
 import { canPerformAction } from "../../../rbac/rbac.js";
 import { useAuthStore } from "../../../store/useAuthStore.js";
 import AsignarCuadranteForm from "./AsignarCuadranteForm.jsx";
+import EditarCuadranteForm from "./EditarCuadranteForm.jsx";
 
 /**
  * Formatea fecha/hora a formato legible
@@ -62,6 +63,7 @@ export default function CuadrantesPorVehiculo() {
   const canCreate = canPerformAction(user, "operativos.vehiculos.cuadrantes.create");
   const canEdit = canPerformAction(user, "operativos.vehiculos.cuadrantes.update");
   const canDelete = canPerformAction(user, "operativos.vehiculos.cuadrantes.delete");
+  const canReadNovedades = canPerformAction(user, "operativos.vehiculos.novedades.read");
 
   const [cuadrantes, setCuadrantes] = useState([]);
   const [vehiculo, setVehiculo] = useState(null);
@@ -71,6 +73,8 @@ export default function CuadrantesPorVehiculo() {
   const [error, setError] = useState(null);
   const [usingDemoData, setUsingDemoData] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [selectedCuadrante, setSelectedCuadrante] = useState(null);
 
   // Obtener sector_id desde query params
   useEffect(() => {
@@ -277,15 +281,23 @@ export default function CuadrantesPorVehiculo() {
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.key === "Escape") {
-        handleBack();
+        if (showCreateForm || showEditForm) {
+          event.preventDefault();
+          event.stopPropagation();
+          setShowCreateForm(false);
+          setShowEditForm(false);
+          setSelectedCuadrante(null);
+        } else {
+          handleBack();
+        }
       }
     };
 
-    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown, true); // capture phase
     return () => {
-      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("keydown", handleKeyDown, true);
     };
-  }, []);
+  }, [showCreateForm, showEditForm]);
 
   const handleBack = () => {
     navigate(`/operativos/turnos/${turnoId}/vehiculos`);
@@ -306,29 +318,43 @@ export default function CuadrantesPorVehiculo() {
   };
 
   const handleEditCuadrante = (cuadrante) => {
-    // TODO: Implementar edición de cuadrante
-    toast.info("Función de edición en desarrollo");
+    setSelectedCuadrante(cuadrante);
+    setShowEditForm(true);
+  };
+
+  const handleCancelEdit = () => {
+    setShowEditForm(false);
+    setSelectedCuadrante(null);
+  };
+
+  const handleCuadranteUpdated = () => {
+    setShowEditForm(false);
+    setSelectedCuadrante(null);
+    fetchCuadrantes();
+    toast.success("Cuadrante actualizado exitosamente");
+  };
+
+  const handleViewNovedades = (cuadrante) => {
+    navigate(`/operativos/turnos/${turnoId}/vehiculos/${vehiculoId}/cuadrantes/${cuadrante.id}/novedades`);
   };
 
   const handleDeleteCuadrante = async (cuadrante) => {
+    const cuadranteInfo = cuadrante.datosCuadrante || cuadrante.cuadrante || {};
     const confirmed = window.confirm(
-      `¿Está seguro de eliminar el cuadrante ${cuadrante.cuadrante?.cuadrante_code} - ${cuadrante.cuadrante?.nombre}?`
+      `¿Está seguro de eliminar el cuadrante ${cuadranteInfo.cuadrante_code || cuadranteInfo.codigo || ''} - ${cuadranteInfo.nombre || ''}?`
     );
     
     if (!confirmed) return;
     
     try {
-      // TODO: Implementar llamada real al API
-      // await api.delete(`/operativos/${turnoId}/vehiculos/${vehiculoId}/cuadrantes/${cuadrante.id}`);
-      
-      // Simulación
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await api.delete(`/operativos/${turnoId}/vehiculos/${vehiculoId}/cuadrantes/${cuadrante.id}`);
       
       toast.success("Cuadrante eliminado exitosamente");
       fetchCuadrantes();
     } catch (err) {
       console.error("Error eliminando cuadrante:", err);
-      toast.error("Error al eliminar cuadrante");
+      const errorMsg = err.response?.data?.message || "Error al eliminar cuadrante";
+      toast.error(errorMsg);
     }
   };
 
@@ -502,8 +528,17 @@ export default function CuadrantesPorVehiculo() {
             turnoId={turnoId}
             vehiculoId={vehiculoId}
             sectorId={sectorId}
+            cuadrantesAsignados={cuadrantes.map(c => c.cuadrante_id || c.datosCuadrante?.id || c.cuadrante?.id)}
             onSuccess={handleCuadranteCreated}
             onCancel={handleCancelCreate}
+          />
+        ) : showEditForm && selectedCuadrante ? (
+          <EditarCuadranteForm
+            cuadrante={selectedCuadrante}
+            turnoId={turnoId}
+            vehiculoId={vehiculoId}
+            onSuccess={handleCuadranteUpdated}
+            onCancel={handleCancelEdit}
           />
         ) : cuadrantes.length === 0 ? (
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-12 text-center">
@@ -624,6 +659,15 @@ export default function CuadrantesPorVehiculo() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-1">
+                          {canReadNovedades && (
+                            <button
+                              onClick={() => handleViewNovedades(cuadrante)}
+                              className="p-2 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                              title="Ver novedades"
+                            >
+                              <FileText size={14} />
+                            </button>
+                          )}
                           {canEdit && (
                             <button
                               onClick={() => handleEditCuadrante(cuadrante)}

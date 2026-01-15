@@ -49,6 +49,7 @@ import UnidadesOficinaPage from "../pages/catalogos/UnidadesOficinaPage.jsx";
 import OperativosTurnoPage from "../pages/operativos/OperativosTurnoPage.jsx";
 import OperativosVehiculosPage from "../pages/operativos/vehiculos/OperativosVehiculosPage.jsx";
 import CuadrantesPorVehiculo from "../pages/operativos/vehiculos/CuadrantesPorVehiculo.jsx";
+import NovedadesPorCuadrante from "../pages/operativos/vehiculos/NovedadesPorCuadrante.jsx";
 
 /**
  * AppRouter - Router principal con rutas públicas y protegidas
@@ -149,6 +150,14 @@ export default function AppRouter() {
           element={
             <ProtectedRoute allowedRoles={ROUTE_ACCESS.operativos_turnos}>
               <CuadrantesPorVehiculo />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="operativos/turnos/:turnoId/vehiculos/:vehiculoId/cuadrantes/:cuadranteId/novedades"
+          element={
+            <ProtectedRoute allowedRoles={ROUTE_ACCESS.operativos_turnos}>
+              <NovedadesPorCuadrante />
             </ProtectedRoute>
           }
         />
