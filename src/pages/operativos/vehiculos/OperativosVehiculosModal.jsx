@@ -99,7 +99,7 @@ export default function OperativosVehiculosModal({ isOpen, onClose, turno }) {
     if (isOpen && turno?.id) {
       fetchVehiculos();
     }
-  }, [isOpen, turno?.id, fetchVehiculos]);
+  }, [isOpen, turno?.id, fetchVehiculos]); // Agregado fetchVehiculos a las dependencias
 
   const handleView = (vehiculo) => {
     setSelectedVehiculo(vehiculo);

@@ -74,6 +74,20 @@ class OperativosNovedadesService {
   }
 
   /**
+   * Obtiene lista de novedades disponibles para un cuadrante específico
+   * @param {number} turnoId - ID del turno
+   * @param {number} vehiculoId - ID del vehículo operativo
+   * @param {number} cuadranteId - ID del cuadrante asignado
+   * @returns {Promise<Object>} - Lista de novedades disponibles del cuadrante
+   */
+  async getNovedadesDisponibles(turnoId, vehiculoId, cuadranteId) {
+    const response = await api.get(
+      `/operativos/${turnoId}/vehiculos/${vehiculoId}/cuadrantes/${cuadranteId}/novedades/disponibles`
+    );
+    return response.data;
+  }
+
+  /**
    * Obtiene lista de tipos de novedades disponibles
    * @returns {Promise<Object>} - Lista de tipos de novedades
    */
