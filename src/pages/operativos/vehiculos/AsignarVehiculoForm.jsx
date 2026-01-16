@@ -4,9 +4,10 @@
  * @description Formulario para asignar un vehículo a un turno operativo
  */
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import toast from "react-hot-toast";
 import { X, AlertCircle } from "lucide-react";
+import { useAuthStore } from "../../../store/useAuthStore.js";
 
 import { createVehiculoOperativo } from "../../../services/operativosVehiculosService.js";
 import { listVehiculosDisponibles } from "../../../services/vehiculosService.js";
@@ -44,6 +45,9 @@ const getCurrentDateTime = () => {
  * @param {Function} props.onCancel - Callback para cancelar
  */
 export default function AsignarVehiculoForm({ turnoId, vehiculosAsignados = [], onSuccess, onCancel }) {
+  const { isAuthenticated, token } = useAuthStore(); // 🔥 ZUSTAND STORE
+  const hasFetchedRef = useRef(false); // 🔥 CONTROL ANTI-BUCLE
+  
   // Catálogos
   const [vehiculos, setVehiculos] = useState([]);
   const [personal, setPersonal] = useState([]);
@@ -71,16 +75,63 @@ export default function AsignarVehiculoForm({ turnoId, vehiculosAsignados = [], 
 
   // Cargar catálogos
   useEffect(() => {
+    // 🔥 ANTI-BUCLE: Solo cargar una vez
+    if (hasFetchedRef.current) {
+      console.log("🛑 [DEBUG] Ya se cargaron los catálogos, omitiendo...");
+      return;
+    }
+
+    // 🔥 DEBUG: Estado de autenticación
+    console.log("🔍 [DEBUG] AsignarVehiculoForm - useEffect disparado");
+    console.log("🔍 [DEBUG] isAuthenticated:", isAuthenticated);
+    console.log("🔍 [DEBUG] token existe:", !!token);
+    console.log("🔍 [DEBUG] vehiculosAsignados:", vehiculosAsignados?.length || 0);
+
+    // 🔥 PROTECCIÓN: No cargar si no está autenticado
+    if (!isAuthenticated || !token) {
+      console.log("🔒 Usuario no autenticado - omitiendo carga de catálogos");
+      setLoadingCatalogos(false);
+      return;
+    }
+
+    // 🔥 MARCAR COMO CARGADO ANTES DE INICIAR
+    hasFetchedRef.current = true;
+
     const loadCatalogos = async () => {
+      console.log("🚀 [DEBUG] loadCatalogos INICIANDO...");
       setLoadingCatalogos(true);
       try {
+        // 🔥 DEBUG: Llamadas individuales con timestamps
+        console.log("📡 [DEBUG] Llamando listVehiculosDisponibles...");
+        const vehiculosPromise = listVehiculosDisponibles();
+        
+        console.log("📡 [DEBUG] Llamando listPersonal...");
+        const personalPromise = listPersonal({ limit: 100 });
+        
+        console.log("📡 [DEBUG] Llamando listRadiosTetraActivos...");
+        const radiosPromise = listRadiosTetraActivos();
+        
+        console.log("📡 [DEBUG] Llamando listEstadosOperativosActivos...");
+        const estadosPromise = listEstadosOperativosActivos();
+        
+        console.log("📡 [DEBUG] Llamando listTiposCopilotoActivos...");
+        const tiposPromise = listTiposCopilotoActivos();
+
+        console.log("⏳ [DEBUG] Esperando Promise.all...");
         const [vehiculosRes, personalRes, radiosRes, estadosRes, tiposRes] = await Promise.all([
-          listVehiculosDisponibles(),
-          listPersonal({ limit: 100 }),
-          listRadiosTetraActivos(),
-          listEstadosOperativosActivos(),
-          listTiposCopilotoActivos(),
+          vehiculosPromise,
+          personalPromise,
+          radiosPromise,
+          estadosPromise,
+          tiposPromise,
         ]);
+
+        console.log("✅ [DEBUG] Todas las respuestas recibidas:");
+        console.log("  - vehiculosRes:", vehiculosRes);
+        console.log("  - personalRes:", personalRes);
+        console.log("  - radiosRes:", radiosRes);
+        console.log("  - estadosRes:", estadosRes);
+        console.log("  - tiposRes:", tiposRes);
 
         // Procesar vehículos y filtrar los ya asignados
         const vehiculosData = Array.isArray(vehiculosRes)
@@ -154,7 +205,19 @@ export default function AsignarVehiculoForm({ turnoId, vehiculosAsignados = [], 
         setTiposCopiloto(Array.isArray(tiposData) ? tiposData : []);
 
       } catch (err) {
-        console.error("Error cargando catálogos:", err);
+        console.error("❌ [DEBUG] Error cargando catálogos:", err);
+        console.error("❌ [DEBUG] Error status:", err?.response?.status);
+        console.error("❌ [DEBUG] Error data:", err?.response?.data);
+        console.error("❌ [DEBUG] Error message:", err?.message);
+        
+        // 🔥 MANEJO ESPECÍFICO PARA 401
+        if (err?.response?.status === 401) {
+          console.log("🚫 Error 401 - No autenticado, deteniendo intentos");
+          toast.error("Sesión expirada. Por favor inicie sesión nuevamente.");
+          // No reintentar automáticamente
+          return;
+        }
+        
         const errorMsg = err?.response?.data?.message || err?.message || "Error al cargar catálogos";
         toast.error(errorMsg);
         // Asegurar que los arrays estén inicializados incluso en caso de error
@@ -164,12 +227,14 @@ export default function AsignarVehiculoForm({ turnoId, vehiculosAsignados = [], 
         setEstados([]);
         setTiposCopiloto([]);
       } finally {
+        console.log("🏁 [DEBUG] loadCatalogos FINALIZADO");
         setLoadingCatalogos(false);
       }
     };
 
     loadCatalogos();
-  }, [vehiculosAsignados]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // 🔥 SIN DEPENDENCIAS - Solo cargar al montar el componente
 
   // Validar formulario
   const validateForm = useCallback(() => {

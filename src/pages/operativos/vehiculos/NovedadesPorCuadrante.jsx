@@ -29,6 +29,7 @@ import {
 import operativosNovedadesService from "../../../services/operativosNovedadesService.js";
 import { canPerformAction } from "../../../rbac/rbac.js";
 import { useAuthStore } from "../../../store/useAuthStore.js";
+import RegistrarNovedadForm from "./RegistrarNovedadForm.jsx";
 
 /**
  * Formatea fecha/hora a formato legible
@@ -119,6 +120,8 @@ export default function NovedadesPorCuadrante() {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingNovedad, setEditingNovedad] = useState(null);
   const [filters, setFilters] = useState({
     estado: "todos",
     prioridad: "todos",
@@ -176,9 +179,34 @@ export default function NovedadesPorCuadrante() {
   }, [turnoId, vehiculoId, cuadranteId, canRead, fetchNovedades]);
 
   // Navegar hacia atrás
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     navigate(`/operativos/turnos/${turnoId}/vehiculos/${vehiculoId}/cuadrantes`);
-  };
+  }, [navigate, turnoId, vehiculoId]);
+
+  // Manejar creación de novedad
+  const handleCreateNovedad = useCallback(() => {
+    setEditingNovedad(null);
+    setShowCreateForm(true);
+  }, []);
+
+  // Manejar edición de novedad
+  const handleEditNovedad = useCallback((novedad) => {
+    setEditingNovedad(novedad);
+    setShowCreateForm(true);
+  }, []);
+
+  // Manejar cierre del formulario
+  const handleCloseForm = useCallback(() => {
+    setShowCreateForm(false);
+    setEditingNovedad(null);
+  }, []);
+
+  // Manejar éxito del formulario
+  const handleFormSuccess = useCallback(() => {
+    setShowCreateForm(false);
+    setEditingNovedad(null);
+    fetchNovedades();
+  }, [fetchNovedades]);
 
   // Filtrar novedades
   const filteredNovedades = novedades.filter((novedad) => {
@@ -201,15 +229,19 @@ export default function NovedadesPorCuadrante() {
       if (event.altKey && event.key === 'n') {
         event.preventDefault();
         if (canCreate && filteredNovedades.length > 0) {
-          console.log('Registrar novedad - ALT+N');
+          handleCreateNovedad();
         } else if (canCreate && filteredNovedades.length === 0) {
-          console.log('Registrar primera novedad - ALT+N');
+          handleCreateNovedad();
         }
       }
-      // ESC para volver
+      // ESC para volver o cerrar formulario
       if (event.key === "Escape") {
         event.preventDefault();
-        handleBack();
+        if (showCreateForm) {
+          handleCloseForm();
+        } else {
+          handleBack();
+        }
       }
     };
 
@@ -217,7 +249,7 @@ export default function NovedadesPorCuadrante() {
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [canCreate, filteredNovedades.length, handleBack]);
+  }, [canCreate, filteredNovedades.length, handleBack, showCreateForm, handleCloseForm, handleCreateNovedad]);
 
   // Estado de carga
   if (loading) {
@@ -292,7 +324,7 @@ export default function NovedadesPorCuadrante() {
               </button>
               {canCreate && filteredNovedades.length > 0 && (
                 <button
-                  onClick={() => console.log('Registrar novedad')}
+                  onClick={handleCreateNovedad}
                   className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
                   title="Registrar Novedad (ALT+N)"
                 >
@@ -441,7 +473,7 @@ export default function NovedadesPorCuadrante() {
               </p>
               {canCreate && (
                 <button
-                  onClick={() => console.log('Registrar primera novedad')}
+                  onClick={handleCreateNovedad}
                   className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
                   title="Registrar Primera Novedad (ALT+N)"
                 >
@@ -517,6 +549,7 @@ export default function NovedadesPorCuadrante() {
                     <div className="flex items-center gap-2 ml-4">
                       {canUpdate && (
                         <button
+                          onClick={() => handleEditNovedad(novedad)}
                           className="p-2 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded-lg"
                           title="Editar novedad"
                         >
@@ -539,6 +572,18 @@ export default function NovedadesPorCuadrante() {
           )}
         </div>
       </div>
+
+      {/* Modal del formulario */}
+      {showCreateForm && (
+        <RegistrarNovedadForm
+          turnoId={turnoId}
+          vehiculoId={vehiculoId}
+          cuadranteId={cuadranteId}
+          novedad={editingNovedad}
+          onClose={handleCloseForm}
+          onSuccess={handleFormSuccess}
+        />
+      )}
     </div>
   );
 }

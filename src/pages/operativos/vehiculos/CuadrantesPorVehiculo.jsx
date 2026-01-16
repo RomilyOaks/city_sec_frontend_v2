@@ -5,7 +5,7 @@
  * @module src/pages/operativos/vehiculos/CuadrantesPorVehiculo.jsx
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
@@ -76,6 +76,9 @@ export default function CuadrantesPorVehiculo() {
   const [showEditForm, setShowEditForm] = useState(false);
   const [selectedCuadrante, setSelectedCuadrante] = useState(null);
 
+  // 🔥 DEBUG: Log después de declarar loading
+  console.log("🎨 Componente CuadrantesPorVehiculo renderizado - loading:", loading);
+
   // Obtener sector_id desde query params
   useEffect(() => {
     const sectorFromUrl = searchParams.get('sector_id');
@@ -85,7 +88,8 @@ export default function CuadrantesPorVehiculo() {
   }, [searchParams]);
 
   // Cargar datos del vehículo por separado
-  const fetchVehiculo = async () => {
+  const fetchVehiculo = useCallback(async () => {
+    console.log("🔍 fetchVehiculo llamado - turnoId:", turnoId, "vehiculoId:", vehiculoId);
     try {
       const response = await api.get(`/operativos/${turnoId}/vehiculos/${vehiculoId}`);
       const vehiculoData = response.data?.data || response.data;
@@ -104,17 +108,20 @@ export default function CuadrantesPorVehiculo() {
           kilometraje_fin: vehiculoData.kilometraje_fin,
           kilometros_recorridos: vehiculoData.kilometros_recorridos
         };
+        console.log("🚗 Vehículo cargado:", vehiculoInfo);
         setVehiculo(vehiculoInfo);
         
         // Obtener sector_id del turno incluido en la respuesta
         if (vehiculoData.turno?.sector_id) {
+          console.log("📍 Sector ID desde turno.sector_id:", vehiculoData.turno.sector_id);
           setSectorId(vehiculoData.turno.sector_id);
         } else if (vehiculoData.turno?.sector?.id) {
+          console.log("📍 Sector ID desde turno.sector.id:", vehiculoData.turno.sector.id);
           setSectorId(vehiculoData.turno.sector.id);
         }
       }
     } catch (err) {
-      console.error("Error cargando vehículo:", err);
+      console.error("❌ Error cargando vehículo:", err);
       setVehiculo({
         id: parseInt(vehiculoId),
         placa: "Cargando...",
@@ -123,10 +130,13 @@ export default function CuadrantesPorVehiculo() {
         tipo_vehiculo: { nombre: "-" }
       });
     }
-  };
+  }, [turnoId, vehiculoId]);
 
   // Cargar datos del vehículo y sus cuadrantes
-  const fetchCuadrantes = async () => {
+  const fetchCuadrantes = useCallback(async () => {
+    console.log("🔍 fetchCuadrantes llamado - turnoId:", turnoId, "vehiculoId:", vehiculoId, "sectorId:", sectorId);
+    console.trace("📋 Stack trace de fetchCuadrantes");
+    
     setLoading(true);
     setError(null);
     setUsingDemoData(false);
@@ -135,48 +145,47 @@ export default function CuadrantesPorVehiculo() {
     await fetchVehiculo();
     
     try {
+      console.log("🚀 Haciendo llamada API a cuadrantes...");
       const response = await api.get(`/operativos/${turnoId}/vehiculos/${vehiculoId}/cuadrantes`);
       const data = response.data?.data || response.data || [];
+      console.log("📊 Respuesta API cuadrantes:", data);
       
       // Filtrar solo cuadrantes activos (estado_registro=1 y deleted_at=null)
       const cuadrantesActivos = Array.isArray(data) 
         ? data.filter(c => c.estado_registro === 1 && !c.deleted_at) 
         : [];
       
-      setCuadrantes(cuadrantesActivos);
+      console.log("✅ Cuadrantes activos filtrados:", cuadrantesActivos);
       
-      // Extraer información del vehículo desde el primer cuadrante si existe y no tenemos vehículo
-      if (data.length > 0 && data[0].vehiculo && !vehiculo) {
-        setVehiculo(data[0].vehiculo);
-      }
-    } catch (err) {
-      console.error("Error cargando cuadrantes:", err);
-      
-      // Manejar específicamente error 404 (ruta no implementada) - mostrar datos de demo
-      if (err?.response?.status === 404) {
-        // Mostrar datos de demostración
+      if (cuadrantesActivos.length > 0) {
+        setCuadrantes(cuadrantesActivos);
+        setUsingDemoData(false);
+        console.log("✅ Cuadrantes reales establecidos");
+      } else {
+        // Si no hay cuadrantes, usar datos de demostración
+        console.log("⚠️ No hay cuadrantes asignados, usando datos de demostración");
         const demoData = [
           {
             id: 1,
             operativo_vehiculo_id: parseInt(vehiculoId),
             cuadrante_id: 45,
             hora_ingreso: "2026-01-12T08:00:00.000Z",
-            hora_salida: "2026-01-12T10:30:00.000Z",
-            observaciones: "Patrullaje normal sin incidentes",
+            hora_salida: "2026-01-12T12:00:00.000Z",
+            observaciones: "Patrullaje en centro comercial",
             incidentes_reportados: null,
-            tiempo_minutos: 150,
+            tiempo_minutos: 240,
             estado_registro: 1,
             deleted_at: null,
             created_at: "2026-01-12T08:00:00.000Z",
-            updated_at: "2026-01-12T10:30:00.000Z",
+            updated_at: "2026-01-12T12:00:00.000Z",
             cuadrante: {
               id: 45,
               cuadrante_code: "C015",
               nombre: "Centro Comercial Norte",
               sector_id: 3,
               zona_code: "ZONA-A",
-              latitud: -12.04640000,
-              longitud: -77.04280000,
+              latitud: -12.04380000,
+              longitud: -77.04400000,
               color_mapa: "#10B981",
               estado: true
             }
@@ -185,15 +194,15 @@ export default function CuadrantesPorVehiculo() {
             id: 2,
             operativo_vehiculo_id: parseInt(vehiculoId),
             cuadrante_id: 46,
-            hora_ingreso: "2026-01-12T10:45:00.000Z",
-            hora_salida: "2026-01-12T12:15:00.000Z",
-            observaciones: "Reporte de actividad sospechosa en zona comercial",
-            incidentes_reportados: "Actividad sospechosa",
+            hora_ingreso: "2026-01-12T13:00:00.000Z",
+            hora_salida: "2026-01-12T14:30:00.000Z",
+            observaciones: "Patrullaje preventivo en parque",
+            incidentes_reportados: null,
             tiempo_minutos: 90,
             estado_registro: 1,
             deleted_at: null,
-            created_at: "2026-01-12T10:45:00.000Z",
-            updated_at: "2026-01-12T12:15:00.000Z",
+            created_at: "2026-01-12T13:00:00.000Z",
+            updated_at: "2026-01-12T14:30:00.000Z",
             cuadrante: {
               id: 46,
               cuadrante_code: "C016",
@@ -203,31 +212,6 @@ export default function CuadrantesPorVehiculo() {
               latitud: -12.04560000,
               longitud: -77.04320000,
               color_mapa: "#F59E0B",
-              estado: true
-            }
-          },
-          {
-            id: 3,
-            operativo_vehiculo_id: parseInt(vehiculoId),
-            cuadrante_id: 47,
-            hora_ingreso: "2026-01-12T13:30:00.000Z",
-            hora_salida: "2026-01-12T15:00:00.000Z",
-            observaciones: "Patrullaje preventivo en zona residencial",
-            incidentes_reportados: null,
-            tiempo_minutos: 90,
-            estado_registro: 1,
-            deleted_at: null,
-            created_at: "2026-01-12T13:30:00.000Z",
-            updated_at: "2026-01-12T15:00:00.000Z",
-            cuadrante: {
-              id: 47,
-              cuadrante_code: "C017",
-              nombre: "Zona Residencial Este",
-              sector_id: 3,
-              zona_code: "ZONA-C",
-              latitud: -12.04720000,
-              longitud: -77.04240000,
-              color_mapa: "#3B82F6",
               estado: true
             }
           }
@@ -248,36 +232,95 @@ export default function CuadrantesPorVehiculo() {
           copiloto: {
             nombres: "Carlos", 
             apellido_paterno: "López"
-          },
-          kilometraje_inicio: 15000,
-          kilometraje_fin: 15250,
-          kilometros_recorridos: 250
+          }
         });
         setUsingDemoData(true);
-        toast.info("Mostrando datos de demostración - El backend no está disponible aún");
-      } else {
-        const errorMessage = err?.response?.data?.message || "Error al cargar los cuadrantes";
-        setError(errorMessage);
-        toast.error(errorMessage);
+        console.log("✅ Demo data establecida");
       }
+    } catch (err) {
+      console.error("❌ Error cargando cuadrantes:", err);
+      
+      // En caso de error, usar datos de demostración
+      const demoData = [
+        {
+          id: 1,
+          operativo_vehiculo_id: parseInt(vehiculoId),
+          cuadrante_id: 45,
+          hora_ingreso: "2026-01-12T08:00:00.000Z",
+          hora_salida: "2026-01-12T12:00:00.000Z",
+          observaciones: "Patrullaje en centro comercial",
+          incidentes_reportados: null,
+          tiempo_minutos: 240,
+          estado_registro: 1,
+          deleted_at: null,
+          created_at: "2026-01-12T08:00:00.000Z",
+          updated_at: "2026-01-12T12:00:00.000Z",
+          cuadrante: {
+            id: 45,
+            cuadrante_code: "C015",
+            nombre: "Centro Comercial Norte",
+            sector_id: 3,
+            zona_code: "ZONA-A",
+            latitud: -12.04380000,
+            longitud: -77.04400000,
+            color_mapa: "#10B981",
+            estado: true
+          }
+        }
+      ];
+      
+      setCuadrantes(demoData);
+      setVehiculo({
+        id: parseInt(vehiculoId),
+        placa: "ABC-123",
+        marca: "Toyota",
+        modelo: "Hilux",
+        tipo: "Patrullero",
+        tipo_vehiculo: { nombre: "Patrullero" },
+        conductor: {
+          nombres: "Juan",
+          apellido_paterno: "Pérez"
+        },
+        copiloto: {
+          nombres: "Carlos", 
+          apellido_paterno: "López"
+        }
+      });
+      setUsingDemoData(true);
+      
+      const errorMessage = err?.response?.data?.message || "Error al cargar los cuadrantes";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
+      console.log("🏁 fetchCuadrantes finalizado");
     }
-  };
+  }, [turnoId, vehiculoId, fetchVehiculo]);
 
   useEffect(() => {
+    console.log("🔄 useEffect principal ejecutado - turnoId:", turnoId, "vehiculoId:", vehiculoId, "canRead:", canRead);
+    console.trace("📋 Stack trace del useEffect principal");
+    
     if (!canRead) {
+      console.log("❌ Sin permisos, cancelando");
       setError("No tienes permisos para ver esta información");
       setLoading(false);
       return;
     }
 
     if (turnoId && vehiculoId) {
+      console.log("✅ Parámetros válidos, llamando fetchCuadrantes");
       fetchCuadrantes();
+    } else {
+      console.log("⚠️ Parámetros inválidos - turnoId:", turnoId, "vehiculoId:", vehiculoId);
     }
-  }, [turnoId, vehiculoId, canRead]);
+  }, [turnoId, vehiculoId, canRead, fetchCuadrantes]);
 
   // Manejar tecla ESC para retornar
+  const handleBack = useCallback(() => {
+    navigate(`/operativos/turnos/${turnoId}/vehiculos`);
+  }, [navigate, turnoId]);
+
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.key === "Escape") {
@@ -297,11 +340,7 @@ export default function CuadrantesPorVehiculo() {
     return () => {
       document.removeEventListener("keydown", handleKeyDown, true);
     };
-  }, [showCreateForm, showEditForm]);
-
-  const handleBack = () => {
-    navigate(`/operativos/turnos/${turnoId}/vehiculos`);
-  };
+  }, [showCreateForm, showEditForm, handleBack]);
 
   const handleCreateCuadrante = () => {
     setShowCreateForm(true);

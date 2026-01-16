@@ -5,7 +5,7 @@
  * @module src/pages/operativos/vehiculos/AsignarCuadranteForm.jsx
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import {
   MapPin,
@@ -69,14 +69,21 @@ export default function AsignarCuadranteForm({
     // Si no hay sectorId, cargar datos de demo inmediatamente
     if (!sectorId) {
       console.warn("No hay sectorId, usando datos de demostración");
-      useDemoData();
+      setCuadrantesDisponibles([
+        { id: 45, cuadrante_code: "C015", nombre: "Centro Comercial Norte" },
+        { id: 46, cuadrante_code: "C016", nombre: "Parque Central" },
+        { id: 47, cuadrante_code: "C017", nombre: "Zona Residencial Este" },
+        { id: 48, cuadrante_code: "C018", nombre: "Avenida Principal" },
+        { id: 49, cuadrante_code: "C019", nombre: "Plaza de Armas" },
+      ]);
+      setLoadingCuadrantes(false);
       return;
     }
     
     fetchCuadrantesDisponibles();
   }, [sectorId]);
 
-  const fetchCuadrantesDisponibles = async () => {
+  const fetchCuadrantesDisponibles = useCallback(async () => {
     setLoadingCuadrantes(true);
     try {
       const response = await api.get("/cuadrantes", {
@@ -95,24 +102,27 @@ export default function AsignarCuadranteForm({
         setLoadingCuadrantes(false);
       } else {
         console.warn("No se encontraron cuadrantes para el sector, usando datos de demostración");
-        useDemoData();
+        setCuadrantesDisponibles([
+          { id: 45, cuadrante_code: "C015", nombre: "Centro Comercial Norte" },
+          { id: 46, cuadrante_code: "C016", nombre: "Parque Central" },
+          { id: 47, cuadrante_code: "C017", nombre: "Zona Residencial Este" },
+          { id: 48, cuadrante_code: "C018", nombre: "Avenida Principal" },
+          { id: 49, cuadrante_code: "C019", nombre: "Plaza de Armas" },
+        ]);
+        setLoadingCuadrantes(false);
       }
     } catch (err) {
       console.error("Error cargando cuadrantes:", err);
-      useDemoData();
+      setCuadrantesDisponibles([
+        { id: 45, cuadrante_code: "C015", nombre: "Centro Comercial Norte" },
+        { id: 46, cuadrante_code: "C016", nombre: "Parque Central" },
+        { id: 47, cuadrante_code: "C017", nombre: "Zona Residencial Este" },
+        { id: 48, cuadrante_code: "C018", nombre: "Avenida Principal" },
+        { id: 49, cuadrante_code: "C019", nombre: "Plaza de Armas" },
+      ]);
+      setLoadingCuadrantes(false);
     }
-  };
-
-  const useDemoData = () => {
-    setCuadrantesDisponibles([
-      { id: 45, cuadrante_code: "C015", nombre: "Centro Comercial Norte" },
-      { id: 46, cuadrante_code: "C016", nombre: "Parque Central" },
-      { id: 47, cuadrante_code: "C017", nombre: "Zona Residencial Este" },
-      { id: 48, cuadrante_code: "C018", nombre: "Avenida Principal" },
-      { id: 49, cuadrante_code: "C019", nombre: "Plaza de Armas" },
-    ]);
-    setLoadingCuadrantes(false);
-  };
+  }, [sectorId]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -229,10 +239,14 @@ export default function AsignarCuadranteForm({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Cuadrante */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            <label 
+              htmlFor="cuadrante_id"
+              className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2"
+            >
               Cuadrante <span className="text-red-500">*</span>
             </label>
             <select
+              id="cuadrante_id"
               name="cuadrante_id"
               value={formData.cuadrante_id}
               onChange={handleInputChange}
@@ -264,10 +278,14 @@ export default function AsignarCuadranteForm({
 
           {/* Hora de Ingreso */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            <label 
+              htmlFor="hora_ingreso"
+              className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2"
+            >
               Hora de Ingreso <span className="text-red-500">*</span>
             </label>
             <input
+              id="hora_ingreso"
               type="datetime-local"
               name="hora_ingreso"
               value={formData.hora_ingreso}
@@ -288,10 +306,14 @@ export default function AsignarCuadranteForm({
 
           {/* Hora de Salida */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            <label 
+              htmlFor="hora_salida"
+              className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2"
+            >
               Hora de Salida
             </label>
             <input
+              id="hora_salida"
               type="datetime-local"
               name="hora_salida"
               value={formData.hora_salida}
@@ -327,27 +349,34 @@ export default function AsignarCuadranteForm({
 
         {/* Observaciones */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+          <label 
+            htmlFor="observaciones"
+            className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2"
+          >
             Observaciones
-            <span className="text-xs text-slate-400 ml-2">
+            <span className="ml-2 text-xs text-slate-500 dark:text-slate-400">
               ({formData.observaciones.length}/500)
             </span>
           </label>
           <textarea
+            id="observaciones"
             name="observaciones"
             value={formData.observaciones}
             onChange={handleInputChange}
             rows={3}
             maxLength={500}
             placeholder="Observaciones adicionales..."
-            className={`w-full px-3 py-2 rounded-lg border ${
-              errors.observaciones 
-                ? "border-red-500 dark:border-red-500" 
+            className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none ${
+              errors.observaciones
+                ? "border-red-300 dark:border-red-600"
                 : "border-slate-300 dark:border-slate-700"
-            } bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none`}
+            }`}
           />
           {errors.observaciones && (
-            <p className="mt-1 text-xs text-red-500">{errors.observaciones}</p>
+            <p className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
+              <AlertTriangle size={12} />
+              {errors.observaciones}
+            </p>
           )}
         </div>
 
