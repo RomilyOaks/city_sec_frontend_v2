@@ -5,7 +5,7 @@
  * @module src/pages/operativos/vehiculos/RegistrarNovedadForm.jsx
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import {
   AlertTriangle,
@@ -89,27 +89,45 @@ export default function RegistrarNovedadForm({
     resultado: "PENDIENTE",
   });
 
-  // Cargar novedades disponibles del cuadrante
+  // Cargar novedades disponibles del cuadrante (filtrando las ya asignadas)
   const fetchNovedadesDisponibles = useCallback(async () => {
     try {
       setLoadingNovedades(true);
-      const response = await operativosNovedadesService.getNovedadesDisponibles(
-        turnoId,
-        vehiculoId,
-        cuadranteId
-      );
-      console.log("Respuesta del API - Novedades disponibles:", response);
       
-      // Intentar diferentes estructuras de respuesta
+      // Cargar en paralelo: novedades disponibles y novedades ya asignadas al cuadrante
+      const [disponiblesResponse, asignadasResponse] = await Promise.all([
+        operativosNovedadesService.getNovedadesDisponibles(turnoId, vehiculoId, cuadranteId),
+        operativosNovedadesService.getNovedadesByCuadrante(turnoId, vehiculoId, cuadranteId)
+      ]);
+      
+      console.log("Respuesta del API - Novedades disponibles:", disponiblesResponse);
+      console.log("Respuesta del API - Novedades asignadas:", asignadasResponse);
+      
+      // Procesar novedades disponibles
       let novedadesData = [];
-      if (response.data) {
-        novedadesData = response.data;
-      } else if (response) {
-        novedadesData = response;
+      if (disponiblesResponse.data) {
+        novedadesData = disponiblesResponse.data;
+      } else if (disponiblesResponse) {
+        novedadesData = disponiblesResponse;
       }
       
-      console.log("Datos procesados para novedades:", novedadesData);
-      setNovedadesDisponibles(novedadesData);
+      // Procesar novedades ya asignadas al cuadrante
+      let asignadasData = [];
+      if (asignadasResponse.data) {
+        asignadasData = asignadasResponse.data;
+      } else if (asignadasResponse) {
+        asignadasData = asignadasResponse;
+      }
+      
+      // Obtener IDs de novedades ya asignadas
+      const idsAsignados = new Set(asignadasData.map(n => n.novedad_id || n.novedad?.id));
+      console.log("IDs de novedades ya asignadas:", [...idsAsignados]);
+      
+      // Filtrar novedades disponibles que NO estén ya asignadas
+      const novedadesFiltradas = novedadesData.filter(n => !idsAsignados.has(n.id));
+      console.log("Novedades filtradas (no asignadas):", novedadesFiltradas);
+      
+      setNovedadesDisponibles(novedadesFiltradas);
     } catch (err) {
       console.error("Error cargando novedades disponibles:", err);
       toast.error("Error al cargar novedades disponibles");
@@ -165,6 +183,31 @@ export default function RegistrarNovedadForm({
   useEffect(() => {
     fetchNovedadesDisponibles();
   }, [fetchNovedadesDisponibles]);
+
+  // Hotkey ALT+G para guardar y ESC para cerrar
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // ALT+G para guardar
+      if (e.altKey && (e.key === 'g' || e.key === 'G')) {
+        e.preventDefault();
+        if (!loading) {
+          // Simular submit del formulario
+          const form = document.getElementById('novedad-cuadrante-form');
+          if (form) {
+            form.requestSubmit();
+          }
+        }
+      }
+      // ESC para cerrar
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose && onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [loading, onClose]);
 
   // Validar formulario
   const validateForm = () => {
@@ -243,17 +286,29 @@ export default function RegistrarNovedadForm({
       const payload = {
         novedad_id: parseInt(formData.novedad_id),
         reportado: toUTCDateTime(formData.reportado),
-        atendido: formData.atendido ? toUTCDateTime(formData.atendido) : null,
         estado: parseInt(formData.estado),
         prioridad: formData.prioridad,
         observaciones: formData.observaciones.trim(),
-        acciones_tomadas: formData.acciones_tomadas.trim() || null,
         resultado: formData.resultado,
       };
+
+      // 🔥 Solo agregar campos opcionales si tienen valor
+      if (formData.atendido) {
+        payload.atendido = toUTCDateTime(formData.atendido);
+      }
+      if (formData.acciones_tomadas?.trim()) {
+        payload.acciones_tomadas = formData.acciones_tomadas.trim();
+      }
+
+      // 🔥 DEBUG: Ver payload y parámetros
+      console.log("🚀 [DEBUG] handleSubmit - Enviando novedad");
+      console.log("📦 [DEBUG] Payload:", JSON.stringify(payload, null, 2));
+      console.log("🔗 [DEBUG] turnoId:", turnoId, "vehiculoId:", vehiculoId, "cuadranteId:", cuadranteId);
 
       let response;
       if (novedad) {
         // Editar novedad existente
+        console.log("✏️ [DEBUG] Modo EDITAR - novedadId:", novedad.id);
         response = await operativosNovedadesService.updateNovedad(
           turnoId,
           vehiculoId,
@@ -264,6 +319,7 @@ export default function RegistrarNovedadForm({
         toast.success("Novedad actualizada exitosamente");
       } else {
         // Crear nueva novedad
+        console.log("➕ [DEBUG] Modo CREAR");
         response = await operativosNovedadesService.createNovedad(
           turnoId,
           vehiculoId,
@@ -273,10 +329,14 @@ export default function RegistrarNovedadForm({
         toast.success("Novedad registrada exitosamente");
       }
 
+      console.log("✅ [DEBUG] Respuesta exitosa:", response);
       onSuccess && onSuccess(response.data?.data || response.data);
       onClose && onClose();
     } catch (err) {
-      console.error("Error guardando novedad:", err);
+      console.error("❌ [DEBUG] Error guardando novedad:", err);
+      console.error("❌ [DEBUG] Error response:", err.response);
+      console.error("❌ [DEBUG] Error response data:", err.response?.data);
+      console.error("❌ [DEBUG] Error response status:", err.response?.status);
       const errorMsg = err.response?.data?.message || err.response?.data?.error || "Error al guardar novedad";
       toast.error(errorMsg);
     } finally {
@@ -312,7 +372,7 @@ export default function RegistrarNovedadForm({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6">
+        <form id="novedad-cuadrante-form" onSubmit={handleSubmit} className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Tipo de Novedad */}
             <div className="md:col-span-2">
@@ -356,13 +416,13 @@ export default function RegistrarNovedadForm({
                     <div>
                       <span className="font-medium text-slate-700 dark:text-slate-300">Tipo:</span>
                       <span className="ml-2 text-slate-900 dark:text-slate-50">
-                        {selectedNovedad.novedadTipoNovedad?.tipo_novedad || 'No especificado'}
+                        {selectedNovedad.novedadTipoNovedad?.nombre || selectedNovedad.tipo_novedad?.nombre || 'No especificado'}
                       </span>
                     </div>
                     <div>
                       <span className="font-medium text-slate-700 dark:text-slate-300">Subtipo:</span>
                       <span className="ml-2 text-slate-900 dark:text-slate-50">
-                        {selectedNovedad.novedadTipoNovedad?.subtipo_novedad || 'No especificado'}
+                        {selectedNovedad.novedadSubtipoNovedad?.nombre || selectedNovedad.subtipo_novedad?.nombre || 'No especificado'}
                       </span>
                     </div>
                     {selectedNovedad.localizacion && (
@@ -550,6 +610,7 @@ export default function RegistrarNovedadForm({
               type="submit"
               disabled={loading}
               className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title="Guardar (ALT+G)"
             >
               {loading ? (
                 <>
@@ -559,7 +620,7 @@ export default function RegistrarNovedadForm({
               ) : (
                 <>
                   <Save size={18} />
-                  {novedad ? "Actualizar Novedad" : "Registrar Novedad"}
+                  {novedad ? "Actualizar" : "Guardar"} <span className="text-xs opacity-75">(ALT+G)</span>
                 </>
               )}
             </button>

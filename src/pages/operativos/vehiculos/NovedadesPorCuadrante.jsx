@@ -7,6 +7,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import {
   ArrowLeft,
   Plus,
@@ -24,12 +25,14 @@ import {
   AlertCircle,
   Pencil,
   Trash2,
+  Eye,
 } from "lucide-react";
 
 import operativosNovedadesService from "../../../services/operativosNovedadesService.js";
 import { canPerformAction } from "../../../rbac/rbac.js";
 import { useAuthStore } from "../../../store/useAuthStore.js";
 import RegistrarNovedadForm from "./RegistrarNovedadForm.jsx";
+import NovedadDetalleModal from "../../../components/NovedadDetalleModal.jsx";
 
 /**
  * Formatea fecha/hora a formato legible
@@ -122,6 +125,8 @@ export default function NovedadesPorCuadrante() {
   const [error, setError] = useState(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingNovedad, setEditingNovedad] = useState(null);
+  const [viewingNovedad, setViewingNovedad] = useState(null);
+  const [deletingNovedad, setDeletingNovedad] = useState(null);
   const [filters, setFilters] = useState({
     estado: "todos",
     prioridad: "todos",
@@ -207,6 +212,50 @@ export default function NovedadesPorCuadrante() {
     setEditingNovedad(null);
     fetchNovedades();
   }, [fetchNovedades]);
+
+  // Manejar ver detalle de novedad
+  const handleViewNovedad = useCallback((novedad) => {
+    setViewingNovedad(novedad);
+  }, []);
+
+  // Manejar cierre del modal de detalle
+  const handleCloseViewModal = useCallback(() => {
+    setViewingNovedad(null);
+  }, []);
+
+  // Manejar eliminación de novedad (soft delete)
+  const handleDeleteNovedad = useCallback(async (novedad) => {
+    if (!canDelete) {
+      toast.error("No tienes permisos para eliminar novedades");
+      return;
+    }
+    setDeletingNovedad(novedad);
+  }, [canDelete]);
+
+  // Confirmar eliminación
+  const confirmDeleteNovedad = useCallback(async () => {
+    if (!deletingNovedad) return;
+    
+    try {
+      await operativosNovedadesService.deleteNovedad(
+        turnoId,
+        vehiculoId,
+        cuadranteId,
+        deletingNovedad.id
+      );
+      toast.success("Novedad eliminada correctamente");
+      setDeletingNovedad(null);
+      fetchNovedades();
+    } catch (err) {
+      console.error("Error eliminando novedad:", err);
+      toast.error(err.response?.data?.message || "Error al eliminar novedad");
+    }
+  }, [deletingNovedad, turnoId, vehiculoId, cuadranteId, fetchNovedades]);
+
+  // Cancelar eliminación
+  const cancelDeleteNovedad = useCallback(() => {
+    setDeletingNovedad(null);
+  }, []);
 
   // Filtrar novedades
   const filteredNovedades = novedades.filter((novedad) => {
@@ -483,89 +532,91 @@ export default function NovedadesPorCuadrante() {
               )}
             </div>
           ) : (
-            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4">
               {filteredNovedades.map((novedad) => (
                 <div
                   key={novedad.id}
-                  className="p-6 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                  className="bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 p-4 hover:shadow-md transition-shadow"
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
-                          {novedad.novedad?.nombre || "Novedad sin nombre"}
-                        </h3>
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPrioridadColor(novedad.prioridad)}`}>
-                          {novedad.prioridad}
-                        </span>
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getEstadoColor(novedad.estado)}`}>
-                          {novedad.estado === 0 ? "Inactivo" : novedad.estado === 1 ? "Activo" : "Atendido"}
-                        </span>
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getResultColor(novedad.resultado)}`}>
-                          {novedad.resultado}
-                        </span>
-                      </div>
-                      
-                      <p className="text-slate-600 dark:text-slate-400 mb-3">
-                        {novedad.novedad?.descripcion || "Sin descripción"}
+                  {/* Header del card */}
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base font-semibold text-slate-900 dark:text-slate-50 truncate">
+                        {novedad.novedad?.nombre || novedad.novedad?.novedad_code || "Novedad"}
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        {novedad.novedad?.novedad_code}
                       </p>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                        <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                          <Clock size={14} />
-                          <span>Reportado: {formatDateTime(novedad.reportado)}</span>
-                        </div>
-                        {novedad.atendido && (
-                          <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                            <CheckCircle size={14} />
-                            <span>Atendido: {formatDateTime(novedad.atendido)}</span>
-                          </div>
-                        )}
-                      </div>
-                      
-                      {novedad.observaciones && (
-                        <div className="mb-3">
-                          <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                            Observaciones:
-                          </p>
-                          <p className="text-sm text-slate-600 dark:text-slate-400">
-                            {novedad.observaciones}
-                          </p>
-                        </div>
-                      )}
-                      
-                      {novedad.acciones_tomadas && (
-                        <div className="mb-3">
-                          <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                            Acciones Tomadas:
-                          </p>
-                          <p className="text-sm text-slate-600 dark:text-slate-400">
-                            {novedad.acciones_tomadas}
-                          </p>
-                        </div>
-                      )}
                     </div>
-                    
-                    <div className="flex items-center gap-2 ml-4">
+                    <div className="flex items-center gap-1 ml-2">
+                      <button
+                        onClick={() => handleViewNovedad(novedad)}
+                        className="p-1.5 text-slate-600 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-700 rounded-lg"
+                        title="Ver detalle"
+                      >
+                        <Eye size={14} />
+                      </button>
                       {canUpdate && (
                         <button
                           onClick={() => handleEditNovedad(novedad)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded-lg"
+                          className="p-1.5 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded-lg"
                           title="Editar novedad"
                         >
-                          <Pencil size={16} />
+                          <Pencil size={14} />
                         </button>
                       )}
                       {canDelete && (
                         <button
-                          className="p-2 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded-lg"
+                          onClick={() => handleDeleteNovedad(novedad)}
+                          className="p-1.5 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded-lg"
                           title="Eliminar novedad"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={14} />
                         </button>
                       )}
                     </div>
                   </div>
+
+                  {/* Badges */}
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getPrioridadColor(novedad.prioridad)}`}>
+                      {novedad.prioridad}
+                    </span>
+                    <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getEstadoColor(novedad.estado)}`}>
+                      {novedad.estado === 0 ? "Inactivo" : novedad.estado === 1 ? "Activo" : "Atendido"}
+                    </span>
+                    <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getResultColor(novedad.resultado)}`}>
+                      {novedad.resultado}
+                    </span>
+                  </div>
+                  
+                  {/* Descripción */}
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-3 line-clamp-2">
+                    {novedad.novedad?.descripcion || novedad.observaciones || "Sin descripción"}
+                  </p>
+                  
+                  {/* Fechas */}
+                  <div className="space-y-1 text-xs text-slate-500 dark:text-slate-400">
+                    <div className="flex items-center gap-1.5">
+                      <Clock size={12} />
+                      <span>Reportado: {formatDateTime(novedad.reportado)}</span>
+                    </div>
+                    {novedad.atendido && (
+                      <div className="flex items-center gap-1.5">
+                        <CheckCircle size={12} className="text-green-500" />
+                        <span>Atendido: {formatDateTime(novedad.atendido)}</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Observaciones (truncadas) */}
+                  {novedad.observaciones && (
+                    <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                      <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">
+                        <span className="font-medium">Obs:</span> {novedad.observaciones}
+                      </p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -583,6 +634,57 @@ export default function NovedadesPorCuadrante() {
           onClose={handleCloseForm}
           onSuccess={handleFormSuccess}
         />
+      )}
+
+      {/* Modal de detalle de novedad - Reutilizando NovedadDetalleModal completo */}
+      <NovedadDetalleModal
+        novedadId={viewingNovedad?.novedad_id || viewingNovedad?.novedad?.id}
+        novedad={viewingNovedad?.novedad}
+        isOpen={!!viewingNovedad}
+        onClose={handleCloseViewModal}
+        showDespacharButton={false}
+      />
+
+      {/* Modal de confirmación de eliminación */}
+      {deletingNovedad && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
+                  <AlertTriangle size={24} className="text-red-600 dark:text-red-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
+                    Confirmar Eliminación
+                  </h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Esta acción no se puede deshacer
+                  </p>
+                </div>
+              </div>
+              
+              <p className="text-slate-600 dark:text-slate-400 mb-6">
+                ¿Está seguro que desea eliminar la novedad <strong>{deletingNovedad.novedad?.nombre || deletingNovedad.novedad?.novedad_code}</strong>?
+              </p>
+              
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={cancelDeleteNovedad}
+                  className="px-4 py-2 text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmDeleteNovedad}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                >
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
