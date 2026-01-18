@@ -1145,6 +1145,9 @@ export default function VehiculosPage() {
             <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
               <tr>
                 <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">
+                  Código
+                </th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">
                   Tipo
                 </th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">
@@ -1168,7 +1171,7 @@ export default function VehiculosPage() {
               {loading ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="px-4 py-8 text-center text-slate-500"
                   >
                     Cargando...
@@ -1177,7 +1180,7 @@ export default function VehiculosPage() {
               ) : vehiculos.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="px-4 py-8 text-center text-slate-500"
                   >
                     No hay registros
@@ -1191,10 +1194,13 @@ export default function VehiculosPage() {
                       v.deleted_at ? "opacity-50" : ""
                     }`}
                   >
+                    <td className="px-4 py-3 text-slate-900 dark:text-slate-50 font-semibold font-mono">
+                      {v.codigo_vehiculo || "—"}
+                    </td>
                     <td className="px-4 py-3 text-slate-700 dark:text-slate-200">
                       {getTipoNombre(v)}
                     </td>
-                    <td className="px-4 py-3 text-slate-900 dark:text-slate-50 font-semibold font-mono">
+                    <td className="px-4 py-3 text-slate-900 dark:text-slate-50 font-mono">
                       {v.placa}
                     </td>
                     <td className="px-4 py-3 text-slate-700 dark:text-slate-200">

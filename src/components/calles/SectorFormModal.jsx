@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import { X, MapPin, FileText } from "lucide-react";
 import { createSector, updateSector } from "../../services/sectoresService";
 import { listUbigeos, getUbigeoByCode } from "../../services/novedadesService";
+import { listPersonalSelector } from "../../services/personalService";
 import toast from "react-hot-toast";
 import { getDefaultUbigeo } from "../../config/defaults";
 
@@ -17,6 +18,7 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
     codigo: "",
     nombre: "",
     descripcion: "",
+    supervisor_id: "",
     ubigeo: "",
     zona_code: "",
     poligono_json: "",
@@ -28,16 +30,27 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
   const [showUbigeoDropdown, setShowUbigeoDropdown] = useState(false);
   const [validationError, setValidationError] = useState("");
   const [defaultUbigeo, setDefaultUbigeo] = useState(null); // Ubigeo por defecto
+  const [personalList, setPersonalList] = useState([]); // Lista de personal para supervisor
 
-  // Cargar ubigeo por defecto al montar
+  // Cargar ubigeo por defecto y lista de personal al montar
   useEffect(() => {
     getDefaultUbigeo()
       .then((ubigeo) => {
         setDefaultUbigeo(ubigeo);
         console.log("📍 Ubigeo default cargado (Sectores):", ubigeo);
       })
-      .catch((err) => {
-        console.error("Error cargando ubigeo default:", err);
+      .catch((error) => {
+        console.error("Error cargando ubigeo default:", error);
+      });
+
+    // Cargar lista de personal para selector de supervisor
+    listPersonalSelector()
+      .then((data) => {
+        setPersonalList(Array.isArray(data) ? data : []);
+      })
+      .catch((error) => {
+        console.error("Error cargando lista de personal:", error);
+        setPersonalList([]);
       });
   }, []);
 
@@ -49,6 +62,7 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
         codigo: sector.sector_code || sector.codigo || "",
         nombre: sector.nombre || "",
         descripcion: sector.descripcion || "",
+        supervisor_id: sector.supervisor_id || "",
         ubigeo: sector.ubigeo || "",
         zona_code: sector.zona_code || "",
         poligono_json: sector.poligono_json || "",
@@ -78,6 +92,7 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
         codigo: "",
         nombre: "",
         descripcion: "",
+        supervisor_id: "",
         ubigeo: defaultUbigeo?.code || "",
         zona_code: "",
         poligono_json: "",
@@ -187,6 +202,7 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
       codigo: "",
       nombre: "",
       descripcion: "",
+      supervisor_id: "",
       ubigeo: "",
       zona_code: "",
       poligono_json: "",
@@ -261,6 +277,7 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
         sector_code: formData.codigo.trim(),
         nombre: formData.nombre.trim(),
         descripcion: formData.descripcion?.trim() || null,
+        supervisor_id: formData.supervisor_id ? Number(formData.supervisor_id) : null,
         ubigeo: formData.ubigeo?.trim() || null,
         zona_code: formData.zona_code?.trim() || null,
         poligono_json: formData.poligono_json?.trim() || null,
@@ -536,6 +553,33 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
                   placeholder="Descripción del sector..."
                 />
+              </div>
+
+              {/* Supervisor */}
+              <div>
+                <label
+                  htmlFor="sector-supervisor"
+                  className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+                >
+                  Supervisor
+                </label>
+                <select
+                  id="sector-supervisor"
+                  name="supervisor_id"
+                  value={formData.supervisor_id}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                >
+                  <option value="">— Sin supervisor asignado —</option>
+                  {personalList.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.apellido_paterno} {p.apellido_materno}, {p.nombres} - {p.doc_tipo} {p.doc_numero}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Persona responsable del sector
+                </p>
               </div>
             </div>
           )}

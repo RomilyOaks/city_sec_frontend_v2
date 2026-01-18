@@ -25,6 +25,7 @@ import {
   User,
   Users,
   MapPin,
+  PersonStanding,
 } from "lucide-react";
 
 import {
@@ -38,6 +39,7 @@ import { listSectores } from "../../services/sectoresService.js";
 import { useAuthStore } from "../../store/useAuthStore.js";
 import { canPerformAction } from "../../rbac/rbac.js";
 import OperativosVehiculosModal from "./vehiculos/OperativosVehiculosModal.jsx";
+import OperativosPersonalModal from "./personal/OperativosPersonalModal.jsx";
 
 // Opciones de turno según documentación
 const TURNO_OPTIONS = [
@@ -175,6 +177,7 @@ export default function OperativosTurnoPage() {
   const [editingOperativo, setEditingOperativo] = useState(null);
   const [viewingOperativo, setViewingOperativo] = useState(null);
   const [showVehiculosModal, setShowVehiculosModal] = useState(false);
+  const [showPersonalModal, setShowPersonalModal] = useState(false);
   const [selectedTurno, setSelectedTurno] = useState(null);
   const [formData, setFormData] = useState(initialFormData);
   const [saving, setSaving] = useState(false);
@@ -1036,6 +1039,7 @@ export default function OperativosTurnoPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
+                        {/* Botón Vehículos (patrullaje motorizado) */}
                         <button
                           onClick={() => {
                             navigate(`/operativos/turnos/${op.id}/vehiculos?sector_id=${op.sector_id}`);
@@ -1044,6 +1048,17 @@ export default function OperativosTurnoPage() {
                           title="Vehículos del turno"
                         >
                           <Car size={14} />
+                        </button>
+                        {/* Botón Personal (patrullaje a pie) */}
+                        <button
+                          onClick={() => {
+                            setSelectedTurno(op);
+                            setShowPersonalModal(true);
+                          }}
+                          className="p-2 rounded-lg text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
+                          title="Personal a pie del turno"
+                        >
+                          <PersonStanding size={14} />
                         </button>
                         <button
                           onClick={() => setViewingOperativo(op)}
@@ -1318,11 +1333,21 @@ export default function OperativosTurnoPage() {
         </div>
       )}
 
-      {/* Modal Vehículos */}
+      {/* Modal Vehículos (patrullaje motorizado) */}
       <OperativosVehiculosModal
         isOpen={showVehiculosModal}
         onClose={() => {
           setShowVehiculosModal(false);
+          setSelectedTurno(null);
+        }}
+        turno={selectedTurno}
+      />
+
+      {/* Modal Personal (patrullaje a pie) */}
+      <OperativosPersonalModal
+        isOpen={showPersonalModal}
+        onClose={() => {
+          setShowPersonalModal(false);
           setSelectedTurno(null);
         }}
         turno={selectedTurno}
