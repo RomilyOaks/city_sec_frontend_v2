@@ -18,28 +18,23 @@ import { X, Map } from "lucide-react";
  * @param {Object} props.sector - Sector a mostrar
  */
 export default function SectorViewModal({ isOpen, onClose, sector }) {
-  if (!isOpen || !sector) return null;
-
   // Manejo de tecla ESC para cerrar
   useEffect(() => {
+    if (!isOpen) return;
+
     const handleEscape = (e) => {
       if (e.key === "Escape") {
-        handleClose();
+        onClose();
       }
     };
 
-    if (isOpen) {
-      document.addEventListener("keydown", handleEscape);
-    }
-
+    document.addEventListener("keydown", handleEscape);
     return () => {
       document.removeEventListener("keydown", handleEscape);
     };
-  }, [isOpen]);
+  }, [isOpen, onClose]);
 
-  const handleClose = () => {
-    onClose();
-  };
+  if (!isOpen || !sector) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -56,7 +51,7 @@ export default function SectorViewModal({ isOpen, onClose, sector }) {
             </p>
           </div>
           <button
-            onClick={handleClose}
+            onClick={onClose}
             className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
           >
             <X size={24} />
@@ -113,6 +108,18 @@ export default function SectorViewModal({ isOpen, onClose, sector }) {
             </div>
           )}
 
+          {/* Supervisor */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              Supervisor
+            </label>
+            <p className="text-base text-slate-900 dark:text-white p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+              {sector.supervisor ?
+                `${sector.supervisor.apellido_paterno || ''} ${sector.supervisor.apellido_materno || ''}, ${sector.supervisor.nombres || ''}`.trim()
+                : "Sin supervisor asignado"}
+            </p>
+          </div>
+
           {/* Información de Auditoría */}
           <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
             <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">
@@ -158,7 +165,7 @@ export default function SectorViewModal({ isOpen, onClose, sector }) {
         {/* Footer */}
         <div className="sticky bottom-0 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-end">
           <button
-            onClick={handleClose}
+            onClick={onClose}
             className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
           >
             Cerrar

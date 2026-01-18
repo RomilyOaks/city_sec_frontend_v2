@@ -363,7 +363,7 @@ export default function SectoresCuadrantesPage() {
                       Zona
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                      Descripción
+                      Supervisor
                     </th>
                     <th className="px-6 py-3 text-center text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                       Acciones
@@ -400,7 +400,9 @@ export default function SectoresCuadrantesPage() {
                           {sector.zona_code || "-"}
                         </td>
                         <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
-                          {sector.descripcion || "-"}
+                          {sector.supervisor ?
+                            `${sector.supervisor.apellido_paterno || ''} ${sector.supervisor.apellido_materno || ''}, ${sector.supervisor.nombres || ''}`.trim()
+                            : "-"}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
                           <div className="flex items-center justify-center gap-2">

@@ -125,3 +125,14 @@ export async function listPersonalDisponible() {
   const res = await api.get("/personal/disponibles");
   return res?.data?.data || res?.data || [];
 }
+
+/**
+ * Listar personal para selectores/dropdowns
+ * Endpoint optimizado sin paginación que devuelve solo campos básicos
+ * Ordenado alfabéticamente por apellido_paterno, apellido_materno, nombres
+ * @returns {Promise<Array>} Lista de personal con campos: id, nombres, apellido_paterno, apellido_materno, doc_tipo, doc_numero, sexo, nacionalidad
+ */
+export async function listPersonalSelector() {
+  const res = await api.get("/personal/selector");
+  return res?.data?.data || res?.data || [];
+}
