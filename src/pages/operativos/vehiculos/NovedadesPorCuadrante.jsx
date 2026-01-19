@@ -271,7 +271,7 @@ export default function NovedadesPorCuadrante() {
     return true;
   });
 
-  // Manejar hotkey ALT+N para registrar novedad
+  // Manejar hotkey ALT+N para registrar novedad y ESC
   useEffect(() => {
     const handleKeyDown = (event) => {
       // ALT+N para registrar novedad
@@ -283,22 +283,39 @@ export default function NovedadesPorCuadrante() {
           handleCreateNovedad();
         }
       }
-      // ESC para volver o cerrar formulario
+      // ESC: Cerrar modales en orden de prioridad o volver atrás
       if (event.key === "Escape") {
         event.preventDefault();
+        event.stopPropagation();
+
+        // Prioridad 1: Cerrar modal de detalle de novedad
+        if (viewingNovedad) {
+          handleCloseViewModal();
+          return;
+        }
+
+        // Prioridad 2: Cerrar modal de confirmación de eliminación
+        if (deletingNovedad) {
+          cancelDeleteNovedad();
+          return;
+        }
+
+        // Prioridad 3: Cerrar formulario de registro/edición
         if (showCreateForm) {
           handleCloseForm();
-        } else {
-          handleBack();
+          return;
         }
+
+        // Prioridad 4: Volver al panel anterior
+        handleBack();
       }
     };
 
-    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown, true);
     return () => {
-      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("keydown", handleKeyDown, true);
     };
-  }, [canCreate, filteredNovedades.length, handleBack, showCreateForm, handleCloseForm, handleCreateNovedad]);
+  }, [canCreate, filteredNovedades.length, handleBack, showCreateForm, handleCloseForm, handleCreateNovedad, viewingNovedad, handleCloseViewModal, deletingNovedad, cancelDeleteNovedad]);
 
   // Estado de carga
   if (loading) {

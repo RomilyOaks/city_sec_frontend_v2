@@ -44,6 +44,8 @@ import { useAuthStore } from "../../../store/useAuthStore.js";
 import AsignarPersonalForm from "./AsignarPersonalForm.jsx";
 import EditarPersonalForm from "./EditarPersonalForm.jsx";
 import VerPersonalModal from "./VerPersonalModal.jsx";
+import CuadrantesPersonalModal from "./CuadrantesPersonalModal.jsx";
+import NovedadesPersonalModal from "./NovedadesPersonalModal.jsx";
 
 /**
  * OperativosPersonalModal
@@ -76,20 +78,26 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
   const [showViewModal, setShowViewModal] = useState(false);    // Mostrar modal de detalle
   const [selectedPersonal, setSelectedPersonal] = useState(null); // Personal seleccionado
 
+  // Estados para modales de cuadrantes y novedades
+  const [showCuadrantesModal, setShowCuadrantesModal] = useState(false);
+  const [showNovedadesModal, setShowNovedadesModal] = useState(false);
+  const [selectedCuadrante, setSelectedCuadrante] = useState(null); // Cuadrante para novedades
+
   // ============================================================================
   // EFECTOS
   // ============================================================================
 
   /**
    * Manejar atajos de teclado
-   * - ESC: Cerrar modal (si no hay formularios abiertos)
+   * - ESC: Cerrar modal (si no hay formularios/modales hijos abiertos)
    * - Alt+P: Abrir formulario de asignación de personal
    * - Alt+N: Prevenir que se abra modal de Nuevo Turno
    */
   useEffect(() => {
     const handleKeyDown = (e) => {
       // ESC: Cerrar modal (solo si no hay formularios/modales internos abiertos)
-      if (e.key === "Escape" && isOpen && !showCreateForm && !showEditForm && !showViewModal) {
+      // IMPORTANTE: No cerrar si hay modales hijos abiertos (Cuadrantes o Novedades)
+      if (e.key === "Escape" && isOpen && !showCreateForm && !showEditForm && !showViewModal && !showCuadrantesModal && !showNovedadesModal) {
         onClose();
       }
 
@@ -100,7 +108,7 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
       }
 
       // Alt+P: Abrir formulario de asignación de personal (solo si tiene permiso)
-      if (e.altKey && e.key === "p" && isOpen && !showCreateForm && !showEditForm && canCreate) {
+      if (e.altKey && e.key === "p" && isOpen && !showCreateForm && !showEditForm && !showCuadrantesModal && !showNovedadesModal && canCreate) {
         e.preventDefault();
         setShowCreateForm(true);
       }
@@ -111,7 +119,7 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
       document.addEventListener("keydown", handleKeyDown, true);
       return () => document.removeEventListener("keydown", handleKeyDown, true);
     }
-  }, [isOpen, onClose, showCreateForm, showEditForm, showViewModal, canCreate]);
+  }, [isOpen, onClose, showCreateForm, showEditForm, showViewModal, showCuadrantesModal, showNovedadesModal, canCreate]);
 
   // ============================================================================
   // FUNCIONES DE DATOS
@@ -168,14 +176,21 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
   };
 
   /**
-   * Navegar a cuadrantes del personal
-   * TODO: Implementar en FASE 3 - Por ahora muestra toast informativo
-   * @param {Object} personalItem - Personal seleccionado (se usará en FASE 3)
+   * Abrir modal de cuadrantes del personal
+   * @param {Object} personalItem - Personal seleccionado
    */
-  // eslint-disable-next-line no-unused-vars
   const handleCuadrantes = (personalItem) => {
-    toast("Función de cuadrantes se implementará en FASE 3", { icon: "🚧" });
-    // En FASE 3: navigate(`/operativos/turnos/${turno.id}/personal/${personalItem.id}/cuadrantes`);
+    setSelectedPersonal(personalItem);
+    setShowCuadrantesModal(true);
+  };
+
+  /**
+   * Callback desde CuadrantesPersonalModal para abrir novedades de un cuadrante
+   * @param {Object} cuadrante - Cuadrante seleccionado
+   */
+  const handleOpenNovedades = (cuadrante) => {
+    setSelectedCuadrante(cuadrante);
+    setShowNovedadesModal(true);
   };
 
   /**
@@ -567,6 +582,35 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
             setShowViewModal(false);
             setSelectedPersonal(null);
           }}
+        />
+
+        {/* ================================================================== */}
+        {/* MODAL DE CUADRANTES */}
+        {/* ================================================================== */}
+        <CuadrantesPersonalModal
+          isOpen={showCuadrantesModal}
+          onClose={() => {
+            setShowCuadrantesModal(false);
+            // No limpiamos selectedPersonal aquí por si se abre novedades después
+          }}
+          turnoId={turno?.id}
+          personal={selectedPersonal}
+          onOpenNovedades={handleOpenNovedades}
+          isNovedadesModalOpen={showNovedadesModal}
+        />
+
+        {/* ================================================================== */}
+        {/* MODAL DE NOVEDADES */}
+        {/* ================================================================== */}
+        <NovedadesPersonalModal
+          isOpen={showNovedadesModal}
+          onClose={() => {
+            setShowNovedadesModal(false);
+            setSelectedCuadrante(null);
+          }}
+          turnoId={turno?.id}
+          personal={selectedPersonal}
+          cuadrante={selectedCuadrante}
         />
       </div>
     </div>

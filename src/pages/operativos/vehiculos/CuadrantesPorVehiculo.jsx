@@ -701,10 +701,10 @@ export default function CuadrantesPorVehiculo() {
                           {canReadNovedades && (
                             <button
                               onClick={() => handleViewNovedades(cuadrante)}
-                              className="p-2 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                              title="Ver novedades"
+                              className="p-2 rounded-lg text-amber-500 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                              title="Ver/Gestionar Novedades"
                             >
-                              <FileText size={14} />
+                              <AlertTriangle size={14} />
                             </button>
                           )}
                           {canEdit && (
