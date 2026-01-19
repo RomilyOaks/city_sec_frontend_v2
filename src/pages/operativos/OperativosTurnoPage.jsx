@@ -26,6 +26,7 @@ import {
   Users,
   MapPin,
   PersonStanding,
+  FileSpreadsheet,
 } from "lucide-react";
 
 import {
@@ -818,6 +819,14 @@ export default function OperativosTurnoPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={() => navigate("/operativos/reportes")}
+            className="inline-flex items-center gap-2 rounded-lg border border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/20 px-4 py-2 text-sm font-medium text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/40"
+            title="Generar reportes en Excel"
+          >
+            <FileSpreadsheet size={16} />
+            Reportes
+          </button>
           <button
             onClick={() => fetchOperativos({ nextPage: page })}
             className="inline-flex items-center gap-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"

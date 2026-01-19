@@ -50,6 +50,7 @@ import OperativosTurnoPage from "../pages/operativos/OperativosTurnoPage.jsx";
 import OperativosVehiculosPage from "../pages/operativos/vehiculos/OperativosVehiculosPage.jsx";
 import CuadrantesPorVehiculo from "../pages/operativos/vehiculos/CuadrantesPorVehiculo.jsx";
 import NovedadesPorCuadrante from "../pages/operativos/vehiculos/NovedadesPorCuadrante.jsx";
+import ReportesOperativosPage from "../pages/operativos/ReportesOperativosPage.jsx";
 
 /**
  * AppRouter - Router principal con rutas públicas y protegidas
@@ -158,6 +159,14 @@ export default function AppRouter() {
           element={
             <ProtectedRoute allowedRoles={ROUTE_ACCESS.operativos_turnos}>
               <NovedadesPorCuadrante />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="operativos/reportes"
+          element={
+            <ProtectedRoute allowedRoles={ROUTE_ACCESS.operativos_turnos}>
+              <ReportesOperativosPage />
             </ProtectedRoute>
           }
         />
