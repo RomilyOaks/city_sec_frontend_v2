@@ -1,7 +1,12 @@
 /**
  * File: src/pages/operativos/ReportesOperativosPage.jsx
- * @version 1.0.0
+ * @version 1.1.0
  * @description Página para generar reportes de operativos de patrullaje en Excel
+ *
+ * CHANGELOG v1.1.0:
+ * - Dropdown Tipo Vehículo condicional (solo cuando tipo_recurso = VEHICULO)
+ * - Pestañas Excel separadas: "Detalle Vehículos" y "Patrullaje a Pie"
+ * - Columnas adicionales en Detalle Vehículos
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -23,10 +28,12 @@ import {
   Clock,
   CheckCircle,
   Loader2,
+  Truck,
 } from "lucide-react";
 
 // Servicios
 import { listSectores } from "../../services/sectoresService.js";
+import { listTiposVehiculo } from "../../services/catalogosService.js";
 import { buildReporteData } from "../../services/reportesOperativosService.js";
 
 // RBAC
@@ -53,31 +60,64 @@ const TIPO_RECURSO_OPTIONS = [
 ];
 
 /**
- * Formatea fecha para mostrar
+ * Formatea fecha para mostrar (UI) - mantiene formato original de la BD sin conversión de timezone
  */
 const formatDate = (dateString) => {
   if (!dateString) return "-";
-  const date = new Date(dateString);
-  return date.toLocaleDateString("es-PE", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+  // Extraer componentes directamente del string ISO para evitar conversión de timezone
+  // Formato esperado: YYYY-MM-DD o YYYY-MM-DDTHH:mm:ss.sssZ
+  const dateMatch = dateString.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (dateMatch) {
+    const [, year, month, day] = dateMatch;
+    return `${day}/${month}/${year}`;
+  }
+  // Fallback si no coincide el formato
+  return dateString;
 };
 
 /**
- * Formatea fecha/hora para mostrar
+ * Formatea fecha/hora para mostrar (UI) - mantiene formato original de la BD sin conversión de timezone
  */
 const formatDateTime = (dateString) => {
   if (!dateString) return "-";
-  const date = new Date(dateString);
-  return date.toLocaleString("es-PE", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  // Extraer componentes directamente del string ISO para evitar conversión de timezone
+  // Formato esperado: YYYY-MM-DDTHH:mm:ss.sssZ
+  const dateTimeMatch = dateString.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if (dateTimeMatch) {
+    const [, year, month, day, hours, minutes] = dateTimeMatch;
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
+  }
+  // Fallback si no coincide el formato
+  return dateString;
+};
+
+
+
+/**
+ * Formatea fecha para Excel (mantiene formato ISO)
+ */
+const formatDateForExcel = (dateString) => {
+  if (!dateString) return "";
+  return dateString; // Mantener formato original de la BD
+};
+
+/**
+ * Formatea fecha/hora para Excel (mantiene formato ISO)
+ */
+const formatDateTimeForExcel = (dateString) => {
+  if (!dateString) return "";
+  return dateString; // Mantener formato original de la BD
+};
+
+/**
+ * Formatea número para Excel (asegura que se trate como número, no fecha)
+ */
+const formatNumberForExcel = (value) => {
+  if (value === null || value === undefined || value === "") return "";
+  const num = Number(value);
+  if (isNaN(num)) return "";
+  // Forzar que Excel lo trate como texto con apóstrofe para evitar conversión a fecha
+  return `'${num}`;
 };
 
 /**
@@ -112,11 +152,14 @@ export default function ReportesOperativosPage() {
     turno: "todos",
     sector_id: "todos",
     tipo_recurso: "todos",
+    tipo_vehiculo_id: "todos",
   });
 
   // Estados de datos
   const [sectores, setSectores] = useState([]);
+  const [tiposVehiculo, setTiposVehiculo] = useState([]);
   const [loadingSectores, setLoadingSectores] = useState(true);
+  const [loadingTiposVehiculo, setLoadingTiposVehiculo] = useState(false);
   const [reporteData, setReporteData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -138,6 +181,31 @@ export default function ReportesOperativosPage() {
     };
     fetchSectores();
   }, []);
+
+  // Cargar tipos de vehículo cuando se selecciona "Solo Vehículos"
+  useEffect(() => {
+    if (filters.tipo_recurso === "VEHICULO" && tiposVehiculo.length === 0) {
+      const fetchTiposVehiculo = async () => {
+        setLoadingTiposVehiculo(true);
+        try {
+          const tipos = await listTiposVehiculo();
+          setTiposVehiculo(tipos || []);
+        } catch (err) {
+          console.error("Error cargando tipos de vehículo:", err);
+        } finally {
+          setLoadingTiposVehiculo(false);
+        }
+      };
+      fetchTiposVehiculo();
+    }
+  }, [filters.tipo_recurso, tiposVehiculo.length]);
+
+  // Resetear tipo_vehiculo_id cuando cambia tipo_recurso
+  useEffect(() => {
+    if (filters.tipo_recurso !== "VEHICULO") {
+      setFilters((prev) => ({ ...prev, tipo_vehiculo_id: "todos" }));
+    }
+  }, [filters.tipo_recurso]);
 
   // Generar reporte
   const handleGenerarReporte = useCallback(async () => {
@@ -186,6 +254,20 @@ export default function ReportesOperativosPage() {
       // Crear workbook
       const wb = XLSX.utils.book_new();
 
+      // Separar recursos por tipo
+      const vehiculos = [];
+      const personal = [];
+
+      for (const turno of reporteData.data) {
+        for (const recurso of turno.recursos) {
+          if (recurso.tipo === "VEHICULO") {
+            vehiculos.push({ turno, recurso });
+          } else {
+            personal.push({ turno, recurso });
+          }
+        }
+      }
+
       // ========================================
       // HOJA 1: RESUMEN
       // ========================================
@@ -195,8 +277,8 @@ export default function ReportesOperativosPage() {
         ["Generado:", formatDateTime(reporteData.generado_en)],
         [""],
         ["FILTROS APLICADOS"],
-        ["Fecha Inicio:", formatDate(reporteData.filtros.fecha_inicio)],
-        ["Fecha Fin:", formatDate(reporteData.filtros.fecha_fin)],
+        ["Fecha Inicio:", formatDateForExcel(reporteData.filtros.fecha_inicio)],
+        ["Fecha Fin:", formatDateForExcel(reporteData.filtros.fecha_fin)],
         ["Turno:", reporteData.filtros.turno === "todos" ? "Todos" : reporteData.filtros.turno],
         [
           "Sector:",
@@ -216,86 +298,193 @@ export default function ReportesOperativosPage() {
         ["TOTALES"],
         ["Total Turnos:", reporteData.total_turnos],
         ["Total Recursos:", reporteData.total_recursos],
+        ["Total Vehículos:", vehiculos.length],
+        ["Total Personal a Pie:", personal.length],
         ["Total Cuadrantes Patrullados:", reporteData.total_cuadrantes],
         ["Total Novedades Atendidas:", reporteData.total_novedades],
       ];
 
       const wsResumen = XLSX.utils.aoa_to_sheet(resumenData);
-
-      // Ajustar anchos de columnas
       wsResumen["!cols"] = [{ wch: 30 }, { wch: 40 }];
-
       XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen");
 
       // ========================================
-      // HOJA 2: DETALLE POR TURNO
+      // HOJA 2: DETALLE VEHÍCULOS
       // ========================================
-      const detalleHeaders = [
-        "Fecha",
-        "Turno",
-        "Sector",
-        "Operador",
-        "Supervisor",
-        "Tipo Recurso",
-        "Identificador",
-        "Tipo/Cargo",
-        "Conductor/Personal",
-        "Copiloto",
-        "Km Inicio",
-        "Km Fin",
-        "Km Recorridos",
-        "Total Cuadrantes",
-        "Total Novedades",
-      ];
+      if (vehiculos.length > 0) {
+        const vehiculosHeaders = [
+          "Fecha",
+          "Turno",
+          "Sector",
+          "Operador",
+          "Supervisor",
+          "Tipo Recurso",
+          "Código Vehículo",
+          "Placa",
+          "Tipo Vehículo",
+          "Unidad/Oficina",
+          "SOAT",
+          "Venc. SOAT",
+          "Conductor",
+          "Copiloto",
+          "Tipo Copiloto",
+          "Radio TETRA",
+          "Estado Operativo",
+          "Km Inicio",
+          "Hora Inicio",
+          "Km Recarga",
+          "Hora Recarga",
+          "Combustible (Lt)",
+          "Importe Recarga",
+          "Nivel Combustible",
+          "Km Fin",
+          "Km Recorridos",
+          "Observaciones",
+          "Total Cuadrantes",
+          "Total Novedades",
+        ];
 
-      const detalleRows = [];
-      detalleRows.push(detalleHeaders);
+        const vehiculosRows = [vehiculosHeaders];
 
-      for (const turno of reporteData.data) {
-        for (const recurso of turno.recursos) {
-          detalleRows.push([
-            formatDate(turno.fecha),
+        for (const { turno, recurso } of vehiculos) {
+          vehiculosRows.push([
+            formatDateForExcel(turno.fecha),
             turno.turno,
             turno.sector,
             turno.operador,
             turno.supervisor,
-            recurso.tipo === "VEHICULO" ? "Vehículo" : "Personal a Pie",
-            recurso.tipo === "VEHICULO" ? recurso.placa : recurso.personal_nombre,
-            recurso.tipo === "VEHICULO" ? recurso.tipo_vehiculo : recurso.tipo_patrullaje,
-            recurso.tipo === "VEHICULO" ? recurso.conductor : recurso.personal_nombre,
-            recurso.tipo === "VEHICULO" ? recurso.copiloto : "-",
-            recurso.kilometraje_inicio || "-",
-            recurso.kilometraje_fin || "-",
-            recurso.kilometros_recorridos || "-",
+            "Vehículo",
+            recurso.codigo_vehiculo || "-",
+            recurso.placa || "-",
+            recurso.tipo_vehiculo || "-",
+            recurso.unidad_oficina || "-",
+            recurso.soat || "-",
+            recurso.fec_soat ? formatDateForExcel(recurso.fec_soat) : "",
+            recurso.conductor || "-",
+            recurso.copiloto || "-",
+            recurso.tipo_copiloto || "-",
+            recurso.radio_tetra_code || "-",
+            recurso.estado_operativo || "-",
+            formatNumberForExcel(recurso.kilometraje_inicio),
+            recurso.hora_inicio ? formatDateTimeForExcel(recurso.hora_inicio) : "",
+            formatNumberForExcel(recurso.kilometraje_recarga),
+            recurso.hora_recarga ? formatDateTimeForExcel(recurso.hora_recarga) : "",
+            recurso.combustible_litros || "-",
+            recurso.importe_recarga || "-",
+            recurso.nivel_combustible_recarga || "-",
+            formatNumberForExcel(recurso.kilometraje_fin),
+            formatNumberForExcel(recurso.kilometros_recorridos),
+            recurso.observaciones || "-",
             recurso.total_cuadrantes,
             recurso.total_novedades,
           ]);
         }
+
+        const wsVehiculos = XLSX.utils.aoa_to_sheet(vehiculosRows);
+        wsVehiculos["!cols"] = [
+          { wch: 12 }, // Fecha
+          { wch: 10 }, // Turno
+          { wch: 18 }, // Sector
+          { wch: 22 }, // Operador
+          { wch: 22 }, // Supervisor
+          { wch: 12 }, // Tipo Recurso
+          { wch: 15 }, // Código Vehículo
+          { wch: 10 }, // Placa
+          { wch: 14 }, // Tipo Vehículo
+          { wch: 20 }, // Unidad/Oficina
+          { wch: 15 }, // SOAT
+          { wch: 12 }, // Venc. SOAT
+          { wch: 22 }, // Conductor
+          { wch: 22 }, // Copiloto
+          { wch: 15 }, // Tipo Copiloto
+          { wch: 12 }, // Radio TETRA
+          { wch: 15 }, // Estado Operativo
+          { wch: 10 }, // Km Inicio
+          { wch: 10 }, // Hora Inicio
+          { wch: 10 }, // Km Recarga
+          { wch: 10 }, // Hora Recarga
+          { wch: 14 }, // Combustible
+          { wch: 12 }, // Importe Recarga
+          { wch: 15 }, // Nivel Combustible
+          { wch: 10 }, // Km Fin
+          { wch: 12 }, // Km Recorridos
+          { wch: 30 }, // Observaciones
+          { wch: 14 }, // Total Cuadrantes
+          { wch: 14 }, // Total Novedades
+        ];
+
+        // Aplicar formato de fecha a columnas específicas
+        const rangeVehiculos = XLSX.utils.decode_range(wsVehiculos['!ref']);
+        for (let C = 0; C <= rangeVehiculos.e.c; C++) {
+          if ([0, 11, 17, 19].includes(C)) { // Columnas: Fecha, Venc. SOAT, Hora Inicio, Hora Recarga
+            for (let R = 1; R <= rangeVehiculos.e.r; R++) {
+              const cellRef = XLSX.utils.encode_cell({c: C, r: R});
+              if (wsVehiculos[cellRef] && wsVehiculos[cellRef].v) {
+                wsVehiculos[cellRef].z = C === 0 || C === 11 ? 'yyyy-mm-dd;@' : 'yyyy-mm-dd hh:mm:ss;@';
+              }
+            }
+          }
+        }
+
+        XLSX.utils.book_append_sheet(wb, wsVehiculos, "Detalle Vehículos");
       }
 
-      const wsDetalle = XLSX.utils.aoa_to_sheet(detalleRows);
-      wsDetalle["!cols"] = [
-        { wch: 12 }, // Fecha
-        { wch: 10 }, // Turno
-        { wch: 20 }, // Sector
-        { wch: 25 }, // Operador
-        { wch: 25 }, // Supervisor
-        { wch: 15 }, // Tipo Recurso
-        { wch: 15 }, // Identificador
-        { wch: 15 }, // Tipo/Cargo
-        { wch: 25 }, // Conductor/Personal
-        { wch: 25 }, // Copiloto
-        { wch: 10 }, // Km Inicio
-        { wch: 10 }, // Km Fin
-        { wch: 12 }, // Km Recorridos
-        { wch: 15 }, // Total Cuadrantes
-        { wch: 15 }, // Total Novedades
-      ];
+      // ========================================
+      // HOJA 3: PATRULLAJE A PIE
+      // ========================================
+      if (personal.length > 0) {
+        const personalHeaders = [
+          "Fecha",
+          "Turno",
+          "Sector",
+          "Operador",
+          "Supervisor",
+          "Tipo Recurso",
+          "Nombre Personal",
+          "Tipo Patrullaje",
+          "Cargo",
+          "Total Cuadrantes",
+          "Total Novedades",
+        ];
 
-      XLSX.utils.book_append_sheet(wb, wsDetalle, "Detalle por Recurso");
+        const personalRows = [personalHeaders];
+
+        for (const { turno, recurso } of personal) {
+          personalRows.push([
+            formatDateForExcel(turno.fecha),
+            turno.turno,
+            turno.sector,
+            turno.operador,
+            turno.supervisor,
+            "Personal a Pie",
+            recurso.personal_nombre || "-",
+            recurso.tipo_patrullaje || "-",
+            recurso.cargo || "-",
+            recurso.total_cuadrantes,
+            recurso.total_novedades,
+          ]);
+        }
+
+        const wsPersonal = XLSX.utils.aoa_to_sheet(personalRows);
+        wsPersonal["!cols"] = [
+          { wch: 12 }, // Fecha
+          { wch: 10 }, // Turno
+          { wch: 18 }, // Sector
+          { wch: 22 }, // Operador
+          { wch: 22 }, // Supervisor
+          { wch: 14 }, // Tipo Recurso
+          { wch: 28 }, // Nombre Personal
+          { wch: 15 }, // Tipo Patrullaje
+          { wch: 18 }, // Cargo
+          { wch: 14 }, // Total Cuadrantes
+          { wch: 14 }, // Total Novedades
+        ];
+
+        XLSX.utils.book_append_sheet(wb, wsPersonal, "Patrullaje a Pie");
+      }
 
       // ========================================
-      // HOJA 3: CUADRANTES PATRULLADOS
+      // HOJA 4: CUADRANTES PATRULLADOS
       // ========================================
       const cuadrantesHeaders = [
         "Fecha",
@@ -311,22 +500,21 @@ export default function ReportesOperativosPage() {
         "Novedades Atendidas",
       ];
 
-      const cuadrantesRows = [];
-      cuadrantesRows.push(cuadrantesHeaders);
+      const cuadrantesRows = [cuadrantesHeaders];
 
       for (const turno of reporteData.data) {
         for (const recurso of turno.recursos) {
           for (const cuadrante of recurso.cuadrantes) {
             cuadrantesRows.push([
-              formatDate(turno.fecha),
+              formatDateForExcel(turno.fecha),
               turno.turno,
               turno.sector,
               recurso.tipo === "VEHICULO" ? "Vehículo" : "Personal a Pie",
               recurso.tipo === "VEHICULO" ? recurso.placa : recurso.personal_nombre,
               cuadrante.cuadrante_code,
               cuadrante.cuadrante_nombre,
-              cuadrante.hora_ingreso ? formatDateTime(cuadrante.hora_ingreso) : "-",
-              cuadrante.hora_salida ? formatDateTime(cuadrante.hora_salida) : "-",
+              cuadrante.hora_ingreso ? formatDateTimeForExcel(cuadrante.hora_ingreso) : "",
+              cuadrante.hora_salida ? formatDateTimeForExcel(cuadrante.hora_salida) : "",
               cuadrante.tiempo_minutos || "-",
               cuadrante.novedades_count,
             ]);
@@ -334,22 +522,35 @@ export default function ReportesOperativosPage() {
         }
       }
 
-      const wsCuadrantes = XLSX.utils.aoa_to_sheet(cuadrantesRows);
-      wsCuadrantes["!cols"] = [
-        { wch: 12 }, // Fecha
-        { wch: 10 }, // Turno
-        { wch: 20 }, // Sector
-        { wch: 15 }, // Tipo Recurso
-        { wch: 15 }, // Identificador
-        { wch: 15 }, // Código Cuadrante
-        { wch: 30 }, // Nombre Cuadrante
-        { wch: 18 }, // Hora Ingreso
-        { wch: 18 }, // Hora Salida
-        { wch: 12 }, // Tiempo
-        { wch: 18 }, // Novedades
-      ];
+const wsCuadrantes = XLSX.utils.aoa_to_sheet(cuadrantesRows);
+        wsCuadrantes["!cols"] = [
+          { wch: 12 }, // Fecha
+          { wch: 10 }, // Turno
+          { wch: 18 }, // Sector
+          { wch: 14 }, // Tipo Recurso
+          { wch: 18 }, // Identificador
+          { wch: 15 }, // Código Cuadrante
+          { wch: 28 }, // Nombre Cuadrante
+          { wch: 18 }, // Hora Ingreso
+          { wch: 18 }, // Hora Salida
+          { wch: 12 }, // Tiempo
+          { wch: 16 }, // Novedades
+        ];
 
-      XLSX.utils.book_append_sheet(wb, wsCuadrantes, "Cuadrantes Patrullados");
+        // Aplicar formato de fecha a columnas específicas
+        const rangeCuadrantes = XLSX.utils.decode_range(wsCuadrantes['!ref']);
+        for (let C = 0; C <= rangeCuadrantes.e.c; C++) {
+          if ([0, 7, 8].includes(C)) { // Columnas: Fecha, Hora Ingreso, Hora Salida
+            for (let R = 1; R <= rangeCuadrantes.e.r; R++) {
+              const cellRef = XLSX.utils.encode_cell({c: C, r: R});
+              if (wsCuadrantes[cellRef] && wsCuadrantes[cellRef].v) {
+                wsCuadrantes[cellRef].z = C === 0 ? 'yyyy-mm-dd;@' : 'yyyy-mm-dd hh:mm:ss;@';
+              }
+            }
+          }
+        }
+
+        XLSX.utils.book_append_sheet(wb, wsCuadrantes, "Cuadrantes Patrullados");
 
       // ========================================
       // Generar y descargar archivo
@@ -411,8 +612,8 @@ export default function ReportesOperativosPage() {
               <ArrowLeft size={20} />
             </button>
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                <FileSpreadsheet className="w-6 h-6 text-primary-600 dark:text-primary-400" />
+              <div className="w-12 h-12 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                <FileSpreadsheet className="w-6 h-6 text-orange-600 dark:text-orange-400" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50">
@@ -431,7 +632,7 @@ export default function ReportesOperativosPage() {
         {/* ================================================================ */}
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6">
           <div className="flex items-center gap-2 mb-4">
-            <Filter size={20} className="text-primary-600" />
+            <Filter size={20} className="text-orange-600" />
             <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
               Filtros del Reporte
             </h2>
@@ -525,12 +726,35 @@ export default function ReportesOperativosPage() {
               </select>
             </div>
 
+            {/* Tipo de Vehículo (condicional) */}
+            {filters.tipo_recurso === "VEHICULO" && (
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  <Truck size={14} className="inline mr-1" />
+                  Tipo de Vehículo
+                </label>
+                <select
+                  value={filters.tipo_vehiculo_id}
+                  onChange={(e) => setFilters({ ...filters, tipo_vehiculo_id: e.target.value })}
+                  disabled={loadingTiposVehiculo}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white disabled:opacity-50"
+                >
+                  <option value="todos">Todos los tipos</option>
+                  {tiposVehiculo.map((tv) => (
+                    <option key={tv.id} value={tv.id}>
+                      {tv.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {/* Botón Generar */}
             <div className="flex items-end">
               <button
                 onClick={handleGenerarReporte}
                 disabled={loading}
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary-700 text-white rounded-lg hover:bg-primary-800 disabled:opacity-50"
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50"
               >
                 {loading ? (
                   <>
