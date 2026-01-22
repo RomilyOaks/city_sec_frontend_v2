@@ -18,8 +18,6 @@ import { X, MapPin } from "lucide-react";
  * @param {Object} props.calle - Calle a mostrar
  */
 export default function CalleViewModal({ isOpen, onClose, calle }) {
-  if (!isOpen || !calle) return null;
-
   // Manejo de tecla ESC para cerrar
   useEffect(() => {
     const handleEscape = (e) => {
@@ -40,6 +38,8 @@ export default function CalleViewModal({ isOpen, onClose, calle }) {
   const handleClose = () => {
     onClose();
   };
+
+  if (!isOpen || !calle) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

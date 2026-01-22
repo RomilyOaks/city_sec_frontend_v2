@@ -66,12 +66,6 @@ export default function DashboardPage() {
         : [];
       setNovedadesParaMapa(novedadesConCoordenadas);
 
-      console.log("📊 Stats recibidas:", {
-        personalStats,
-        vehiculosStats,
-        novedadesStats,
-      });
-
       // Personal activo - buscar en diferentes estructuras posibles
       const personalActivo =
         personalStats?.resumen?.activos ||

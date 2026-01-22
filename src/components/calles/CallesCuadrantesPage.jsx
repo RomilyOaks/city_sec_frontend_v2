@@ -270,11 +270,6 @@ export default function CallesCuadrantesPage() {
     }
   };
 
-  const handleSearchCuadrantes = (e) => {
-    e.preventDefault();
-    setCurrentPageCuadrantes(1);
-  };
-
   // ============================================
   // RENDER
   // ============================================

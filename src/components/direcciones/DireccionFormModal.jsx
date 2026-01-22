@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { validarDireccion, createDireccion, updateDireccion, getDireccionById } from "../../services/direccionesService";
 import { listCallesActivas } from "../../services/callesService";
@@ -71,14 +71,18 @@ export default function DireccionFormModal({ isOpen, onClose, direccion: direcci
     try {
       const res = await listCallesActivas();
       setCalles(res?.items || res || []);
-    } catch (error) {}
+    } catch {
+      // Error al cargar calles - silencioso para no interrumpir UX
+    }
   };
 
   const loadSectores = async () => {
     try {
       const res = await listSectores({ page: 1, limit: 100 });
       setSectores(res?.items || res || []);
-    } catch (err) {}
+    } catch {
+      // Error al cargar sectores - silencioso para no interrumpir UX
+    }
   };
 
   const loadCuadrantesForSector = async (sectorId) => {
@@ -89,7 +93,9 @@ export default function DireccionFormModal({ isOpen, onClose, direccion: direcci
       }
       const res = await listCuadrantes({ sector_id: sectorId, limit: 100 });
       setCuadrantes(res?.items || res || []);
-    } catch (err) {}
+    } catch {
+      // Error al cargar cuadrantes - silencioso para no interrumpir UX
+    }
   };
 
   const loadUbigeoByCode = async (code) => {
@@ -140,10 +146,14 @@ export default function DireccionFormModal({ isOpen, onClose, direccion: direcci
                 ubigeo_code: cq.ubigeo_code ?? prev.ubigeo_code,
               }));
             }
-          } catch (err) {}
+          } catch {
+            // Error al cargar cuadrante - silencioso para no interrumpir UX
+          }
         }
       }
-    } catch (error) {}
+    } catch {
+      // Error al cargar dirección - silencioso para no interrumpir UX
+    }
   };
 
   // Cargar ubigeo por defecto al montar
@@ -728,7 +738,7 @@ export default function DireccionFormModal({ isOpen, onClose, direccion: direcci
                         const results = await listUbigeos(value);
                         setUbigeoOptions(results || []);
                         setShowUbigeoDropdown(true);
-                      } catch (err) {
+                      } catch {
                         setUbigeoOptions([]);
                       }
                     } else {

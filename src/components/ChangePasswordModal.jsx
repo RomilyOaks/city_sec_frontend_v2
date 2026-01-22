@@ -5,7 +5,7 @@
  * @module src/components/ChangePasswordModal.jsx
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -61,13 +61,22 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
     },
   });
 
-  const newPassword = watch("newPassword", "");
-
   // Validaciones de contraseña
-  const hasMinLength = newPassword.length >= 8;
-  const hasUppercase = /[A-Z]/.test(newPassword);
-  const hasLowercase = /[a-z]/.test(newPassword);
-  const hasNumber = /[0-9]/.test(newPassword);
+  const [validations, setValidations] = useState({
+    hasMinLength: false,
+    hasUppercase: false,
+    hasLowercase: false,
+  });
+
+  useEffect(() => {
+    const newPasswordValue = watch("newPassword", "");
+    setValidations({
+      hasMinLength: newPasswordValue.length >= 8,
+      hasUppercase: /[A-Z]/.test(newPasswordValue),
+      hasLowercase: /[a-z]/.test(newPasswordValue),
+      hasNumber: /[0-9]/.test(newPasswordValue),
+    });
+  }, [watch("newPassword")]);
 
   const onSubmit = async (data) => {
     try {
@@ -180,18 +189,18 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
             )}
 
             {/* Indicadores de fortaleza */}
-            {newPassword && (
+            {watch("newPassword") && (
               <div className="mt-2 space-y-1">
                 <div className="flex items-center gap-2 text-xs">
                   <Check
                     size={14}
                     className={
-                      hasMinLength ? "text-green-500" : "text-slate-300"
+                      validations.hasMinLength ? "text-green-500" : "text-slate-300"
                     }
                   />
                   <span
                     className={
-                      hasMinLength
+                      validations.hasMinLength
                         ? "text-green-600 dark:text-green-400"
                         : "text-slate-500"
                     }
@@ -203,12 +212,12 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
                   <Check
                     size={14}
                     className={
-                      hasUppercase ? "text-green-500" : "text-slate-300"
+                      validations.hasUppercase ? "text-green-500" : "text-slate-300"
                     }
                   />
                   <span
                     className={
-                      hasUppercase
+                      validations.hasUppercase
                         ? "text-green-600 dark:text-green-400"
                         : "text-slate-500"
                     }
@@ -220,12 +229,12 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
                   <Check
                     size={14}
                     className={
-                      hasLowercase ? "text-green-500" : "text-slate-300"
+                      validations.hasLowercase ? "text-green-500" : "text-slate-300"
                     }
                   />
                   <span
                     className={
-                      hasLowercase
+                      validations.hasLowercase
                         ? "text-green-600 dark:text-green-400"
                         : "text-slate-500"
                     }
@@ -236,11 +245,11 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
                 <div className="flex items-center gap-2 text-xs">
                   <Check
                     size={14}
-                    className={hasNumber ? "text-green-500" : "text-slate-300"}
+                    className={validations.hasNumber ? "text-green-500" : "text-slate-300"}
                   />
                   <span
                     className={
-                      hasNumber
+                      validations.hasNumber
                         ? "text-green-600 dark:text-green-400"
                         : "text-slate-500"
                     }

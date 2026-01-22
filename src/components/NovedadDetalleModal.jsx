@@ -120,6 +120,9 @@ export default function NovedadDetalleModal({
   onClose,
   onDespachar,
   showDespacharButton = false,
+  unidadesOficina = [],
+  vehiculos = [],
+  personalSeguridad = [],
 }) {
   const [novedad, setNovedad] = useState(initialNovedad);
   const [loading, setLoading] = useState(!initialNovedad);
@@ -166,8 +169,8 @@ export default function NovedadDetalleModal({
       if (e.key === "PageDown") {
         e.preventDefault();
 
-        // Si está en la última pestaña (4 - Seguimiento) y el botón Despachar está visible
-        if (activeTab === 4 && showDespacharButton && novedad?.estado_novedad_id === 1 && onDespachar) {
+        // Si está en la pestaña 3 (Recursos) o 4 (Seguimiento) y el botón Despachar está visible
+        if ((activeTab === 3 || activeTab === 4) && showDespacharButton && novedad?.estado_novedad_id === 1 && onDespachar) {
           // Simular click en botón Despachar
           onDespachar(novedad);
           onClose();
@@ -513,7 +516,10 @@ export default function NovedadDetalleModal({
                       Unidad/Oficina
                     </span>
                     <p className="text-sm text-slate-900 dark:text-slate-50">
-                      {novedad.novedadUnidadOficina?.nombre || "—"}
+                      {(() => {
+                        const unidad = unidadesOficina?.find(u => u.id === novedad.unidad_oficina_id);
+                        return unidad?.nombre || "—";
+                      })()}
                     </p>
                   </div>
                   <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
@@ -521,52 +527,39 @@ export default function NovedadDetalleModal({
                       Vehículo Asignado
                     </span>
                     <p className="text-sm text-slate-900 dark:text-slate-50">
-                      {novedad.novedadVehiculo
-                        ? `${novedad.novedadVehiculo.placa} - ${novedad.novedadVehiculo.marca} ${novedad.novedadVehiculo.modelo}`
-                        : "—"}
+                      {(() => {
+                        const vehiculo = vehiculos?.find(v => v.id === novedad.vehiculo_id);
+                        return vehiculo 
+                          ? `${vehiculo.placa} - ${vehiculo.marca} ${vehiculo.modelo_vehiculo || vehiculo.modelo}`
+                          : "—";
+                      })()}
                     </p>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Operador
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {novedad.novedadOperador
-                          ? `${novedad.novedadOperador.nombres} ${novedad.novedadOperador.apellido_paterno}`
-                          : "—"}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Despachador
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {novedad.novedadDespachador
-                          ? `${novedad.novedadDespachador.nombres} ${novedad.novedadDespachador.apellido_paterno}`
-                          : "—"}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Supervisor
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {novedad.novedadSupervisor
-                          ? `${novedad.novedadSupervisor.nombres} ${novedad.novedadSupervisor.apellido_paterno}`
-                          : "—"}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Jefe de Turno
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {novedad.novedadJefeTurno
-                          ? `${novedad.novedadJefeTurno.nombres} ${novedad.novedadJefeTurno.apellido_paterno}`
-                          : "—"}
-                      </p>
-                    </div>
+                  <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                    <span className="text-xs font-medium text-slate-500">
+                      Personal a Cargo (Principal)
+                    </span>
+                    <p className="text-sm text-slate-900 dark:text-slate-50">
+                      {(() => {
+                        const personal = personalSeguridad?.find(p => p.id === novedad.personal_cargo_id);
+                        return personal 
+                          ? `${personal.doc_tipo || ''} ${personal.doc_numero || 'N/A'} - ${personal.nombres} ${personal.apellido_paterno}`
+                          : "—";
+                      })()}
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                    <span className="text-xs font-medium text-slate-500">
+                      Personal Seguridad #2
+                    </span>
+                    <p className="text-sm text-slate-900 dark:text-slate-50">
+                      {(() => {
+                        const personal = personalSeguridad?.find(p => p.id === novedad.personal_seguridad2_id);
+                        return personal 
+                          ? `${personal.doc_tipo || ''} ${personal.doc_numero || 'N/A'} - ${personal.nombres} ${personal.apellido_paterno}`
+                          : "—";
+                      })()}
+                    </p>
                   </div>
                 </div>
               )}
@@ -694,8 +687,8 @@ export default function NovedadDetalleModal({
             Cerrar
           </button>
 
-          {/* Botón Despachar - solo visible cuando showDespacharButton=true y estado_novedad_id === 1 */}
-          {showDespacharButton && novedad?.estado_novedad_id === 1 && onDespachar && (
+          {/* Botón Despachar - visible en pestaña 3 (Recursos) y 4 (Seguimiento) cuando showDespacharButton=true y estado_novedad_id === 1 */}
+          {showDespacharButton && novedad?.estado_novedad_id === 1 && onDespachar && (activeTab === 3 || activeTab === 4) && (
             <button
               onClick={() => {
                 onDespachar(novedad);

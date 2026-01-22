@@ -821,7 +821,7 @@ export default function OperativosTurnoPage() {
         <div className="flex gap-2">
           <button
             onClick={() => navigate("/operativos/reportes")}
-            className="inline-flex items-center gap-2 rounded-lg border border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/20 px-4 py-2 text-sm font-medium text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/40"
+            className="inline-flex items-center gap-2 rounded-lg bg-orange-500 dark:bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 dark:hover:bg-orange-700 shadow-sm"
             title="Generar reportes en Excel"
           >
             <FileSpreadsheet size={16} />

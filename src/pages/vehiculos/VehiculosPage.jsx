@@ -1417,13 +1417,13 @@ export default function VehiculosPage() {
                 <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                   <p className="text-slate-500 dark:text-slate-400">Tipo</p>
                   <p className="font-medium text-slate-900 dark:text-slate-50">
-                    {getTipoNombre(viewingVehiculo.tipo_id)}
+                    {getTipoNombre(viewingVehiculo)}
                   </p>
                 </div>
                 <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                   <p className="text-slate-500 dark:text-slate-400">Unidad</p>
                   <p className="font-medium text-slate-900 dark:text-slate-50">
-                    {getUnidadNombre(viewingVehiculo.unidad_oficina_id)}
+                    {getUnidadNombre(viewingVehiculo)}
                   </p>
                 </div>
                 <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">

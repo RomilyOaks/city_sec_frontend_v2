@@ -9,7 +9,6 @@
 import { useState, useEffect } from "react";
 import { Trash2, RefreshCw, RotateCcw, MapPin, Navigation, Map as MapIcon, X, Search, Eye } from "lucide-react";
 import { useAuthStore } from "../../store/useAuthStore";
-import { canPerformAction } from "../../rbac/rbac";
 import api from "../../services/api";
 import { reactivarDireccion } from "../../services/direccionesService";
 import DireccionViewModal from "../../components/direcciones/DireccionViewModal";
