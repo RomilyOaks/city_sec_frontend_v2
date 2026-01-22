@@ -5,7 +5,7 @@
  * @module src/pages/operativos/vehiculos/EditarVehiculoForm.jsx
  */
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { Save, X } from "lucide-react";
 

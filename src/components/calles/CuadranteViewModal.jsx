@@ -18,8 +18,6 @@ import { X, Map } from "lucide-react";
  * @param {Object} props.cuadrante - Cuadrante a mostrar
  */
 export default function CuadranteViewModal({ isOpen, onClose, cuadrante }) {
-  if (!isOpen || !cuadrante) return null;
-
   // Manejo de tecla ESC para cerrar
   useEffect(() => {
     const handleEscape = (e) => {
@@ -40,6 +38,8 @@ export default function CuadranteViewModal({ isOpen, onClose, cuadrante }) {
   const handleClose = () => {
     onClose();
   };
+
+  if (!isOpen || !cuadrante) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

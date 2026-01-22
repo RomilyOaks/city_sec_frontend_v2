@@ -27,6 +27,8 @@ import { persist } from "zustand/middleware";
  * const { state, action } = useAuthStore();
  */
 
+import { ACTION_PERMISSIONS } from "../rbac/rbac.js";
+
 export const useAuthStore = create(
   persist(
     (set, get) => ({
@@ -105,7 +107,6 @@ export const useAuthStore = create(
         if (isSuperAdmin) return true;
 
         // Importar ACTION_PERMISSIONS para verificar
-        const { ACTION_PERMISSIONS } = require("../rbac/rbac.js");
         const requiredPermisos = ACTION_PERMISSIONS[actionKey];
 
         if (!requiredPermisos || requiredPermisos.length === 0) return true;

@@ -612,7 +612,7 @@ export default function UnidadOficinaFormModal({
                               const results = await listUbigeos(value);
                               setUbigeoOptions(results || []);
                               setShowUbigeoDropdown(true);
-                            } catch (err) {
+                            } catch {
                               setUbigeoOptions([]);
                             }
                           } else {

@@ -181,7 +181,7 @@ export const checkDireccionCanDelete = async (id) => {
   try {
     const res = await api.get(`/direcciones/${id}/can-delete`);
     return res.data?.data || res.data;
-  } catch (error) {
+  } catch {
     // Si el endpoint no existe, intentar con el método alternativo
     // (obtener la dirección y verificar si tiene novedades asociadas)
     console.warn("Endpoint /can-delete no disponible, usando método alternativo");

@@ -117,7 +117,7 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen]);
+  }, [isOpen, handleClose]);
 
   const handleClose = () => {
     setFormData({

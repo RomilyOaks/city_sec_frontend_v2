@@ -101,7 +101,7 @@ export async function buildReporteData(params) {
           try {
             const cuadResp = await api.get(`/operativos/${turnoOp.id}/vehiculos/${veh.id}/cuadrantes`);
             cuadrantes = cuadResp.data?.data || cuadResp.data || [];
-          } catch (e) {
+          } catch {
             console.warn(`No se pudieron obtener cuadrantes para vehículo ${veh.id}`);
           }
 
@@ -115,7 +115,7 @@ export async function buildReporteData(params) {
               );
               const novedades = novResp.data?.data || novResp.data || [];
               novedadesCount = Array.isArray(novedades) ? novedades.length : 0;
-            } catch (e) {
+            } catch {
               // Sin novedades
             }
 
@@ -133,23 +133,48 @@ export async function buildReporteData(params) {
           turnoInfo.recursos.push({
             tipo: "VEHICULO",
             id: veh.id,
+            // Datos del vehículo
+            codigo_vehiculo: veh.vehiculo?.codigo_vehiculo || veh.vehiculo?.codigo || "-",
             placa: veh.vehiculo?.placa || "-",
-            tipo_vehiculo: veh.vehiculo?.tipo_vehiculo?.nombre || "-",
+            // Acceder a veh.vehiculo.tipo.nombre según la estructura del backend
+            tipo_vehiculo: veh.vehiculo?.tipo?.nombre || veh.vehiculo?.tipo_vehiculo?.nombre || "-",
+            tipo_vehiculo_id: veh.vehiculo?.tipo_id || veh.vehiculo?.tipo?.id || veh.vehiculo?.tipo_vehiculo_id,
+            // Unidad/Oficina
+            unidad_oficina: veh.vehiculo?.unidad?.nombre || "-",
+            // SOAT
+            soat: veh.vehiculo?.soat || "-",
+            fec_soat: veh.vehiculo?.fec_soat || veh.vehiculo?.fecha_vencimiento_soat || null,
+            // Conductor y copiloto
             conductor: veh.conductor
               ? `${veh.conductor.nombres || ""} ${veh.conductor.apellido_paterno || ""}`.trim()
               : "-",
             copiloto: veh.copiloto
               ? `${veh.copiloto.nombres || ""} ${veh.copiloto.apellido_paterno || ""}`.trim()
               : "-",
+            tipo_copiloto: veh.tipoCopiloto?.descripcion || veh.tipo_copiloto?.descripcion || "-",
+            // Radio TETRA
+            radio_tetra_code: veh.radioTetra?.codigo || veh.radio_tetra?.codigo || "-",
+            // Estado operativo
+            estado_operativo: veh.estadoOperativoRecurso?.descripcion || veh.estado_operativo?.descripcion || "-",
+            // Kilometraje y combustible
             kilometraje_inicio: veh.kilometraje_inicio,
+            hora_inicio: veh.fecha_hora_inicio || veh.hora_inicio,
+            kilometraje_recarga: veh.kilometraje_recarga,
+            hora_recarga: veh.fecha_hora_recarga || veh.hora_recarga,
+            combustible_litros: veh.combustible_litros,
+            importe_recarga: veh.importe_recarga,
+            nivel_combustible_recarga: veh.nivel_combustible_recarga || veh.nivel_combustible,
             kilometraje_fin: veh.kilometraje_fin,
             kilometros_recorridos: veh.kilometros_recorridos,
+            // Observaciones
+            observaciones: veh.observaciones || "-",
+            // Cuadrantes
             cuadrantes: cuadrantesConNovedades,
             total_cuadrantes: cuadrantesConNovedades.length,
             total_novedades: cuadrantesConNovedades.reduce((sum, c) => sum + c.novedades_count, 0),
           });
         }
-      } catch (e) {
+      } catch {
         console.warn(`No se pudieron obtener vehículos para turno ${turnoOp.id}`);
       }
     }
@@ -166,7 +191,7 @@ export async function buildReporteData(params) {
           try {
             const cuadResp = await api.get(`/operativos/${turnoOp.id}/personal/${pers.id}/cuadrantes`);
             cuadrantes = cuadResp.data?.data || cuadResp.data || [];
-          } catch (e) {
+          } catch {
             console.warn(`No se pudieron obtener cuadrantes para personal ${pers.id}`);
           }
 
@@ -180,7 +205,7 @@ export async function buildReporteData(params) {
               );
               const novedades = novResp.data?.data || novResp.data || [];
               novedadesCount = Array.isArray(novedades) ? novedades.length : 0;
-            } catch (e) {
+            } catch {
               // Sin novedades
             }
 
@@ -208,7 +233,7 @@ export async function buildReporteData(params) {
             total_novedades: cuadrantesConNovedades.reduce((sum, c) => sum + c.novedades_count, 0),
           });
         }
-      } catch (e) {
+      } catch {
         console.warn(`No se pudieron obtener personal para turno ${turnoOp.id}`);
       }
     }

@@ -139,7 +139,7 @@ export const checkUnidadOficinaCanDelete = async (id) => {
   try {
     const res = await api.get(`/unidades-oficina/${id}/can-delete`);
     return res.data?.data || res.data;
-  } catch (error) {
+  } catch {
     console.warn("Endpoint /can-delete no disponible, usando método alternativo");
     return { canDelete: true, message: "", count: 0 };
   }

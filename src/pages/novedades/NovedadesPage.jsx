@@ -43,7 +43,7 @@ import {
   Shield,
   Truck,
 } from "lucide-react";
-import SeguimientoModal from "../../components/novedades/SeguimientoModal";
+import DespacharModal from "../../components/novedades/DespacharModal";
 import NovedadDetalleModal from "../../components/NovedadDetalleModal";
 
 import {
@@ -68,10 +68,9 @@ import {
   searchDirecciones,
   createDireccion,
 } from "../../services/direccionesService.js";
-import { listCargos } from "../../services/catalogosService.js";
-import { listCalles } from "../../services/callesService.js";
 import { listSectores as listSectoresService } from "../../services/sectoresService.js";
 import { listCuadrantes as listCuadrantesService } from "../../services/cuadrantesService.js";
+import { listCalles } from "../../services/callesService.js";
 import { useAuthStore } from "../../store/useAuthStore.js";
 import { canPerformAction, canAccessRoute } from "../../rbac/rbac.js";
 import { getDefaultUbigeo } from "../../config/defaults.js";
@@ -225,13 +224,16 @@ export default function NovedadesPage() {
   const [novedades, setNovedades] = useState([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState(null);
+
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [filterTipo, setFilterTipo] = useState("");
-  const [filterEstado, setFilterEstado] = useState("");
+  const [filterEstado, setFilterEstado] = useState("1"); // Por defecto: Pendiente de registro
   const [filterPrioridad, setFilterPrioridad] = useState("");
-  const [filterFechaInicio, setFilterFechaInicio] = useState("");
-  const [filterFechaFin, setFilterFechaFin] = useState("");
+  const [filters, setFilters] = useState({
+    fecha_inicio: "", // No establecer por defecto para que el usuario elija
+    fecha_fin: "",    // No establecer por defecto para que el usuario elija
+  });
 
   // Catálogos
   const [tipos, setTipos] = useState([]);
@@ -255,13 +257,10 @@ export default function NovedadesPage() {
   const [personalSeguridad, setPersonalSeguridad] = useState([]);
   const [historialEstados, setHistorialEstados] = useState([]);
   const [loadingHistorial, setLoadingHistorial] = useState(false);
-  const [viewingHistorial, setViewingHistorial] = useState([]);
-  const [loadingViewingHistorial, setLoadingViewingHistorial] = useState(false);
 
   // Modales
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [viewingNovedad, setViewingNovedad] = useState(null);
-  const [viewingTab, setViewingTab] = useState(0);
   const [activeTab, setActiveTab] = useState(0);
   const [saving, setSaving] = useState(false);
   const [viewingFromTruck, setViewingFromTruck] = useState(false); // Track si se abrió desde Truck o Eye
@@ -297,7 +296,6 @@ export default function NovedadesPage() {
 
   // 🆕 Estado para Panel REGISTRO DE LA NOVEDAD
   const [pageTab, setPageTab] = useState(PAGE_TABS.LISTADO);
-  const [registroStage, setRegistroStage] = useState(REGISTRO_STAGES.REGISTRO);
 
   // Validación de dirección
   const [direccionMatch, setDireccionMatch] = useState(null);
@@ -348,7 +346,6 @@ export default function NovedadesPage() {
   });
 
   // Catálogos para REGISTRO
-  const [cargos, setCargos] = useState([]);
   const [calles, setCalles] = useState([]);
   const [sectoresRegistro, setSectoresRegistro] = useState([]);
   const [cuadrantesRegistro, setCuadrantesRegistro] = useState([]);
@@ -396,18 +393,26 @@ export default function NovedadesPage() {
 
     setLoading(true);
     try {
-      const result = await listNovedades({
+      const payload = {
         page: nextPage,
         limit: 15,
         tipo_novedad_id: filterTipo || undefined,
         estado_novedad_id: filterEstado || undefined,
         prioridad_actual: filterPrioridad || undefined,
-        fecha_inicio: filterFechaInicio || undefined,
-        fecha_fin: filterFechaFin || undefined,
         search: search || undefined,
         sort: "prioridad_actual,novedad_code",
         order: "asc,desc", // Ordenar por prioridad ASC, luego novedad_code DESC (usando índice idx_novedad_prioridad)
-      });
+      };
+      
+      // Agregar fechas si tienen valores válidos (basado en ReportesOperativosPage)
+      if (filters.fecha_inicio) {
+        payload.fecha_inicio = filters.fecha_inicio;
+      }
+      if (filters.fecha_fin) {
+        payload.fecha_fin = filters.fecha_fin;
+      }
+      
+      const result = await listNovedades(payload);
       setNovedades(Array.isArray(result.novedades) ? result.novedades : []);
       setPagination(result.pagination);
     } catch (err) {
@@ -520,7 +525,6 @@ export default function NovedadesPage() {
     getDefaultUbigeo()
       .then((ubigeo) => {
         setDefaultUbigeo(ubigeo);
-        console.log("📍 Ubigeo default cargado:", ubigeo);
       })
       .catch((err) => {
         console.error("Error cargando ubigeo default:", err);
@@ -679,13 +683,11 @@ export default function NovedadesPage() {
     if (pageTab === PAGE_TABS.REGISTRO) {
       const loadCatalogos = async () => {
         try {
-          const [cargosData, callesData, sectoresData] = await Promise.all([
-            listCargos(),
+          const [callesData, sectoresData] = await Promise.all([
             listCalles({ limit: 100 }), // Backend requiere límite máximo de 100
             listSectoresService({ limit: 100 }),
           ]);
 
-          setCargos(cargosData || []);
           setCalles(callesData?.items || callesData?.data || callesData || []);
           setSectoresRegistro(
             sectoresData?.items || sectoresData?.data || sectoresData || []
@@ -1066,6 +1068,8 @@ export default function NovedadesPage() {
         // Asignación de recursos
         vehiculo_id: seguimientoData.vehiculo_id,
         personal_cargo_id: seguimientoData.personal_cargo_id,
+        unidad_oficina_id: seguimientoData.unidad_oficina_id,
+        personal_seguridad2_id: seguimientoData.personal_seguridad2_id,
 
         // Fechas y kilometraje
         fecha_despacho: seguimientoData.fecha_despacho,
@@ -1100,6 +1104,16 @@ export default function NovedadesPage() {
       setSelectedNovedadSeguimiento(null);
       // Recargar lista de novedades
       fetchNovedades({ nextPage: page });
+      
+      // Si hay una novedad en visualización, actualizar sus datos
+      if (viewingNovedad && viewingNovedad.id === selectedNovedadSeguimiento.id) {
+        try {
+          const updatedNovedad = await getNovedadById(selectedNovedadSeguimiento.id);
+          setViewingNovedad(updatedNovedad);
+        } catch (error) {
+          console.error("Error al actualizar datos de la novedad visualizada:", error);
+        }
+      }
     } catch (error) {
       console.error("❌ Error al guardar seguimiento:", error);
       toast.error(error.response?.data?.message || "Error al despachar novedad");
@@ -1202,10 +1216,12 @@ export default function NovedadesPage() {
   const handleLimpiarFiltros = async () => {
     setSearch("");
     setFilterTipo("");
-    setFilterEstado("");
+    setFilterEstado(""); // Cambiar a "Todos" en lugar de "1"
     setFilterPrioridad("");
-    setFilterFechaInicio("");
-    setFilterFechaFin("");
+    setFilters({
+      fecha_inicio: "",
+      fecha_fin: "",
+    });
     setPage(1);
     // Fetch con filtros vacíos directamente (sin esperar actualización de estado)
     setLoading(true);
@@ -1517,63 +1533,66 @@ export default function NovedadesPage() {
     setSelectedDireccionId("");
   };
 
-  // Abrir modal de consulta con datos completos
   /**
    * openViewingModal
-   * - Muestra el modal de detalle y carga información completa y el historial en paralelo.
-   * - Se abre desde el botón Eye (consulta solamente, sin botón Despachar)
-   *
-   * @param {Object} novedad - novedad básica (puede venir de la lista)
-   * @returns {Promise<void>}
+   * - Abre el modal de visualización desde el botón Eye
+   * - Siempre carga datos actualizados desde el backend
    */
   const openViewingModal = async (novedad) => {
     setViewingFromTruck(false); // Abierto desde Eye
-    setViewingNovedad(novedad); // Mostrar datos básicos inmediatamente
-    setViewingTab(0);
-    setViewingHistorial([]);
-    setLoadingViewingHistorial(true);
+    
+    // Cargar catálogos si no están disponibles
+    if (
+      unidadesOficina.length === 0 ||
+      vehiculos.length === 0 ||
+      personalSeguridad.length === 0
+    ) {
+      await fetchCatalogosAtencion();
+    }
+    
     try {
-      const [novedadCompleta, historialData] = await Promise.all([
+      // Cargar siempre datos actualizados desde backend
+      const [novedadCompleta] = await Promise.all([
         getNovedadById(novedad.id),
         getHistorialEstados(novedad.id),
       ]);
       if (novedadCompleta) {
         setViewingNovedad(novedadCompleta);
       }
-      setViewingHistorial(historialData || []);
     } catch (err) {
       console.error("Error cargando detalles de novedad:", err);
-    } finally {
-      setLoadingViewingHistorial(false);
+      toast.error("Error al cargar detalles de la novedad");
     }
   };
 
   /**
    * openViewingModalFromTruck
-   * - Muestra el modal de detalle desde el botón Truck (con botón Despachar visible)
-   *
-   * @param {Object} novedad - novedad básica (puede venir de la lista)
-   * @returns {Promise<void>}
+   * - Abre el modal de visualización desde el botón Truck
+   * - Siempre carga datos actualizados desde el backend
    */
   const openViewingModalFromTruck = async (novedad) => {
     setViewingFromTruck(true); // Abierto desde Truck - DEBE SER ANTES
     setViewingNovedad(novedad); // Mostrar datos básicos inmediatamente
-    setViewingTab(0);
-    setViewingHistorial([]);
-    setLoadingViewingHistorial(true);
+    
+    // Cargar catálogos si no están disponibles
+    if (
+      unidadesOficina.length === 0 ||
+      vehiculos.length === 0 ||
+      personalSeguridad.length === 0
+    ) {
+      await fetchCatalogosAtencion();
+    }
+    
     try {
-      const [novedadCompleta, historialData] = await Promise.all([
+      const [novedadCompleta] = await Promise.all([
         getNovedadById(novedad.id),
         getHistorialEstados(novedad.id),
       ]);
       if (novedadCompleta) {
         setViewingNovedad(novedadCompleta);
       }
-      setViewingHistorial(historialData || []);
     } catch (err) {
       console.error("Error cargando detalles de novedad:", err);
-    } finally {
-      setLoadingViewingHistorial(false);
     }
   };
 
@@ -1727,24 +1746,25 @@ export default function NovedadesPage() {
           <div className="p-6 space-y-6">
             {/* Filtros */}
             <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+              {/* Primera fila - Búsqueda y filtros principales */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 mb-3">
                 <div className="relative lg:col-span-2">
                   <Search
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                    size={18}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"
+                    size={16}
                   />
                   <input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                     placeholder="Buscar por código, descripción, ubicación, teléfono..."
-                    className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
+                    className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
                   />
                 </div>
                 <select
                   value={filterTipo}
                   onChange={(e) => setFilterTipo(e.target.value)}
-                  className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
+                  className="text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-2 py-1.5 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
                 >
                   <option value="">Todos los tipos</option>
                   {tipos.map((t) => (
@@ -1756,7 +1776,7 @@ export default function NovedadesPage() {
                 <select
                   value={filterEstado}
                   onChange={(e) => setFilterEstado(e.target.value)}
-                  className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
+                  className="text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-2 py-1.5 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
                 >
                   <option value="">Todos los estados</option>
                   {estados.map((e) => (
@@ -1768,7 +1788,7 @@ export default function NovedadesPage() {
                 <select
                   value={filterPrioridad}
                   onChange={(e) => setFilterPrioridad(e.target.value)}
-                  className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
+                  className="text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-2 py-1.5 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
                 >
                   <option value="">Todas las prioridades</option>
                   {PRIORIDAD_OPTIONS.map((p) => (
@@ -1780,17 +1800,39 @@ export default function NovedadesPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={handleSearch}
-                    className="flex-1 rounded-lg bg-slate-800 dark:bg-slate-700 text-white px-4 py-2 text-sm font-medium hover:bg-slate-900 dark:hover:bg-slate-600"
+                    className="flex-1 text-xs rounded-lg bg-slate-800 dark:bg-slate-700 text-white px-3 py-1.5 font-medium hover:bg-slate-900 dark:hover:bg-slate-600"
                   >
                     Buscar
                   </button>
                   <button
                     onClick={handleLimpiarFiltros}
-                    className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                    className="text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5 font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
                     title="Limpiar filtros"
                   >
-                    <X size={16} />
+                    <X size={14} />
                   </button>
+                </div>
+              </div>
+              
+              {/* Segunda fila - Filtros de fecha */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3">
+                <div className="lg:col-span-1">
+                  <input
+                    type="date"
+                    value={filters.fecha_inicio}
+                    onChange={(e) => setFilters({ ...filters, fecha_inicio: e.target.value })}
+                    className="w-full text-xs px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-600/25 [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:dark:invert"
+                    placeholder="Fecha inicio"
+                  />
+                </div>
+                <div className="lg:col-span-1">
+                  <input
+                    type="date"
+                    value={filters.fecha_fin}
+                    onChange={(e) => setFilters({ ...filters, fecha_fin: e.target.value })}
+                    className="w-full text-xs px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-600/25 [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:dark:invert"
+                    placeholder="Fecha fin"
+                  />
                 </div>
               </div>
             </div>
@@ -1889,7 +1931,15 @@ export default function NovedadesPage() {
                                 <Eye size={14} />
                               </button>
                               <button
-                                onClick={() => openViewingModalFromTruck(n)}
+                                onClick={() => {
+                                  if (n.estado_novedad_id === 1) {
+                                    // Abrir directamente DespacharModal cuando estado es 1 (Pendiente de Registro)
+                                    openSeguimientoModal(n);
+                                  } else {
+                                    // Abrir panel intermedio para otros estados
+                                    openViewingModalFromTruck(n);
+                                  }
+                                }}
                                 className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                                 title="Despachar novedad"
                               >
@@ -2767,7 +2817,7 @@ export default function NovedadesPage() {
       </div>
 
       {/* ❌ MODAL CREAR DESHABILITADO - Campos migrados a tab REGISTRO */}
-      {false && showCreateForm && (
+      {showCreateForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-2xl rounded-2xl bg-white dark:bg-slate-900 shadow-xl max-h-[90vh] flex flex-col">
             {/* Header */}
@@ -3378,7 +3428,6 @@ export default function NovedadesPage() {
         novedad={viewingNovedad}
         onClose={() => {
           setViewingNovedad(null);
-          setViewingTab(0);
           setViewingFromTruck(false);
         }}
         onDespachar={(novedad) => {
@@ -3386,6 +3435,9 @@ export default function NovedadesPage() {
           openSeguimientoModal(novedad);
         }}
         showDespacharButton={viewingFromTruck}
+        unidadesOficina={unidadesOficina}
+        vehiculos={vehiculos}
+        personalSeguridad={personalSeguridad}
       />
 
       {/* Modal de Atención/Seguimiento */}
@@ -4098,7 +4150,7 @@ export default function NovedadesPage() {
       )}
 
       {/* Modal de Seguimiento */}
-      <SeguimientoModal
+      <DespacharModal
         isOpen={showSeguimientoModal}
         onClose={() => {
           setShowSeguimientoModal(false);
@@ -4107,8 +4159,9 @@ export default function NovedadesPage() {
         novedad={selectedNovedadSeguimiento}
         vehiculos={vehiculos}
         personalSeguridad={personalSeguridad}
+        unidadesOficina={unidadesOficina}
         onSubmit={handleSaveSeguimiento}
       />
-    </div>
-  );
+  </div>
+);
 }

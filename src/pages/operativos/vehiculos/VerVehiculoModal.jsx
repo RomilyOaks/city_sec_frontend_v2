@@ -112,12 +112,20 @@ export default function VerVehiculoModal({ isOpen, onClose, vehiculo }) {
                     {vehiculo.vehiculo?.codigo_vehiculo || "—"}
                   </p>
                 </div>
-                <div className="col-span-2">
+                <div>
                   <label className="text-xs text-slate-500 dark:text-slate-400">
-                    Estado Operativo
+                    Tipo de Vehículo
                   </label>
                   <p className="text-base text-slate-900 dark:text-slate-50">
-                    {vehiculo.vehiculo?.estado_operativo || "—"}
+                    {vehiculo.vehiculo?.tipo?.nombre || "—"}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 dark:text-slate-400">
+                    Unidad/Oficina
+                  </label>
+                  <p className="text-base text-slate-900 dark:text-slate-50">
+                    {vehiculo.vehiculo?.unidad?.nombre || "—"}
                   </p>
                 </div>
                 <div>
@@ -150,6 +158,14 @@ export default function VerVehiculoModal({ isOpen, onClose, vehiculo }) {
                   </label>
                   <p className="text-base text-slate-900 dark:text-slate-50">
                     {vehiculo.vehiculo?.color_vehiculo || vehiculo.vehiculo?.color || "—"}
+                  </p>
+                </div>
+                <div className="col-span-4">
+                  <label className="text-xs text-slate-500 dark:text-slate-400">
+                    Estado Operativo
+                  </label>
+                  <p className="text-base text-slate-900 dark:text-slate-50">
+                    {vehiculo.vehiculo?.estado_operativo || "—"}
                   </p>
                 </div>
               </div>
