@@ -9,7 +9,7 @@
  * - Cronómetro de fecha/hora en tiempo real
  */
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   X,
   Truck,
@@ -24,6 +24,17 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { getHorarioActivo } from "../../services/horariosTurnosService.js";
+import {
+  getTurnoActivo,
+  findOrCreateOperativoTurno,
+  getVehiculosDisponiblesParaDespacho,
+  createVehiculoEnTurno,
+  findVehiculoOperativoId,
+  findCuadranteAsignadoVehiculo,
+  asignarCuadranteAVehiculo,
+  asignarNovedadAVehiculo,
+} from "../../services/operativosHelperService.js";
+import { useAuthStore } from "../../store/useAuthStore.js";
 
 /**
  * DespacharModal - Modal para despachar novedad enlazado con Operativos
@@ -37,10 +48,18 @@ export default function DespacharModal({
   unidadesOficina = [],
   onSubmit,
 }) {
+  // Obtener usuario autenticado
+  const user = useAuthStore((s) => s.user);
+
   // Estado del turno activo
   const [turnoActivo, setTurnoActivo] = useState(null);
   const [loadingTurno, setLoadingTurno] = useState(true);
   const [errorTurno, setErrorTurno] = useState(null);
+
+  // Estado para operativos y vehículos
+  const [OPERATIVO_TURNO, setOperativoTurno] = useState(null);
+  const [vehiculosDisponibles, setVehiculosDisponibles] = useState([]);
+  const [loadingOperativos, setLoadingOperativos] = useState(false);
 
   // Pestaña activa: 0=Info General, 1=Ubicación, 2=Recursos (editable)
   const [activeTab, setActiveTab] = useState(2); // Por defecto en Recursos
@@ -59,30 +78,6 @@ export default function DespacharModal({
   });
 
   const [saving, setSaving] = useState(false);
-
-  // Cargar turno activo y iniciar cronómetro al abrir el modal
-  useEffect(() => {
-    if (isOpen) {
-      fetchTurnoActivo();
-      initializeForm();
-      // Iniciar cronómetro
-      timerRef.current = setInterval(() => {
-        setCurrentDateTime(new Date());
-      }, 1000);
-    } else {
-      // Limpiar cronómetro al cerrar
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-    }
-
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    };
-  }, [isOpen]);
 
   const fetchTurnoActivo = async () => {
     setLoadingTurno(true);
@@ -114,7 +109,53 @@ export default function DespacharModal({
     }
   };
 
-  const initializeForm = () => {
+  const loadOperativosData = useCallback(async () => {
+    if (!novedad?.sector_id) {
+      console.warn("No hay sector_id en la novedad");
+      return;
+    }
+
+    // Esperar a que turnoActivo esté disponible
+    if (!turnoActivo?.turno) {
+      console.warn("Turno activo no disponible aún, esperando...");
+      return;
+    }
+
+    setLoadingOperativos(true);
+    try {
+      // Obtener fecha actual
+      const today = new Date().toISOString().split('T')[0];
+      
+      console.log("📅 loadOperativosData - Fecha actual:", today);
+      console.log("🕐 loadOperativosData - Turno activo:", turnoActivo?.turno);
+      console.log("🏢 loadOperativosData - Sector ID:", novedad.sector_id);
+      console.log("👤 loadOperativosData - Operador ID:", user?.personal_seguridad_id);
+      
+      // Buscar o crear operativo de turno
+      const operativo = await findOrCreateOperativoTurno(
+        today,
+        turnoActivo.turno, // Usar turno del turno activo (ya verificado que existe)
+        novedad.sector_id,
+        user?.personal_seguridad_id, // Usar personal_seguridad_id del usuario conectado
+        null // TODO: Obtener supervisor_id del sector, si no hay mostrará error de validación
+      );
+      
+      console.log("🎯 loadOperativosData - Operativo obtenido:", operativo);
+      setOperativoTurno(operativo);
+
+      // Obtener vehículos disponibles
+      const vehiculosDisp = await getVehiculosDisponiblesParaDespacho();
+      setVehiculosDisponibles(vehiculosDisp);
+
+    } catch (error) {
+      console.error("Error cargando datos de operativos:", error);
+      toast.error("Error al cargar datos de operativos");
+    } finally {
+      setLoadingOperativos(false);
+    }
+  }, [novedad?.sector_id, turnoActivo?.turno, user?.personal_seguridad_id]);
+
+  const initializeForm = useCallback(() => {
     setFormData({
       vehiculo_id: "",
       personal_cargo_id: "",
@@ -122,7 +163,52 @@ export default function DespacharModal({
       observaciones_despacho: "",
       unidad_oficina_id: "1", // Por defecto id=1
     });
-  };
+  }, []);
+
+  // Cargar turno activo, operativo de turno y vehículos disponibles al abrir el modal
+  useEffect(() => {
+    if (isOpen) {
+      fetchTurnoActivo();
+      initializeForm();
+      // loadOperativosData se ejecutará cuando turnoActivo esté disponible (ver siguiente useEffect)
+      // Iniciar cronómetro
+      timerRef.current = setInterval(() => {
+        setCurrentDateTime(new Date());
+      }, 1000);
+    } else {
+      // Limpiar cronómetro al cerrar
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [isOpen, initializeForm]);
+
+  // Cargar datos de operativos cuando turnoActivo esté disponible
+  useEffect(() => {
+    if (isOpen && turnoActivo?.turno) {
+      loadOperativosData();
+    }
+  }, [isOpen, turnoActivo?.turno, loadOperativosData]);
+
+  const handleClose = useCallback(() => {
+    if (saving) return;
+    setFormData({
+      vehiculo_id: "",
+      personal_cargo_id: "",
+      personal_seguridad2_id: "",
+      observaciones_despacho: "",
+      unidad_oficina_id: "1",
+    });
+    setActiveTab(2);
+    onClose();
+  }, [saving, onClose]);
 
   // Manejar tecla ESC y ALT+G
   useEffect(() => {
@@ -147,20 +233,7 @@ export default function DespacharModal({
       document.addEventListener("keydown", handleKeyDown);
     }
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, saving]);
-
-  const handleClose = () => {
-    if (saving) return;
-    setFormData({
-      vehiculo_id: "",
-      personal_cargo_id: "",
-      personal_seguridad2_id: "",
-      observaciones_despacho: "",
-      unidad_oficina_id: "1",
-    });
-    setActiveTab(2);
-    onClose();
-  };
+  }, [isOpen, saving, handleClose]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -188,6 +261,126 @@ export default function DespacharModal({
 
     setSaving(true);
     try {
+      // 🔥 CRÍTICO: Obtener turno activo actual (puede haber cambiado)
+      let turnoActual = await getTurnoActivo();
+      
+      // Si getTurnoActivo retorna undefined, reintentar una vez
+      if (!turnoActual?.turno) {
+        console.warn("⚠️ Turno actual undefined, reintentando...");
+        await new Promise(resolve => setTimeout(resolve, 500)); // Esperar 500ms
+        turnoActual = await getTurnoActivo();
+      }
+      
+      // Si sigue sin turno, usar el que se cargó al abrir el modal
+      if (!turnoActual?.turno && turnoActivo?.turno) {
+        console.warn("⚠️ Usando turno cargado previamente:", turnoActivo.turno);
+        turnoActual = { turno: turnoActivo.turno };
+      }
+      
+      if (!turnoActual?.turno) {
+        throw new Error("No se pudo determinar el turno activo");
+      }
+      
+      // Obtener fecha actual
+      const today = new Date().toISOString().split('T')[0];
+      
+      console.log("📅 handleSubmit - Fecha actual:", today);
+      console.log("🕐 handleSubmit - Turno actual:", turnoActual?.turno);
+      console.log("🏢 handleSubmit - Sector ID:", novedad.sector_id);
+      console.log("👤 handleSubmit - Operador ID:", user?.personal_seguridad_id);
+      
+      // Buscar o crear operativo de turno con datos actualizados
+      const operativoActualizado = await findOrCreateOperativoTurno(
+        today,
+        turnoActual.turno, // Usar turno verificado
+        novedad.sector_id,
+        user?.personal_seguridad_id, // Usar personal_seguridad_id del usuario conectado
+        null // TODO: Obtener supervisor_id del sector, si no hay mostrará error de validación
+      );
+
+      console.log("🎯 handleSubmit - Operativo actualizado:", operativoActualizado);
+
+      // Si se seleccionó vehículo, crear registros en operativos
+      let vehiculoOperativoCreado = null;
+      let vehiculoOperativoId = null; // ID del registro en operativos_vehiculos
+      
+      if (formData.vehiculo_id) {
+        console.log("🚗 formData.vehiculo_id:", formData.vehiculo_id);
+        console.log("🚗 novedades.vehiculo_id:", novedad.vehiculo_id);
+        console.log("🚗 novedades.cuadrante_id:", novedad.cuadrante_id);
+        
+        // PASO 1: Buscar en operativos_vehiculos si existe operativo_turno_id = 47 && vehiculo_id = 34
+        console.log("🔍 PASO 1: Buscando en operativos_vehiculos...");
+        vehiculoOperativoId = await findVehiculoOperativoId(
+          operativoActualizado.id, // operativo_turno_id = 47
+          Number(formData.vehiculo_id) // formData.vehiculo_id = 34 (seleccionado del dropdown)
+        );
+        
+        if (!vehiculoOperativoId) {
+          // PASO 2: Si no existe, POST para crear operativos_vehiculos
+          vehiculoOperativoCreado = await createVehiculoEnTurno(
+            operativoActualizado.id,
+            Number(formData.vehiculo_id) // Usar formData.vehiculo_id
+          );
+          
+          // Asegurarse de obtener el ID correctamente
+          if (!vehiculoOperativoCreado || !vehiculoOperativoCreado.id) {
+            throw new Error("No se pudo obtener el ID del vehículo operativo creado");
+          }
+          
+          vehiculoOperativoId = vehiculoOperativoCreado.id;
+        } else {
+          console.log("✅ operativos_vehiculos ya existe con ID:", vehiculoOperativoId);
+        }
+        
+        // Validar que tengamos un ID válido antes de continuar
+        if (!vehiculoOperativoId) {
+          throw new Error("No se pudo determinar el ID del vehículo operativo");
+        }
+        
+        // PASO 3: Buscar en operativos_vehiculos_cuadrantes si existe operativo_vehiculo_id && cuadrante_id
+        const cuadranteAsignado = await findCuadranteAsignadoVehiculo(
+          vehiculoOperativoId,    // operativos_vehiculos.id
+          novedad.cuadrante_id,    // cuadrante_id
+          operativoActualizado.id // turnoId
+        );
+        
+        let cuadranteCreado = null;
+        
+        if (!cuadranteAsignado) {
+          // PASO 4: Si no existe, POST para crear operativos_vehiculos_cuadrantes
+          cuadranteCreado = await asignarCuadranteAVehiculo(
+            operativoActualizado.id,
+            vehiculoOperativoId,
+            novedad.cuadrante_id
+          );
+        } else {
+          cuadranteCreado = cuadranteAsignado; // Usar el existente
+        }
+        
+        // Validar que tengamos un cuadrante válido
+        if (!cuadranteCreado || !cuadranteCreado.id) {
+          throw new Error("No se pudo obtener el ID del cuadrante creado/encontrado");
+        }
+        
+        // PASO 5: Asignar novedad (siempre se crea/actualiza)
+        await asignarNovedadAVehiculo(
+          operativoActualizado.id,
+          vehiculoOperativoId,
+          novedad.cuadrante_id,
+          cuadranteCreado.id, // ID del registro en operativos_vehiculos_cuadrantes
+          {
+            novedad_id: novedad.id,
+            prioridad_actual: novedad.prioridad_actual, // Para debugging y fallback
+            fecha_despacho: new Date().toISOString(),
+            observaciones: formData.observaciones_despacho
+          }
+        );
+        
+      } else {
+        console.log("🚗 No se seleccionó vehículo, omitiendo creación de operativos");
+      }
+
       // Usar fecha/hora actual del cronómetro
       const now = new Date();
       const year = now.getFullYear();
@@ -197,15 +390,15 @@ export default function DespacharModal({
       const minutes = String(now.getMinutes()).padStart(2, "0");
       const fechaDespachoActual = `${year}-${month}-${day}T${hours}:${minutes}`;
 
-      // Construir payload - solo incluir campos que tienen valor
-      // Backend valida que si se envía un campo, debe ser válido
+      // Construir payload para el backend de novedades
       const payload = {
         estado_novedad_id: 2, // DESPACHADO
         fecha_despacho: fechaDespachoActual,
         observaciones: formData.observaciones_despacho || "",
         novedad_id: novedad?.id,
         estado_anterior_id: novedad?.estado_novedad_id || 1,
-        turno_activo: turnoActivo?.turno || null,
+        turno_activo: turnoActual?.turno || null,
+        operativo_turno_id: operativoActualizado.id,
       };
 
       // Solo incluir campos opcionales si tienen valor
@@ -226,14 +419,18 @@ export default function DespacharModal({
       handleClose();
     } catch (error) {
       console.error("Error al despachar:", error);
+      
       // Mostrar errores específicos del backend
       if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
-        const errores = error.response.data.errors;
-        errores.forEach((err) => {
-          toast.error(`${err.field}: ${err.message}`);
+        error.response.data.errors.forEach((err) => {
+          const mensaje = `${err.field}: ${err.message}`;
+          console.error("Error específico:", mensaje);
+          toast.error(mensaje);
         });
       } else if (error.response?.data?.message) {
         toast.error(error.response.data.message);
+      } else {
+        toast.error(error.message || "Error al despachar novedad");
       }
     } finally {
       setSaving(false);
@@ -697,6 +894,12 @@ export default function DespacharModal({
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                       Vehículo
+                      {loadingOperativos && (
+                        <span className="ml-2 text-xs text-blue-600">
+                          <Loader2 className="inline w-3 h-3 animate-spin" />
+                          Cargando disponibles...
+                        </span>
+                      )}
                     </label>
                     <select
                       value={formData.vehiculo_id}
@@ -704,14 +907,37 @@ export default function DespacharModal({
                         setFormData({ ...formData, vehiculo_id: e.target.value })
                       }
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                      disabled={loadingOperativos}
                     >
                       <option value="">Seleccione vehículo (opcional)</option>
-                      {vehiculos.map((v) => (
-                        <option key={v.id} value={v.id}>
-                          {v.placa} - {v.marca} {v.modelo_vehiculo || v.modelo}
-                        </option>
-                      ))}
+                      {/* Lógica inteligente de vehículos */}
+                      {vehiculosDisponibles.length > 0 ? (
+                        <>
+                          <optgroup label="🟢 Vehículos Disponibles">
+                            {vehiculosDisponibles.map((v) => (
+                              <option key={v.id} value={v.id}>
+                                {v.placa} - {v.marca} {v.modelo_vehiculo || v.modelo}
+                              </option>
+                            ))}
+                          </optgroup>
+                        </>
+                      ) : (
+                        <>
+                          <optgroup label="📋 Todos los Vehículos">
+                            {vehiculos.map((v) => (
+                              <option key={v.id} value={v.id}>
+                                {v.placa} - {v.marca} {v.modelo_vehiculo || v.modelo}
+                              </option>
+                            ))}
+                          </optgroup>
+                        </>
+                      )}
                     </select>
+                    {vehiculosDisponibles.length > 0 && (
+                      <p className="mt-1 text-xs text-green-600 dark:text-green-400">
+                        {vehiculosDisponibles.length} vehículos disponibles
+                      </p>
+                    )}
                   </div>
 
                   <div>

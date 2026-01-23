@@ -566,18 +566,21 @@ export default function NovedadesPage() {
     const handleKeyDown = (e) => {
       if (e.altKey && e.key.toLowerCase() === "n") {
         e.preventDefault();
-        if (canCreate && !showCreateForm) {
-          resetForm();
-          setShowCreateForm(true);
+        // Usar la nueva pestaña REGISTRO en lugar del modal antiguo
+        if (canCreate && !showCreateForm && !showAtencionModal && !viewingNovedad) {
+          console.log("⌨️ ALT+N presionado - Abriendo Nueva Novedad en pestaña");
+          setPageTab(PAGE_TABS.REGISTRO);
+          resetRegistroForm();
           // Poner foco en el primer campo después de que se renderice
           setTimeout(() => {
             document.getElementById("tipo_novedad_select")?.focus();
           }, 100);
         }
+        return;
       }
       // ESC para cerrar modales
       if (e.key === "Escape") {
-        // 🆕 ESC en tab REGISTRO con confirmación
+        // ESC en tab REGISTRO con confirmación
         if (pageTab === PAGE_TABS.REGISTRO) {
           const hasData =
             registroFormData.descripcion ||
