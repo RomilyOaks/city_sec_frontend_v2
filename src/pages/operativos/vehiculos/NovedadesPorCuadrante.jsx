@@ -29,6 +29,11 @@ import {
 } from "lucide-react";
 
 import operativosNovedadesService from "../../../services/operativosNovedadesService.js";
+import { 
+  listUnidadesOficina,
+  listVehiculos,
+  listPersonalSeguridad,
+} from "../../../services/novedadesService.js";
 import { canPerformAction } from "../../../rbac/rbac.js";
 import { useAuthStore } from "../../../store/useAuthStore.js";
 import RegistrarNovedadForm from "./RegistrarNovedadForm.jsx";
@@ -133,6 +138,11 @@ export default function NovedadesPorCuadrante() {
     resultado: "todos",
   });
 
+  // Estados para recursos (para la pestaña RECURSOS del modal)
+  const [unidadesOficina, setUnidadesOficina] = useState([]);
+  const [vehiculos, setVehiculos] = useState([]);
+  const [personalSeguridad, setPersonalSeguridad] = useState([]);
+
   // Cargar datos del cuadrante y novedades
   const fetchNovedades = useCallback(async () => {
     if (!canRead) {
@@ -176,12 +186,30 @@ export default function NovedadesPorCuadrante() {
     }
   }, [canRead, turnoId, vehiculoId, cuadranteId]);
 
+  // Cargar datos de recursos para el modal
+  const fetchRecursos = useCallback(async () => {
+    try {
+      const [unidades, vehic, personal] = await Promise.all([
+        listUnidadesOficina(),
+        listVehiculos(),
+        listPersonalSeguridad(),
+      ]);
+      setUnidadesOficina(Array.isArray(unidades) ? unidades : []);
+      setVehiculos(Array.isArray(vehic) ? vehic : []);
+      setPersonalSeguridad(Array.isArray(personal) ? personal : []);
+    } catch (err) {
+      console.error("Error cargando recursos:", err);
+      // No mostrar error al usuario, solo log
+    }
+  }, []);
+
   // Cargar datos iniciales
   useEffect(() => {
     if (turnoId && vehiculoId && cuadranteId) {
       fetchNovedades();
+      fetchRecursos(); // Cargar recursos para el modal
     }
-  }, [turnoId, vehiculoId, cuadranteId, canRead, fetchNovedades]);
+  }, [turnoId, vehiculoId, cuadranteId, canRead, fetchNovedades, fetchRecursos]);
 
   // Navegar hacia atrás
   const handleBack = useCallback(() => {
@@ -660,6 +688,9 @@ export default function NovedadesPorCuadrante() {
         isOpen={!!viewingNovedad}
         onClose={handleCloseViewModal}
         showDespacharButton={false}
+        unidadesOficina={unidadesOficina}
+        vehiculos={vehiculos}
+        personalSeguridad={personalSeguridad}
       />
 
       {/* Modal de confirmación de eliminación */}
