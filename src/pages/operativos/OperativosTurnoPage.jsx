@@ -49,7 +49,8 @@ const TURNO_OPTIONS = [
   { value: "NOCHE", label: "Noche", color: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300" },
 ];
 
-// Función para obtener fecha actual en formato YYYY-MM-DD
+// Función para obtener fecha actual local en formato YYYY-MM-DD
+// Evita problemas de timezone usando fecha local del cliente
 const getTodayDate = () => {
   const today = new Date();
   const year = today.getFullYear();

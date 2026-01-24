@@ -37,6 +37,18 @@ import {
 import { useAuthStore } from "../../store/useAuthStore.js";
 
 /**
+ * Obtiene la fecha actual local en formato YYYY-MM-DD
+ * Evita problemas de timezone usando fecha local del cliente
+ */
+const getLocalDate = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+/**
  * DespacharModal - Modal para despachar novedad enlazado con Operativos
  */
 export default function DespacharModal({
@@ -123,8 +135,8 @@ export default function DespacharModal({
 
     setLoadingOperativos(true);
     try {
-      // Obtener fecha actual
-      const today = new Date().toISOString().split('T')[0];
+      // Obtener fecha actual local (no UTC)
+      const today = getLocalDate();
       
       console.log("📅 loadOperativosData - Fecha actual:", today);
       console.log("🕐 loadOperativosData - Turno activo:", turnoActivo?.turno);
@@ -281,8 +293,8 @@ export default function DespacharModal({
         throw new Error("No se pudo determinar el turno activo");
       }
       
-      // Obtener fecha actual
-      const today = new Date().toISOString().split('T')[0];
+      // Obtener fecha actual local (no UTC)
+      const today = getLocalDate();
       
       console.log("📅 handleSubmit - Fecha actual:", today);
       console.log("🕐 handleSubmit - Turno actual:", turnoActual?.turno);
