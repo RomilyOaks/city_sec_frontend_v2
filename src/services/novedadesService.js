@@ -74,33 +74,38 @@ export async function getNovedadById(id) {
 export async function createNovedad(data) {
   try {
     const res = await api.post("/novedades", data);
-
-    // Si todo salió bien (status 2xx)
     return res?.data;
   } catch (error) {
-    // Aquí capturamos cualquier error de Axios (o la librería que uses en api)
-
-    console.error("❌ Error al crear la novedad:", error);
-
-    // Si el error tiene respuesta del servidor (como 400, 422, 500, etc.)
+    // 🔥 IMPORTANTE: Manejo específico para errores de validación (Status 400)
+    if (error.response?.status === 400 && error.response?.data?.errors) {
+      // Extraer errores específicos del backend
+      const validationErrors = error.response.data.errors;
+      
+      // Crear error personalizado con estructura para el frontend
+      const customError = new Error(error.response.data.message || 'Errores de validación');
+      customError.validationErrors = validationErrors;
+      customError.status = error.response.status;
+      customError.isValidationError = true;
+      customError.response = error.response; // Mantener referencia completa
+      
+      throw customError;
+    }
+    
+    // Si el error tiene respuesta del servidor (otros status)
     if (error.response) {
       console.error("Status:", error.response.status);
       console.error("Datos del error (backend):", error.response.data);
       console.error("Headers:", error.response.headers);
 
-      // Puedes relanzar un error más descriptivo para que el componente lo maneje
       const errorMessage =
         error.response.data?.message ||
         error.response.data?.error ||
         "Error desconocido del servidor";
 
-      const validationErrors = error.response.data?.errors || null; // común en Laravel/validaciones
-
       throw new Error(errorMessage, {
         cause: {
           status: error.response.status,
           data: error.response.data,
-          validationErrors,
         },
       });
     }
@@ -113,8 +118,8 @@ export async function createNovedad(data) {
     }
     // Error de configuración o algo inesperado
     else {
-      console.error("Error al configurar la petición:", error.message);
-      throw new Error("Error inesperado al crear la novedad: " + error.message);
+      console.error("Error inesperado:", error.message);
+      throw new Error("Error inesperado al crear la novedad.");
     }
   }
 }
@@ -293,10 +298,26 @@ export async function asignarRecursos(novedadId, data) {
 /**
  * Obtener historial de estados de una novedad
  */
-export async function getHistorialEstados(novedadId) {
-  const res = await api.get(`/novedades/${novedadId}/historial`);
-  return res?.data?.data || res?.data || [];
-}
+export const getHistorialEstados = async (novedadId) => {
+  try {
+    const response = await api.get(`/novedades/${novedadId}/historial`);
+    return response.data;
+  } catch (error) {
+    console.error("Error obteniendo historial de estados:", error);
+    throw error;
+  }
+};
+
+export const listRadiosTetra = async () => {
+  try {
+    const response = await api.get("/radios-tetra/disponibles");
+    // La respuesta viene como: { success: true, data: { radios: [...], total: N } }
+    return response.data?.data?.radios || [];
+  } catch (error) {
+    console.error("Error obteniendo radios TETRA:", error);
+    throw error;
+  }
+};
 
 /**
  * Obtener estadísticas para dashboard
