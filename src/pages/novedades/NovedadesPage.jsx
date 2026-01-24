@@ -19,6 +19,8 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
+import { showValidationError } from "../../utils/errorUtils";
+import ValidationErrorDisplay from "../../components/common/ValidationErrorDisplay";
 import {
   AlertTriangle,
   ChevronLeft,
@@ -42,9 +44,15 @@ import {
   Users,
   Shield,
   Truck,
+  Share2,
+  Home,
+  BarChart3,
+  Scale,
+  Video,
 } from "lucide-react";
 import DespacharModal from "../../components/novedades/DespacharModal";
 import NovedadDetalleModal from "../../components/NovedadDetalleModal";
+import OrigenLlamadaCell from "../../components/novedades/OrigenLlamadaCell";
 
 import {
   listNovedades,
@@ -63,6 +71,7 @@ import {
   listPersonalSeguridad,
   getHistorialEstados,
   getNovedadById,
+  listRadiosTetra,
 } from "../../services/novedadesService.js";
 import {
   searchDirecciones,
@@ -106,20 +115,54 @@ const REGISTRO_STAGES = {
 };
 
 const NUEVOS_ORIGEN_LLAMADA_OPTIONS = [
-  { value: "TELEFONO_107", label: "Llamada Telefónica (107)" },
-  { value: "RADIO_TETRA", label: "Llamada Radio TETRA" },
-  { value: "REDES_SOCIALES", label: "Redes Sociales" },
+  { 
+    value: "TELEFONO_107", 
+    label: "Llamada Telefónica (107)", 
+    icon: Phone,
+    color: "text-blue-600"
+  },
+  { 
+    value: "RADIO_TETRA", 
+    label: "Llamada Radio TETRA", 
+    icon: Radio,
+    color: "text-green-600"
+  },
+  { 
+    value: "REDES_SOCIALES", 
+    label: "Redes Sociales", 
+    icon: Share2,
+    color: "text-purple-600"
+  },
   {
     value: "BOTON_EMERGENCIA_ALERTA_SURCO",
     label: "Botón Emergencia (App ALERTA SURCO)",
+    icon: AlertTriangle,
+    color: "text-red-600"
   },
   {
     value: "BOTON_DENUNCIA_VECINO_ALERTA",
     label: "Botón Denuncia (App VECINO ALERTA)",
+    icon: Home,
+    color: "text-orange-600"
   },
-  { value: "ANALITICA", label: "Analítica" },
-  { value: "APP_PODER_JUDICIAL", label: "APP Poder Judicial" },
-  { value: "VIDEO_CCO", label: "Video CCO" },
+  { 
+    value: "ANALITICA", 
+    label: "Analítica", 
+    icon: BarChart3,
+    color: "text-indigo-600"
+  },
+  { 
+    value: "APP_PODER_JUDICIAL", 
+    label: "APP Poder Judicial", 
+    icon: Scale,
+    color: "text-gray-700"
+  },
+  { 
+    value: "VIDEO_CCO", 
+    label: "Video CCO", 
+    icon: Video,
+    color: "text-cyan-600"
+  }
 ];
 
 const TIPO_DOCUMENTO_OPTIONS = [
@@ -255,8 +298,14 @@ export default function NovedadesPage() {
   const [unidadesOficina, setUnidadesOficina] = useState([]);
   const [vehiculos, setVehiculos] = useState([]);
   const [personalSeguridad, setPersonalSeguridad] = useState([]);
+  const [radiosTetra, setRadiosTetra] = useState([]);
+  const [loadingRadios, setLoadingRadios] = useState(false);
+  const [errorRadios, setErrorRadios] = useState("");
   const [historialEstados, setHistorialEstados] = useState([]);
   const [loadingHistorial, setLoadingHistorial] = useState(false);
+
+  // Errores de validación
+  const [validationError, setValidationError] = useState(null);
 
   // Modales
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -309,6 +358,7 @@ export default function NovedadesPage() {
     // Origen
     origen_llamada: "TELEFONO_107",
     reportante_telefono: "",
+    radio_tetra_id: null, // Nuevo campo para Radio TETRA
     fecha_hora_ocurrencia: getCurrentDateTimeLocal(),
 
     // Reportante
@@ -695,6 +745,31 @@ export default function NovedadesPage() {
           setSectoresRegistro(
             sectoresData?.items || sectoresData?.data || sectoresData || []
           );
+
+          // Cargar radios TETRA por separado con manejo de errores
+          setLoadingRadios(true);
+          setErrorRadios("");
+          
+          try {
+            const radiosData = await listRadiosTetra();
+            setRadiosTetra(Array.isArray(radiosData) ? radiosData : []);
+            
+            if (radiosData.length === 0) {
+              setErrorRadios("No hay radios TETRA disponibles");
+            }
+          } catch (radioError) {
+            console.error("Error cargando radios TETRA:", radioError);
+            if (radioError.response?.status === 401) {
+              setErrorRadios("No autorizado - Inicie sesión nuevamente");
+            } else if (radioError.response?.status === 403) {
+              setErrorRadios("No tiene permisos para ver radios TETRA");
+            } else {
+              setErrorRadios("Error al cargar radios TETRA");
+            }
+          } finally {
+            setLoadingRadios(false);
+          }
+          
         } catch (error) {
           console.error("Error al cargar catálogos:", error);
           toast.error("Error al cargar catálogos");
@@ -925,25 +1000,21 @@ export default function NovedadesPage() {
   };
 
   // Cargar catálogos para atención
-  /**
-   * fetchCatalogosAtencion
-   * - Carga recursos necesarios para la atención (unidades, vehículos, personal)
-   * - Se ejecuta antes de abrir el modal de atención si aún no están cargados.
-   *
-   * @returns {Promise<void>}
-   */
   const fetchCatalogosAtencion = async () => {
     try {
-      const [unidades, vehic, personal] = await Promise.all([
+      const [unidades, vehic, personal, radios] = await Promise.all([
         listUnidadesOficina(),
         listVehiculos(),
         listPersonalSeguridad(),
+        listRadiosTetra(),
       ]);
       setUnidadesOficina(Array.isArray(unidades) ? unidades : []);
       setVehiculos(Array.isArray(vehic) ? vehic : []);
       setPersonalSeguridad(Array.isArray(personal) ? personal : []);
+      setRadiosTetra(Array.isArray(radios) ? radios : []);
     } catch (err) {
       console.error("Error cargando catálogos de atención:", err);
+      toast.error("Error al cargar catálogos de atención");
     }
   };
 
@@ -951,8 +1022,8 @@ export default function NovedadesPage() {
   const fetchHistorialEstados = async (novedadId) => {
     setLoadingHistorial(true);
     try {
-      const data = await getHistorialEstados(novedadId);
-      setHistorialEstados(Array.isArray(data) ? data : []);
+      const historial = await getHistorialEstados(novedadId);
+      setHistorialEstados(Array.isArray(historial) ? historial : []);
     } catch (err) {
       console.error("Error cargando historial:", err);
       setHistorialEstados([]);
@@ -1337,6 +1408,18 @@ export default function NovedadesPage() {
       errors.push("Dirección de referencia es requerida");
     }
 
+    // Validación condicional según origen_llamada
+    if (registroFormData.origen_llamada === "RADIO_TETRA") {
+      if (!registroFormData.radio_tetra_id) {
+        errors.push("Debe seleccionar un radio TETRA");
+      }
+    } else {
+      // Para otros orígenes, validar teléfono si no es anónimo
+      if (registroFormData.es_anonimo === 0 && !registroFormData.reportante_telefono) {
+        errors.push("Teléfono del reportante es requerido");
+      }
+    }
+
     // Si no hay match de dirección, validar campos manuales
     if (!direccionMatch) {
       if (!registroFormData.calle_id) errors.push("Debe seleccionar una calle");
@@ -1407,7 +1490,8 @@ export default function NovedadesPage() {
       // 3. Crear novedad
       const novedadPayload = {
         origen_llamada: registroFormData.origen_llamada,
-        reportante_telefono: registroFormData.reportante_telefono,
+        reportante_telefono: registroFormData.origen_llamada === "RADIO_TETRA" ? null : registroFormData.reportante_telefono,
+        radio_tetra_id: registroFormData.origen_llamada === "RADIO_TETRA" ? registroFormData.radio_tetra_id : null,
         fecha_hora_ocurrencia: registroFormData.fecha_hora_ocurrencia,
         es_anonimo: registroFormData.es_anonimo,
         reportante_tipo_doc: registroFormData.reportante_tipo_doc,
@@ -1436,12 +1520,8 @@ export default function NovedadesPage() {
         ubigeo_code: registroFormData.ubigeo_code || defaultUbigeo?.code || null,
       };
 
-      console.log("🔍 DEBUG - Final direccion_id:", finalDireccionId);
-      console.log("🔍 DEBUG - direccionMatch:", direccionMatch);
-      console.log("🔍 DEBUG - registroFormData.direccion_id:", registroFormData.direccion_id);
-      console.log("🔍 DEBUG - novedadPayload completo:", novedadPayload);
       const resultado = await createNovedad(novedadPayload);
-      console.log("✅ DEBUG - Novedad creada, resultado:", resultado);
+      console.log("✅ Novedad creada, resultado:", resultado);
 
       toast.success(
         `Novedad ${resultado?.data?.novedad_code || "creada"} exitosamente`
@@ -1453,7 +1533,10 @@ export default function NovedadesPage() {
       await fetchNovedades({ nextPage: 1 });
     } catch (error) {
       console.error("Error al guardar novedad:", error);
-      toast.error(error.response?.data?.message || "Error al crear novedad");
+      
+      // Usar la nueva utilidad de errores
+      setValidationError(error);
+      showValidationError(error, toast, "Error al crear novedad");
     } finally {
       setSaving(false);
     }
@@ -1504,6 +1587,7 @@ export default function NovedadesPage() {
     setRegistroFormData({
       origen_llamada: "TELEFONO_107",
       reportante_telefono: "",
+      radio_tetra_id: null,
       fecha_hora_ocurrencia: getCurrentDateTimeLocal(),
       es_anonimo: 0,
       reportante_tipo_doc: "DNI",
@@ -1852,6 +1936,9 @@ export default function NovedadesPage() {
                       <th className="px-3 py-2 text-left font-semibold text-slate-700 dark:text-slate-200 w-32">
                         Fecha/Hora
                       </th>
+                      <th className="px-3 py-2 text-left font-semibold text-slate-700 dark:text-slate-200 w-40">
+                        Origen
+                      </th>
                       <th className="px-3 py-2 text-left font-semibold text-slate-700 dark:text-slate-200 w-48">
                         Tipo
                       </th>
@@ -1901,6 +1988,13 @@ export default function NovedadesPage() {
                           </td>
                           <td className="px-3 py-2 text-slate-700 dark:text-slate-200 whitespace-nowrap">
                             {formatFecha(n.fecha_hora_ocurrencia)}
+                          </td>
+                          <td className="px-3 py-2 text-slate-700 dark:text-slate-200">
+                            <OrigenLlamadaCell 
+                              origen={n.origen_llamada} 
+                              showLabel={false}
+                              size="sm"
+                            />
                           </td>
                           <td className="px-3 py-2 text-slate-700 dark:text-slate-200">
                             <div className="flex flex-col">
@@ -2025,6 +2119,17 @@ export default function NovedadesPage() {
         {/* Tab Content - REGISTRO */}
         {pageTab === PAGE_TABS.REGISTRO && (
           <div className="p-6">
+            {/* Mostrar errores de validación si existen */}
+            {validationError && (
+              <div className="mb-6">
+                <ValidationErrorDisplay
+                  error={validationError}
+                  onClose={() => setValidationError(null)}
+                  variant="detailed"
+                />
+              </div>
+            )}
+            
             {/* Formulario REGISTRO - Versión Completa */}
             <div className="space-y-8">
               {/* Grupo 1: Información de Origen */}
@@ -2044,12 +2149,16 @@ export default function NovedadesPage() {
                     <select
                       id="select_origen_llamada"
                       value={registroFormData.origen_llamada}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        const nuevoOrigen = e.target.value;
                         setRegistroFormData({
                           ...registroFormData,
-                          origen_llamada: e.target.value,
-                        })
-                      }
+                          origen_llamada: nuevoOrigen,
+                          // Limpiar campos según el nuevo origen
+                          reportante_telefono: nuevoOrigen === "RADIO_TETRA" ? "" : registroFormData.reportante_telefono,
+                          radio_tetra_id: nuevoOrigen === "RADIO_TETRA" ? null : registroFormData.radio_tetra_id,
+                        });
+                      }}
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
                     >
                       {NUEVOS_ORIGEN_LLAMADA_OPTIONS.map((opt) => (
@@ -2059,23 +2168,97 @@ export default function NovedadesPage() {
                       ))}
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      Teléfono del Reportante
-                    </label>
-                    <input
-                      type="tel"
-                      value={registroFormData.reportante_telefono}
-                      onChange={(e) =>
-                        setRegistroFormData({
-                          ...registroFormData,
-                          reportante_telefono: e.target.value,
-                        })
-                      }
-                      placeholder="999 999 999"
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
-                    />
-                  </div>
+
+                  {/* Campo condicional: Teléfono del Reportante O Radio TETRA */}
+                  {registroFormData.origen_llamada === "RADIO_TETRA" ? (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Radio TETRA <span className="text-red-500">*</span>
+                      </label>
+                      
+                      {loadingRadios && (
+                        <div className="flex items-center gap-2 p-3 text-sm text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600"></div>
+                          <span>Cargando radios...</span>
+                        </div>
+                      )}
+                      
+                      {errorRadios && !loadingRadios && (
+                        <div className="p-3 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <span>{errorRadios}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setLoadingRadios(true);
+                                setErrorRadios("");
+                                listRadiosTetra()
+                                  .then((data) => {
+                                    setRadiosTetra(Array.isArray(data) ? data : []);
+                                    if (data.length === 0) {
+                                      setErrorRadios("No hay radios TETRA disponibles");
+                                    }
+                                  })
+                                  .catch((err) => {
+                                    console.error("Error recargando radios:", err);
+                                    setErrorRadios("Error al cargar radios TETRA");
+                                  })
+                                  .finally(() => setLoadingRadios(false));
+                              }}
+                              className="ml-2 px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
+                            >
+                              Reintentar
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {!loadingRadios && !errorRadios && (
+                        <select
+                          value={registroFormData.radio_tetra_id || ""}
+                          onChange={(e) =>
+                            setRegistroFormData({
+                              ...registroFormData,
+                              radio_tetra_id: e.target.value ? Number(e.target.value) : null,
+                            })
+                          }
+                          className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                        >
+                          <option value="">Seleccione un radio...</option>
+                          {radiosTetra.map((radio) => (
+                            <option key={radio.id} value={radio.id}>
+                              {radio.radio_tetra_code} - {radio.descripcion || 'Sin descripción'}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                      
+                      {!loadingRadios && !errorRadios && radiosTetra.length === 0 && (
+                        <div className="p-3 text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+                          <span>No hay radios TETRA disponibles en este momento</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Teléfono del Reportante
+                      </label>
+                      <input
+                        type="tel"
+                        value={registroFormData.reportante_telefono}
+                        onChange={(e) =>
+                          setRegistroFormData({
+                            ...registroFormData,
+                            reportante_telefono: e.target.value,
+                          })
+                        }
+                        placeholder="999 999 999"
+                        className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                      />
+                    </div>
+                  )}
+
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                       Fecha y Hora de Ocurrencia{" "}
