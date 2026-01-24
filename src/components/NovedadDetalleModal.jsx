@@ -596,13 +596,13 @@ export default function NovedadDetalleModal({
                       <p className="text-sm text-slate-500">
                         Cargando historial...
                       </p>
-                    ) : historial.length === 0 ? (
+                    ) : !Array.isArray(historial) || historial.length === 0 ? (
                       <p className="text-sm text-slate-500">
                         No hay cambios de estado registrados.
                       </p>
                     ) : (
                       <div className="space-y-3 max-h-60 overflow-y-auto">
-                        {[...historial]
+                        {(Array.isArray(historial) ? historial : [])
                           .sort((a, b) => {
                             // Ordenar por fecha_cambio descendente (más reciente primero)
                             const fechaA = new Date(a.fecha_cambio || a.created_at);

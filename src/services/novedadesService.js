@@ -301,10 +301,21 @@ export async function asignarRecursos(novedadId, data) {
 export const getHistorialEstados = async (novedadId) => {
   try {
     const response = await api.get(`/novedades/${novedadId}/historial`);
-    return response.data;
+    // Asegurar que siempre retorne un array
+    const data = response.data;
+    if (Array.isArray(data)) {
+      return data;
+    }
+    // Si response.data tiene una propiedad data que es un array, usar esa
+    if (data?.data && Array.isArray(data.data)) {
+      return data.data;
+    }
+    // Si no es array, retornar array vacío
+    return [];
   } catch (error) {
     console.error("Error obteniendo historial de estados:", error);
-    throw error;
+    // En caso de error, retornar array vacío para evitar que se caiga el componente
+    return [];
   }
 };
 
