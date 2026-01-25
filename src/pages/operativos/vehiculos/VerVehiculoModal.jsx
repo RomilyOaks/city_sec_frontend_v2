@@ -8,6 +8,7 @@
 import { useEffect } from "react";
 import { X, Car } from "lucide-react";
 import AuditoriaInfo from "../../../components/AuditoriaInfo.jsx";
+import { useModalScroll } from "../../../hooks/useModalScroll.js";
 
 /**
  * VerVehiculoModal
@@ -18,6 +19,9 @@ import AuditoriaInfo from "../../../components/AuditoriaInfo.jsx";
  * @param {Object} props.vehiculo - Objeto con datos del vehículo asignado
  */
 export default function VerVehiculoModal({ isOpen, onClose, vehiculo }) {
+  // Controlar scroll del body cuando el modal está abierto
+  useModalScroll(isOpen);
+
   // Manejar tecla ESC para cerrar
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -44,21 +48,6 @@ export default function VerVehiculoModal({ isOpen, onClose, vehiculo }) {
       .filter(Boolean)
       .join(" ");
     return nombres || "—";
-  };
-
-  const formatFecha = (fecha) => {
-    if (!fecha) return "—";
-    try {
-      return new Date(fecha).toLocaleString("es-ES", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } catch {
-      return fecha;
-    }
   };
 
   if (!isOpen || !vehiculo) return null;

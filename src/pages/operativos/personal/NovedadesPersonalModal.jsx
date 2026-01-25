@@ -360,24 +360,15 @@ export default function NovedadesPersonalModal({
         const nombrePersonal = formatPersonalNombre(personal?.personal);
         const accionesTexto = `[${timestamp} - ${nombrePersonal}] Acciones: ${editData.acciones_tomadas.trim()}`;
 
-        // Estado de la novedad principal (si no está definido, usar 2=DESPACHADO ya que está siendo atendida)
-        const estadoNovedadId = selectedNovedad.novedad?.estado_novedad_id || 2;
-
         console.log("🔍 DEBUG - Llamando a crearHistorialNovedad con:");
         console.log("   - novedadPrincipalId:", novedadPrincipalId);
-        console.log("   - estadoNovedadId:", estadoNovedadId);
         console.log("   - accionesTexto:", accionesTexto);
-        console.log("   - user?.id:", user?.id);
 
         // Crear entrada en historial_estado_novedades
+        // Endpoint: POST /novedades/:id/historial
+        // Solo enviamos observaciones (no cambiamos estado)
         try {
-          const resultadoHistorial = await crearHistorialNovedad(novedadPrincipalId, {
-            estado_anterior_id: estadoNovedadId,
-            estado_nuevo_id: estadoNovedadId, // Mismo estado - solo registramos acciones, no cambiamos estado
-            observaciones: accionesTexto,
-            tiempo_en_estado_min: 0,
-            created_by: user?.id || null,
-          });
+          const resultadoHistorial = await crearHistorialNovedad(novedadPrincipalId, accionesTexto);
           console.log("✅ crearHistorialNovedad - Resultado:", resultadoHistorial);
         } catch (historialError) {
           console.error("❌ Error en crearHistorialNovedad:", historialError);
