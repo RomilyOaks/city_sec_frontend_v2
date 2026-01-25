@@ -11,9 +11,10 @@ import { Save, X } from "lucide-react";
 
 import { updateVehiculoOperativo } from "../../../services/operativosVehiculosService.js";
 import { listPersonal } from "../../../services/personalService.js";
-import { listRadiosTetraActivos } from "../../../services/radiosTetraService.js";
 import { listEstadosOperativosActivos } from "../../../services/estadosOperativoService.js";
 import { listTiposCopilotoActivos } from "../../../services/tiposCopilotoService.js";
+import { radioTetraService } from "../../../services/radiosTetraService.js";
+import RadioTetraDropdown from "../../../components/RadioTetraDropdown.jsx";
 
 const NIVELES_COMBUSTIBLE = [
   { value: "LLENO", label: "Lleno" },
@@ -37,9 +38,9 @@ export default function EditarVehiculoForm({
 }) {
   const [loading, setLoading] = useState(false);
   const [personalActivo, setPersonalActivo] = useState([]);
-  const [radios, setRadios] = useState([]);
   const [estados, setEstados] = useState([]);
   const [tiposCopiloto, setTiposCopiloto] = useState([]);
+  const [radiosDisponibles, setRadiosDisponibles] = useState([]);
 
   const [formData, setFormData] = useState({
     conductor_id: "",
@@ -52,6 +53,44 @@ export default function EditarVehiculoForm({
     nivel_combustible_fin: "",
     observaciones: "",
   });
+
+  // 🔥 NUEVO: Obtener radio asignado a un personal
+  const obtenerRadioAsignadoAPersonal = (personalId) => {
+    if (!personalId || radiosDisponibles.length === 0) return null;
+    
+    const radioAsignado = radiosDisponibles.find(radio => 
+      radio.personal_seguridad_id === parseInt(personalId)
+    );
+    
+    return radioAsignado || null;
+  };
+
+  // 🔥 NUEVO: Sugerir radio TETRA según piloto/copiloto
+  const sugerirRadioTetra = (conductorId, copilotoId, radioActualId) => {
+    // Si ya tiene un radio asignado, mantenerlo
+    if (radioActualId) return radioActualId;
+    
+    // Prioridad 1: Verificar radio del conductor
+    if (conductorId) {
+      const radioConductor = obtenerRadioAsignadoAPersonal(conductorId);
+      if (radioConductor) {
+        console.log('🔥 Radio sugerido por conductor:', radioConductor);
+        return radioConductor.id.toString();
+      }
+    }
+    
+    // Prioridad 2: Verificar radio del copiloto
+    if (copilotoId) {
+      const radioCopiloto = obtenerRadioAsignadoAPersonal(copilotoId);
+      if (radioCopiloto) {
+        console.log('🔥 Radio sugerido por copiloto:', radioCopiloto);
+        return radioCopiloto.id.toString();
+      }
+    }
+    
+    // Si ninguno tiene radio asignado, dejar vacío para selección libre
+    return "";
+  };
 
   // Inicializar formulario con datos del vehículo
   useEffect(() => {
@@ -90,11 +129,11 @@ export default function EditarVehiculoForm({
   useEffect(() => {
     const fetchCatalogos = async () => {
       try {
-        const [personalRes, radiosRes, estadosRes, tiposRes] = await Promise.all([
+        const [personalRes, estadosRes, tiposRes, radiosRes] = await Promise.all([
           listPersonal({ limit: 100 }),
-          listRadiosTetraActivos(),
           listEstadosOperativosActivos(),
           listTiposCopilotoActivos(),
+          radioTetraService.getRadiosDisponibles(),
         ]);
 
         // Procesar personal y filtrar solo activos
@@ -109,11 +148,13 @@ export default function EditarVehiculoForm({
         const personalActivos = personalData.filter(p => p.estado === 1 || p.estado === true);
         setPersonalActivo(personalActivos);
 
-        const radiosData = Array.isArray(radiosRes?.data || radiosRes) ? radiosRes?.data || radiosRes : [];
         const estadosData = Array.isArray(estadosRes?.data || estadosRes) ? estadosRes?.data || estadosRes : [];
         const tiposData = Array.isArray(tiposRes?.data || tiposRes) ? tiposRes?.data || tiposRes : [];
+        
+        // Procesar radios disponibles
+        const radiosData = radiosRes?.data?.radios || [];
+        setRadiosDisponibles(radiosData);
 
-        setRadios(radiosData);
         setEstados(estadosData);
         setTiposCopiloto(tiposData);
       } catch (err) {
@@ -124,6 +165,25 @@ export default function EditarVehiculoForm({
 
     fetchCatalogos();
   }, []);
+
+  // 🔥 NUEVO: Actualizar sugerencia de radio cuando cambia conductor o copiloto
+  useEffect(() => {
+    if (vehiculo && radiosDisponibles.length > 0) {
+      const radioSugerido = sugerirRadioTetra(
+        vehiculo.conductor_id,
+        vehiculo.copiloto_id,
+        vehiculo.radio_tetra_id
+      );
+      
+      // Solo actualizar si no hay radio ya asignado o si la sugerencia es diferente
+      if (!vehiculo.radio_tetra_id || radioSugerido !== vehiculo.radio_tetra_id) {
+        setFormData(prev => ({
+          ...prev,
+          radio_tetra_id: radioSugerido
+        }));
+      }
+    }
+  }, [vehiculo?.conductor_id, vehiculo?.copiloto_id, radiosDisponibles]);
 
   // Filtrar conductores ya asignados (excepto el actual)
   const conductoresDisponibles = personalActivo.filter((p) => {
@@ -433,22 +493,14 @@ export default function EditarVehiculoForm({
       {/* Radio TETRA y Estado Operativo */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
-            Radio TETRA (opcional)
-          </label>
-          <select
-            name="radio_tetra_id"
+          <RadioTetraDropdown
             value={formData.radio_tetra_id}
-            onChange={handleChange}
-            className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50"
-          >
-            <option value="">Sin radio asignado</option>
-            {radios.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.radio_tetra_code || r.codigo} - {r.descripcion || r.numero_serie}
-              </option>
-            ))}
-          </select>
+            onChange={(value) => setFormData(prev => ({ ...prev, radio_tetra_id: value }))}
+            disabled={loading}
+            placeholder="Sin radio asignado"
+            showDescripcion={true}
+            radiosExternos={radiosDisponibles} // 🔥 PASAR RADIOS CARGADOS
+          />
         </div>
 
         <div>

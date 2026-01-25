@@ -33,6 +33,9 @@ import {
   findCuadranteAsignadoVehiculo,
   asignarCuadranteAVehiculo,
   asignarNovedadAVehiculo,
+  getPersonalDisponibleParaDespachoWrapper,
+  despacharPersonalAPieWrapper,
+  mostrarErroresEspecificos,
 } from "../../services/operativosHelperService.js";
 import { useAuthStore } from "../../store/useAuthStore.js";
 
@@ -71,6 +74,7 @@ export default function DespacharModal({
   // Estado para operativos y vehículos
   const [OPERATIVO_TURNO, setOperativoTurno] = useState(null);
   const [vehiculosDisponibles, setVehiculosDisponibles] = useState([]);
+  const [personalDisponible, setPersonalDisponible] = useState([]); // 🔥 NUEVO
   const [loadingOperativos, setLoadingOperativos] = useState(false);
 
   // Pestaña activa: 0=Info General, 1=Ubicación, 2=Recursos (editable)
@@ -158,6 +162,10 @@ export default function DespacharModal({
       // Obtener vehículos disponibles
       const vehiculosDisp = await getVehiculosDisponiblesParaDespacho();
       setVehiculosDisponibles(vehiculosDisp);
+
+      // 🔥 NUEVO: Usar todo el personal activo en lugar de personal específico del turno
+      console.log('🔍 DEBUG PERSONAL - Cargando todo el personal activo...');
+      setPersonalDisponible([]); // Dejar vacío para que use el fallback de todo el personal
 
     } catch (error) {
       console.error("Error cargando datos de operativos:", error);
@@ -393,6 +401,39 @@ export default function DespacharModal({
         console.log("🚗 No se seleccionó vehículo, omitiendo creación de operativos");
       }
 
+      // 🔥 NUEVO: Si se seleccionó personal, despachar patrullaje a pie
+      let personalOperativoCreado = null;
+      
+      if (formData.personal_cargo_id) {
+        console.log("👤 formData.personal_cargo_id:", formData.personal_cargo_id);
+        console.log("👤 novedad.cuadrante_id:", novedad.cuadrante_id);
+        
+        try {
+          // Preparar datos de la novedad para despacho de personal
+          const novedadDataForPersonal = {
+            id: novedad.id,
+            personal_cargo_id: formData.personal_cargo_id,
+            cuadrante_id: novedad.cuadrante_id,
+            prioridad_actual: novedad.prioridad_actual || 'MEDIA',
+            turno_id: operativoActualizado.id,
+            observaciones: formData.observaciones_despacho || `Despacho personal - ${new Date().toLocaleString()}`
+          };
+          
+          console.log("👤 Enviando a despacharPersonalAPieWrapper:", novedadDataForPersonal);
+          
+          // Despachar personal a pie (crea toda la cadena de tablas)
+          personalOperativoCreado = await despacharPersonalAPieWrapper(novedadDataForPersonal);
+          
+          console.log("✅ Personal operativo creado:", personalOperativoCreado);
+          
+        } catch (personalError) {
+          console.error("❌ Error despachando personal:", personalError);
+          throw new Error(`Error en personal: ${personalError.message}`);
+        }
+      } else {
+        console.log("👤 No se seleccionó personal, omitiendo despacho a pie");
+      }
+
       // Usar fecha/hora actual del cronómetro
       const now = new Date();
       const year = now.getFullYear();
@@ -404,7 +445,7 @@ export default function DespacharModal({
 
       // Construir payload para el backend de novedades
       const payload = {
-        estado_novedad_id: 2, // DESPACHADO
+        estado_novedad_id: 2, // ✅ DESPACHADO (corregido de vuelta)
         fecha_despacho: fechaDespachoActual,
         observaciones: formData.observaciones_despacho || "",
         novedad_id: novedad?.id,
@@ -427,23 +468,26 @@ export default function DespacharModal({
         payload.personal_seguridad2_id = Number(formData.personal_seguridad2_id);
       }
 
+      // 🔥 Mensaje de éxito combinado para ambos recursos
+      const mensajesExito = [];
+      if (formData.vehiculo_id) {
+        mensajesExito.push("Vehículo despachado correctamente");
+      }
+      if (formData.personal_cargo_id) {
+        mensajesExito.push("Personal despachado a pie correctamente");
+      }
+      
+      if (mensajesExito.length > 0) {
+        toast.success(mensajesExito.join(" y "));
+      }
+
       await onSubmit(payload);
       handleClose();
     } catch (error) {
       console.error("Error al despachar:", error);
       
-      // Mostrar errores específicos del backend
-      if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
-        error.response.data.errors.forEach((err) => {
-          const mensaje = `${err.field}: ${err.message}`;
-          console.error("Error específico:", mensaje);
-          toast.error(mensaje);
-        });
-      } else if (error.response?.data?.message) {
-        toast.error(error.response.data.message);
-      } else {
-        toast.error(error.message || "Error al despachar novedad");
-      }
+      // 🔥 Usar utilidad genérica de manejo de errores
+      mostrarErroresEspecificos(error, "Error al despachar novedad");
     } finally {
       setSaving(false);
     }
@@ -954,28 +998,89 @@ export default function DespacharModal({
 
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      Personal a Cargo (Principal)
+                      <Users size={16} className="inline mr-1" />
+                      Personal de Patrullaje a Pie
+                      {loadingOperativos && (
+                        <span className="ml-2 text-xs text-blue-600">
+                          <Loader2 className="inline w-3 h-3 animate-spin" />
+                          Cargando disponibles...
+                        </span>
+                      )}
                     </label>
                     <select
                       value={formData.personal_cargo_id}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          personal_cargo_id: e.target.value,
-                        })
-                      }
+                      onChange={(e) => {
+                        setFormData({ 
+                          ...formData, 
+                          personal_cargo_id: e.target.value 
+                          // 🔥 NO limpiar vehículo - permitir ambos
+                        });
+                      }}
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                      disabled={loadingOperativos}
                     >
                       <option value="">Seleccione personal (opcional)</option>
-                      {personalSeguridad.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.doc_tipo || ''} {p.doc_numero || 'N/A'} - {p.nombres}{" "}
-                          {p.apellido_paterno}
-                        </option>
-                      ))}
+                      {personalDisponible.length > 0 ? (
+                        <>
+                          <optgroup label="🟢 Personal Disponible">
+                            {personalDisponible.map((p) => (
+                              <option key={p.id} value={p.personal_id}>
+                                {p.personal?.nombres} {p.personal?.apellido_paterno} ({p.personal?.codigo_personal || 'N/A'})
+                              </option>
+                            ))}
+                          </optgroup>
+                        </>
+                      ) : (
+                        <>
+                          <optgroup label="📋 Todo el Personal">
+                            {personalSeguridad.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.doc_tipo || ''} {p.doc_numero || 'N/A'} - {p.nombres}{" "}
+                                {p.apellido_paterno}
+                              </option>
+                            ))}
+                          </optgroup>
+                        </>
+                      )}
                     </select>
+                    {personalDisponible.length > 0 && (
+                      <p className="mt-1 text-xs text-green-600 dark:text-green-400">
+                        {personalDisponible.length} personales disponibles
+                      </p>
+                    )}
                   </div>
                 </div>
+
+                {/* 🔥 Mensaje informativo de recursos asignados */}
+                {(formData.vehiculo_id || formData.personal_cargo_id) && (
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-blue-800 dark:text-blue-200">
+                        <Info size={16} />
+                        <span className="font-medium">Recursos asignados:</span>
+                      </div>
+                      <div className="ml-6 space-y-1 text-sm text-blue-700 dark:text-blue-300">
+                        {formData.vehiculo_id && (
+                          <div className="flex items-center gap-2">
+                            <Truck size={14} />
+                            <span>Patrullaje vehicular</span>
+                          </div>
+                        )}
+                        {formData.personal_cargo_id && (
+                          <div className="flex items-center gap-2">
+                            <Users size={14} />
+                            <span>Patrullaje a pie (personal)</span>
+                          </div>
+                        )}
+                        {formData.vehiculo_id && formData.personal_cargo_id && (
+                          <div className="text-xs text-blue-600 dark:text-blue-400 italic">
+                            Se despacharán ambos recursos
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Fila 2: Personal Seguridad #2 + Fecha/Hora de Despacho (cronómetro) */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

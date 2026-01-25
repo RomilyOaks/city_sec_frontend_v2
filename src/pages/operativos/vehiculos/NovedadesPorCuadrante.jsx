@@ -401,7 +401,7 @@ export default function NovedadesPorCuadrante() {
               </button>
               <div>
                 <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50">
-                  Novedades del Cuadrante
+                  Patrullaje Vehicular - Novedades del Cuadrante
                 </h1>
                 <p className="text-slate-600 dark:text-slate-400">
                   Gestión de novedades atendidas durante el operativo
@@ -577,11 +577,11 @@ export default function NovedadesPorCuadrante() {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4">
+            <div className="flex flex-wrap gap-4 p-4">
               {filteredNovedades.map((novedad) => (
                 <div
                   key={novedad.id}
-                  className="bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 p-4 hover:shadow-md transition-shadow"
+                  className="bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 p-4 hover:shadow-md transition-shadow w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)]"
                 >
                   {/* Header del card */}
                   <div className="flex items-start justify-between mb-3">
@@ -682,9 +682,11 @@ export default function NovedadesPorCuadrante() {
       )}
 
       {/* Modal de detalle de novedad - Reutilizando NovedadDetalleModal completo */}
+      {/* IMPORTANTE: Pasar novedadId para que el modal cargue la novedad completa con getNovedadById */}
+      {/* No pasar novedad inicial para forzar la carga desde el backend */}
       <NovedadDetalleModal
         novedadId={viewingNovedad?.novedad_id || viewingNovedad?.novedad?.id}
-        novedad={viewingNovedad?.novedad}
+        novedad={null}
         isOpen={!!viewingNovedad}
         onClose={handleCloseViewModal}
         showDespacharButton={false}

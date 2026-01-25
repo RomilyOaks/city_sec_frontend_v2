@@ -37,6 +37,12 @@ import {
   PRIORIDADES_NOVEDAD,
   RESULTADOS_NOVEDAD,
 } from "../../../services/operativosPersonalService.js";
+import {
+  listUnidadesOficina,
+  listVehiculos,
+  listPersonalSeguridad,
+  crearHistorialNovedad,
+} from "../../../services/novedadesService.js";
 
 // RBAC
 import { canPerformAction } from "../../../rbac/rbac.js";
@@ -95,6 +101,11 @@ export default function NovedadesPersonalModal({
   // Estados - Modal ver detalle
   const [showViewModal, setShowViewModal] = useState(false);
   const [viewingNovedad, setViewingNovedad] = useState(null);
+
+  // Estados - Catálogos para el modal de detalle
+  const [unidadesOficina, setUnidadesOficina] = useState([]);
+  const [vehiculos, setVehiculos] = useState([]);
+  const [personalSeguridad, setPersonalSeguridad] = useState([]);
 
   const [editData, setEditData] = useState({
     resultado: "",
@@ -179,6 +190,28 @@ export default function NovedadesPersonalModal({
       fetchNovedades();
     }
   }, [isOpen, turnoId, personal?.id, cuadrante?.id, fetchNovedades]);
+
+  // Cargar catálogos para el modal de detalle
+  const fetchCatalogos = useCallback(async () => {
+    try {
+      const [unidades, vehic, personal] = await Promise.all([
+        listUnidadesOficina(),
+        listVehiculos(),
+        listPersonalSeguridad(),
+      ]);
+      setUnidadesOficina(Array.isArray(unidades) ? unidades : []);
+      setVehiculos(Array.isArray(vehic) ? vehic : []);
+      setPersonalSeguridad(Array.isArray(personal) ? personal : []);
+    } catch (err) {
+      console.error("Error cargando catálogos:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchCatalogos();
+    }
+  }, [isOpen, fetchCatalogos]);
 
   // Cargar novedades disponibles cuando se abre el form
   const fetchNovedadesDisponibles = useCallback(async () => {
@@ -291,7 +324,7 @@ export default function NovedadesPersonalModal({
     setSelectedNovedad(novedad);
     setEditData({
       resultado: novedad.resultado || "PENDIENTE",
-      acciones_tomadas: novedad.acciones_tomadas || "",
+      acciones_tomadas: "", // Siempre vacío - las anteriores ya están en observaciones/historial
       observaciones: novedad.observaciones || "",
     });
     setShowEditModal(true);
@@ -302,14 +335,78 @@ export default function NovedadesPersonalModal({
 
     setSaving(true);
     try {
+      // 1. Preparar observaciones locales para operativos_personal_novedades
+      let observacionesOperativo = editData.observaciones?.trim() || "";
+
+      // 2. Si hay acciones tomadas, las grabamos en historial_estado_novedades
+      const tieneAcciones = editData.acciones_tomadas?.trim();
+      const novedadPrincipalId = selectedNovedad.novedad_id || selectedNovedad.novedad?.id;
+
+      // 🔍 DEBUG: Ver estructura de selectedNovedad
+      console.log("🔍 DEBUG handleUpdateNovedad - selectedNovedad:", selectedNovedad);
+      console.log("🔍 DEBUG handleUpdateNovedad - selectedNovedad.novedad_id:", selectedNovedad.novedad_id);
+      console.log("🔍 DEBUG handleUpdateNovedad - selectedNovedad.novedad?.id:", selectedNovedad.novedad?.id);
+      console.log("🔍 DEBUG handleUpdateNovedad - novedadPrincipalId:", novedadPrincipalId);
+      console.log("🔍 DEBUG handleUpdateNovedad - tieneAcciones:", tieneAcciones);
+      console.log("🔍 DEBUG handleUpdateNovedad - editData:", editData);
+
+      if (tieneAcciones && novedadPrincipalId) {
+        const timestamp = new Date().toLocaleString("es-PE", {
+          dateStyle: "short",
+          timeStyle: "short"
+        });
+
+        // Obtener el personal que realiza la acción
+        const nombrePersonal = formatPersonalNombre(personal?.personal);
+        const accionesTexto = `[${timestamp} - ${nombrePersonal}] Acciones: ${editData.acciones_tomadas.trim()}`;
+
+        // Estado de la novedad principal (si no está definido, usar 2=DESPACHADO ya que está siendo atendida)
+        const estadoNovedadId = selectedNovedad.novedad?.estado_novedad_id || 2;
+
+        console.log("🔍 DEBUG - Llamando a crearHistorialNovedad con:");
+        console.log("   - novedadPrincipalId:", novedadPrincipalId);
+        console.log("   - estadoNovedadId:", estadoNovedadId);
+        console.log("   - accionesTexto:", accionesTexto);
+        console.log("   - user?.id:", user?.id);
+
+        // Crear entrada en historial_estado_novedades
+        try {
+          const resultadoHistorial = await crearHistorialNovedad(novedadPrincipalId, {
+            estado_anterior_id: estadoNovedadId,
+            estado_nuevo_id: estadoNovedadId, // Mismo estado - solo registramos acciones, no cambiamos estado
+            observaciones: accionesTexto,
+            tiempo_en_estado_min: 0,
+            created_by: user?.id || null,
+          });
+          console.log("✅ crearHistorialNovedad - Resultado:", resultadoHistorial);
+        } catch (historialError) {
+          console.error("❌ Error en crearHistorialNovedad:", historialError);
+          console.error("❌ Error response:", historialError.response?.data);
+          // No lanzar el error, continuar con la actualización del operativo
+          toast.error("Error al guardar en historial, pero se actualizará el registro local");
+        }
+
+        console.log("✅ Acciones grabadas en historial_estado_novedades para novedad:", novedadPrincipalId);
+      } else {
+        console.log("⚠️ No se grabó historial porque:");
+        console.log("   - tieneAcciones:", tieneAcciones);
+        console.log("   - novedadPrincipalId:", novedadPrincipalId);
+      }
+
+      // 3. Actualizar el registro operativo (operativos_personal_novedades)
       const payload = {
         resultado: editData.resultado,
-        acciones_tomadas: editData.acciones_tomadas?.trim() || undefined,
-        observaciones: editData.observaciones?.trim() || undefined,
+        acciones_tomadas: "", // Limpiar para permitir nuevas acciones
+        observaciones: observacionesOperativo,
       };
 
       await updateNovedadPersonal(turnoId, personal.id, cuadrante.id, selectedNovedad.id, payload);
-      toast.success("Novedad actualizada correctamente");
+
+      toast.success(
+        tieneAcciones
+          ? "Novedad actualizada. Acciones registradas en historial."
+          : "Novedad actualizada."
+      );
       setShowEditModal(false);
       setSelectedNovedad(null);
       fetchNovedades();
@@ -380,7 +477,7 @@ export default function NovedadesPersonalModal({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-                  Novedades en {cuadrante?.datosCuadrante?.nombre || "Cuadrante"}
+                  Patrullaje a Pie - Novedades en {cuadrante?.datosCuadrante?.nombre || "Cuadrante"}
                 </h2>
                 {/* Indicador de hotkeys */}
                 {canCreate && !showRegistrarForm && !showEditModal && (
@@ -596,7 +693,7 @@ export default function NovedadesPersonalModal({
               )}
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="flex flex-wrap gap-4">
               {novedades.map((novedad) => {
                 const prioridadConfig = getPrioridadConfig(novedad.prioridad);
                 const resultadoConfig = getResultadoConfig(novedad.resultado);
@@ -604,7 +701,7 @@ export default function NovedadesPersonalModal({
                 return (
                   <div
                     key={novedad.id}
-                    className="p-4 rounded-xl border bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
+                    className="p-4 rounded-xl border bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)]"
                   >
                     <div className="flex items-start justify-between">
                       {/* Info de la novedad */}
@@ -736,7 +833,7 @@ export default function NovedadesPersonalModal({
               {/* Acciones tomadas */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Acciones Tomadas
+                  Nuevas Acciones Tomadas
                 </label>
                 <textarea
                   value={editData.acciones_tomadas}
@@ -745,6 +842,9 @@ export default function NovedadesPersonalModal({
                   className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white resize-none"
                   placeholder="Descripción de acciones realizadas..."
                 />
+                <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">
+                  Las acciones se guardarán en el historial y este campo quedará vacío para nuevas acciones.
+                </p>
               </div>
 
               {/* Observaciones */}
@@ -789,12 +889,17 @@ export default function NovedadesPersonalModal({
       {/* ================================================================== */}
       {/* MODAL VER DETALLE DE NOVEDAD */}
       {/* ================================================================== */}
+      {/* IMPORTANTE: Pasar novedadId para que el modal cargue la novedad completa con getNovedadById */}
+      {/* No pasar novedad inicial para forzar la carga desde el backend */}
       <NovedadDetalleModal
         novedadId={viewingNovedad?.novedad_id || viewingNovedad?.novedad?.id}
-        novedad={viewingNovedad?.novedad}
+        novedad={null}
         isOpen={showViewModal}
         onClose={handleCloseViewModal}
         showDespacharButton={false}
+        unidadesOficina={unidadesOficina}
+        vehiculos={vehiculos}
+        personalSeguridad={personalSeguridad}
       />
     </div>
   );

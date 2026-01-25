@@ -7,6 +7,7 @@
 
 import { useEffect } from "react";
 import { X, Car } from "lucide-react";
+import AuditoriaInfo from "../../../components/AuditoriaInfo.jsx";
 
 /**
  * VerVehiculoModal
@@ -322,65 +323,30 @@ export default function VerVehiculoModal({ isOpen, onClose, vehiculo }) {
               <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3 uppercase tracking-wide">
                 Información del Registro
               </h3>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <label className="text-xs text-slate-500 dark:text-slate-400 block mb-1">
-                    Creado
-                  </label>
-                  <p className="text-slate-900 dark:text-slate-50">
-                    {formatFecha(vehiculo.created_at || vehiculo.createdAt)}
-                  </p>
-                  {(vehiculo.creador || vehiculo.created_by) && (
-                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-                      Por: {vehiculo.creador ? `${vehiculo.creador.username} (${vehiculo.creador.nombres} ${vehiculo.creador.apellidos})` : `ID Usuario: ${vehiculo.created_by}`}
-                    </p>
+              
+              {/* Estado del Registro */}
+              <div className="mb-4">
+                <label className="text-xs text-slate-500 dark:text-slate-400 block mb-1">
+                  Estado del Registro
+                </label>
+                <p className="text-slate-900 dark:text-slate-50">
+                  {vehiculo.estado_registro === 1 ? (
+                    <span className="inline-flex items-center px-2 py-1 rounded-md bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs font-medium">
+                      Activo
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-2 py-1 rounded-md bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-xs font-medium">
+                      Inactivo
+                    </span>
                   )}
-                </div>
-                <div>
-                  <label className="text-xs text-slate-500 dark:text-slate-400 block mb-1">
-                    Actualizado
-                  </label>
-                  <p className="text-slate-900 dark:text-slate-50">
-                    {formatFecha(vehiculo.updated_at || vehiculo.updatedAt)}
-                  </p>
-                  {(vehiculo.actualizador || vehiculo.updated_by) && (
-                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-                      Por: {vehiculo.actualizador ? `${vehiculo.actualizador.username} (${vehiculo.actualizador.nombres} ${vehiculo.actualizador.apellidos})` : `ID Usuario: ${vehiculo.updated_by}`}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="text-xs text-slate-500 dark:text-slate-400 block mb-1">
-                    Estado del Registro
-                  </label>
-                  <p className="text-slate-900 dark:text-slate-50">
-                    {vehiculo.estado_registro === 1 ? (
-                      <span className="inline-flex items-center px-2 py-1 rounded-md bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs font-medium">
-                        Activo
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center px-2 py-1 rounded-md bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-xs font-medium">
-                        Inactivo
-                      </span>
-                    )}
-                  </p>
-                </div>
-                {vehiculo.deleted_at && (
-                  <div>
-                    <label className="text-xs text-slate-500 dark:text-slate-400 block mb-1">
-                      Eliminado
-                    </label>
-                    <p className="text-slate-900 dark:text-slate-50">
-                      {formatFecha(vehiculo.deleted_at)}
-                    </p>
-                    {(vehiculo.eliminador || vehiculo.deleted_by) && (
-                      <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-                        Por: {vehiculo.eliminador ? `${vehiculo.eliminador.username} (${vehiculo.eliminador.nombres} ${vehiculo.eliminador.apellidos})` : `ID Usuario: ${vehiculo.deleted_by}`}
-                      </p>
-                    )}
-                  </div>
-                )}
+                </p>
               </div>
+              
+              {/* Información de Auditoría */}
+              <AuditoriaInfo 
+                item={vehiculo} 
+                showDeleted={true}
+              />
             </div>
           </div>
         </div>
