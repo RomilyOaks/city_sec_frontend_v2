@@ -338,18 +338,34 @@ export async function crearHistorialNovedad(novedadId, observaciones, estadoNuev
     payload.estado_nuevo_id = estadoNuevoId;
   }
 
-  console.log("🔍 crearHistorialNovedad - novedadId:", novedadId);
-  console.log("🔍 crearHistorialNovedad - payload:", JSON.stringify(payload, null, 2));
-  console.log("🔍 crearHistorialNovedad - URL:", `/novedades/${novedadId}/historial`);
-
   try {
     const res = await api.post(`/novedades/${novedadId}/historial`, payload);
-    console.log("✅ crearHistorialNovedad - Respuesta:", res?.data);
     return res?.data;
   } catch (error) {
-    console.error("❌ crearHistorialNovedad - Error:", error);
-    console.error("❌ crearHistorialNovedad - Error response:", error.response?.data);
+    console.error("Error en crearHistorialNovedad:", error);
     throw error;
+  }
+}
+
+/**
+ * Obtener estados siguientes válidos para una novedad.
+ * Endpoint: GET /estados-novedad/siguientes/:estadoActualId
+ * Solo retorna estados con orden >= al estado actual.
+ *
+ * @param {number} estadoActualId - ID del estado actual de la novedad
+ * @returns {Promise<Object>} - { data: [...estados], estadoActual: {...} }
+ */
+export async function getEstadosSiguientes(estadoActualId) {
+  try {
+    const res = await api.get(`/estados-novedad/siguientes/${estadoActualId}`);
+    return {
+      estados: res?.data?.data || [],
+      estadoActual: res?.data?.estadoActual || null,
+    };
+  } catch (error) {
+    console.error("Error obteniendo estados siguientes:", error);
+    // Si falla, retornar array vacío para no bloquear la UI
+    return { estados: [], estadoActual: null };
   }
 }
 

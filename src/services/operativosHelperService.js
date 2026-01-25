@@ -43,26 +43,36 @@ export async function getTurnoActivo() {
  */
 export async function findOperativoTurnoByParams(fecha, turno, sector_id) {
   try {
-    console.log("🔍 Buscando operativo con params:", { fecha, turno, sector_id });
-    
+    // Primero intentar búsqueda específica
     const result = await listOperativosTurno({
       fecha,
       turno,
       sector_id,
-      // No filtrar por estado para encontrar turnos existentes con cualquier estado
-      limit: 10 // Aumentar para ver todos los resultados
+      limit: 10
     });
-    
-    const operativos = result?.data || result || [];
-    console.log("📋 Operativos encontrados:", operativos.length, operativos);
-    
-    if (operativos.length > 0) {
-      const operativo = operativos[0];
-      console.log("✅ Operativo seleccionado:", operativo);
-      return operativo;
+
+    let operativos = result?.data || result || [];
+
+    // Si no encuentra con búsqueda específica, intentar búsqueda más amplia
+    if (operativos.length === 0) {
+      const broadResult = await listOperativosTurno({
+        fecha,
+        limit: 50
+      });
+
+      operativos = broadResult?.data || broadResult || [];
+
+      // Filtrar manualmente por turno y sector
+      operativos = operativos.filter(op =>
+        op.turno === turno &&
+        op.sector_id === Number(sector_id)
+      );
     }
-    
-    console.log("❌ No se encontraron operativos");
+
+    if (operativos.length > 0) {
+      return operativos[0];
+    }
+
     return null;
   } catch (error) {
     console.error("Error buscando operativo de turno:", error);
@@ -81,57 +91,50 @@ export async function findOperativoTurnoByParams(fecha, turno, sector_id) {
  */
 export async function findOrCreateOperativoTurno(fecha, turno, sector_id, operador_id, supervisor_id = null) {
   try {
-    console.log("🚀 findOrCreateOperativoTurno llamado con:", { 
-      fecha, 
-      turno, 
-      sector_id, 
-      operador_id, 
-      supervisor_id 
-    });
-    
     // Primero buscar si ya existe
     const existente = await findOperativoTurnoByParams(fecha, turno, sector_id);
     if (existente) {
-      console.log("✅ Usando operativo existente:", existente);
       return existente;
     }
 
-    console.log("🆕 Creando nuevo operativo...");
     // Si no existe, crearlo
     const payload = {
       operador_id,
       sector_id,
       fecha,
       turno,
-      // No enviar estado para que use el default del backend
       fecha_hora_inicio: new Date().toISOString()
     };
 
-    // Solo agregar supervisor_id si tiene un valor válido
     if (supervisor_id) {
       payload.supervisor_id = supervisor_id;
     }
 
-    console.log("📤 Payload para crear operativo:", payload);
     const nuevoOperativo = await createOperativosTurno(payload);
-    console.log("✅ Nuevo operativo creado:", nuevoOperativo);
-
     return nuevoOperativo;
   } catch (error) {
     // Si es error 409 (turno duplicado), buscar nuevamente y retornar el existente
     if (error.response?.status === 409 && error.response?.data?.code === "DUPLICATE_TURNO") {
-      console.log("🔄 Turno duplicado detectado, buscando existente...");
       try {
-        const existente = await findOperativoTurnoByParams(fecha, turno, sector_id);
+        let existente = await findOperativoTurnoByParams(fecha, turno, sector_id);
+
+        // Si no encuentra, esperar un poco y reintentar
+        if (!existente) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          existente = await findOperativoTurnoByParams(fecha, turno, sector_id);
+        }
+
         if (existente) {
-          console.log("✅ Usando operativo existente después de duplicado:", existente);
           return existente;
+        } else {
+          throw new Error(`No se pudo encontrar el operativo existente para fecha ${fecha}, turno ${turno}, sector ${sector_id}`);
         }
       } catch (searchError) {
         console.error("Error buscando turno duplicado:", searchError);
+        throw new Error(`Error al buscar operativo existente: ${searchError.message}`);
       }
     }
-    
+
     console.error("Error creando operativo de turno:", error);
     throw error;
   }
@@ -191,23 +194,94 @@ export async function findVehiculoOperativoId(operativo_turno_id, vehiculo_id) {
   try {
     const result = await listVehiculosByTurno(operativo_turno_id);
     const vehiculos = result?.data || result || [];
-    
-    // Buscar el vehículo operativo que corresponde al vehiculo_id
-    const vehiculoOperativo = vehiculos.find(v => 
-      v.operativo_turno_id === Number(operativo_turno_id) && 
+
+    const vehiculoOperativo = vehiculos.find(v =>
+      v.operativo_turno_id === Number(operativo_turno_id) &&
       v.vehiculo_id === Number(vehiculo_id)
     );
-    
-    if (vehiculoOperativo) {
-      console.log("✅ Vehículo operativo encontrado:", vehiculoOperativo);
-      return vehiculoOperativo.id; // ID del registro en operativos_vehiculos
-    }
-    
-    console.log("❌ Vehículo operativo no encontrado para operativo_turno_id:", operativo_turno_id, "y vehiculo_id:", vehiculo_id);
-    return null;
+
+    return vehiculoOperativo?.id || null;
   } catch (error) {
     console.error("Error buscando vehículo operativo:", error);
     return null;
+  }
+}
+
+/**
+ * Busca o crea un vehículo operativo en un turno
+ * @param {number} operativo_turno_id - ID del turno operativo
+ * @param {number} vehiculo_id - ID del vehículo
+ * @param {number} [kilometraje_inicio] - Kilometraje inicial (opcional)
+ * @returns {Promise<Object>} Vehículo operativo encontrado o creado
+ */
+export async function findOrCreateVehiculoEnTurno(operativo_turno_id, vehiculo_id, kilometraje_inicio = 0) {
+  try {
+    // Primero buscar si ya existe
+    const existenteId = await findVehiculoOperativoId(operativo_turno_id, vehiculo_id);
+    if (existenteId) {
+      const result = await listVehiculosByTurno(operativo_turno_id);
+      const vehiculos = result?.data || result || [];
+      return vehiculos.find(v => v.id === existenteId);
+    }
+
+    // Si no existe, crearlo
+    return await createVehiculoEnTurno(operativo_turno_id, vehiculo_id, kilometraje_inicio);
+  } catch (error) {
+    console.error("Error en findOrCreateVehiculoEnTurno:", error);
+    throw error;
+  }
+}
+
+/**
+ * Busca o crea un cuadrante asignado a un vehículo operativo
+ * @param {number} operativo_turno_id - ID del turno operativo
+ * @param {number} operativo_vehiculo_id - ID del vehículo operativo
+ * @param {number} cuadrante_id - ID del cuadrante
+ * @returns {Promise<Object>} Cuadrante asignado encontrado o creado
+ */
+export async function findOrCreateCuadranteEnVehiculo(operativo_turno_id, operativo_vehiculo_id, cuadrante_id) {
+  try {
+    // Primero buscar si ya existe
+    const existente = await findCuadranteAsignadoVehiculo(operativo_vehiculo_id, cuadrante_id, operativo_turno_id);
+    if (existente) {
+      return existente;
+    }
+
+    // Si no existe, crearlo
+    return await asignarCuadranteAVehiculo(operativo_turno_id, operativo_vehiculo_id, cuadrante_id);
+  } catch (error) {
+    console.error("Error en findOrCreateCuadranteEnVehiculo:", error);
+    throw error;
+  }
+}
+
+/**
+ * Busca o crea una novedad en un cuadrante de vehículo
+ * @param {number} operativo_turno_id - ID del turno operativo
+ * @param {number} operativo_vehiculo_id - ID del vehículo operativo
+ * @param {number} operativo_vehiculo_cuadrante_id - ID del registro en operativos_vehiculos_cuadrantes
+ * @param {Object} novedadData - Datos de la novedad a crear
+ * @returns {Promise<Object>} Novedad creada
+ * @throws {Error} Si la novedad ya existe
+ */
+export async function findOrCreateNovedadEnCuadrante(operativo_turno_id, operativo_vehiculo_id, operativo_vehiculo_cuadrante_id, novedadData) {
+  try {
+    // Primero buscar si ya existe una novedad para este cuadrante
+    const response = await api.get(`/operativos/${operativo_turno_id}/vehiculos/${operativo_vehiculo_id}/cuadrantes/${operativo_vehiculo_cuadrante_id}/novedades`);
+    const novedadesExistentes = response.data?.data || response.data || [];
+
+    if (novedadesExistentes.length > 0) {
+      throw new Error("Novedad ya fue reportada para este cuadrante");
+    }
+
+    // Si no existe, crearla
+    return await asignarNovedadAVehiculo(operativo_turno_id, operativo_vehiculo_id, null, operativo_vehiculo_cuadrante_id, novedadData);
+  } catch (error) {
+    if (error.message === "Novedad ya fue reportada para este cuadrante") {
+      throw error;
+    }
+    console.error("Error en findOrCreateNovedadEnCuadrante:", error);
+    throw error;
   }
 }
 
@@ -219,33 +293,13 @@ export async function findVehiculoOperativoId(operativo_turno_id, vehiculo_id) {
  */
 export async function findCuadranteAsignadoVehiculo(operativo_vehiculo_id, cuadrante_id, turnoId) {
   try {
-    console.log("🔍 findCuadranteAsignadoVehiculo llamado con:", {
-      operativo_vehiculo_id,
-      cuadrante_id,
-      turnoId,
-      tipo_operativo_vehiculo_id: typeof operativo_vehiculo_id,
-      tipo_cuadrante_id: typeof cuadrante_id
-    });
-    
-    // Corregir endpoint: usar /operativos/{turnoId}/vehiculos/{operativo_vehiculo_id}/cuadrantes
     const response = await api.get(`/operativos/${turnoId}/vehiculos/${operativo_vehiculo_id}/cuadrantes`);
     const cuadrantes = response.data?.data || response.data || [];
-    
-    console.log("📋 Cuadrantes encontrados para vehículo operativo:", cuadrantes);
-    
-    // Buscar el cuadrante específico
-    const cuadranteAsignado = cuadrantes.find(c => 
-      c.operativo_vehiculo_id === Number(operativo_vehiculo_id) && 
+
+    return cuadrantes.find(c =>
+      c.operativo_vehiculo_id === Number(operativo_vehiculo_id) &&
       c.cuadrante_id === Number(cuadrante_id)
-    );
-    
-    if (cuadranteAsignado) {
-      console.log("✅ Cuadrante asignado encontrado:", cuadranteAsignado);
-      return cuadranteAsignado;
-    }
-    
-    console.log("❌ Cuadrante no asignado para operativo_vehiculo_id:", operativo_vehiculo_id, "y cuadrante_id:", cuadrante_id);
-    return null;
+    ) || null;
   } catch (error) {
     console.error("Error buscando cuadrante asignado:", error);
     return null;
