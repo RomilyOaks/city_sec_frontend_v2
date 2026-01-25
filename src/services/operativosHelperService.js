@@ -8,7 +8,14 @@
 
 import { getHorarioActivo } from "./horariosTurnosService.js";
 import { listOperativosTurno, createOperativosTurno } from "./operativosTurnoService.js";
-import { createVehiculoOperativo, listVehiculosByTurno } from "./operativosVehiculosService.js";
+import {
+  listVehiculosByTurno,
+  createVehiculoOperativo,
+} from "./operativosVehiculosService.js";
+import {
+  getPersonalDisponibleParaDespacho,
+  despacharPersonalAPie,
+} from "./operativosPersonalService.js";
 import { listVehiculosDisponibles } from "./vehiculosService.js";
 import api from "./api.js";
 import toast from "react-hot-toast";
@@ -360,5 +367,40 @@ export function mostrarErroresEspecificos(error, mensajeDefault = "Error en la o
   } catch (e) {
     console.error("Error mostrando errores:", e);
     toast.error(mensajeDefault);
+  }
+}
+
+// ============================================================================
+// FUNCIONES DE DESPACHO PERSONAL (PATRULLAJE A PIE)
+// ============================================================================
+
+/**
+ * Obtiene personal disponible para despacho (CORREGIDO)
+ * @param {number} turnoId - ID del turno operativo (requerido)
+ * @returns {Promise<Array>} Array de personal disponible
+ */
+export async function getPersonalDisponibleParaDespachoWrapper(turnoId) {
+  try {
+    const personal = await getPersonalDisponibleParaDespacho(turnoId);
+    return Array.isArray(personal) ? personal : [];
+  } catch (error) {
+    console.error("Error obteniendo personal disponible para despacho:", error);
+    // Si hay error, retornar array vacío para que no se caiga el componente
+    return [];
+  }
+}
+
+/**
+ * Despacha personal a pie para una novedad
+ * @param {Object} novedadData - Datos de la novedad
+ * @returns {Promise<Object>} Resultado del despacho
+ */
+export async function despacharPersonalAPieWrapper(novedadData) {
+  try {
+    const resultado = await despacharPersonalAPie(novedadData);
+    return resultado;
+  } catch (error) {
+    console.error("Error en despacho de personal a pie:", error);
+    throw error;
   }
 }

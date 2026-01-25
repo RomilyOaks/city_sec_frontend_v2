@@ -91,7 +91,8 @@ export default function OperativosVehiculosPage() {
   const fetchTurno = useCallback(async () => {
     try {
       const response = await api.get(`/operativos/${turnoId}`);
-      setTurno(response.data?.data || response.data);
+      const turnoData = response.data?.data || response.data;
+      setTurno(turnoData);
     } catch (err) {
       console.error("Error cargando turno:", err);
     }
@@ -123,9 +124,20 @@ export default function OperativosVehiculosPage() {
     navigate("/operativos/turnos");
   };
 
-  const handleView = (vehiculo) => {
-    setSelectedVehiculo(vehiculo);
-    setShowViewModal(true);
+  const handleView = async (vehiculo) => {
+    try {
+      // Cargar datos completos del vehículo con auditoría
+      const response = await api.get(`/operativos-vehiculos/${vehiculo.id}`);
+      const vehiculoCompleto = response.data?.data || response.data;
+      setSelectedVehiculo(vehiculoCompleto);
+      setShowViewModal(true);
+    } catch (error) {
+      console.error('Error cargando vehículo completo:', error);
+      toast.error('Error al cargar detalles del vehículo');
+      // Fallback: usar datos incompletos
+      setSelectedVehiculo(vehiculo);
+      setShowViewModal(true);
+    }
   };
 
   const handleEdit = (vehiculo) => {
@@ -186,9 +198,43 @@ export default function OperativosVehiculosPage() {
                 Vehículos del Turno
               </h1>
               {turno && (
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  {turno.fecha} | {turno.turno?.nombre || turno.turno_nombre} | {turno.sector?.nombre || turno.sector_nombre}
-                </p>
+                <div className="mt-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="grid grid-cols-2 gap-4 text-sm mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <span className="font-medium text-blue-900 dark:text-blue-100">Fecha:</span>
+                      <span className="text-blue-700 dark:text-blue-300">{turno.fecha}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span className="font-medium text-blue-900 dark:text-blue-100">Turno:</span>
+                      <span className="text-blue-700 dark:text-blue-300">{turno.turno}</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                      <span className="font-medium text-blue-900 dark:text-blue-100">Sector:</span>
+                      <span className="text-blue-700 dark:text-blue-300">
+                        {turno.sector ? `${turno.sector.sector_code} - ${turno.sector.nombre}` : 'No asignado'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                      <span className="font-medium text-blue-900 dark:text-blue-100">Operador:</span>
+                      <span className="text-blue-700 dark:text-blue-300">
+                        {turno.operador ? `${turno.operador.nombres} ${turno.operador.apellido_paterno}` : 'No asignado'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                      <span className="font-medium text-blue-900 dark:text-blue-100">Supervisor:</span>
+                      <span className="text-blue-700 dark:text-blue-300">
+                        {turno.supervisor ? `${turno.supervisor.nombres} ${turno.supervisor.apellido_paterno}` : 'No asignado'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           </div>

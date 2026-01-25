@@ -391,6 +391,357 @@ export async function deleteNovedadPersonal(turnoId, personalId, cuadranteId, no
 }
 
 // ============================================================================
+// FUNCIONES ESPECIFICAS - DESPACHO DESDE NOVEDADES
+// ============================================================================
+
+/**
+ * Obtener personal disponible para despacho (CORREGIDO)
+ * GET /api/v1/operativos/{turnoId}/personal
+ *
+ * @param {number} turnoId - ID del turno operativo (requerido)
+ * @returns {Promise<Object>} - { success, data: Array<PersonalDisponible> }
+ */
+export async function getPersonalDisponible(turnoId) {
+  try {
+    const response = await api.get(`/operativos/${turnoId}/personal`);
+    return response.data;
+  } catch (error) {
+    console.error("Error obteniendo personal disponible:", error);
+    throw error;
+  }
+}
+
+/**
+ * Buscar personal operativo existente en un turno
+ * @param {number} turnoId - ID del turno operativo
+ * @param {number} personalId - ID del personal de seguridad
+ * @returns {Promise<Object|null>} - Registro encontrado o null
+ */
+async function findPersonalOperativoExistente(turnoId, personalId) {
+  try {
+    const response = await api.get(`/operativos/${turnoId}/personal`);
+    const personalList = response.data?.data || response.data || [];
+
+    // Buscar el personal específico
+    const encontrado = personalList.find(p =>
+      p.personal_id === Number(personalId)
+    );
+
+    if (encontrado) {
+      console.log('✅ Personal operativo existente encontrado:', encontrado);
+      return encontrado;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error buscando personal operativo existente:', error);
+    return null;
+  }
+}
+
+/**
+ * Buscar cuadrante asignado a personal operativo
+ * @param {number} turnoId - ID del turno operativo
+ * @param {number} operativoPersonalId - ID del registro en operativos_personal
+ * @param {number} cuadranteId - ID del cuadrante
+ * @returns {Promise<Object|null>} - Registro encontrado o null
+ */
+async function findCuadrantePersonalExistente(turnoId, operativoPersonalId, cuadranteId) {
+  try {
+    const response = await api.get(`/operativos/${turnoId}/personal/${operativoPersonalId}/cuadrantes`);
+    const cuadrantesList = response.data?.data || response.data || [];
+
+    // Buscar el cuadrante específico
+    const encontrado = cuadrantesList.find(c =>
+      c.cuadrante_id === Number(cuadranteId)
+    );
+
+    if (encontrado) {
+      console.log('✅ Cuadrante personal existente encontrado:', encontrado);
+      return encontrado;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error buscando cuadrante personal existente:', error);
+    return null;
+  }
+}
+
+/**
+ * Despacho completo de personal a pie (CORREGIDO - Flujo de 3 pasos)
+ *
+ * FLUJO CORRECTO:
+ * 1. Asignar personal al turno → Obtener operativos_personal.id
+ * 2. Asignar cuadrante al personal → Usar operativos_personal.id → Obtener operativos_personal_cuadrantes.id
+ * 3. Asignar novedad al cuadrante → Usar operativos_personal.id Y operativos_personal_cuadrantes.id
+ *
+ * @param {Object} payload - Datos del despacho
+ * @param {number} payload.turno_id - ID del turno operativo (requerido)
+ * @param {number} payload.personal_cargo_id - ID del personal a despachar (requerido)
+ * @param {number} payload.cuadrante_id - ID del cuadrante asignado (requerido)
+ * @param {number} payload.novedad_id - ID de la novedad (requerido)
+ * @param {string} [payload.prioridad='MEDIA'] - Prioridad: BAJA, MEDIA, ALTA, URGENTE
+ * @param {string} [payload.observaciones=''] - Observaciones del despacho
+ * @returns {Promise<Object>} - { success, data: { asignacionTurno, asignacionCuadrante, asignacionNovedad } }
+ */
+export async function crearOperativoPersonalCompleto(payload) {
+  try {
+    // Obtener hora actual en formato local ISO8601 (sin Z para evitar problemas de timezone)
+    const horaActual = new Date();
+    const year = horaActual.getFullYear();
+    const month = String(horaActual.getMonth() + 1).padStart(2, "0");
+    const day = String(horaActual.getDate()).padStart(2, "0");
+    const hours = String(horaActual.getHours()).padStart(2, "0");
+    const minutes = String(horaActual.getMinutes()).padStart(2, "0");
+    const seconds = String(horaActual.getSeconds()).padStart(2, "0");
+    const horaIngreso = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+
+    console.log('🔍 DEBUG - Payload completo:', payload);
+    console.log('🔍 DEBUG - Hora ingreso formateada:', horaIngreso);
+
+    // ============================================================================
+    // PASO 1: Asignar personal al turno → Obtener operativos_personal.id
+    // ============================================================================
+    console.log('🔥 Paso 1: Asignando personal al turno...');
+
+    let operativoPersonalId = null;
+    let asignacionTurno = null;
+
+    // Primero buscar si ya existe
+    const personalExistente = await findPersonalOperativoExistente(
+      payload.turno_id,
+      payload.personal_cargo_id
+    );
+
+    if (personalExistente) {
+      console.log('✅ Personal ya asignado al turno, usando ID existente:', personalExistente.id);
+      operativoPersonalId = personalExistente.id;
+      asignacionTurno = { data: personalExistente };
+    } else {
+      // Crear nueva asignación
+      const payloadPaso1 = {
+        personal_id: payload.personal_cargo_id,
+        hora_inicio: horaIngreso,
+        estado_operativo_id: 1 // ACTIVO
+      };
+
+      console.log('🔍 DEBUG - Payload Paso 1:', payloadPaso1);
+
+      try {
+        asignacionTurno = await api.post(
+          `/operativos/${payload.turno_id}/personal`,
+          payloadPaso1
+        );
+
+        // Obtener el ID del registro creado
+        operativoPersonalId = asignacionTurno.data?.data?.id || asignacionTurno.data?.id;
+        console.log('✅ Personal asignado al turno. operativos_personal.id =', operativoPersonalId);
+
+      } catch (error) {
+        // Si ya está asignado, buscar el ID existente
+        if (error.response?.data?.message?.includes('ya ha sido asignado') ||
+            error.response?.data?.message?.includes('already assigned') ||
+            error.response?.status === 409) {
+          console.log('⚠️ Personal ya asignado, buscando ID existente...');
+          const existente = await findPersonalOperativoExistente(
+            payload.turno_id,
+            payload.personal_cargo_id
+          );
+          if (existente) {
+            operativoPersonalId = existente.id;
+            asignacionTurno = { data: existente };
+            console.log('✅ Usando ID existente:', operativoPersonalId);
+          } else {
+            throw new Error('Personal ya asignado pero no se pudo obtener su ID');
+          }
+        } else {
+          throw error;
+        }
+      }
+    }
+
+    if (!operativoPersonalId) {
+      throw new Error('No se pudo obtener el ID del personal operativo');
+    }
+
+    // ============================================================================
+    // PASO 2: Asignar cuadrante al personal → Obtener operativos_personal_cuadrantes.id
+    // ============================================================================
+    console.log('🔥 Paso 2: Asignando cuadrante al personal...');
+    console.log('   └─ Usando operativoPersonalId:', operativoPersonalId);
+
+    let operativoPersonalCuadranteId = null;
+    let asignacionCuadrante = null;
+
+    // Buscar si ya existe el cuadrante asignado
+    const cuadranteExistente = await findCuadrantePersonalExistente(
+      payload.turno_id,
+      operativoPersonalId,
+      payload.cuadrante_id
+    );
+
+    if (cuadranteExistente) {
+      console.log('✅ Cuadrante ya asignado, usando ID existente:', cuadranteExistente.id);
+      operativoPersonalCuadranteId = cuadranteExistente.id;
+      asignacionCuadrante = { data: cuadranteExistente };
+    } else {
+      const payloadPaso2 = {
+        cuadrante_id: payload.cuadrante_id,
+        hora_ingreso: horaIngreso
+      };
+
+      console.log('🔍 DEBUG - Payload Paso 2:', payloadPaso2);
+
+      try {
+        asignacionCuadrante = await api.post(
+          `/operativos/${payload.turno_id}/personal/${operativoPersonalId}/cuadrantes`,
+          payloadPaso2
+        );
+
+        // Obtener el ID del registro creado
+        operativoPersonalCuadranteId = asignacionCuadrante.data?.data?.id || asignacionCuadrante.data?.id;
+        console.log('✅ Cuadrante asignado. operativos_personal_cuadrantes.id =', operativoPersonalCuadranteId);
+
+      } catch (error) {
+        // Si ya está asignado, buscar el ID existente
+        if (error.response?.status === 409 ||
+            error.response?.data?.message?.includes('ya asignado')) {
+          console.log('⚠️ Cuadrante ya asignado, buscando ID existente...');
+          const existente = await findCuadrantePersonalExistente(
+            payload.turno_id,
+            operativoPersonalId,
+            payload.cuadrante_id
+          );
+          if (existente) {
+            operativoPersonalCuadranteId = existente.id;
+            asignacionCuadrante = { data: existente };
+            console.log('✅ Usando ID existente:', operativoPersonalCuadranteId);
+          } else {
+            throw new Error('Cuadrante ya asignado pero no se pudo obtener su ID');
+          }
+        } else {
+          throw error;
+        }
+      }
+    }
+
+    if (!operativoPersonalCuadranteId) {
+      throw new Error('No se pudo obtener el ID del cuadrante asignado');
+    }
+
+    // ============================================================================
+    // PASO 3: Asignar novedad al cuadrante
+    // ============================================================================
+    console.log('🔥 Paso 3: Asignando novedad al cuadrante...');
+    console.log('   └─ Usando operativoPersonalId:', operativoPersonalId);
+    console.log('   └─ Usando operativoPersonalCuadranteId:', operativoPersonalCuadranteId);
+
+    const payloadPaso3 = {
+      novedad_id: payload.novedad_id,
+      prioridad: payload.prioridad || 'MEDIA',
+      resultado: 'PENDIENTE',
+      reportado: horaIngreso,
+      observaciones: payload.observaciones || ''
+    };
+
+    console.log('🔍 DEBUG - Payload Paso 3:', payloadPaso3);
+
+    // URL CORRECTA: /operativos/{turnoId}/personal/{operativoPersonalId}/cuadrantes/{operativoPersonalCuadranteId}/novedades
+    const asignacionNovedad = await api.post(
+      `/operativos/${payload.turno_id}/personal/${operativoPersonalId}/cuadrantes/${operativoPersonalCuadranteId}/novedades`,
+      payloadPaso3
+    );
+
+    console.log('✅ Novedad asignada:', asignacionNovedad.data);
+
+    return {
+      success: true,
+      data: {
+        operativo_personal_id: operativoPersonalId,
+        operativo_personal_cuadrante_id: operativoPersonalCuadranteId,
+        asignacionTurno: asignacionTurno?.data || null,
+        asignacionCuadrante: asignacionCuadrante?.data || null,
+        asignacionNovedad: asignacionNovedad.data
+      }
+    };
+  } catch (error) {
+    console.error("Error creando operativo personal completo:", error);
+    console.error("🔍 DEBUG - Error response data:", error.response?.data);
+
+    // Manejo específico de errores
+    if (error.response?.status === 404) {
+      throw new Error('Recurso no encontrado. Verifique que el turno, personal y cuadrante existan.');
+    } else if (error.response?.status === 400) {
+      if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
+        const mensajes = error.response.data.errors.map(err => `${err.field}: ${err.message}`);
+        throw new Error(`Datos inválidos: ${mensajes.join(', ')}`);
+      }
+      throw new Error(error.response?.data?.message || 'Datos inválidos en el despacho');
+    } else if (error.response?.status === 409) {
+      throw new Error(error.response?.data?.message || 'Conflicto: recurso ya existe');
+    }
+
+    throw error;
+  }
+}
+
+/**
+ * Wrapper para obtener personal disponible con manejo de errores (CORREGIDO)
+ * @param {number} turnoId - ID del turno operativo (requerido)
+ * @returns {Promise<Array>} - Array de personal disponible (vacío si hay error)
+ */
+export async function getPersonalDisponibleParaDespacho(turnoId) {
+  try {
+    const result = await getPersonalDisponible(turnoId);
+    return Array.isArray(result?.data) ? result.data : [];
+  } catch (error) {
+    console.error("Error obteniendo personal disponible para despacho:", error);
+    // Si hay error, retornar array vacío para que no se caiga el componente
+    return [];
+  }
+}
+
+/**
+ * Wrapper para crear operativo personal completo con manejo de errores mejorado (CORREGIDO)
+ * @param {Object} novedadData - Datos de la novedad para despacho
+ * @returns {Promise<Object>} - Resultado completo del despacho
+ */
+export async function despacharPersonalAPie(novedadData) {
+  try {
+    // Validar datos requeridos
+    if (!novedadData.id) {
+      throw new Error("ID de novedad es requerido");
+    }
+    if (!novedadData.personal_cargo_id) {
+      throw new Error("Personal a cargo es requerido");
+    }
+    if (!novedadData.cuadrante_id) {
+      throw new Error("Cuadrante es requerido");
+    }
+    if (!novedadData.turno_id) {
+      throw new Error("Turno ID es requerido");
+    }
+
+    const payload = {
+      turno_id: novedadData.turno_id,
+      personal_cargo_id: novedadData.personal_cargo_id,
+      cuadrante_id: novedadData.cuadrante_id,
+      novedad_id: novedadData.id,
+      prioridad: novedadData.prioridad_actual || 'MEDIA',
+      observaciones: novedadData.observaciones || `Despacho desde novedades - ${new Date().toLocaleString()}`
+    };
+
+    const resultado = await crearOperativoPersonalCompleto(payload);
+    return resultado;
+  } catch (error) {
+    console.error("Error en despacho de personal a pie:", error);
+    // Propagar error con mensaje específico
+    throw new Error(error.response?.data?.message || error.message || "Error al despachar personal");
+  }
+}
+
+// ============================================================================
 // FUNCIONES AUXILIARES - Cuadrantes y Novedades
 // ============================================================================
 

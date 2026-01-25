@@ -319,6 +319,52 @@ export const getHistorialEstados = async (novedadId) => {
   }
 };
 
+/**
+ * Agregar entrada al historial de estados de una novedad.
+ * Usa el endpoint asignarRecursos con datos mínimos para solo crear historial.
+ *
+ * @param {number} novedadId - ID de la novedad principal
+ * @param {Object} historialData - Datos del historial
+ * @param {number} historialData.estado_anterior_id - Estado anterior (antes del cambio)
+ * @param {number} historialData.estado_nuevo_id - Estado nuevo (después del cambio, puede ser igual si no cambia)
+ * @param {string} historialData.observaciones - Observaciones/acciones tomadas
+ * @param {number} [historialData.tiempo_en_estado_min] - Tiempo en el estado anterior en minutos
+ * @param {number} [historialData.created_by] - ID del usuario que crea el registro
+ * @returns {Promise<Object>} - Resultado de la operación
+ */
+export async function crearHistorialNovedad(novedadId, historialData) {
+  const payload = {
+    novedad_id: novedadId,
+    // Mantener el estado actual si no se cambia
+    estado_novedad_id: historialData.estado_nuevo_id,
+    // El historial se crea con estos datos
+    historial: {
+      novedad_id: novedadId,
+      estado_anterior_id: historialData.estado_anterior_id,
+      estado_nuevo_id: historialData.estado_nuevo_id,
+      observaciones: historialData.observaciones,
+      fecha_cambio: new Date().toISOString(),
+      tiempo_en_estado_min: historialData.tiempo_en_estado_min || 0,
+      created_by: historialData.created_by || null,
+      updated_by: historialData.created_by || null,
+    },
+  };
+
+  console.log("🔍 crearHistorialNovedad - novedadId:", novedadId);
+  console.log("🔍 crearHistorialNovedad - payload completo:", JSON.stringify(payload, null, 2));
+  console.log("🔍 crearHistorialNovedad - URL:", `/novedades/${novedadId}/asignar`);
+
+  try {
+    const res = await api.post(`/novedades/${novedadId}/asignar`, payload);
+    console.log("✅ crearHistorialNovedad - Respuesta:", res?.data);
+    return res?.data;
+  } catch (error) {
+    console.error("❌ crearHistorialNovedad - Error:", error);
+    console.error("❌ crearHistorialNovedad - Error response:", error.response?.data);
+    throw error;
+  }
+}
+
 export const listRadiosTetra = async () => {
   try {
     const response = await api.get("/radios-tetra/disponibles");

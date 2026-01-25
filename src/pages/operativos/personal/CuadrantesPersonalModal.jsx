@@ -504,14 +504,14 @@ export default function CuadrantesPersonalModal({
               )}
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="flex flex-wrap gap-4">
               {cuadrantes.map((cuadrante) => {
                 const enCurso = !cuadrante.hora_salida;
 
                 return (
                   <div
                     key={cuadrante.id}
-                    className={`p-4 rounded-xl border ${
+                    className={`p-4 rounded-xl border w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] ${
                       enCurso
                         ? "bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800"
                         : "bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
