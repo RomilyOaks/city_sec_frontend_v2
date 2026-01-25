@@ -42,6 +42,7 @@ import {
   listVehiculos,
   listPersonalSeguridad,
   crearHistorialNovedad,
+  getEstadosSiguientes,
 } from "../../../services/novedadesService.js";
 
 // RBAC
@@ -107,7 +108,12 @@ export default function NovedadesPersonalModal({
   const [vehiculos, setVehiculos] = useState([]);
   const [personalSeguridad, setPersonalSeguridad] = useState([]);
 
+  // Estados para el dropdown de estado_novedad_id
+  const [estadosNovedad, setEstadosNovedad] = useState([]);
+  const [loadingEstados, setLoadingEstados] = useState(false);
+
   const [editData, setEditData] = useState({
+    estado_novedad_id: "",
     resultado: "",
     acciones_tomadas: "",
     observaciones: "",
@@ -190,6 +196,25 @@ export default function NovedadesPersonalModal({
       fetchNovedades();
     }
   }, [isOpen, turnoId, personal?.id, cuadrante?.id, fetchNovedades]);
+
+  // Resetear estados cuando el modal se cierra
+  useEffect(() => {
+    if (!isOpen) {
+      // Limpiar formularios y estados internos al cerrar
+      setShowRegistrarForm(false);
+      setShowEditModal(false);
+      setShowViewModal(false);
+      setSelectedNovedad(null);
+      setViewingNovedad(null);
+      setEstadosNovedad([]);
+      setFormData({
+        novedad_id: "",
+        prioridad: "MEDIA",
+        observaciones: "",
+        acciones_tomadas: "",
+      });
+    }
+  }, [isOpen]);
 
   // Cargar catálogos para el modal de detalle
   const fetchCatalogos = useCallback(async () => {
@@ -320,14 +345,31 @@ export default function NovedadesPersonalModal({
     setViewingNovedad(null);
   };
 
-  const handleOpenEdit = (novedad) => {
+  const handleOpenEdit = async (novedad) => {
     setSelectedNovedad(novedad);
+
+    // Obtener el estado actual de la novedad principal
+    const estadoActualId = novedad.novedad?.estado_novedad_id || novedad.estado_novedad_id || 1;
+
     setEditData({
+      estado_novedad_id: estadoActualId,
       resultado: novedad.resultado || "PENDIENTE",
       acciones_tomadas: "", // Siempre vacío - las anteriores ya están en observaciones/historial
       observaciones: novedad.observaciones || "",
     });
     setShowEditModal(true);
+
+    // Cargar estados siguientes válidos
+    setLoadingEstados(true);
+    try {
+      const { estados } = await getEstadosSiguientes(estadoActualId);
+      setEstadosNovedad(estados);
+    } catch (error) {
+      console.error("Error cargando estados:", error);
+      setEstadosNovedad([]);
+    } finally {
+      setLoadingEstados(false);
+    }
   };
 
   const handleUpdateNovedad = async (e) => {
@@ -335,71 +377,68 @@ export default function NovedadesPersonalModal({
 
     setSaving(true);
     try {
-      // 1. Preparar observaciones locales para operativos_personal_novedades
-      let observacionesOperativo = editData.observaciones?.trim() || "";
-
-      // 2. Si hay acciones tomadas, las grabamos en historial_estado_novedades
+      const observacionesOperativo = editData.observaciones?.trim() || "";
       const tieneAcciones = editData.acciones_tomadas?.trim();
       const novedadPrincipalId = selectedNovedad.novedad_id || selectedNovedad.novedad?.id;
+      const estadoActualId = selectedNovedad.novedad?.estado_novedad_id || selectedNovedad.estado_novedad_id;
+      const nuevoEstadoId = editData.estado_novedad_id ? Number(editData.estado_novedad_id) : null;
+      const cambioEstado = nuevoEstadoId && nuevoEstadoId !== estadoActualId;
 
-      // 🔍 DEBUG: Ver estructura de selectedNovedad
-      console.log("🔍 DEBUG handleUpdateNovedad - selectedNovedad:", selectedNovedad);
-      console.log("🔍 DEBUG handleUpdateNovedad - selectedNovedad.novedad_id:", selectedNovedad.novedad_id);
-      console.log("🔍 DEBUG handleUpdateNovedad - selectedNovedad.novedad?.id:", selectedNovedad.novedad?.id);
-      console.log("🔍 DEBUG handleUpdateNovedad - novedadPrincipalId:", novedadPrincipalId);
-      console.log("🔍 DEBUG handleUpdateNovedad - tieneAcciones:", tieneAcciones);
-      console.log("🔍 DEBUG handleUpdateNovedad - editData:", editData);
-
-      if (tieneAcciones && novedadPrincipalId) {
+      // 1. Si hay cambio de estado o acciones tomadas, crear historial
+      if (novedadPrincipalId && (tieneAcciones || cambioEstado)) {
         const timestamp = new Date().toLocaleString("es-PE", {
           dateStyle: "short",
-          timeStyle: "short"
+          timeStyle: "short",
         });
-
-        // Obtener el personal que realiza la acción
         const nombrePersonal = formatPersonalNombre(personal?.personal);
-        const accionesTexto = `[${timestamp} - ${nombrePersonal}] Acciones: ${editData.acciones_tomadas.trim()}`;
 
-        console.log("🔍 DEBUG - Llamando a crearHistorialNovedad con:");
-        console.log("   - novedadPrincipalId:", novedadPrincipalId);
-        console.log("   - accionesTexto:", accionesTexto);
-
-        // Crear entrada en historial_estado_novedades
-        // Endpoint: POST /novedades/:id/historial
-        // Solo enviamos observaciones (no cambiamos estado)
-        try {
-          const resultadoHistorial = await crearHistorialNovedad(novedadPrincipalId, accionesTexto);
-          console.log("✅ crearHistorialNovedad - Resultado:", resultadoHistorial);
-        } catch (historialError) {
-          console.error("❌ Error en crearHistorialNovedad:", historialError);
-          console.error("❌ Error response:", historialError.response?.data);
-          // No lanzar el error, continuar con la actualización del operativo
-          toast.error("Error al guardar en historial, pero se actualizará el registro local");
+        // Construir texto de observaciones para el historial
+        let observacionesHistorial = "";
+        if (cambioEstado) {
+          const estadoNuevo = estadosNovedad.find((e) => e.id === nuevoEstadoId);
+          observacionesHistorial = `[${timestamp} - ${nombrePersonal}] Cambio de estado a: ${estadoNuevo?.nombre || "Nuevo estado"}`;
+        }
+        if (tieneAcciones) {
+          const accionesTexto = `[${timestamp} - ${nombrePersonal}] Acciones: ${editData.acciones_tomadas.trim()}`;
+          observacionesHistorial = observacionesHistorial
+            ? `${observacionesHistorial}\n${accionesTexto}`
+            : accionesTexto;
         }
 
-        console.log("✅ Acciones grabadas en historial_estado_novedades para novedad:", novedadPrincipalId);
-      } else {
-        console.log("⚠️ No se grabó historial porque:");
-        console.log("   - tieneAcciones:", tieneAcciones);
-        console.log("   - novedadPrincipalId:", novedadPrincipalId);
+        try {
+          await crearHistorialNovedad(
+            novedadPrincipalId,
+            observacionesHistorial,
+            cambioEstado ? nuevoEstadoId : null
+          );
+        } catch (historialError) {
+          console.error("Error en crearHistorialNovedad:", historialError);
+          toast.error("Error al guardar en historial, pero se actualizará el registro local");
+        }
       }
 
-      // 3. Actualizar el registro operativo (operativos_personal_novedades)
+      // 2. Actualizar el registro operativo (operativos_personal_novedades)
       const payload = {
         resultado: editData.resultado,
         acciones_tomadas: "", // Limpiar para permitir nuevas acciones
         observaciones: observacionesOperativo,
       };
 
+      // Incluir estado_novedad_id si cambió
+      if (cambioEstado) {
+        payload.estado_novedad_id = nuevoEstadoId;
+      }
+
       await updateNovedadPersonal(turnoId, personal.id, cuadrante.id, selectedNovedad.id, payload);
 
       toast.success(
-        tieneAcciones
-          ? "Novedad actualizada. Acciones registradas en historial."
+        cambioEstado || tieneAcciones
+          ? "Novedad actualizada. Cambios registrados en historial."
           : "Novedad actualizada."
       );
       setShowEditModal(false);
       setSelectedNovedad(null);
+      setEstadosNovedad([]);
       fetchNovedades();
     } catch (error) {
       console.error("Error actualizando novedad:", error);
@@ -692,65 +731,34 @@ export default function NovedadesPersonalModal({
                 return (
                   <div
                     key={novedad.id}
-                    className="p-4 rounded-xl border bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)]"
+                    className="p-4 rounded-xl border bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] overflow-hidden"
                   >
-                    <div className="flex items-start justify-between">
-                      {/* Info de la novedad */}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          {getResultadoIcon(novedad.resultado)}
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${prioridadConfig.color}`}>
-                            {prioridadConfig.label}
-                          </span>
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${resultadoConfig.color}`}>
-                            {resultadoConfig.label}
-                          </span>
-                          <span className="text-xs text-slate-500 dark:text-slate-400">
-                            Reportado: {new Date(novedad.reportado).toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" })}
-                          </span>
-                          {novedad.atendido && (
-                            <span className="text-xs text-emerald-600">
-                              Atendido: {new Date(novedad.atendido).toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" })}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Descripción de la novedad del sistema */}
-                        <p className="text-sm text-slate-900 dark:text-white mb-2">
-                          <span className="font-medium text-slate-600 dark:text-slate-400">
-                            [{novedad.novedad?.novedadTipoNovedad?.nombre || "Novedad"}]
-                          </span>{" "}
-                          {novedad.novedad?.descripcion || "Sin descripción"}
-                        </p>
-
-                        {/* Acciones tomadas */}
-                        {novedad.acciones_tomadas && (
-                          <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">
-                            <strong>Acciones:</strong> {novedad.acciones_tomadas}
-                          </p>
-                        )}
-
-                        {/* Observaciones */}
-                        {novedad.observaciones && (
-                          <p className="text-sm text-slate-500 dark:text-slate-400">
-                            <strong>Obs:</strong> {novedad.observaciones}
-                          </p>
-                        )}
+                    {/* Header: Badges + Acciones */}
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      {/* Badges con wrap */}
+                      <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+                        {getResultadoIcon(novedad.resultado)}
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${prioridadConfig.color}`}>
+                          {prioridadConfig.label}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${resultadoConfig.color}`}>
+                          {resultadoConfig.label}
+                        </span>
                       </div>
 
-                      {/* Acciones */}
-                      <div className="flex items-center gap-1 ml-4">
+                      {/* Botones de acción - siempre visibles */}
+                      <div className="flex items-center gap-0.5 flex-shrink-0">
                         <button
                           onClick={() => handleViewNovedad(novedad)}
-                          className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700"
-                          title="Ver detalle de la novedad"
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-700"
+                          title="Ver detalle"
                         >
                           <Eye size={16} />
                         </button>
                         {canUpdate && (
                           <button
                             onClick={() => handleOpenEdit(novedad)}
-                            className="p-2 rounded-lg text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20"
+                            className="p-1.5 rounded-lg text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20"
                             title="Editar/Resolver"
                           >
                             <Edit size={16} />
@@ -759,7 +767,7 @@ export default function NovedadesPersonalModal({
                         {canDelete && (
                           <button
                             onClick={() => handleEliminarNovedad(novedad)}
-                            className="p-2 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                            className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                             title="Eliminar"
                           >
                             <Trash2 size={16} />
@@ -767,6 +775,33 @@ export default function NovedadesPersonalModal({
                         )}
                       </div>
                     </div>
+
+                    {/* Fecha reportado */}
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                      Reportado: {new Date(novedad.reportado).toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" })}
+                      {novedad.atendido && (
+                        <span className="ml-2 text-emerald-600">
+                          • Atendido: {new Date(novedad.atendido).toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" })}
+                        </span>
+                      )}
+                    </p>
+
+                    {/* Descripción de la novedad del sistema */}
+                    <p className="text-sm text-slate-900 dark:text-white mb-2 line-clamp-2">
+                      <span className="font-medium text-slate-600 dark:text-slate-400">
+                        [{novedad.novedad?.novedadTipoNovedad?.nombre || "Novedad"}]
+                      </span>{" "}
+                      {novedad.novedad?.descripcion || "Sin descripción"}
+                    </p>
+
+                    {/* Observaciones (mostrar con scroll si es muy largo) */}
+                    {novedad.observaciones && (
+                      <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                        <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-3">
+                          <strong>Obs:</strong> {novedad.observaciones}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -803,10 +838,37 @@ export default function NovedadesPersonalModal({
             </div>
 
             <form onSubmit={handleUpdateNovedad} className="p-6 space-y-4">
-              {/* Resultado/Estado */}
+              {/* Estado de la Novedad (estado_novedad_id) */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Estado
+                  Estado de la Novedad
+                </label>
+                {loadingEstados ? (
+                  <div className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 text-slate-500">
+                    Cargando estados...
+                  </div>
+                ) : (
+                  <select
+                    value={editData.estado_novedad_id || ""}
+                    onChange={(e) => setEditData({ ...editData, estado_novedad_id: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                  >
+                    {estadosNovedad.map((estado) => (
+                      <option key={estado.id} value={estado.id}>
+                        {estado.nombre}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Solo se muestran estados válidos según el flujo
+                </p>
+              </div>
+
+              {/* Resultado/Estado del operativo */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Resultado Operativo
                 </label>
                 <select
                   value={editData.resultado}

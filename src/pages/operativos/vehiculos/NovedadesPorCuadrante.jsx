@@ -29,10 +29,12 @@ import {
 } from "lucide-react";
 
 import operativosNovedadesService from "../../../services/operativosNovedadesService.js";
-import { 
+import {
   listUnidadesOficina,
   listVehiculos,
   listPersonalSeguridad,
+  crearHistorialNovedad,
+  getEstadosSiguientes,
 } from "../../../services/novedadesService.js";
 import { canPerformAction } from "../../../rbac/rbac.js";
 import { useAuthStore } from "../../../store/useAuthStore.js";
@@ -144,6 +146,28 @@ export default function NovedadesPorCuadrante() {
   const [vehiculos, setVehiculos] = useState([]);
   const [personalSeguridad, setPersonalSeguridad] = useState([]);
 
+  // Estados para modal de edición inline (similar a Patrullaje a Pie)
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedNovedadEdit, setSelectedNovedadEdit] = useState(null);
+  const [editData, setEditData] = useState({
+    resultado: "",
+    acciones_tomadas: "",
+    observaciones: "",
+  });
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  // Opciones de resultado para el select
+  const RESULTADOS_NOVEDAD = [
+    { value: "PENDIENTE", label: "Pendiente" },
+    { value: "RESUELTO", label: "Resuelto" },
+    { value: "ESCALADO", label: "Escalado" },
+    { value: "CANCELADO", label: "Cancelado" },
+  ];
+
+  // Estados para el dropdown de estado_novedad_id
+  const [estadosNovedad, setEstadosNovedad] = useState([]);
+  const [loadingEstados, setLoadingEstados] = useState(false);
+
   // Cargar datos del cuadrante y novedades
   const fetchNovedades = useCallback(async () => {
     if (!canRead) {
@@ -222,13 +246,130 @@ export default function NovedadesPorCuadrante() {
     setShowCreateForm(true);
   }, []);
 
-  // Manejar edición de novedad
-  const handleEditNovedad = useCallback((novedad) => {
-    setEditingNovedad(novedad);
-    setShowCreateForm(true);
+  // Manejar edición de novedad - Abre modal inline (similar a Patrullaje a Pie)
+  const handleEditNovedad = useCallback(async (novedad) => {
+    setSelectedNovedadEdit(novedad);
+
+    // Obtener el estado actual de la novedad principal
+    const estadoActualId = novedad.novedad?.estado_novedad_id || novedad.estado_novedad_id || 1;
+
+    setEditData({
+      estado_novedad_id: estadoActualId,
+      resultado: novedad.resultado || "PENDIENTE",
+      acciones_tomadas: "", // Siempre vacío - las anteriores ya están en historial
+      observaciones: novedad.observaciones || "",
+    });
+    setShowEditModal(true);
+
+    // Cargar estados siguientes válidos
+    setLoadingEstados(true);
+    try {
+      const { estados } = await getEstadosSiguientes(estadoActualId);
+      setEstadosNovedad(estados);
+    } catch (error) {
+      console.error("Error cargando estados:", error);
+      setEstadosNovedad([]);
+    } finally {
+      setLoadingEstados(false);
+    }
   }, []);
 
-  // Manejar cierre del formulario
+  // Cerrar modal de edición
+  const handleCloseEditModal = useCallback(() => {
+    setShowEditModal(false);
+    setSelectedNovedadEdit(null);
+    setEditData({
+      estado_novedad_id: "",
+      resultado: "",
+      acciones_tomadas: "",
+      observaciones: "",
+    });
+    setEstadosNovedad([]);
+  }, []);
+
+  // Guardar edición de novedad
+  const handleUpdateNovedadEdit = useCallback(async (e) => {
+    e.preventDefault();
+    if (!selectedNovedadEdit) return;
+
+    setSavingEdit(true);
+    try {
+      const tieneAcciones = editData.acciones_tomadas?.trim();
+      const novedadPrincipalId = selectedNovedadEdit.novedad_id || selectedNovedadEdit.novedad?.id;
+      const estadoActualId = selectedNovedadEdit.novedad?.estado_novedad_id || selectedNovedadEdit.estado_novedad_id;
+      const nuevoEstadoId = editData.estado_novedad_id ? Number(editData.estado_novedad_id) : null;
+      const cambioEstado = nuevoEstadoId && nuevoEstadoId !== estadoActualId;
+
+      // 1. Si hay cambio de estado o acciones tomadas, crear historial
+      if (novedadPrincipalId && (tieneAcciones || cambioEstado)) {
+        const timestamp = new Date().toLocaleString("es-PE", {
+          dateStyle: "short",
+          timeStyle: "short",
+        });
+        const vehiculoInfo = vehiculo?.placa || `Vehículo ${vehiculoId}`;
+
+        // Construir texto de observaciones para el historial
+        let observacionesHistorial = "";
+        if (cambioEstado) {
+          const estadoNuevo = estadosNovedad.find(e => e.id === nuevoEstadoId);
+          observacionesHistorial = `[${timestamp} - ${vehiculoInfo}] Cambio de estado a: ${estadoNuevo?.nombre || "Nuevo estado"}`;
+        }
+        if (tieneAcciones) {
+          const accionesTexto = `[${timestamp} - ${vehiculoInfo}] Acciones: ${editData.acciones_tomadas.trim()}`;
+          observacionesHistorial = observacionesHistorial
+            ? `${observacionesHistorial}\n${accionesTexto}`
+            : accionesTexto;
+        }
+
+        try {
+          // Si hay cambio de estado, enviarlo al historial
+          await crearHistorialNovedad(
+            novedadPrincipalId,
+            observacionesHistorial,
+            cambioEstado ? nuevoEstadoId : null
+          );
+        } catch (historialError) {
+          console.error("Error al grabar historial:", historialError);
+          toast.error("Error al guardar en historial, pero se actualizará el registro local");
+        }
+      }
+
+      // 2. Actualizar el registro operativo (operativos_vehiculos_cuadrantes_novedades)
+      const payload = {
+        resultado: editData.resultado,
+        acciones_tomadas: "", // Limpiar para nuevas acciones
+        observaciones: editData.observaciones?.trim() || "",
+      };
+
+      // Incluir estado_novedad_id si cambió
+      if (cambioEstado) {
+        payload.estado_novedad_id = nuevoEstadoId;
+      }
+
+      await operativosNovedadesService.updateNovedad(
+        turnoId,
+        vehiculoId,
+        cuadranteId,
+        selectedNovedadEdit.id,
+        payload
+      );
+
+      toast.success(
+        cambioEstado || tieneAcciones
+          ? "Novedad actualizada. Cambios registrados en historial."
+          : "Novedad actualizada."
+      );
+      handleCloseEditModal();
+      fetchNovedades();
+    } catch (error) {
+      console.error("Error actualizando novedad:", error);
+      toast.error(error.response?.data?.message || "Error al actualizar novedad");
+    } finally {
+      setSavingEdit(false);
+    }
+  }, [selectedNovedadEdit, editData, vehiculo, vehiculoId, turnoId, cuadranteId, fetchNovedades, handleCloseEditModal]);
+
+  // Manejar cierre del formulario de crear
   const handleCloseForm = useCallback(() => {
     setShowCreateForm(false);
     setEditingNovedad(null);
@@ -593,10 +734,10 @@ export default function NovedadesPorCuadrante() {
                         {novedad.novedad?.novedad_code}
                       </p>
                     </div>
-                    <div className="flex items-center gap-1 ml-2">
+                    <div className="flex items-center gap-0.5 flex-shrink-0">
                       <button
                         onClick={() => handleViewNovedad(novedad)}
-                        className="p-1.5 text-slate-600 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-700 rounded-lg"
+                        className="p-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-200 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-700 rounded-lg"
                         title="Ver detalle"
                       >
                         <Eye size={14} />
@@ -604,7 +745,7 @@ export default function NovedadesPorCuadrante() {
                       {canUpdate && (
                         <button
                           onClick={() => handleEditNovedad(novedad)}
-                          className="p-1.5 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded-lg"
+                          className="p-1.5 text-primary-600 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-900/20 rounded-lg"
                           title="Editar novedad"
                         >
                           <Pencil size={14} />
@@ -694,6 +835,118 @@ export default function NovedadesPorCuadrante() {
         vehiculos={vehiculos}
         personalSeguridad={personalSeguridad}
       />
+
+      {/* Modal de edición inline - Igual que Patrullaje a Pie */}
+      {showEditModal && selectedNovedadEdit && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-md">
+            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                Actualizar Novedad
+              </h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Cambiar estado o agregar información
+              </p>
+            </div>
+
+            <form onSubmit={handleUpdateNovedadEdit} className="p-6 space-y-4">
+              {/* Estado de la Novedad (estado_novedad_id) */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Estado de la Novedad
+                </label>
+                {loadingEstados ? (
+                  <div className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 text-slate-500">
+                    Cargando estados...
+                  </div>
+                ) : (
+                  <select
+                    value={editData.estado_novedad_id || ""}
+                    onChange={(e) => setEditData({ ...editData, estado_novedad_id: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                  >
+                    {estadosNovedad.map((estado) => (
+                      <option key={estado.id} value={estado.id}>
+                        {estado.nombre}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Solo se muestran estados válidos según el flujo
+                </p>
+              </div>
+
+              {/* Resultado/Estado del operativo */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Resultado Operativo
+                </label>
+                <select
+                  value={editData.resultado}
+                  onChange={(e) => setEditData({ ...editData, resultado: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                >
+                  {RESULTADOS_NOVEDAD.map((r) => (
+                    <option key={r.value} value={r.value}>
+                      {r.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Acciones tomadas */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Nuevas Acciones Tomadas
+                </label>
+                <textarea
+                  value={editData.acciones_tomadas}
+                  onChange={(e) => setEditData({ ...editData, acciones_tomadas: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white resize-none"
+                  placeholder="Descripción de acciones realizadas..."
+                />
+                <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">
+                  Las acciones se guardarán en el historial y este campo quedará vacío para nuevas acciones.
+                </p>
+              </div>
+
+              {/* Observaciones */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Observaciones
+                </label>
+                <textarea
+                  value={editData.observaciones}
+                  onChange={(e) => setEditData({ ...editData, observaciones: e.target.value })}
+                  rows={2}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white resize-none"
+                  placeholder="Observaciones adicionales..."
+                />
+              </div>
+
+              {/* Botones */}
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={handleCloseEditModal}
+                  className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className="px-4 py-2 rounded-lg bg-primary-700 text-white hover:bg-primary-800 disabled:opacity-50"
+                >
+                  {savingEdit ? "Guardando..." : "Actualizar"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Modal de confirmación de eliminación */}
       {deletingNovedad && (
