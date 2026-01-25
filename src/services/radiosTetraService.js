@@ -1,6 +1,6 @@
 /**
  * File: src/services/radiosTetraService.js
- * @version 1.0.0
+ * @version 1.1.0
  * @description Servicio para gestionar radios TETRA
  * @module src/services/radiosTetraService.js
  */
@@ -8,37 +8,70 @@
 import api from "./api.js";
 
 /**
- * 🔥 NUEVO: Obtener radios disponibles para dropdown (según indicaciones backend)
- * @returns {Promise<Object>} - { success: true, data: { radios: [...], total: N } }
+ * Servicio de radios TETRA
  */
 export const radioTetraService = {
-  // Obtener radios disponibles para dropdown
+  /**
+   * Obtener radios disponibles para dropdown (solo sin asignar)
+   * @returns {Promise<Object>} - { success: true, data: { radios: [...], total: N } }
+   */
   getRadiosDisponibles: async () => {
     try {
-      const response = await api.get("/radios-tetra/disponibles", {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      // Debug para verificar estructura
-      console.log('🔥 DEBUG - Respuesta completa:', response);
-      console.log('🔥 DEBUG - response.data:', response.data);
-      console.log('🔥 DEBUG - response.data?.data:', response.data?.data);
-      console.log('🔥 DEBUG - response.data?.data?.radios:', response.data?.data?.radios);
-      
+      const response = await api.get("/radios-tetra/disponibles");
       return response.data;
     } catch (error) {
       console.error('Error obteniendo radios TETRA disponibles:', error);
-      
-      // Manejo específico de errores
-      if (error.response) {
-        console.error('Status:', error.response.status);
-        console.error('Data:', error.response.data);
-        console.error('Headers:', error.response.headers);
-      }
-      
+      throw error;
+    }
+  },
+
+  /**
+   * Obtener TODOS los radios para dropdown con información de asignación
+   * Incluye personal_seguridad_id y personalAsignado para precarga inteligente
+   * Endpoint: GET /radios-tetra/para-dropdown
+   * @returns {Promise<Object>} - { success: true, data: { radios: [...], resumen: {...} } }
+   */
+  getRadiosParaDropdown: async () => {
+    try {
+      const response = await api.get("/radios-tetra/para-dropdown");
+      return response.data;
+    } catch (error) {
+      console.error('Error obteniendo radios para dropdown:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Asignar radio a un personal de seguridad
+   * Endpoint: PATCH /radios-tetra/:id/asignar
+   * @param {number} radioId - ID del radio
+   * @param {number} personalSeguridadId - ID del personal a asignar
+   * @returns {Promise<Object>}
+   */
+  asignarRadio: async (radioId, personalSeguridadId) => {
+    try {
+      const response = await api.patch(`/radios-tetra/${radioId}/asignar`, {
+        personal_seguridad_id: personalSeguridadId
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error asignando radio TETRA:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Desasignar radio (liberar)
+   * Endpoint: PATCH /radios-tetra/:id/desasignar
+   * @param {number} radioId - ID del radio
+   * @returns {Promise<Object>}
+   */
+  desasignarRadio: async (radioId) => {
+    try {
+      const response = await api.patch(`/radios-tetra/${radioId}/desasignar`);
+      return response.data;
+    } catch (error) {
+      console.error('Error desasignando radio TETRA:', error);
       throw error;
     }
   },
@@ -64,13 +97,53 @@ export const radioTetraService = {
     try {
       const response = await api.get(`/radios-tetra/${id}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}` 
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
       return response.data;
     } catch (error) {
       console.error('Error obteniendo radio TETRA:', error);
       throw error;
+    }
+  },
+
+  /**
+   * Validar si un radio sigue disponible antes de guardar
+   * @param {string|number} radioId - ID del radio a validar
+   * @param {string|number} conductorId - ID del conductor
+   * @param {string|number} copilotoId - ID del copiloto
+   * @returns {Promise<Object>} - { valido: boolean, mensaje?: string, radiosActualizados?: Array }
+   */
+  validarRadioDisponible: async (radioId, conductorId, copilotoId) => {
+    if (!radioId) return { valido: true };
+
+    try {
+      const response = await api.get("/radios-tetra/para-dropdown");
+      const radios = response.data?.data?.radios || [];
+      const radio = radios.find(r => r.id.toString() === radioId.toString());
+
+      if (!radio) {
+        return { valido: false, mensaje: 'Radio no encontrado' };
+      }
+
+      // Verificar si el radio está asignado a alguien más
+      if (radio.personal_seguridad_id &&
+          radio.personal_seguridad_id !== parseInt(conductorId) &&
+          radio.personal_seguridad_id !== parseInt(copilotoId)) {
+        const nombre = radio.personalAsignado
+          ? `${radio.personalAsignado.nombres} ${radio.personalAsignado.apellido_paterno}`
+          : 'otro personal';
+        return {
+          valido: false,
+          mensaje: `Radio ${radio.radio_tetra_code} ya fue asignado a ${nombre}`,
+          radiosActualizados: radios
+        };
+      }
+
+      return { valido: true };
+    } catch (err) {
+      console.error('Error validando radio:', err);
+      return { valido: false, mensaje: 'Error al validar disponibilidad' };
     }
   }
 };
@@ -81,13 +154,6 @@ export const radioTetraService = {
  */
 export async function listRadiosTetraActivos() {
   const response = await api.get("/radios-tetra/disponibles");
-  
-  // Debug para verificar estructura
-  console.log('🔥 DEBUG - Respuesta radios disponibles:', response.data);
-  console.log('🔥 DEBUG - response.data?.data:', response.data?.data);
-  console.log('🔥 DEBUG - response.data?.data?.radios:', response.data?.data?.radios);
-  
-  // ✅ Estructura correcta según indicaciones: response.data?.data?.radios
   return response.data?.data?.radios || response.data?.radios || response.data?.data || [];
 }
 

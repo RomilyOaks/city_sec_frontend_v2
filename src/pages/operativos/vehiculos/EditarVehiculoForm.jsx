@@ -13,8 +13,8 @@ import { updateVehiculoOperativo } from "../../../services/operativosVehiculosSe
 import { listPersonal } from "../../../services/personalService.js";
 import { listEstadosOperativosActivos } from "../../../services/estadosOperativoService.js";
 import { listTiposCopilotoActivos } from "../../../services/tiposCopilotoService.js";
-import { radioTetraService } from "../../../services/radiosTetraService.js";
 import RadioTetraDropdown from "../../../components/RadioTetraDropdown.jsx";
+import { radioTetraService } from "../../../services/radiosTetraService.js";
 
 const NIVELES_COMBUSTIBLE = [
   { value: "LLENO", label: "Lleno" },
@@ -40,7 +40,6 @@ export default function EditarVehiculoForm({
   const [personalActivo, setPersonalActivo] = useState([]);
   const [estados, setEstados] = useState([]);
   const [tiposCopiloto, setTiposCopiloto] = useState([]);
-  const [radiosDisponibles, setRadiosDisponibles] = useState([]);
 
   const [formData, setFormData] = useState({
     conductor_id: "",
@@ -53,44 +52,6 @@ export default function EditarVehiculoForm({
     nivel_combustible_fin: "",
     observaciones: "",
   });
-
-  // 🔥 NUEVO: Obtener radio asignado a un personal
-  const obtenerRadioAsignadoAPersonal = (personalId) => {
-    if (!personalId || radiosDisponibles.length === 0) return null;
-    
-    const radioAsignado = radiosDisponibles.find(radio => 
-      radio.personal_seguridad_id === parseInt(personalId)
-    );
-    
-    return radioAsignado || null;
-  };
-
-  // 🔥 NUEVO: Sugerir radio TETRA según piloto/copiloto
-  const sugerirRadioTetra = (conductorId, copilotoId, radioActualId) => {
-    // Si ya tiene un radio asignado, mantenerlo
-    if (radioActualId) return radioActualId;
-    
-    // Prioridad 1: Verificar radio del conductor
-    if (conductorId) {
-      const radioConductor = obtenerRadioAsignadoAPersonal(conductorId);
-      if (radioConductor) {
-        console.log('🔥 Radio sugerido por conductor:', radioConductor);
-        return radioConductor.id.toString();
-      }
-    }
-    
-    // Prioridad 2: Verificar radio del copiloto
-    if (copilotoId) {
-      const radioCopiloto = obtenerRadioAsignadoAPersonal(copilotoId);
-      if (radioCopiloto) {
-        console.log('🔥 Radio sugerido por copiloto:', radioCopiloto);
-        return radioCopiloto.id.toString();
-      }
-    }
-    
-    // Si ninguno tiene radio asignado, dejar vacío para selección libre
-    return "";
-  };
 
   // Inicializar formulario con datos del vehículo
   useEffect(() => {
@@ -125,15 +86,15 @@ export default function EditarVehiculoForm({
     };
   }, [onCancel]);
 
-  // Cargar catálogos
+  // Cargar catálogos (personal, estados, tipos copiloto)
+  // Nota: Los radios se cargan dentro del componente RadioTetraDropdown
   useEffect(() => {
     const fetchCatalogos = async () => {
       try {
-        const [personalRes, estadosRes, tiposRes, radiosRes] = await Promise.all([
+        const [personalRes, estadosRes, tiposRes] = await Promise.all([
           listPersonal({ limit: 100 }),
           listEstadosOperativosActivos(),
           listTiposCopilotoActivos(),
-          radioTetraService.getRadiosDisponibles(),
         ]);
 
         // Procesar personal y filtrar solo activos
@@ -150,10 +111,6 @@ export default function EditarVehiculoForm({
 
         const estadosData = Array.isArray(estadosRes?.data || estadosRes) ? estadosRes?.data || estadosRes : [];
         const tiposData = Array.isArray(tiposRes?.data || tiposRes) ? tiposRes?.data || tiposRes : [];
-        
-        // Procesar radios disponibles
-        const radiosData = radiosRes?.data?.radios || [];
-        setRadiosDisponibles(radiosData);
 
         setEstados(estadosData);
         setTiposCopiloto(tiposData);
@@ -165,25 +122,6 @@ export default function EditarVehiculoForm({
 
     fetchCatalogos();
   }, []);
-
-  // 🔥 NUEVO: Actualizar sugerencia de radio cuando cambia conductor o copiloto
-  useEffect(() => {
-    if (vehiculo && radiosDisponibles.length > 0) {
-      const radioSugerido = sugerirRadioTetra(
-        vehiculo.conductor_id,
-        vehiculo.copiloto_id,
-        vehiculo.radio_tetra_id
-      );
-      
-      // Solo actualizar si no hay radio ya asignado o si la sugerencia es diferente
-      if (!vehiculo.radio_tetra_id || radioSugerido !== vehiculo.radio_tetra_id) {
-        setFormData(prev => ({
-          ...prev,
-          radio_tetra_id: radioSugerido
-        }));
-      }
-    }
-  }, [vehiculo?.conductor_id, vehiculo?.copiloto_id, radiosDisponibles]);
 
   // Filtrar conductores ya asignados (excepto el actual)
   const conductoresDisponibles = personalActivo.filter((p) => {
@@ -315,6 +253,21 @@ export default function EditarVehiculoForm({
     setLoading(true);
 
     try {
+      // Validación: Verificar que el radio seleccionado siga disponible
+      if (formData.radio_tetra_id) {
+        const validacion = await radioTetraService.validarRadioDisponible(
+          formData.radio_tetra_id,
+          formData.conductor_id,
+          formData.copiloto_id
+        );
+
+        if (!validacion.valido) {
+          toast.error(validacion.mensaje);
+          setLoading(false);
+          return;
+        }
+      }
+
       // Construir payload solo con campos que tienen valor
       const payload = {};
 
@@ -496,10 +449,11 @@ export default function EditarVehiculoForm({
           <RadioTetraDropdown
             value={formData.radio_tetra_id}
             onChange={(value) => setFormData(prev => ({ ...prev, radio_tetra_id: value }))}
+            conductorId={formData.conductor_id}
+            copilotoId={formData.copiloto_id}
             disabled={loading}
             placeholder="Sin radio asignado"
             showDescripcion={true}
-            radiosExternos={radiosDisponibles} // 🔥 PASAR RADIOS CARGADOS
           />
         </div>
 
