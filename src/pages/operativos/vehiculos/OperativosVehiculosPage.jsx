@@ -183,61 +183,63 @@ export default function OperativosVehiculosPage() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-6">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={handleBack}
-              className="inline-flex items-center gap-2 px-4 py-2 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-            >
-              <ArrowLeft size={16} />
-              Volver a Turnos
-            </button>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50 flex items-center gap-2">
-                <Car size={28} className="text-blue-600" />
-                Vehículos del Turno
-              </h1>
-              {turno && (
-                <div className="mt-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <div className="grid grid-cols-2 gap-4 text-sm mb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                      <span className="font-medium text-blue-900 dark:text-blue-100">Fecha:</span>
-                      <span className="text-blue-700 dark:text-blue-300">{turno.fecha}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="font-medium text-blue-900 dark:text-blue-100">Turno:</span>
-                      <span className="text-blue-700 dark:text-blue-300">{turno.turno}</span>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4 text-sm">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                      <span className="font-medium text-blue-900 dark:text-blue-100">Sector:</span>
-                      <span className="text-blue-700 dark:text-blue-300">
-                        {turno.sector ? `${turno.sector.sector_code} - ${turno.sector.nombre}` : 'No asignado'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                      <span className="font-medium text-blue-900 dark:text-blue-100">Operador:</span>
-                      <span className="text-blue-700 dark:text-blue-300">
-                        {turno.operador ? `${turno.operador.nombres} ${turno.operador.apellido_paterno}` : 'No asignado'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                      <span className="font-medium text-blue-900 dark:text-blue-100">Supervisor:</span>
-                      <span className="text-blue-700 dark:text-blue-300">
-                        {turno.supervisor ? `${turno.supervisor.nombres} ${turno.supervisor.apellido_paterno}` : 'No asignado'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
+        <div className="space-y-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={handleBack}
+                className="inline-flex items-center gap-2 px-4 py-2 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <ArrowLeft size={16} />
+                Volver a Turnos
+              </button>
+              <div className="flex items-center gap-3">
+                <Car size={32} className="text-blue-600" />
+                <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50">
+                  Vehículos del Turno
+                </h1>
+              </div>
             </div>
+
+            {/* Datos del turno en una sola fila */}
+            {turno && (
+              <div className="flex flex-wrap items-center gap-3 text-sm">
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span className="text-slate-600 dark:text-slate-400">Fecha:</span>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">{turno.fecha}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-slate-600 dark:text-slate-400">Turno:</span>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">{turno.turno}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                  <span className="text-slate-600 dark:text-slate-400">Sector:</span>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">
+                    {turno.sector ? `${turno.sector.sector_code} - ${turno.sector.nombre}` : 'No asignado'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                  <span className="text-slate-600 dark:text-slate-400">Supervisor:</span>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">
+                    {turno.supervisor ? `${turno.supervisor.nombres} ${turno.supervisor.apellido_paterno}` : 'No asignado'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                  <span className="text-slate-600 dark:text-slate-400">Operador:</span>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">
+                    {turno.operador ? `${turno.operador.nombres} ${turno.operador.apellido_paterno}` : 'No asignado'}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
+          
+          {/* Botones */}
           <div className="flex items-center gap-3">
             {canCreate && !showCreateForm && (
               <button

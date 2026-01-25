@@ -14,6 +14,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import toast from "react-hot-toast";
+import { useModalScroll } from "../../../hooks/useModalScroll.js";
 import {
   X,
   Plus,
@@ -60,6 +61,9 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
   // ============================================================================
   // HOOKS Y ESTADO
   // ============================================================================
+
+  // Controlar scroll del body cuando el modal está abierto
+  useModalScroll(isOpen);
 
   // Usuario actual para verificar permisos
   const user = useAuthStore((s) => s.user);
@@ -269,45 +273,52 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
         {/* ================================================================== */}
         <div className="flex items-start justify-between p-6 border-b border-slate-200 dark:border-slate-700">
           <div className="flex-1">
-            {/* Título con ícono y atajo de teclado */}
-            <div className="flex items-center gap-3">
-              <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-50 flex items-center gap-2">
-                <PersonStanding size={28} className="text-green-600" />
-                Personal de Patrullaje a Pie
-              </h2>
-              {/* Indicador de atajo de teclado según estado */}
-              {canCreate && !showCreateForm && !showEditForm && (
-                <span className="text-xs px-2 py-1 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-medium">
-                  Alt+P = Asignar Personal
-                </span>
-              )}
-              {(showCreateForm || showEditForm) && (
-                <span className="text-xs px-2 py-1 rounded bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-medium">
-                  Alt+G = Guardar | Esc = Cancelar
-                </span>
-              )}
-            </div>
-
-            {/* Información del turno */}
-            <div className="mt-2 grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-slate-600 dark:text-slate-400">
-                  📅 {turno?.fecha} | 🌅 {turno?.turno} | 📍{" "}
-                  {turno?.sector?.nombre || "Sector"}
-                </p>
+            {/* Título con ícono y datos del turno */}
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <PersonStanding size={32} className="text-green-600" />
+                <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-50">
+                  Personal de Patrullaje a Pie
+                </h2>
+                {/* Indicador de atajo de teclado según estado */}
+                {canCreate && !showCreateForm && !showEditForm && (
+                  <span className="text-xs px-2 py-1 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-medium">
+                    Alt+P = Asignar Personal
+                  </span>
+                )}
+                {(showCreateForm || showEditForm) && (
+                  <span className="text-xs px-2 py-1 rounded bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-medium">
+                    Alt+G = Guardar | Esc = Cancelar
+                  </span>
+                )}
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <span className="text-slate-500 dark:text-slate-400">Supervisor:</span>{" "}
-                  <span className="font-medium text-slate-700 dark:text-slate-300">
-                    {getSupervisorNombre()}
-                  </span>
+
+              {/* Datos del turno en una sola fila */}
+              <div className="flex flex-wrap items-center gap-3 text-sm">
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span className="text-slate-600 dark:text-slate-400">Fecha:</span>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">{turno?.fecha}</span>
                 </div>
-                <div>
-                  <span className="text-slate-500 dark:text-slate-400">Operador:</span>{" "}
-                  <span className="font-medium text-slate-700 dark:text-slate-300">
-                    {getOperadorNombre()}
-                  </span>
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                  <span className="text-slate-600 dark:text-slate-400">Turno:</span>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">{turno?.turno}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                  <span className="text-slate-600 dark:text-slate-400">Sector:</span>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">{turno?.sector?.nombre || "No asignado"}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                  <span className="text-slate-600 dark:text-slate-400">Supervisor:</span>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">{getSupervisorNombre()}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                  <span className="text-slate-600 dark:text-slate-400">Operador:</span>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">{getOperadorNombre()}</span>
                 </div>
               </div>
             </div>

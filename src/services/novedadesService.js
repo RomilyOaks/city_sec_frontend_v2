@@ -321,41 +321,29 @@ export const getHistorialEstados = async (novedadId) => {
 
 /**
  * Agregar entrada al historial de estados de una novedad.
- * Usa el endpoint asignarRecursos con datos mínimos para solo crear historial.
+ * Endpoint: POST /novedades/:novedadId/historial
  *
  * @param {number} novedadId - ID de la novedad principal
- * @param {Object} historialData - Datos del historial
- * @param {number} historialData.estado_anterior_id - Estado anterior (antes del cambio)
- * @param {number} historialData.estado_nuevo_id - Estado nuevo (después del cambio, puede ser igual si no cambia)
- * @param {string} historialData.observaciones - Observaciones/acciones tomadas
- * @param {number} [historialData.tiempo_en_estado_min] - Tiempo en el estado anterior en minutos
- * @param {number} [historialData.created_by] - ID del usuario que crea el registro
+ * @param {string} observaciones - Observaciones/acciones tomadas
+ * @param {number|null} [estadoNuevoId] - ID del nuevo estado (opcional, si no se envía mantiene el actual)
  * @returns {Promise<Object>} - Resultado de la operación
  */
-export async function crearHistorialNovedad(novedadId, historialData) {
+export async function crearHistorialNovedad(novedadId, observaciones, estadoNuevoId = null) {
   const payload = {
-    novedad_id: novedadId,
-    // Mantener el estado actual si no se cambia
-    estado_novedad_id: historialData.estado_nuevo_id,
-    // El historial se crea con estos datos
-    historial: {
-      novedad_id: novedadId,
-      estado_anterior_id: historialData.estado_anterior_id,
-      estado_nuevo_id: historialData.estado_nuevo_id,
-      observaciones: historialData.observaciones,
-      fecha_cambio: new Date().toISOString(),
-      tiempo_en_estado_min: historialData.tiempo_en_estado_min || 0,
-      created_by: historialData.created_by || null,
-      updated_by: historialData.created_by || null,
-    },
+    observaciones: observaciones,
   };
 
+  // Solo incluir estado_nuevo_id si se quiere cambiar el estado
+  if (estadoNuevoId) {
+    payload.estado_nuevo_id = estadoNuevoId;
+  }
+
   console.log("🔍 crearHistorialNovedad - novedadId:", novedadId);
-  console.log("🔍 crearHistorialNovedad - payload completo:", JSON.stringify(payload, null, 2));
-  console.log("🔍 crearHistorialNovedad - URL:", `/novedades/${novedadId}/asignar`);
+  console.log("🔍 crearHistorialNovedad - payload:", JSON.stringify(payload, null, 2));
+  console.log("🔍 crearHistorialNovedad - URL:", `/novedades/${novedadId}/historial`);
 
   try {
-    const res = await api.post(`/novedades/${novedadId}/asignar`, payload);
+    const res = await api.post(`/novedades/${novedadId}/historial`, payload);
     console.log("✅ crearHistorialNovedad - Respuesta:", res?.data);
     return res?.data;
   } catch (error) {

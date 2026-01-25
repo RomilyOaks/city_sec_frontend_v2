@@ -125,6 +125,7 @@ export default function NovedadesPorCuadrante() {
   const [novedades, setNovedades] = useState([]);
   const [cuadrante, setCuadrante] = useState(null);
   const [vehiculo, setVehiculo] = useState(null);
+  const [turno, setTurno] = useState(null);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -161,26 +162,25 @@ export default function NovedadesPorCuadrante() {
         cuadranteId
       );
       
-      console.log("Datos del backend - Novedades:", response);
-      
-      const novedadesData = response.data || [];
+      const novedadesData = response.data || response.novedades || [];
       setNovedades(novedadesData);
       setSummary(response.summary || null);
       
       // Extraer información del cuadrante y vehículo desde cuadranteInfo (SIEMPRE INCLUIDO)
       if (response.cuadranteInfo) {
-        console.log("Usando cuadranteInfo:", response.cuadranteInfo);
         setCuadrante(response.cuadranteInfo.cuadrante || null);
         setVehiculo(response.cuadranteInfo.operativoVehiculo?.vehiculo || null);
+        setTurno(response.cuadranteInfo.operativoVehiculo?.turno || null);
       } else if (novedadesData.length > 0) {
         // Fallback: extraer de la primera novedad (por si acaso)
         const firstNovedad = novedadesData[0];
         setCuadrante(firstNovedad.cuadranteOperativo?.cuadrante || null);
         setVehiculo(firstNovedad.cuadranteOperativo?.operativoVehiculo?.vehiculo || null);
+        setTurno(firstNovedad.cuadranteOperativo?.operativoVehiculo?.turno || null);
       }
     } catch (err) {
       console.error("Error cargando novedades:", err);
-      setError("Error al cargar novedades del servidor");
+      setError(err.response?.data?.message || "Error al cargar novedades");
     } finally {
       setLoading(false);
     }
@@ -436,7 +436,7 @@ export default function NovedadesPorCuadrante() {
               <div>
                 <p className="text-xs text-slate-500 dark:text-slate-400">Cuadrante</p>
                 <p className="font-medium text-slate-900 dark:text-slate-50">
-                  {cuadrante?.codigo || cuadrante?.cuadrante_code || "-"} - {cuadrante?.nombre || "-"}
+                  {cuadrante?.nombre || cuadrante?.cuadrante_nombre || "Cuadrante sin nombre"}
                 </p>
               </div>
             </div>
@@ -454,7 +454,7 @@ export default function NovedadesPorCuadrante() {
               <div>
                 <p className="text-xs text-slate-500 dark:text-slate-400">Turno</p>
                 <p className="font-medium text-slate-900 dark:text-slate-50">
-                  Turno #{turnoId}
+                  {turno?.turno || turno?.nombre || "Turno sin nombre"} - {turno?.fecha || "Sin fecha"}
                 </p>
               </div>
             </div>
