@@ -236,6 +236,7 @@ const formatFecha = (fecha) => {
  */
 export default function MapaIncidentes({
   novedades = [],
+  estados = [],
   height = "500px",
   center = [-12.0464, -77.0428], // Lima, Perú por defecto
   zoom = 12,
@@ -243,12 +244,20 @@ export default function MapaIncidentes({
   onMarkerClick = null,
 }) {
   const [filterPrioridad, setFilterPrioridad] = useState("todas");
-  const [filterEstado, setFilterEstado] = useState("todos");
+  // Por defecto mostrar solo estados activos (orden > es_inicial y es_final = 0)
+  const [filterEstado, setFilterEstado] = useState("activos");
 
   // Estado para modal de detalle
   const [showDetalleModal, setShowDetalleModal] = useState(false);
   const [selectedNovedadId, setSelectedNovedadId] = useState(null);
   const [selectedNovedadData, setSelectedNovedadData] = useState(null);
+
+  // Calcular estados activos (orden > es_inicial y es_final = 0)
+  const estadosActivos = useMemo(() => {
+    return estados
+      .filter((e) => e.orden > e.es_inicial && !e.es_final)
+      .map((e) => e.nombre);
+  }, [estados]);
 
   const filteredNovedades = useMemo(() => {
     let filtered = (novedades || []).filter((n) => n.latitud && n.longitud);
@@ -257,14 +266,19 @@ export default function MapaIncidentes({
       filtered = filtered.filter((n) => n.prioridad_actual === filterPrioridad);
     }
 
-    if (filterEstado !== "todos") {
+    if (filterEstado === "activos") {
+      // Filtrar por estados activos (DESPACHADA, EN RUTA, EN LUGAR, EN ATENCION)
+      filtered = filtered.filter((n) =>
+        estadosActivos.includes(n.novedadEstado?.nombre)
+      );
+    } else if (filterEstado !== "todos") {
       filtered = filtered.filter(
         (n) => n.novedadEstado?.nombre === filterEstado
       );
     }
 
     return filtered;
-  }, [novedades, filterPrioridad, filterEstado]);
+  }, [novedades, filterPrioridad, filterEstado, estadosActivos]);
 
   const getMarkerIcon = (novedad) => {
     const prioridad = novedad.prioridad_actual || "default";
@@ -276,10 +290,10 @@ export default function MapaIncidentes({
     return ESTADO_COLORS[estado] || ESTADO_COLORS.default;
   };
 
-  // Obtener estados únicos para el filtro
-  const estadosUnicos = [
-    ...new Set(novedades.map((n) => n.novedadEstado?.nombre).filter(Boolean)),
-  ];
+  // Usar estados del prop para el dropdown, ordenados por campo 'orden'
+  const estadosParaFiltro = useMemo(() => {
+    return [...estados].sort((a, b) => a.orden - b.orden);
+  }, [estados]);
 
   return (
     <div className="w-full">
@@ -301,10 +315,11 @@ export default function MapaIncidentes({
             onChange={(e) => setFilterEstado(e.target.value)}
             className="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-slate-100"
           >
+            <option value="activos">🟢 En Atención (Activos)</option>
             <option value="todos">Todos los estados</option>
-            {estadosUnicos.map((estado) => (
-              <option key={estado} value={estado}>
-                {estado}
+            {estadosParaFiltro.map((estado) => (
+              <option key={estado.id} value={estado.nombre}>
+                {estado.nombre}
               </option>
             ))}
           </select>
