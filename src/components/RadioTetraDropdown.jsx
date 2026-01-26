@@ -1,6 +1,6 @@
 /**
  * File: src/components/RadioTetraDropdown.jsx
- * @version 2.0.0
+ * @version 2.3.0
  * @description Componente dropdown inteligente para selección de radios TETRA
  * - Precarga automática basada en piloto/copiloto
  * - Modo read-only cuando el radio está asignado a piloto/copiloto
@@ -8,7 +8,7 @@
  * @module src/components/RadioTetraDropdown.jsx
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Radio, Lock, User, AlertCircle, RefreshCw, Loader2 } from 'lucide-react';
 import { radioTetraService } from '../services/radiosTetraService';
 
@@ -22,6 +22,9 @@ const RadioTetraDropdown = ({
   showDescripcion = true,
   className = "",
   label = "Radio TETRA",
+  // Labels personalizables para diferentes contextos
+  labelConductor = "Conductor",
+  labelCopiloto = "Copiloto",
 }) => {
   const [radios, setRadios] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,96 +33,150 @@ const RadioTetraDropdown = ({
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [resumen, setResumen] = useState({ total: 0, disponibles: 0, asignados: 0 });
 
+  // Refs para control - usar refs para los IDs actuales
+  const loadingRef = useRef(false);
+  const conductorIdRef = useRef(conductorId);
+  const copilotoIdRef = useRef(copilotoId);
+  const onChangeRef = useRef(onChange);
+  const precargaHechaRef = useRef(false);
+
+  // Mantener refs actualizados
+  useEffect(() => {
+    conductorIdRef.current = conductorId;
+    copilotoIdRef.current = copilotoId;
+    onChangeRef.current = onChange;
+  });
+
   /**
    * Determina si el conductor o copiloto ya tienen un radio asignado
-   * y pre-selecciona el valor correspondiente
    */
-  const determinarRadioAsignado = useCallback((radiosData, condId, copId) => {
-    if (!radiosData || radiosData.length === 0) return;
+  const determinarRadioAsignado = (radiosData, condId, copId) => {
+    if (!radiosData || radiosData.length === 0) {
+      return { asignadoA: null, isReadOnly: false, radioId: null };
+    }
+
+    const condIdNum = condId ? parseInt(condId) : null;
+    const copIdNum = copId ? parseInt(copId) : null;
 
     // Prioridad 1: Buscar radio del conductor
-    if (condId) {
+    if (condIdNum) {
       const radioConductor = radiosData.find(r =>
-        r.personal_seguridad_id === parseInt(condId)
+        r.personal_seguridad_id === condIdNum
       );
 
       if (radioConductor) {
-        setAsignadoA('conductor');
-        setIsReadOnly(true);
-        onChange(radioConductor.id.toString());
-        return;
+        return {
+          asignadoA: 'conductor',
+          isReadOnly: true,
+          radioId: radioConductor.id.toString()
+        };
       }
     }
 
     // Prioridad 2: Buscar radio del copiloto
-    if (copId) {
+    if (copIdNum) {
       const radioCopiloto = radiosData.find(r =>
-        r.personal_seguridad_id === parseInt(copId)
+        r.personal_seguridad_id === copIdNum
       );
 
       if (radioCopiloto) {
-        setAsignadoA('copiloto');
-        setIsReadOnly(true);
-        onChange(radioCopiloto.id.toString());
-        return;
+        return {
+          asignadoA: 'copiloto',
+          isReadOnly: true,
+          radioId: radioCopiloto.id.toString()
+        };
       }
     }
 
     // Si ninguno tiene radio asignado, habilitar selección libre
-    setAsignadoA(null);
-    setIsReadOnly(false);
-  }, [onChange]);
+    return { asignadoA: null, isReadOnly: false, radioId: null };
+  };
 
   /**
-   * Cargar radios desde el endpoint para-dropdown
+   * Cargar radios desde el endpoint - solo una vez al montar
    */
-  const cargarRadios = useCallback(async () => {
-    setLoading(true);
-    setError('');
-
-    try {
-      const response = await radioTetraService.getRadiosParaDropdown();
-
-      if (response.success && response.data) {
-        const radiosData = response.data.radios || [];
-        setRadios(radiosData);
-        setResumen(response.data.resumen || { total: 0, disponibles: 0, asignados: 0 });
-
-        // Buscar si conductor o copiloto ya tienen radio asignado
-        determinarRadioAsignado(radiosData, conductorId, copilotoId);
-      } else {
-        setError('No se pudieron cargar los radios');
-      }
-    } catch (err) {
-      console.error('Error cargando radios TETRA:', err);
-      if (err.response?.status === 401) {
-        setError('No autorizado');
-      } else if (err.response?.status === 403) {
-        setError('Sin permisos');
-      } else {
-        setError('Error al cargar radios');
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [conductorId, copilotoId, determinarRadioAsignado]);
-
-  // Cargar radios al montar y cuando cambian conductor/copiloto
   useEffect(() => {
+    // Evitar ejecución si ya está cargando
+    if (loadingRef.current) {
+      return;
+    }
+
+    loadingRef.current = true;
+
+    const cargarRadios = async () => {
+      setLoading(true);
+      setError('');
+
+      try {
+        const response = await radioTetraService.getRadiosParaDropdown();
+
+        if (response.success && response.data) {
+          const radiosData = response.data.radios || [];
+          setRadios(radiosData);
+          setResumen(response.data.resumen || { total: 0, disponibles: 0, asignados: 0 });
+
+          // Usar los valores MÁS RECIENTES de conductorId y copilotoId (desde refs)
+          const resultado = determinarRadioAsignado(
+            radiosData,
+            conductorIdRef.current,
+            copilotoIdRef.current
+          );
+
+          setAsignadoA(resultado.asignadoA);
+          setIsReadOnly(resultado.isReadOnly);
+
+          // Pre-seleccionar el radio si corresponde
+          if (resultado.radioId && !precargaHechaRef.current) {
+            precargaHechaRef.current = true;
+            setTimeout(() => {
+              onChangeRef.current(resultado.radioId);
+            }, 0);
+          }
+        } else {
+          setError('No se pudieron cargar los radios');
+        }
+      } catch (err) {
+        console.error('Error cargando radios TETRA:', err);
+        if (err.response?.status === 401) {
+          setError('No autorizado');
+        } else if (err.response?.status === 403) {
+          setError('Sin permisos');
+        } else {
+          setError('Error al cargar radios');
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
     cargarRadios();
-  }, [cargarRadios]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Re-evaluar cuando cambian conductor o copiloto
+  /**
+   * Re-evaluar cuando cambian conductor/copiloto Y los radios ya están cargados
+   */
   useEffect(() => {
-    if (radios.length > 0) {
-      determinarRadioAsignado(radios, conductorId, copilotoId);
+    // No hacer nada si aún no hay radios o sigue cargando
+    if (radios.length === 0 || loading) {
+      return;
     }
-  }, [conductorId, copilotoId, radios, determinarRadioAsignado]);
+
+    const resultado = determinarRadioAsignado(radios, conductorId, copilotoId);
+    setAsignadoA(resultado.asignadoA);
+    setIsReadOnly(resultado.isReadOnly);
+
+    // Si hay un radio asignado al personal, pre-seleccionarlo
+    if (resultado.radioId && resultado.radioId !== value) {
+      setTimeout(() => {
+        onChangeRef.current(resultado.radioId);
+      }, 0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conductorId, copilotoId, radios.length, loading]);
 
   /**
    * Obtener opciones filtradas para el dropdown
-   * - Si hay radio asignado a conductor/copiloto: solo mostrar ese
-   * - Si no: mostrar solo radios disponibles (sin asignar)
    */
   const getOpcionesDropdown = () => {
     if (isReadOnly && value) {
@@ -138,11 +195,43 @@ const RadioTetraDropdown = ({
     onChange(newValue);
   };
 
-  const handleRefresh = () => {
-    cargarRadios();
+  const handleRefresh = async () => {
+    setLoading(true);
+    setError('');
+    precargaHechaRef.current = false;
+
+    try {
+      const response = await radioTetraService.getRadiosParaDropdown();
+
+      if (response.success && response.data) {
+        const radiosData = response.data.radios || [];
+        setRadios(radiosData);
+        setResumen(response.data.resumen || { total: 0, disponibles: 0, asignados: 0 });
+
+        const resultado = determinarRadioAsignado(radiosData, conductorId, copilotoId);
+        setAsignadoA(resultado.asignadoA);
+        setIsReadOnly(resultado.isReadOnly);
+
+        if (resultado.radioId) {
+          precargaHechaRef.current = true;
+          setTimeout(() => {
+            onChange(resultado.radioId);
+          }, 0);
+        }
+      } else {
+        setError('No se pudieron cargar los radios');
+      }
+    } catch (err) {
+      console.error('Error recargando radios TETRA:', err);
+      setError('Error al recargar radios');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const opcionesDropdown = getOpcionesDropdown();
+  const condIdNum = conductorId ? parseInt(conductorId) : null;
+  const copIdNum = copilotoId ? parseInt(copilotoId) : null;
 
   return (
     <div className={`radio-tetra-dropdown ${className}`}>
@@ -160,7 +249,7 @@ const RadioTetraDropdown = ({
               : 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
           }`}>
             <Lock size={10} />
-            Asignado a {asignadoA === 'conductor' ? 'Conductor' : 'Copiloto'}
+            Asignado a {asignadoA === 'conductor' ? labelConductor : labelCopiloto}
           </span>
         )}
       </div>
@@ -210,8 +299,8 @@ const RadioTetraDropdown = ({
             <option key={radio.id} value={radio.id}>
               {radio.radio_tetra_code}
               {showDescripcion && radio.descripcion ? ` - ${radio.descripcion}` : ''}
-              {radio.personal_seguridad_id === parseInt(conductorId) ? ' (Conductor)' : ''}
-              {radio.personal_seguridad_id === parseInt(copilotoId) ? ' (Copiloto)' : ''}
+              {radio.personal_seguridad_id && radio.personal_seguridad_id === condIdNum ? ` (${labelConductor})` : ''}
+              {radio.personal_seguridad_id && radio.personal_seguridad_id === copIdNum ? ` (${labelCopiloto})` : ''}
             </option>
           ))}
         </select>
@@ -230,7 +319,7 @@ const RadioTetraDropdown = ({
           {isReadOnly ? (
             <span className="flex items-center gap-1">
               <User size={12} />
-              Radio asignado al {asignadoA} del vehículo
+              Radio asignado al {asignadoA === 'conductor' ? labelConductor.toLowerCase() : labelCopiloto.toLowerCase()}
             </span>
           ) : (
             <span>

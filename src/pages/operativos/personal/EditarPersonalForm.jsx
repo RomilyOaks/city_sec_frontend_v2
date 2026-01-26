@@ -25,8 +25,9 @@ import {
   EQUIPAMIENTO_ITEMS,
 } from "../../../services/operativosPersonalService.js";
 import { listPersonalSelector } from "../../../services/personalService.js";
-import { listRadiosTetraActivos } from "../../../services/radiosTetraService.js";
+import { radioTetraService } from "../../../services/radiosTetraService.js";
 import { listEstadosOperativosActivos } from "../../../services/estadosOperativoService.js";
+import RadioTetraDropdown from "../../../components/RadioTetraDropdown.jsx";
 
 /**
  * EditarPersonalForm
@@ -52,7 +53,6 @@ export default function EditarPersonalForm({
 
   const [loading, setLoading] = useState(false);
   const [personalActivo, setPersonalActivo] = useState([]);
-  const [radios, setRadios] = useState([]);
   const [estados, setEstados] = useState([]);
 
   // Datos del formulario
@@ -113,25 +113,19 @@ export default function EditarPersonalForm({
     return () => document.removeEventListener("keydown", handleKeyDown, true);
   }, [onCancel]);
 
-  // Cargar catálogos
+  // Cargar catálogos (personal y estados)
+  // Nota: Los radios se cargan dentro del componente RadioTetraDropdown
   useEffect(() => {
     const fetchCatalogos = async () => {
       try {
-        const [personalRes, radiosRes, estadosRes] = await Promise.all([
+        const [personalRes, estadosRes] = await Promise.all([
           listPersonalSelector(), // Endpoint optimizado sin paginación, ya ordenado
-          listRadiosTetraActivos(),
           listEstadosOperativosActivos(),
         ]);
 
         // Procesar personal - listPersonalSelector ya devuelve personal activo y ordenado
         const personalData = Array.isArray(personalRes) ? personalRes : [];
         setPersonalActivo(personalData);
-
-        // Procesar radios
-        const radiosData = Array.isArray(radiosRes?.data || radiosRes)
-          ? radiosRes?.data || radiosRes
-          : [];
-        setRadios(radiosData);
 
         // Procesar estados
         const estadosData = Array.isArray(estadosRes?.data || estadosRes)
@@ -229,6 +223,33 @@ export default function EditarPersonalForm({
       setLoading(true);
 
       try {
+        // Asignar el radio TETRA al personal principal (prioridad) o sereno en la tabla radios_tetra
+        const nuevoRadioId = formData.radio_tetra_id;
+        const radioAnteriorId = personal.radio_tetra_id;
+
+        // Si cambió el radio o se asignó uno nuevo
+        if (nuevoRadioId && nuevoRadioId !== radioAnteriorId) {
+          // Prioridad: personal principal, luego sereno (compañero)
+          const personalId = personal.personal_id || formData.sereno_id;
+          if (personalId) {
+            try {
+              await radioTetraService.asignarRadio(nuevoRadioId, parseInt(personalId));
+            } catch (err) {
+              console.error('Error asignando radio:', err);
+              // No bloqueamos el guardado si falla la asignación
+            }
+          }
+        }
+
+        // Si se quitó el radio (antes tenía, ahora no)
+        if (radioAnteriorId && !nuevoRadioId) {
+          try {
+            await radioTetraService.desasignarRadio(radioAnteriorId);
+          } catch (err) {
+            console.error('Error desasignando radio anterior:', err);
+          }
+        }
+
         // Construir payload
         const payload = {
           tipo_patrullaje: formData.tipo_patrullaje,
@@ -428,23 +449,17 @@ export default function EditarPersonalForm({
       {/* Radio TETRA y Estado Operativo */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
-            Radio TETRA
-          </label>
-          <select
-            name="radio_tetra_id"
+          <RadioTetraDropdown
             value={formData.radio_tetra_id}
-            onChange={handleChange}
-            className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50"
-          >
-            <option value="">— Sin radio —</option>
-            {radios.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.radio_tetra_code || r.codigo} -{" "}
-                {r.descripcion || r.numero_serie}
-              </option>
-            ))}
-          </select>
+            onChange={(value) => setFormData(prev => ({ ...prev, radio_tetra_id: value }))}
+            conductorId={personal?.personal_id}
+            copilotoId={formData.sereno_id}
+            disabled={loading}
+            placeholder="Sin radio asignado"
+            showDescripcion={true}
+            labelConductor="Personal"
+            labelCopiloto="Compañero"
+          />
         </div>
 
         <div>

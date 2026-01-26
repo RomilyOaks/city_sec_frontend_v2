@@ -85,7 +85,7 @@ export const radioTetraService = {
           'Authorization': `Bearer ${localStorage.getItem('token')}` 
         }
       });
-      return response.data;
+      return response;
     } catch (error) {
       console.error('Error obteniendo todos los radios TETRA:', error);
       throw error;
@@ -103,6 +103,82 @@ export const radioTetraService = {
       return response.data;
     } catch (error) {
       console.error('Error obteniendo radio TETRA:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Crear un nuevo radio TETRA
+   * @param {Object} data - Datos del radio
+   * @returns {Promise<Object>} - Respuesta del servidor
+   */
+  createRadio: async (data) => {
+    try {
+      const response = await api.post("/radios-tetra", data);
+      return response.data;
+    } catch (error) {
+      console.error('Error creando radio TETRA:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Actualizar un radio existente
+   * @param {number} id - ID del radio
+   * @param {Object} data - Datos a actualizar
+   * @returns {Promise<Object>} - Respuesta del servidor
+   */
+  updateRadio: async (id, data) => {
+    try {
+      const response = await api.put(`/radios-tetra/${id}`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Error actualizando radio TETRA:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Eliminar un radio (soft delete)
+   * @param {number} id - ID del radio
+   * @returns {Promise<Object>} - Respuesta del servidor
+   */
+  deleteRadio: async (id) => {
+    try {
+      const response = await api.delete(`/radios-tetra/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error eliminando radio TETRA:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Activar un radio
+   * @param {number} id - ID del radio
+   * @returns {Promise<Object>} - Respuesta del servidor
+   */
+  activarRadio: async (id) => {
+    try {
+      const response = await api.patch(`/radios-tetra/${id}/activar`);
+      return response.data;
+    } catch (error) {
+      console.error('Error activando radio TETRA:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Desactivar un radio
+   * @param {number} id - ID del radio
+   * @returns {Promise<Object>} - Respuesta del servidor
+   */
+  desactivarRadio: async (id) => {
+    try {
+      const response = await api.patch(`/radios-tetra/${id}/desactivar`);
+      return response.data;
+    } catch (error) {
+      console.error('Error desactivando radio TETRA:', error);
       throw error;
     }
   },

@@ -120,10 +120,10 @@ export default function VerPersonalModal({ isOpen, onClose, personal }) {
         </div>
 
         {/* Contenido */}
-        <div className="flex-1 overflow-auto p-6">
-          <div className="space-y-6">
-            {/* Información del Personal Principal */}
-            <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 border border-green-200 dark:border-green-800">
+        <div className="flex-1 overflow-auto">
+          {/* Card del Personal Principal - Sticky */}
+          <div className="sticky top-0 z-10 bg-white dark:bg-slate-900 px-6 pt-6 pb-2">
+            <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 border border-green-200 dark:border-green-800 shadow-sm">
               <h3 className="text-sm font-semibold text-green-700 dark:text-green-200 mb-3 uppercase tracking-wide">
                 Personal de Patrullaje
               </h3>
@@ -150,7 +150,10 @@ export default function VerPersonalModal({ isOpen, onClose, personal }) {
                 </div>
               </div>
             </div>
+          </div>
 
+          {/* Resto del contenido con scroll */}
+          <div className="px-6 pb-6 space-y-6">
             {/* Compañero de Patrullaje */}
             <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
               <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3 uppercase tracking-wide">
