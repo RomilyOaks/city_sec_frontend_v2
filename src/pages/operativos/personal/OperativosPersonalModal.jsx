@@ -324,11 +324,20 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
             </div>
           </div>
 
-          {/* Botón cerrar */}
+          {/* Botón cerrar - Si hay formulario abierto, cierra el formulario; si no, cierra el modal */}
           <button
-            onClick={onClose}
+            onClick={() => {
+              if (showCreateForm) {
+                setShowCreateForm(false);
+              } else if (showEditForm) {
+                setShowEditForm(false);
+                setSelectedPersonal(null);
+              } else {
+                onClose();
+              }
+            }}
             className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-            title="Cerrar (ESC)"
+            title={showCreateForm || showEditForm ? "Cancelar (ESC)" : "Cerrar (ESC)"}
           >
             <X size={20} />
           </button>

@@ -268,6 +268,32 @@ export default function EditarVehiculoForm({
         }
       }
 
+      // Asignar el radio TETRA al conductor (prioridad) o copiloto en la tabla radios_tetra
+      const nuevoRadioId = formData.radio_tetra_id;
+      const radioAnteriorId = vehiculo.radio_tetra_id;
+
+      // Si cambió el radio o se asignó uno nuevo
+      if (nuevoRadioId && nuevoRadioId !== radioAnteriorId) {
+        const personalId = formData.conductor_id || formData.copiloto_id;
+        if (personalId) {
+          try {
+            await radioTetraService.asignarRadio(nuevoRadioId, parseInt(personalId));
+          } catch (err) {
+            console.error('Error asignando radio:', err);
+            // No bloqueamos el guardado si falla la asignación
+          }
+        }
+      }
+
+      // Si se quitó el radio (antes tenía, ahora no)
+      if (radioAnteriorId && !nuevoRadioId) {
+        try {
+          await radioTetraService.desasignarRadio(radioAnteriorId);
+        } catch (err) {
+          console.error('Error desasignando radio anterior:', err);
+        }
+      }
+
       // Construir payload solo con campos que tienen valor
       const payload = {};
 
