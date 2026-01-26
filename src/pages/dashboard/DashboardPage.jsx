@@ -14,6 +14,7 @@ import { getEstadisticasVehiculos } from "../../services/vehiculosService";
 import {
   getEstadisticasNovedades,
   listNovedades,
+  listEstadosNovedad,
 } from "../../services/novedadesService";
 import MapaIncidentes from "../../components/MapaIncidentes";
 
@@ -46,17 +47,22 @@ export default function DashboardPage() {
     novedadesPorTipo: [],
   });
   const [novedadesParaMapa, setNovedadesParaMapa] = useState([]);
+  const [estadosNovedad, setEstadosNovedad] = useState([]);
 
   const fetchStats = async () => {
     setLoading(true);
     try {
-      const [personalStats, vehiculosStats, novedadesStats, novedadesList] =
+      const [personalStats, vehiculosStats, novedadesStats, novedadesList, estadosRes] =
         await Promise.all([
           getEstadisticasPersonal(),
           getEstadisticasVehiculos(),
           getEstadisticasNovedades(),
           listNovedades({ limit: 100 }), // Cargar novedades para el mapa
+          listEstadosNovedad(), // Cargar estados para filtro del mapa
         ]);
+
+      // Guardar estados para el mapa
+      setEstadosNovedad(Array.isArray(estadosRes) ? estadosRes : []);
 
       // Filtrar novedades con coordenadas para el mapa
       const listaNovedades =
@@ -306,6 +312,7 @@ export default function DashboardPage() {
         </div>
         <MapaIncidentes
           novedades={novedadesParaMapa}
+          estados={estadosNovedad}
           height="450px"
           showFilters={true}
         />
