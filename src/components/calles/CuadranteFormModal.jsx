@@ -1,14 +1,208 @@
 /**
  * File: src/components/calles/CuadranteFormModal.jsx
- * @version 4.0.0
- * @description Modal para crear/editar cuadrantes con tabs, navegación por teclado y color picker
+ * @version 5.0.0
+ * @description Modal para crear/editar cuadrantes con tabs, navegación por teclado, color picker y visualización de mapa
  */
 
-import { useState, useEffect } from "react";
-import { X, MapPin, FileText } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { X, MapPin, FileText, Map } from "lucide-react";
+import { MapContainer, TileLayer, Polygon, Marker, useMap } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import { createCuadrante, updateCuadrante } from "../../services/cuadrantesService";
 import { listSectores } from "../../services/sectoresService";
 import toast from "react-hot-toast";
+
+// Fix para iconos de Leaflet en React
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+});
+
+// Componente para ajustar bounds del mapa al polígono
+function FitBoundsToPolygon({ positions, center }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (positions && positions.length > 0) {
+      // Filtrar coordenadas válidas
+      const validPositions = positions.filter(
+        (pos) => Array.isArray(pos) &&
+                 pos.length >= 2 &&
+                 typeof pos[0] === "number" &&
+                 typeof pos[1] === "number" &&
+                 !isNaN(pos[0]) &&
+                 !isNaN(pos[1])
+      );
+
+      if (validPositions.length > 0) {
+        try {
+          const bounds = L.latLngBounds(validPositions);
+          map.fitBounds(bounds, { padding: [30, 30] });
+        } catch (e) {
+          console.error("Error fitting bounds:", e);
+          if (center) map.setView(center, 15);
+        }
+      } else if (center) {
+        map.setView(center, 15);
+      }
+    } else if (center) {
+      map.setView(center, 15);
+    }
+  }, [positions, center, map]);
+
+  return null;
+}
+
+// Componente para visualizar el mapa con el polígono
+function MapaVisualizacion({ poligonoJson, latitud, longitud, colorMapa, nombre }) {
+  // Parsear el polígono JSON
+  const polygonPositions = useMemo(() => {
+    if (!poligonoJson) return null;
+
+    try {
+      const parsed = typeof poligonoJson === "string" ? JSON.parse(poligonoJson) : poligonoJson;
+
+      // Soportar diferentes formatos de GeoJSON
+      let coordinates = null;
+
+      if (parsed.type === "Polygon" && parsed.coordinates) {
+        coordinates = parsed.coordinates[0]; // Primera anilla del polígono
+      } else if (parsed.type === "Feature" && parsed.geometry?.type === "Polygon") {
+        coordinates = parsed.geometry.coordinates[0];
+      } else if (Array.isArray(parsed)) {
+        // Verificar si es array de arrays (coordenadas directas)
+        if (parsed.length > 0 && Array.isArray(parsed[0])) {
+          // Podría ser [[lng, lat], ...] o [[[lng, lat], ...]] (anidado extra)
+          if (Array.isArray(parsed[0][0])) {
+            coordinates = parsed[0]; // Desanidar un nivel
+          } else {
+            coordinates = parsed;
+          }
+        }
+      }
+
+      if (coordinates && coordinates.length > 0) {
+        // GeoJSON usa [lng, lat], Leaflet usa [lat, lng]
+        // Filtrar y validar coordenadas
+        const validCoords = coordinates
+          .filter(coord =>
+            Array.isArray(coord) &&
+            coord.length >= 2 &&
+            typeof coord[0] === "number" &&
+            typeof coord[1] === "number" &&
+            !isNaN(coord[0]) &&
+            !isNaN(coord[1])
+          )
+          .map(coord => [coord[1], coord[0]]);
+
+        return validCoords.length > 0 ? validCoords : null;
+      }
+    } catch (e) {
+      console.error("Error parsing polygon JSON:", e);
+    }
+    return null;
+  }, [poligonoJson]);
+
+  // Centro del mapa
+  const center = useMemo(() => {
+    if (latitud && longitud) {
+      return [parseFloat(latitud), parseFloat(longitud)];
+    }
+    // Surco, Lima por defecto
+    return [-12.1328, -76.9853];
+  }, [latitud, longitud]);
+
+  const hasPolygon = polygonPositions && polygonPositions.length > 0;
+  const hasCenter = latitud && longitud;
+
+  if (!hasPolygon && !hasCenter) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-slate-500 dark:text-slate-400">
+        <Map size={48} className="mb-3 opacity-50" />
+        <p className="text-center">
+          No hay datos de ubicación para mostrar.<br />
+          <span className="text-sm">Ingrese coordenadas o un polígono en la pestaña "Georeferenciados".</span>
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+          Vista previa del cuadrante
+        </p>
+        {hasPolygon && (
+          <span className="text-xs text-slate-500 dark:text-slate-400">
+            {polygonPositions.length} puntos en el polígono
+          </span>
+        )}
+      </div>
+
+      <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm">
+        <MapContainer
+          center={center}
+          zoom={15}
+          style={{ height: "350px", width: "100%" }}
+          scrollWheelZoom={true}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+
+          <FitBoundsToPolygon positions={polygonPositions} center={center} />
+
+          {/* Mostrar polígono si existe */}
+          {hasPolygon && (
+            <Polygon
+              positions={polygonPositions}
+              pathOptions={{
+                color: colorMapa || "#108981",
+                fillColor: colorMapa || "#108981",
+                fillOpacity: 0.3,
+                weight: 3,
+              }}
+            />
+          )}
+
+          {/* Mostrar marcador en el centro si hay coordenadas */}
+          {hasCenter && <Marker position={center} />}
+        </MapContainer>
+      </div>
+
+      {/* Leyenda */}
+      <div className="flex items-center gap-4 text-xs text-slate-600 dark:text-slate-400">
+        {hasPolygon && (
+          <div className="flex items-center gap-2">
+            <div
+              className="w-4 h-4 rounded border"
+              style={{
+                backgroundColor: colorMapa || "#108981",
+                opacity: 0.5,
+                borderColor: colorMapa || "#108981",
+              }}
+            />
+            <span>Área del cuadrante {nombre && `"${nombre}"`}</span>
+          </div>
+        )}
+        {hasCenter && (
+          <div className="flex items-center gap-2">
+            <MapPin size={14} />
+            <span>Centro: {parseFloat(latitud).toFixed(6)}, {parseFloat(longitud).toFixed(6)}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSuccess, preselectedSectorId }) {
   const [activeTab, setActiveTab] = useState("basicos");
@@ -51,6 +245,14 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
     if (!isOpen) return; // Solo ejecutar cuando el modal se abre
 
     if (cuadrante) {
+      // Convertir poligono_json a string si viene como objeto
+      let poligonoStr = "";
+      if (cuadrante.poligono_json) {
+        poligonoStr = typeof cuadrante.poligono_json === "string"
+          ? cuadrante.poligono_json
+          : JSON.stringify(cuadrante.poligono_json, null, 2);
+      }
+
       setFormData({
         cuadrante_code: cuadrante.cuadrante_code || cuadrante.codigo || "",
         nombre: cuadrante.nombre || "",
@@ -58,7 +260,7 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
         zona_code: cuadrante.zona_code || "",
         latitud: cuadrante.latitud || "",
         longitud: cuadrante.longitud || "",
-        poligono_json: cuadrante.poligono_json || "",
+        poligono_json: poligonoStr,
         radio_metros: cuadrante.radio_metros || "",
         color_mapa: cuadrante.color_mapa || "#108981",
       });
@@ -87,6 +289,22 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
       }, 100);
     }
   }, [isOpen]);
+
+  const handleClose = () => {
+    setFormData({
+      cuadrante_code: "",
+      nombre: "",
+      sector_id: "",
+      zona_code: "",
+      latitud: "",
+      longitud: "",
+      poligono_json: "",
+      radio_metros: "",
+      color_mapa: "#108981",
+    });
+    setActiveTab("basicos");
+    onClose();
+  };
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -117,23 +335,8 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, handleClose]);
-
-  const handleClose = () => {
-    setFormData({
-      cuadrante_code: "",
-      nombre: "",
-      sector_id: "",
-      zona_code: "",
-      latitud: "",
-      longitud: "",
-      poligono_json: "",
-      radio_metros: "",
-      color_mapa: "#108981",
-    });
-    setActiveTab("basicos");
-    onClose();
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -223,7 +426,20 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
               title="Av Pag"
             >
               <MapPin size={18} />
-              <span>Datos Georeferenciados</span>
+              <span>Georeferenciados</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("mapa")}
+              className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors ${
+                activeTab === "mapa"
+                  ? "border-primary-700 text-primary-700 dark:text-primary-500"
+                  : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              }`}
+              title="Ver Mapa"
+            >
+              <Map size={18} />
+              <span>Mapa</span>
             </button>
           </div>
         </div>
@@ -453,6 +669,17 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
                 </p>
               </div>
             </div>
+          )}
+
+          {/* Tab: Mapa */}
+          {activeTab === "mapa" && (
+            <MapaVisualizacion
+              poligonoJson={formData.poligono_json}
+              latitud={formData.latitud}
+              longitud={formData.longitud}
+              colorMapa={formData.color_mapa}
+              nombre={formData.nombre}
+            />
           )}
 
           {/* Footer */}
