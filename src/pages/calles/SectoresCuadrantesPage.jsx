@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { Plus, Search, Edit, Trash2, X, Map, ChevronRight, ArrowLeft, Eye, Info } from "lucide-react";
+import { Plus, Search, Edit, Trash2, X, Map, ChevronRight, ArrowLeft, Eye, Info, Car } from "lucide-react";
 import {
   listSectores,
   deleteSector,
@@ -19,6 +19,8 @@ import SectorFormModal from "../../components/calles/SectorFormModal";
 import CuadranteFormModal from "../../components/calles/CuadranteFormModal";
 import SectorViewModal from "../../components/calles/SectorViewModal";
 import CuadranteViewModal from "../../components/calles/CuadranteViewModal";
+import CuadranteMapaModal from "../../components/calles/CuadranteMapaModal";
+import CuadranteVehiculosModal from "../../components/calles/CuadranteVehiculosModal";
 import toast from "react-hot-toast";
 
 export default function SectoresCuadrantesPage() {
@@ -49,8 +51,12 @@ export default function SectoresCuadrantesPage() {
   const [showCreateCuadranteModal, setShowCreateCuadranteModal] = useState(false);
   const [showEditCuadranteModal, setShowEditCuadranteModal] = useState(false);
   const [showViewCuadranteModal, setShowViewCuadranteModal] = useState(false);
+  const [showMapaCuadranteModal, setShowMapaCuadranteModal] = useState(false);
+  const [showVehiculosCuadranteModal, setShowVehiculosCuadranteModal] = useState(false);
   const [editingCuadrante, setEditingCuadrante] = useState(null);
   const [viewingCuadrante, setViewingCuadrante] = useState(null);
+  const [mapaCuadrante, setMapaCuadrante] = useState(null);
+  const [vehiculosCuadrante, setVehiculosCuadrante] = useState(null);
 
   const limit = 15;
 
@@ -206,6 +212,16 @@ export default function SectoresCuadrantesPage() {
   const handleViewCuadrante = (cuadrante) => {
     setViewingCuadrante(cuadrante);
     setShowViewCuadranteModal(true);
+  };
+
+  const handleViewMapaCuadrante = (cuadrante) => {
+    setMapaCuadrante(cuadrante);
+    setShowMapaCuadranteModal(true);
+  };
+
+  const handleViewVehiculosCuadrante = (cuadrante) => {
+    setVehiculosCuadrante(cuadrante);
+    setShowVehiculosCuadranteModal(true);
   };
 
   const handleDeleteCuadrante = async (id) => {
@@ -591,6 +607,20 @@ export default function SectoresCuadrantesPage() {
                         <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
                           <div className="flex items-center justify-center gap-2">
                             <button
+                              onClick={() => handleViewMapaCuadrante(cuadrante)}
+                              className="p-1 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded transition-colors"
+                              title="Ver mapa del cuadrante"
+                            >
+                              <Map size={18} />
+                            </button>
+                            <button
+                              onClick={() => handleViewVehiculosCuadrante(cuadrante)}
+                              className="p-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                              title="Ver vehículos asignados"
+                            >
+                              <Car size={18} />
+                            </button>
+                            <button
                               onClick={() => handleViewCuadrante(cuadrante)}
                               className="p-1 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700 rounded transition-colors"
                               title="Ver información completa"
@@ -728,6 +758,28 @@ export default function SectoresCuadrantesPage() {
             setViewingCuadrante(null);
           }}
           cuadrante={viewingCuadrante}
+        />
+      )}
+
+      {showMapaCuadranteModal && (
+        <CuadranteMapaModal
+          isOpen={showMapaCuadranteModal}
+          onClose={() => {
+            setShowMapaCuadranteModal(false);
+            setMapaCuadrante(null);
+          }}
+          cuadrante={mapaCuadrante}
+        />
+      )}
+
+      {showVehiculosCuadranteModal && (
+        <CuadranteVehiculosModal
+          isOpen={showVehiculosCuadranteModal}
+          onClose={() => {
+            setShowVehiculosCuadranteModal(false);
+            setVehiculosCuadrante(null);
+          }}
+          cuadrante={vehiculosCuadrante}
         />
       )}
     </div>

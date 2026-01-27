@@ -59,64 +59,84 @@ function FitBoundsToPolygon({ positions, center }) {
   return null;
 }
 
+// Función para calcular el centroide de un polígono
+function calcularCentroide(positions) {
+  if (!positions || positions.length === 0) return null;
+
+  let sumLat = 0;
+  let sumLng = 0;
+  const n = positions.length;
+
+  for (const pos of positions) {
+    sumLat += pos[0];
+    sumLng += pos[1];
+  }
+
+  return [sumLat / n, sumLng / n];
+}
+
+// Función para parsear polígono JSON a posiciones Leaflet
+function parsePolygonJson(poligonoJson) {
+  if (!poligonoJson) return null;
+
+  try {
+    const parsed = typeof poligonoJson === "string" ? JSON.parse(poligonoJson) : poligonoJson;
+
+    let coordinates = null;
+
+    if (parsed.type === "Polygon" && parsed.coordinates) {
+      coordinates = parsed.coordinates[0];
+    } else if (parsed.type === "Feature" && parsed.geometry?.type === "Polygon") {
+      coordinates = parsed.geometry.coordinates[0];
+    } else if (Array.isArray(parsed)) {
+      if (parsed.length > 0 && Array.isArray(parsed[0])) {
+        if (Array.isArray(parsed[0][0])) {
+          coordinates = parsed[0];
+        } else {
+          coordinates = parsed;
+        }
+      }
+    }
+
+    if (coordinates && coordinates.length > 0) {
+      const validCoords = coordinates
+        .filter(coord =>
+          Array.isArray(coord) &&
+          coord.length >= 2 &&
+          typeof coord[0] === "number" &&
+          typeof coord[1] === "number" &&
+          !isNaN(coord[0]) &&
+          !isNaN(coord[1])
+        )
+        .map(coord => [coord[1], coord[0]]);
+
+      return validCoords.length > 0 ? validCoords : null;
+    }
+  } catch (e) {
+    console.error("Error parsing polygon JSON:", e);
+  }
+  return null;
+}
+
 // Componente para visualizar el mapa con el polígono
 function MapaVisualizacion({ poligonoJson, latitud, longitud, colorMapa, nombre }) {
   // Parsear el polígono JSON
-  const polygonPositions = useMemo(() => {
-    if (!poligonoJson) return null;
+  const polygonPositions = useMemo(() => parsePolygonJson(poligonoJson), [poligonoJson]);
 
-    try {
-      const parsed = typeof poligonoJson === "string" ? JSON.parse(poligonoJson) : poligonoJson;
-
-      // Soportar diferentes formatos de GeoJSON
-      let coordinates = null;
-
-      if (parsed.type === "Polygon" && parsed.coordinates) {
-        coordinates = parsed.coordinates[0]; // Primera anilla del polígono
-      } else if (parsed.type === "Feature" && parsed.geometry?.type === "Polygon") {
-        coordinates = parsed.geometry.coordinates[0];
-      } else if (Array.isArray(parsed)) {
-        // Verificar si es array de arrays (coordenadas directas)
-        if (parsed.length > 0 && Array.isArray(parsed[0])) {
-          // Podría ser [[lng, lat], ...] o [[[lng, lat], ...]] (anidado extra)
-          if (Array.isArray(parsed[0][0])) {
-            coordinates = parsed[0]; // Desanidar un nivel
-          } else {
-            coordinates = parsed;
-          }
-        }
-      }
-
-      if (coordinates && coordinates.length > 0) {
-        // GeoJSON usa [lng, lat], Leaflet usa [lat, lng]
-        // Filtrar y validar coordenadas
-        const validCoords = coordinates
-          .filter(coord =>
-            Array.isArray(coord) &&
-            coord.length >= 2 &&
-            typeof coord[0] === "number" &&
-            typeof coord[1] === "number" &&
-            !isNaN(coord[0]) &&
-            !isNaN(coord[1])
-          )
-          .map(coord => [coord[1], coord[0]]);
-
-        return validCoords.length > 0 ? validCoords : null;
-      }
-    } catch (e) {
-      console.error("Error parsing polygon JSON:", e);
-    }
-    return null;
-  }, [poligonoJson]);
-
-  // Centro del mapa
+  // Calcular centro: prioridad al centroide del polígono, luego lat/lng manuales
   const center = useMemo(() => {
+    // Si hay polígono, calcular su centroide
+    if (polygonPositions && polygonPositions.length > 0) {
+      const centroide = calcularCentroide(polygonPositions);
+      if (centroide) return centroide;
+    }
+    // Si hay coordenadas manuales
     if (latitud && longitud) {
       return [parseFloat(latitud), parseFloat(longitud)];
     }
     // Surco, Lima por defecto
     return [-12.1328, -76.9853];
-  }, [latitud, longitud]);
+  }, [polygonPositions, latitud, longitud]);
 
   const hasPolygon = polygonPositions && polygonPositions.length > 0;
   const hasCenter = latitud && longitud;
@@ -167,14 +187,15 @@ function MapaVisualizacion({ poligonoJson, latitud, longitud, colorMapa, nombre 
               pathOptions={{
                 color: colorMapa || "#108981",
                 fillColor: colorMapa || "#108981",
-                fillOpacity: 0.3,
+                fillOpacity: 0.2,
                 weight: 3,
+                opacity: 0.7,
               }}
             />
           )}
 
-          {/* Mostrar marcador en el centro si hay coordenadas */}
-          {hasCenter && <Marker position={center} />}
+          {/* Mostrar marcador en el centro calculado */}
+          <Marker position={center} />
         </MapContainer>
       </div>
 
@@ -193,12 +214,10 @@ function MapaVisualizacion({ poligonoJson, latitud, longitud, colorMapa, nombre 
             <span>Área del cuadrante {nombre && `"${nombre}"`}</span>
           </div>
         )}
-        {hasCenter && (
-          <div className="flex items-center gap-2">
-            <MapPin size={14} />
-            <span>Centro: {parseFloat(latitud).toFixed(6)}, {parseFloat(longitud).toFixed(6)}</span>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <MapPin size={14} />
+          <span>Centro: {center[0].toFixed(6)}, {center[1].toFixed(6)}</span>
+        </div>
       </div>
     </div>
   );
