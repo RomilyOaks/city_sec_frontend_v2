@@ -42,6 +42,7 @@ import DireccionesEliminadasPage from "../pages/direcciones/DireccionesEliminada
 // IMPORTAR PÁGINAS DEL MÓDULO CATÁLOGOS
 // ============================================
 import UnidadesOficinaPage from "../pages/catalogos/UnidadesOficinaPage.jsx";
+import RadiosTetraPage from "../pages/catalogos/RadiosTetraPage.jsx";
 
 // ============================================
 // IMPORTAR PÁGINAS DEL MÓDULO OPERATIVOS
@@ -229,6 +230,10 @@ export default function AppRouter() {
         <Route
           path="catalogos/unidades-oficinas"
           element={<UnidadesOficinaPage />}
+        />
+        <Route
+          path="catalogos/radios-tetra"
+          element={<RadiosTetraPage />}
         />
       </Route>
 
