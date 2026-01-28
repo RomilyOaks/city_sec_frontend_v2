@@ -13,10 +13,10 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { X, Car, Save, AlertCircle } from "lucide-react";
+import { X, Car, Save, AlertCircle, RefreshCw } from "lucide-react";
 import toast from "react-hot-toast";
 import cuadranteVehiculoAsignadoService from "../../services/cuadranteVehiculoAsignadoService.js";
-import { listVehiculos } from "../../services/vehiculosService.js";
+import { listVehiculosDisponibles } from "../../services/vehiculosService.js";
 
 /**
  * Modal para formulario de asignación vehículo-cuadrante
@@ -49,49 +49,141 @@ export default function CuadranteVehiculoFormModal({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [vehiculos, setVehiculos] = useState([]);
+  const [vehiculosAsignadosCuadrante, setVehiculosAsignadosCuadrante] = useState([]);
   const [vehiculosLoading, setVehiculosLoading] = useState(false);
+  const [vehiculosError, setVehiculosError] = useState(null);
   const [errors, setErrors] = useState({});
+  const [vehiculosCargados, setVehiculosCargados] = useState(false);
+  const [forceReload, setForceReload] = useState(0); // Para forzar recargas
 
-  // Cargar vehículos disponibles
+  // Cargar vehículos disponibles y asignados al cuadrante
   const cargarVehiculos = useCallback(async () => {
-    setVehiculosLoading(true);
-    try {
-      const response = await listVehiculos({
-        estado: true, // Solo vehículos activos
-        limit: 100
-      });
+    // Evitar múltiples cargas simultáneas y usar el flag de control
+    if (vehiculosLoading || vehiculosCargados) {
+      return;
+    }
 
-      let vehiculosData = [];
-      if (response.data?.data?.vehiculos) {
-        vehiculosData = response.data.data.vehiculos;
-      } else if (response.data?.vehiculos) {
-        vehiculosData = response.data.vehiculos;
-      } else if (Array.isArray(response.data)) {
-        vehiculosData = response.data;
+    setVehiculosLoading(true);
+    setVehiculosError(null);
+    
+    try {
+      // Cargar vehículos disponibles
+      const disponiblesResponse = await listVehiculosDisponibles();
+      let vehiculosDisponibles = [];
+      if (disponiblesResponse.data?.data?.vehiculos) {
+        vehiculosDisponibles = disponiblesResponse.data.data.vehiculos;
+      } else if (disponiblesResponse.data?.vehiculos) {
+        vehiculosDisponibles = disponiblesResponse.data.vehiculos;
+      } else if (Array.isArray(disponiblesResponse.data)) {
+        vehiculosDisponibles = disponiblesResponse.data;
+      } else if (Array.isArray(disponiblesResponse)) {
+        vehiculosDisponibles = disponiblesResponse;
       }
 
-      setVehiculos(vehiculosData);
+      // Cargar vehículos ya asignados al cuadrante
+      let vehiculosAsignados = [];
+      if (cuadrante?.id) {
+        try {
+          const asignadosResponse = await cuadranteVehiculoAsignadoService.getAsignacionesByCuadrante(cuadrante.id);
+          
+          if (asignadosResponse.data?.data?.asignaciones) {
+            vehiculosAsignados = asignadosResponse.data.data.asignaciones;
+          } else if (asignadosResponse.data?.asignaciones) {
+            vehiculosAsignados = asignadosResponse.data.asignaciones;
+          } else if (Array.isArray(asignadosResponse.data)) {
+            vehiculosAsignados = asignadosResponse.data;
+          } else if (Array.isArray(asignadosResponse)) {
+            vehiculosAsignados = asignadosResponse;
+          }
+
+          // Filtrar solo asignaciones activas (excluir las que están inactivas o eliminadas)
+          vehiculosAsignados = vehiculosAsignados.filter(asig => {
+            const estaActivo = asig.estado === true || asig.estado === 1;
+            const noEliminado = !asig.deleted_at;
+            return estaActivo && noEliminado; // Solo considerar asignaciones activas y no eliminadas
+          });
+        } catch (error) {
+          console.warn("⚠️ No se pudieron cargar vehículos asignados al cuadrante:", error);
+          // Continuar con vehículos disponibles aunque falle la carga de asignados
+        }
+      }
+
+      // Filtrar vehículos disponibles excluyendo los ya asignados
+      const vehiculosAsignadosIds = new Set(vehiculosAsignados.map(asig => asig.vehiculo_id));
+      let vehiculosFiltrados = vehiculosDisponibles.filter(v => !vehiculosAsignadosIds.has(v.id));
+
+      // En modo edición, incluir el vehículo actual de la asignación
+      if (mode === "edit" && asignacion?.vehiculo_id) {
+        const vehiculoActual = vehiculosDisponibles.find(v => v.id === asignacion.vehiculo_id);
+        if (vehiculoActual && !vehiculosFiltrados.includes(vehiculoActual)) {
+          vehiculosFiltrados.push(vehiculoActual);
+        }
+      }
+
+      setVehiculos(vehiculosFiltrados);
+      setVehiculosAsignadosCuadrante(vehiculosAsignados);
+      setVehiculosCargados(true); // Marcar como cargado
     } catch (error) {
       console.error("Error cargando vehículos:", error);
-      toast.error("Error al cargar los vehículos disponibles");
+      setVehiculosError(error.message || "Error al cargar vehículos");
+      
+      // Si es error 429, mostrar mensaje específico
+      if (error.response?.status === 429) {
+        const retryAfter = error.response?.data?.retryAfter || 60;
+        toast.error(`Demasiadas solicitudes. Espere ${retryAfter} segundos e intente nuevamente.`);
+      } else {
+        toast.error("Error al cargar los vehículos disponibles");
+      }
     } finally {
       setVehiculosLoading(false);
     }
+  }, [vehiculosLoading, vehiculosCargados, cuadrante?.id, forceReload]); // Dependencias estables
+
+  // Resetear vehículos al cerrar modal
+  const resetVehiculos = useCallback(() => {
+    setVehiculos([]);
+    setVehiculosAsignadosCuadrante([]);
+    setVehiculosError(null);
+    setVehiculosCargados(false); // Resetear flag
   }, []);
 
   // Efecto para cargar vehículos al abrir el modal
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !vehiculosCargados) {
       cargarVehiculos();
     }
-  }, [isOpen, cargarVehiculos]);
+  }, [isOpen, vehiculosCargados, cargarVehiculos]);
+
+  // Efecto para resetear al cerrar modal
+  useEffect(() => {
+    if (!isOpen) {
+      resetVehiculos();
+      setForceReload(0); // Resetear force reload al cerrar
+    }
+  }, [isOpen, resetVehiculos]);
+
+  // Manejar tecla ESC - solo cerrar si no está guardando
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && isOpen && !saving) {
+        e.preventDefault();
+        e.stopPropagation(); // Prevenir que otros manejadores capturen este evento
+        onClose(); // Comportamiento idéntico al botón X
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener("keydown", handleKeyDown, true); // Mayor prioridad con capture: true
+      return () => document.removeEventListener("keydown", handleKeyDown, true);
+    }
+  }, [isOpen, onClose, saving]);
 
   // Efecto para inicializar formulario en modo edición
   useEffect(() => {
     if (mode === "edit" && asignacion) {
       setFormData({
         cuadrante_id: asignacion.cuadrante_id || cuadrante?.id || "",
-        vehiculo_id: asignacion.vehiculo_id || "",
+        vehiculo_id: asignacion.vehiculo_id || "", // Asegurar que el vehículo_id se cargue
         observaciones: asignacion.observaciones || "",
         estado: asignacion.estado !== undefined ? asignacion.estado : true
       });
@@ -103,7 +195,7 @@ export default function CuadranteVehiculoFormModal({
         estado: true
       });
     }
-  }, [mode, asignacion, cuadrante]);
+  }, [mode, asignacion, cuadrante?.id]);
 
   // Manejar cambios en el formulario
   const handleChange = (e) => {
@@ -135,6 +227,126 @@ export default function CuadranteVehiculoFormModal({
     return Object.keys(newErrors).length === 0;
   };
 
+  // Verificar si existe asignación anulada para reactivar
+  const verificarAsignacionAnulada = async (cuadranteId, vehiculoId) => {
+    try {
+      console.log(`🔍 Verificando asignación anulada para cuadrante ${cuadranteId} y vehículo ${vehiculoId}`);
+      
+      // Primero buscar asignaciones activas (sin soft delete)
+      const response = await cuadranteVehiculoAsignadoService.getAsignacionesByCuadrante(cuadranteId);
+      let asignaciones = [];
+      
+      if (response.data?.data?.asignaciones) {
+        asignaciones = response.data.data.asignaciones;
+      } else if (response.data?.asignaciones) {
+        asignaciones = response.data.asignaciones;
+      } else if (Array.isArray(response.data)) {
+        asignaciones = response.data;
+      } else if (Array.isArray(response)) {
+        asignaciones = response;
+      }
+
+      console.log(`📋 Total asignaciones encontradas (activas): ${asignaciones.length}`);
+      console.log(`📋 Asignaciones activas:`, asignaciones);
+
+      // Buscar asignación con mismo vehículo pero estado = 0 (anulada) en las activas
+      const asignacionAnulada = asignaciones.find(asig => {
+        const mismoVehiculo = asig.vehiculo_id === Number(vehiculoId);
+        const estaAnulada = asig.estado === false || asig.estado === 0;
+        const tieneSoftDelete = asig.deleted_at;
+        
+        console.log(`🔍 Analizando asignación ID ${asig.id}: vehículo=${asig.vehiculo_id}, estado=${asig.estado}, deleted_at=${asig.deleted_at}`);
+        console.log(`   - Mismo vehículo: ${mismoVehiculo}`);
+        console.log(`   - Está anulada: ${estaAnulada}`);
+        console.log(`   - Tiene soft delete: ${tieneSoftDelete}`);
+        
+        return mismoVehiculo && estaAnulada && tieneSoftDelete;
+      });
+
+      if (asignacionAnulada) {
+        console.log(`✅ Asignación anulada encontrada en activas: ID ${asignacionAnulada.id}`);
+        return asignacionAnulada;
+      }
+
+      // Si no encuentra en activas, buscar en eliminadas
+      console.log(`🔍 No encontrada en activas, buscando en eliminadas...`);
+      
+      try {
+        // Buscar asignaciones eliminadas para este cuadrante
+        const responseEliminadas = await cuadranteVehiculoAsignadoService.getEliminadas({ cuadrante_id: cuadranteId });
+        
+        let asignacionesEliminadas = [];
+        if (responseEliminadas.data?.data?.asignaciones) {
+          asignacionesEliminadas = responseEliminadas.data.data.asignaciones;
+        } else if (responseEliminadas.data?.asignaciones) {
+          asignacionesEliminadas = responseEliminadas.data.asignaciones;
+        } else if (Array.isArray(responseEliminadas.data)) {
+          asignacionesEliminadas = responseEliminadas.data;
+        } else if (Array.isArray(responseEliminadas)) {
+          asignacionesEliminadas = responseEliminadas;
+        }
+
+        console.log(`📋 Total asignaciones encontradas (eliminadas): ${asignacionesEliminadas.length}`);
+        console.log(`📋 Asignaciones eliminadas:`, asignacionesEliminadas);
+
+        // Buscar en asignaciones eliminadas
+        const asignacionEliminada = asignacionesEliminadas.find(asig => {
+          const mismoVehiculo = asig.vehiculo_id === Number(vehiculoId);
+          const estaAnulada = asig.estado === false || asig.estado === 0;
+          const tieneSoftDelete = asig.deleted_at;
+          
+          console.log(`🔍 Analizando asignación eliminada ID ${asig.id}: vehículo=${asig.vehiculo_id}, estado=${asig.estado}, deleted_at=${asig.deleted_at}`);
+          console.log(`   - Mismo vehículo: ${mismoVehiculo}`);
+          console.log(`   - Está anulada: ${estaAnulada}`);
+          console.log(`   - Tiene soft delete: ${tieneSoftDelete}`);
+          
+          return mismoVehiculo && (estaAnulada || !asig.estado) && tieneSoftDelete;
+        });
+
+        if (asignacionEliminada) {
+          console.log(`✅ Asignación anulada encontrada en eliminadas: ID ${asignacionEliminada.id}`);
+          return asignacionEliminada;
+        }
+      } catch (error) {
+        console.log(`⚠️ No se pudo buscar en eliminadas:`, error);
+      }
+
+      console.log(`❌ No se encontró asignación anulada para reactivar`);
+      return null;
+    } catch (error) {
+      console.error("❌ Error verificando asignaciones existentes:", error);
+      return null;
+    }
+  };
+
+  // Reactivar asignación existente
+  const reactivarAsignacion = async (asignacionId) => {
+    try {
+      console.log(`🔄 Reactivando asignación ID ${asignacionId}`);
+      
+      // Usar el endpoint específico de reactivación (no requiere body)
+      console.log(`📋 Usando endpoint de reactivación específico`);
+      await cuadranteVehiculoAsignadoService.reactivarAsignacion(asignacionId);
+      
+      // NO actualizar observaciones después de reactivar para evitar inconsistencias
+      // La reactivación debe ser limpia sin modificaciones adicionales
+      
+      toast.success("Asignación reactivada exitosamente");
+      onSuccess();
+    } catch (error) {
+      console.error("Error reactivando asignación:", error);
+      
+      // Si el endpoint de reactivación no funciona, mostrar error amigable
+      if (error.response?.status === 404 || error.response?.status === 405) {
+        console.log(`⚠️ Endpoint de reactivación no disponible`);
+        toast.error("No se puede reactivar la asignación. El endpoint de reactivación no está disponible.");
+      } else {
+        toast.error("Error al reactivar la asignación");
+      }
+      throw error;
+    }
+  };
+
   // Manejar envío del formulario
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -144,8 +356,50 @@ export default function CuadranteVehiculoFormModal({
       return;
     }
 
+    console.log(`🚀 Iniciando handleSubmit - Modo: ${mode}`);
+    console.log(`📋 Form data:`, formData);
+
     setSaving(true);
+    
     try {
+      // Si es modo creación, verificar si existe asignación anulada
+      if (mode === "create") {
+        console.log(`🔍 Modo creación - Verificando asignación anulada...`);
+        
+        // Agregar más logs para debugging
+        console.log(`🔍 Buscando asignación anulada para cuadrante ${formData.cuadrante_id} y vehículo ${formData.vehiculo_id}`);
+        
+        const asignacionAnulada = await verificarAsignacionAnulada(
+          formData.cuadrante_id, 
+          formData.vehiculo_id
+        );
+
+        console.log(`📋 Resultado verificación:`, asignacionAnulada);
+
+        if (asignacionAnulada) {
+          console.log(`⚠️ Asignación anulada encontrada - Mostrando confirmación`);
+          // Mostrar confirmación para reactivar
+          const confirmarReactivacion = window.confirm(
+            "Esta asignación ya fue realizada pero está anulada. ¿Desea reactivarla?"
+          );
+
+          if (confirmarReactivacion) {
+            console.log(`✅ Usuario confirmó reactivación - Reactivando asignación ${asignacionAnulada.id}`);
+            await reactivarAsignacion(asignacionAnulada.id);
+            return;
+          } else {
+            console.log(`❌ Usuario canceló reactivación`);
+            setSaving(false);
+            return; // Usuario canceló la reactivación
+          }
+        } else {
+          console.log(`❌ NO SE ENCONTRÓ ASIGNACIÓN ANULADA - Procediendo con creación normal`);
+          console.log(`⚠️ Esto probablemente causará error 409 si hay una asignación existente`);
+        }
+      }
+
+      // Si no hay asignación anulada o el usuario no quiere reactivar, proceder normalmente
+      console.log(`📝 Creando/actualizando asignación...`);
       const dataToSubmit = {
         cuadrante_id: formData.cuadrante_id,
         vehiculo_id: Number(formData.vehiculo_id),
@@ -153,11 +407,15 @@ export default function CuadranteVehiculoFormModal({
         estado: formData.estado
       };
 
+      console.log(`📋 Data to submit:`, dataToSubmit);
+
       let response;
       if (mode === "create") {
+        console.log(`🆕 Creando nueva asignación...`);
         response = await cuadranteVehiculoAsignadoService.createAsignacion(dataToSubmit);
         toast.success("Asignación creada exitosamente");
       } else {
+        console.log(`✏️ Actualizando asignación existente...`);
         response = await cuadranteVehiculoAsignadoService.updateAsignacion(asignacion.id, dataToSubmit);
         toast.success("Asignación actualizada exitosamente");
       }
@@ -167,38 +425,61 @@ export default function CuadranteVehiculoFormModal({
       console.error("Error en el formulario:", error);
       
       // Manejar errores específicos del backend
-      if (error.response?.data?.code === 'DUPLICATE_ASSIGNMENT') {
+      if (error.response?.status === 400 && error.response?.data?.errors) {
+        // Error de validación con detalles específicos
+        const validationErrors = error.response.data.errors;
+        const errorMessages = validationErrors.map(err => `${err.msg || err.message || 'Error de validación'}`);
+        
+        toast.error(`Error de validación: ${errorMessages.join(', ')}`);
+        
+        // Mapear errores a campos específicos
+        const fieldErrors = {};
+        validationErrors.forEach(err => {
+          if (err.path) {
+            fieldErrors[err.path] = err.msg || err.message || 'Error de validación';
+          }
+        });
+        setErrors(fieldErrors);
+        
+      } else if (error.response?.status === 400 && error.response?.data?.message) {
+        // Error 400 genérico con mensaje
+        toast.error(error.response.data.message);
+        
+      } else if (error.response?.status === 409) {
+        // Error de conflicto (duplicado)
+        const message = error.response?.data?.message || "Conflicto de datos";
+        toast.error(`Error: ${message}`);
+        setErrors({ vehiculo_id: message });
+        
+      } else if (error.response?.data?.code === 'DUPLICATE_ASSIGNMENT') {
         toast.error("Ya existe una asignación para este cuadrante y vehículo");
         setErrors({ vehiculo_id: "Este vehículo ya está asignado a este cuadrante" });
+        
       } else if (error.response?.data?.code === 'CUADRANTE_NOT_FOUND') {
         toast.error("El cuadrante especificado no existe");
+        
       } else if (error.response?.data?.code === 'VEHICULO_NOT_FOUND') {
         toast.error("El vehículo especificado no existe");
         setErrors({ vehiculo_id: "El vehículo seleccionado no existe" });
+        
       } else if (error.response?.data?.code === 'FOREIGN_KEY_ERROR') {
         toast.error("Error de referencia: El ID proporcionado no existe");
+        
+      } else if (error.response?.status === 429) {
+        // Error de demasiadas solicitudes
+        const retryAfter = error.response?.data?.retryAfter || 60;
+        toast.error(`Demasiadas solicitudes. Espere ${retryAfter} segundos e intente nuevamente.`);
+        
       } else {
-        toast.error(error.response?.data?.message || "Error al guardar la asignación");
+        // Error genérico con información detallada
+        const status = error.response?.status || 'desconocido';
+        const message = error.response?.data?.message || error.message || "Error al guardar la asignación";
+        toast.error(`Error ${status}: ${message}`);
       }
     } finally {
       setSaving(false);
     }
   };
-
-  // Manejar tecla ESC
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === "Escape" && isOpen && !saving) {
-        e.preventDefault();
-        onClose();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener("keydown", handleKeyDown, true);
-      return () => document.removeEventListener("keydown", handleKeyDown, true);
-    }
-  }, [isOpen, onClose, saving]);
 
   if (!isOpen) return null;
 
@@ -213,7 +494,7 @@ export default function CuadranteVehiculoFormModal({
               {mode === "create" ? "Nueva Asignación" : "Editar Asignación"}
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-              Cuadrante: {cuadrante?.nombre || cuadrante?.cuadrante_code}
+              Sector: {cuadrante?.sector?.sector_code}
             </p>
           </div>
           <button
@@ -258,7 +539,7 @@ export default function CuadranteVehiculoFormModal({
                 name="vehiculo_id"
                 value={formData.vehiculo_id}
                 onChange={handleChange}
-                disabled={vehiculosLoading || saving}
+                disabled={vehiculosLoading || saving || vehiculosError}
                 className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:text-white ${
                   errors.vehiculo_id 
                     ? "border-red-300 focus:ring-red-500" 
@@ -279,8 +560,41 @@ export default function CuadranteVehiculoFormModal({
                 </div>
               )}
               {vehiculosLoading && (
-                <div className="mt-1 text-sm text-slate-500">
+                <div className="mt-1 text-sm text-slate-500 flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
                   Cargando vehículos disponibles...
+                </div>
+              )}
+              {vehiculosError && (
+                <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle size={14} className="text-red-600 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm text-red-700 dark:text-red-300">
+                        {vehiculosError}
+                      </p>
+                      <button
+                        onClick={() => {
+                          resetVehiculos();
+                          setTimeout(() => cargarVehiculos(), 1000);
+                        }}
+                        className="mt-1 text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 flex items-center gap-1"
+                      >
+                        <RefreshCw size={12} />
+                        Reintentar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {vehiculos.length > 0 && !vehiculosLoading && !vehiculosError && (
+                <div className="mt-1 text-xs text-green-600 dark:text-green-400">
+                  🚗 {vehiculos.length} vehículos disponibles
+                  {vehiculosAsignadosCuadrante.length > 0 && (
+                    <span className="text-amber-600 dark:text-amber-400 ml-2">
+                      ⚠️ {vehiculosAsignadosCuadrante.length} ya asignados a este cuadrante
+                    </span>
+                  )}
                 </div>
               )}
             </div>
@@ -351,7 +665,7 @@ export default function CuadranteVehiculoFormModal({
             type="submit"
             onClick={handleSubmit}
             disabled={saving || vehiculosLoading}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-700 text-white rounded-lg hover:bg-primary-800 transition-colors disabled:opacity-50"
           >
             {saving ? (
               <>

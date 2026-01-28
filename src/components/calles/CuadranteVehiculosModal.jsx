@@ -56,7 +56,6 @@ export default function CuadranteVehiculosModal({ isOpen, onClose, cuadrante }) 
   // Estados de filtros
   const [search, setSearch] = useState("");
   const [estado, setEstado] = useState("");
-  const [showEliminadas, setShowEliminadas] = useState(false);
 
   // Permisos
   const canCreate = can("cuadrantes_vehiculos_create");
@@ -74,32 +73,17 @@ export default function CuadranteVehiculosModal({ isOpen, onClose, cuadrante }) 
         page: currentPage,
         limit: 10,
         search: search || undefined,
-        estado: estado !== "" ? estado : undefined,
+        estado: estado !== "" ? estado === "1" : undefined,
         cuadrante_id: cuadrante.id
       };
 
-      console.log("🔍 Cargando asignaciones con params:", params);
-
       let response;
       try {
-        // Intentar con el endpoint específico para cuadrante
-        response = showEliminadas 
-          ? await cuadranteVehiculoAsignadoService.getEliminadas(params)
-          : await cuadranteVehiculoAsignadoService.getAsignacionesByCuadrante(cuadrante.id, params);
-      } catch (specificError) {
-        console.warn("⚠️ Error con endpoint específico, intentando endpoint general:", specificError);
-        
-        // Fallback: intentar con el endpoint general sin filtro de cuadrante_id
-        const generalParams = {
-          page: currentPage,
-          limit: 50, // Más límite para filtrar en frontend
-          search: search || undefined,
-          estado: estado !== "" ? estado : undefined
-        };
-
-        response = showEliminadas 
-          ? await cuadranteVehiculoAsignadoService.getEliminadas(generalParams)
-          : await cuadranteVehiculoAsignadoService.getAllAsignaciones(generalParams);
+        // Usar endpoint general con lógica unificada
+        response = await cuadranteVehiculoAsignadoService.getAllAsignaciones(params);
+      } catch (error) {
+        console.error("Error cargando asignaciones:", error);
+        throw error;
       }
 
       // Manejar diferentes estructuras de respuesta
@@ -119,15 +103,12 @@ export default function CuadranteVehiculosModal({ isOpen, onClose, cuadrante }) 
         paginationData = { currentPage: 1, totalPages: 1, total: 0 };
       }
 
-      // Si usamos el fallback, filtrar por cuadrante_id en el frontend
-      if (asignacionesData.length > 0 && !response.data?.data?.asignaciones) {
-        asignacionesData = asignacionesData.filter(asig => 
-          asig.cuadrante_id === cuadrante.id
-        );
-        console.log(`🔍 Filtrados ${asignacionesData.length} asignaciones para cuadrante ${cuadrante.id}`);
-      }
+      // Filtrar asignaciones por cuadrante si es necesario
+      const asignacionesFiltradas = cuadrante.id 
+        ? asignacionesData.filter(asig => asig.cuadrante_id === cuadrante.id)
+        : asignacionesData;
 
-      setAsignaciones(asignacionesData);
+      setAsignaciones(asignacionesFiltradas);
       setPagination(paginationData);
     } catch (error) {
       console.error("Error cargando asignaciones:", error);
@@ -147,7 +128,7 @@ export default function CuadranteVehiculosModal({ isOpen, onClose, cuadrante }) 
     } finally {
       setLoading(false);
     }
-  }, [cuadrante?.id, currentPage, search, estado, showEliminadas]);
+  }, [cuadrante?.id, currentPage, search, estado]);
 
   // Efecto para cargar datos cuando cambia el cuadrante o filtros
   useEffect(() => {
@@ -155,6 +136,21 @@ export default function CuadranteVehiculosModal({ isOpen, onClose, cuadrante }) 
       cargarAsignaciones();
     }
   }, [isOpen, cuadrante?.id, cargarAsignaciones]);
+
+  // Manejar tecla ESC - solo si no hay formularios abiertos
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && isOpen && !showCreateModal && !showEditModal) {
+        e.preventDefault();
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener("keydown", handleKeyDown, true);
+      return () => document.removeEventListener("keydown", handleKeyDown, true);
+    }
+  }, [isOpen, onClose, showCreateModal, showEditModal]);
 
   // Manejar creación
   const handleCrear = () => {
@@ -223,6 +219,15 @@ export default function CuadranteVehiculosModal({ isOpen, onClose, cuadrante }) 
 
   // Renderizar estado
   const renderEstado = (asignacion) => {
+    if (asignacion.deleted_at) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400">
+          <AlertCircle size={12} />
+          Eliminado
+        </span>
+      );
+    }
+
     return (
       <button
         onClick={() => handleCambiarEstado(asignacion)}
@@ -261,7 +266,7 @@ export default function CuadranteVehiculosModal({ isOpen, onClose, cuadrante }) 
               Vehículos Asignados - {cuadrante?.nombre || cuadrante?.cuadrante_code}
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-              Cuadrante: {cuadrante?.cuadrante_code} - Sector: {cuadrante?.sector?.sector_code}
+              Sector: {cuadrante?.sector?.sector_code}
             </p>
           </div>
           <button
@@ -296,21 +301,10 @@ export default function CuadranteVehiculosModal({ isOpen, onClose, cuadrante }) 
                 onChange={(e) => setEstado(e.target.value)}
                 className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:text-white"
               >
-                <option value="">Todos los estados</option>
+                <option value="">Todos</option>
                 <option value="1">Activos</option>
-                <option value="0">Inactivos</option>
+                <option value="0">Eliminados</option>
               </select>
-
-              <button
-                onClick={() => setShowEliminadas(!showEliminadas)}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  showEliminadas
-                    ? "bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/20 dark:text-red-400"
-                    : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
-                }`}
-              >
-                {showEliminadas ? "Ver Activos" : "Ver Eliminadas"}
-              </button>
             </div>
 
             {/* Acciones */}
@@ -321,10 +315,10 @@ export default function CuadranteVehiculosModal({ isOpen, onClose, cuadrante }) 
                 )}
               </div>
               
-              {canCreate && !showEliminadas && (
+              {canCreate && (
                 <button
                   onClick={handleCrear}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary-700 text-white rounded-lg hover:bg-primary-800 transition-colors"
                 >
                   <Plus size={16} />
                   Nueva Asignación
@@ -368,7 +362,7 @@ export default function CuadranteVehiculosModal({ isOpen, onClose, cuadrante }) 
                       <div className="flex flex-col items-center gap-2">
                         <Car size={32} className="text-slate-300" />
                         <span>
-                          {showEliminadas 
+                          {estado === "0" 
                             ? "No hay asignaciones eliminadas" 
                             : "No hay vehículos asignados a este cuadrante"
                           }
@@ -404,8 +398,8 @@ export default function CuadranteVehiculosModal({ isOpen, onClose, cuadrante }) 
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         <div className="flex items-center justify-center gap-2">
-                          {showEliminadas ? (
-                            // Solo mostrar botón de reactivar para eliminadas
+                          {asignacion.deleted_at ? (
+                            // Es eliminado (soft-deleted) - mostrar reactivar
                             canReactivate && (
                               <button
                                 onClick={() => handleReactivar(asignacion)}
@@ -416,6 +410,7 @@ export default function CuadranteVehiculosModal({ isOpen, onClose, cuadrante }) 
                               </button>
                             )
                           ) : (
+                            // Es activo - mostrar editar y eliminar
                             <>
                               {canEdit && (
                                 <button
