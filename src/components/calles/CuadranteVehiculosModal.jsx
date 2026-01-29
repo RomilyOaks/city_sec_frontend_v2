@@ -73,14 +73,17 @@ export default function CuadranteVehiculosModal({ isOpen, onClose, cuadrante }) 
         page: currentPage,
         limit: 10,
         search: search || undefined,
-        estado: estado !== "" ? estado === "1" : undefined,
+        estado: estado !== "" ? estado : undefined,
         cuadrante_id: cuadrante.id
       };
+
+      console.log("🔍 Enviando parámetros al backend:", params);
 
       let response;
       try {
         // Usar endpoint general con lógica unificada
         response = await cuadranteVehiculoAsignadoService.getAllAsignaciones(params);
+        console.log("📥 Respuesta del backend:", response);
       } catch (error) {
         console.error("Error cargando asignaciones:", error);
         throw error;
