@@ -24,7 +24,8 @@ import {
   ToggleLeft,
   ToggleRight,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  Eye
 } from "lucide-react";
 import toast from "react-hot-toast";
 import cuadranteVehiculoAsignadoService from "../../services/cuadranteVehiculoAsignadoService.js";
@@ -51,7 +52,10 @@ export default function CuadranteVehiculosModal({ isOpen, onClose, cuadrante }) 
   // Estados de modales
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
   const [asignacionSeleccionada, setAsignacionSeleccionada] = useState(null);
+  const [viewAsignacionData, setViewAsignacionData] = useState(null);
+  const [viewLoading, setViewLoading] = useState(false);
 
   // Estados de filtros
   const [search, setSearch] = useState("");
@@ -62,6 +66,12 @@ export default function CuadranteVehiculosModal({ isOpen, onClose, cuadrante }) 
   const canEdit = can("cuadrantes_vehiculos_update");
   const canDelete = can("cuadrantes_vehiculos_delete");
   const canReactivate = user?.roles?.some(r => r.slug === "super_admin");
+
+  // Cerrar modal de vista (declarado antes de useEffect)
+  const handleCloseViewModal = () => {
+    setShowViewModal(false);
+    setViewAsignacionData(null);
+  };
 
   // Cargar asignaciones
   const cargarAsignaciones = useCallback(async () => {
@@ -77,13 +87,10 @@ export default function CuadranteVehiculosModal({ isOpen, onClose, cuadrante }) 
         cuadrante_id: cuadrante.id
       };
 
-      console.log("🔍 Enviando parámetros al backend:", params);
-
       let response;
       try {
         // Usar endpoint general con lógica unificada
         response = await cuadranteVehiculoAsignadoService.getAllAsignaciones(params);
-        console.log("📥 Respuesta del backend:", response);
       } catch (error) {
         console.error("Error cargando asignaciones:", error);
         throw error;
@@ -133,6 +140,35 @@ export default function CuadranteVehiculosModal({ isOpen, onClose, cuadrante }) 
     }
   }, [cuadrante?.id, currentPage, search, estado]);
 
+  // Efecto para controlar el scroll del body
+  useEffect(() => {
+    if (isOpen || showViewModal) {
+      // Desactivar scroll del body
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.top = `-${window.scrollY}px`;
+    } else {
+      // Restaurar scroll del body
+      const scrollY = document.body.style.top;
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.top = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0') * -1);
+      }
+    }
+
+    // Cleanup al desmontar
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.top = '';
+    };
+  }, [isOpen, showViewModal]);
+
   // Efecto para cargar datos cuando cambia el cuadrante o filtros
   useEffect(() => {
     if (isOpen && cuadrante?.id) {
@@ -143,9 +179,35 @@ export default function CuadranteVehiculosModal({ isOpen, onClose, cuadrante }) 
   // Manejar tecla ESC - solo si no hay formularios abiertos
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === "Escape" && isOpen && !showCreateModal && !showEditModal) {
+      if (e.key === "Escape") {
         e.preventDefault();
-        onClose();
+        
+        // Prioridad: cerrar modales internos primero
+        if (showViewModal) {
+          handleCloseViewModal();
+        } else if (showCreateModal) {
+          setShowCreateModal(false);
+        } else if (showEditModal) {
+          setShowEditModal(false);
+        } else if (isOpen) {
+          onClose();
+        }
+      }
+    };
+
+    if (isOpen || showViewModal) {
+      document.addEventListener("keydown", handleKeyDown, true);
+      return () => document.removeEventListener("keydown", handleKeyDown, true);
+    }
+  }, [isOpen, onClose, showCreateModal, showEditModal, showViewModal, handleCloseViewModal]);
+
+  // Hot key ALT + N para nueva asignación (aislado por entorno)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // ALT + N solo si el modal principal está abierto y no hay otros modales abiertos
+      if (e.altKey && e.key === 'n' && isOpen && !showCreateModal && !showEditModal && !showViewModal && canCreate) {
+        e.preventDefault();
+        handleCrear();
       }
     };
 
@@ -153,7 +215,7 @@ export default function CuadranteVehiculosModal({ isOpen, onClose, cuadrante }) 
       document.addEventListener("keydown", handleKeyDown, true);
       return () => document.removeEventListener("keydown", handleKeyDown, true);
     }
-  }, [isOpen, onClose, showCreateModal, showEditModal]);
+  }, [isOpen, showCreateModal, showEditModal, showViewModal, canCreate]);
 
   // Manejar creación
   const handleCrear = () => {
@@ -200,6 +262,25 @@ export default function CuadranteVehiculosModal({ isOpen, onClose, cuadrante }) 
     }
   };
 
+  // Manejar vista de asignación
+  const handleViewAsignacion = async (asignacionId) => {
+    setViewLoading(true);
+    try {
+      const response = await cuadranteVehiculoAsignadoService.getAsignacionById(asignacionId);
+      
+      // Corregir: usar response.data en lugar de response.data.data
+      const asignacionData = response.data.data || response.data;
+      
+      setViewAsignacionData(asignacionData);
+      setShowViewModal(true);
+    } catch (error) {
+      console.error("Error cargando asignación:", error);
+      toast.error("Error al cargar los detalles de la asignación");
+    } finally {
+      setViewLoading(false);
+    }
+  };
+
   // Manejar cambio de estado
   const handleCambiarEstado = async (asignacion) => {
     try {
@@ -224,35 +305,26 @@ export default function CuadranteVehiculosModal({ isOpen, onClose, cuadrante }) 
   const renderEstado = (asignacion) => {
     if (asignacion.deleted_at) {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400">
-          <AlertCircle size={12} />
-          Eliminado
-        </span>
+        <button
+          onClick={() => handleReactivar(asignacion)}
+          className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900/20 dark:text-red-400 cursor-pointer transition-colors"
+          title="Click para reactivar esta asignación"
+        >
+          <RotateCcw size={12} />
+          Reactivar
+        </button>
       );
     }
 
+    // Para activos e inactivos no eliminados: mostrar texto simple
     return (
-      <button
-        onClick={() => handleCambiarEstado(asignacion)}
-        className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full ${
-          asignacion.estado
-            ? "bg-green-100 text-green-800 hover:bg-green-200"
-            : "bg-red-100 text-red-800 hover:bg-red-200"
-        }`}
-        disabled={!canEdit}
-      >
-        {asignacion.estado ? (
-          <>
-            <ToggleRight size={12} />
-            Activo
-          </>
-        ) : (
-          <>
-            <ToggleLeft size={12} />
-            Inactivo
-          </>
-        )}
-      </button>
+      <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full ${
+        asignacion.estado
+          ? "bg-green-100 text-green-800"
+          : "bg-red-100 text-red-800"
+      }`}>
+        {asignacion.estado ? "Activo" : "Inactivo"}
+      </span>
     );
   };
 
@@ -322,6 +394,7 @@ export default function CuadranteVehiculosModal({ isOpen, onClose, cuadrante }) 
                 <button
                   onClick={handleCrear}
                   className="inline-flex items-center gap-2 px-4 py-2 bg-primary-700 text-white rounded-lg hover:bg-primary-800 transition-colors"
+                  title="Nueva Asignación (ALT + N)"
                 >
                   <Plus size={16} />
                   Nueva Asignación
@@ -402,19 +475,35 @@ export default function CuadranteVehiculosModal({ isOpen, onClose, cuadrante }) 
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         <div className="flex items-center justify-center gap-2">
                           {asignacion.deleted_at ? (
-                            // Es eliminado (soft-deleted) - mostrar reactivar
-                            canReactivate && (
-                              <button
-                                onClick={() => handleReactivar(asignacion)}
-                                className="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
-                                title="Reactivar asignación"
-                              >
-                                <RotateCcw size={18} />
-                              </button>
-                            )
-                          ) : (
-                            // Es activo - mostrar editar y eliminar
+                            // Es eliminado (soft-deleted) - mostrar ver y reactivar
                             <>
+                              <button
+                                onClick={() => handleViewAsignacion(asignacion.id)}
+                                className="p-1 text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-300"
+                                title="Ver detalles"
+                              >
+                                <Eye size={18} />
+                              </button>
+                              {canReactivate && (
+                                <button
+                                  onClick={() => handleReactivar(asignacion)}
+                                  className="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
+                                  title="Reactivar asignación"
+                                >
+                                  <RotateCcw size={18} />
+                                </button>
+                              )}
+                            </>
+                          ) : (
+                            // Es activo - mostrar ver, editar y eliminar
+                            <>
+                              <button
+                                onClick={() => handleViewAsignacion(asignacion.id)}
+                                className="p-1 text-slate-600 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-300"
+                                title="Ver detalles"
+                              >
+                                <Eye size={18} />
+                              </button>
                               {canEdit && (
                                 <button
                                   onClick={() => handleEditar(asignacion)}
@@ -490,6 +579,216 @@ export default function CuadranteVehiculosModal({ isOpen, onClose, cuadrante }) 
             cuadrante={cuadrante}
             asignacion={asignacionSeleccionada}
           />
+        )}
+
+        {/* Modal de Vista */}
+        {showViewModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+              {/* Header */}
+              <div className="flex items-start justify-between p-6 border-b border-slate-200 dark:border-slate-700">
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
+                    Detalles de Asignación
+                  </h2>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                    Información completa de la asignación
+                  </p>
+                </div>
+                <button
+                  onClick={handleCloseViewModal}
+                  className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Contenido */}
+              <div className="flex-1 overflow-y-auto p-6">
+                {viewLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                    <span className="ml-3 text-slate-600 dark:text-slate-400">Cargando...</span>
+                  </div>
+                ) : viewAsignacionData ? (
+                  <div className="space-y-6">
+                    {/* Información del Vehículo */}
+                    <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
+                      <h3 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2">
+                        <Car size={16} />
+                        Información del Vehículo
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Placa</label>
+                          <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                            {viewAsignacionData.vehiculo?.placa || 'N/A'}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Marca</label>
+                          <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                            {viewAsignacionData.vehiculo?.marca || 'N/A'}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Modelo</label>
+                          <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                            {viewAsignacionData.vehiculo?.modelo_vehiculo || 'N/A'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Información del Cuadrante */}
+                    <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
+                      <h3 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3">Información del Cuadrante</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Código</label>
+                          <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                            {viewAsignacionData.cuadrante?.cuadrante_code || 'N/A'}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Nombre</label>
+                          <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                            {viewAsignacionData.cuadrante?.nombre || 'N/A'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Estado */}
+                    <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
+                      <h3 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3">Estado</h3>
+                      <div className="flex items-center gap-2">
+                        {viewAsignacionData.deleted_at ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400">
+                            <AlertCircle size={12} />
+                            Eliminado
+                          </span>
+                        ) : viewAsignacionData.estado ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                            <CheckCircle size={12} />
+                            Activo
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">
+                            <AlertCircle size={12} />
+                            Inactivo
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Observaciones */}
+                    <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
+                      <h3 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3">Observaciones</h3>
+                      <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
+                        {viewAsignacionData.observaciones || 'Sin observaciones'}
+                      </p>
+                    </div>
+
+                    {/* Auditoría */}
+                    <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4">
+                      <h3 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3">Auditoría</h3>
+                      <div className="space-y-3">
+                        {/* Creado por */}
+                        <div className="flex items-start gap-3">
+                          <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                              Creado por: {viewAsignacionData.creadorAsignacion?.nombres && viewAsignacionData.creadorAsignacion?.apellidos 
+                                ? `${viewAsignacionData.creadorAsignacion.nombres} ${viewAsignacionData.creadorAsignacion.apellidos}`
+                                : viewAsignacionData.creadorAsignacion?.username || 'Sistema'}
+                            </p>
+                            <p className="text-xs text-slate-600 dark:text-slate-400">
+                              {viewAsignacionData.created_at 
+                                ? new Date(viewAsignacionData.created_at).toLocaleString('es-ES', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })
+                                : 'N/A'}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Actualizado por */}
+                        {viewAsignacionData.actualizadorAsignacion && (
+                          <div className="flex items-start gap-3">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                                Actualizado por: {viewAsignacionData.actualizadorAsignacion.nombres && viewAsignacionData.actualizadorAsignacion.apellidos 
+                                  ? `${viewAsignacionData.actualizadorAsignacion.nombres} ${viewAsignacionData.actualizadorAsignacion.apellidos}`
+                                  : viewAsignacionData.actualizadorAsignacion.username}
+                              </p>
+                              <p className="text-xs text-slate-600 dark:text-slate-400">
+                                {viewAsignacionData.updated_at 
+                                  ? new Date(viewAsignacionData.updated_at).toLocaleString('es-ES', {
+                                      day: '2-digit',
+                                      month: '2-digit',
+                                      year: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })
+                                  : 'N/A'}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Eliminado por */}
+                        {viewAsignacionData.deleted_at && viewAsignacionData.eliminadorAsignacion && (
+                          <div className="flex items-start gap-3">
+                            <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                                Eliminado por: {viewAsignacionData.eliminadorAsignacion.nombres && viewAsignacionData.eliminadorAsignacion.apellidos 
+                                  ? `${viewAsignacionData.eliminadorAsignacion.nombres} ${viewAsignacionData.eliminadorAsignacion.apellidos}`
+                                  : viewAsignacionData.eliminadorAsignacion.username}
+                              </p>
+                              <p className="text-xs text-slate-600 dark:text-slate-400">
+                                {viewAsignacionData.deleted_at 
+                                  ? new Date(viewAsignacionData.deleted_at).toLocaleString('es-ES', {
+                                      day: '2-digit',
+                                      month: '2-digit',
+                                      year: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })
+                                  : 'N/A'}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-slate-600 dark:text-slate-400">No se pudo cargar la información</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="p-6 border-t border-slate-200 dark:border-slate-700">
+                <div className="flex justify-end">
+                  <button
+                    onClick={handleCloseViewModal}
+                    className="px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg transition-colors dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
