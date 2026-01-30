@@ -25,6 +25,7 @@ import {
   Trash2,
   RotateCcw,
   X,
+  MapPin,
 } from "lucide-react";
 
 import {
@@ -41,6 +42,8 @@ import {
 import { listConductores } from "../../services/personalService.js";
 import { useAuthStore } from "../../store/useAuthStore.js";
 import { canPerformAction } from "../../rbac/rbac.js";
+import cuadranteVehiculoAsignadoService from "../../services/cuadranteVehiculoAsignadoService.js";
+import VehiculoCuadrantesModal from "../../components/vehiculos/VehiculoCuadrantesModal.jsx";
 
 const ESTADO_OPERATIVO_OPTIONS = [
   { value: "DISPONIBLE", label: "Disponible" },
@@ -198,6 +201,8 @@ export default function VehiculosPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingVehiculo, setEditingVehiculo] = useState(null);
   const [viewingVehiculo, setViewingVehiculo] = useState(null);
+  const [showCuadrantesModal, setShowCuadrantesModal] = useState(null); // Para mostrar cuadrantes del vehículo
+  const [cuadrantesCount, setCuadrantesCount] = useState({}); // Contador de cuadrantes por vehículo
   const [formData, setFormData] = useState(initialFormData);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
@@ -273,9 +278,49 @@ export default function VehiculosPage() {
     }
   };
 
+  /**
+   * fetchCuadrantesCount
+   * Consulta el número de cuadrantes asignados para cada vehículo en la lista actual
+   * @returns {Promise<void>}
+   */
+  const fetchCuadrantesCount = async () => {
+    try {
+      const counts = {};
+      
+      // Obtener conteos para todos los vehículos de la página actual
+      await Promise.all(
+        vehiculos.map(async (vehiculo) => {
+          try {
+            const response = await cuadranteVehiculoAsignadoService.getCuadrantesByVehiculo(vehiculo.id, {
+              estado: true // Solo activos
+            });
+            
+            // Usar el count del backend si está disponible, sino usar el length del array
+            const count = response?.count || (Array.isArray(response?.data) ? response.data.length : 0);
+            counts[vehiculo.id] = count;
+          } catch (error) {
+            // Si hay error, asumir 0 cuadrantes
+            counts[vehiculo.id] = 0;
+          }
+        })
+      );
+      
+      setCuadrantesCount(counts);
+    } catch (error) {
+      console.error("Error obteniendo conteos de cuadrantes:", error);
+    }
+  };
+
   useEffect(() => {
     fetchVehiculos({ nextPage: page });
   }, [page, filterEstado, filterTipo]);
+
+  // Cargar conteos de cuadrantes cuando se cargan los vehículos
+  useEffect(() => {
+    if (vehiculos.length > 0) {
+      fetchCuadrantesCount();
+    }
+  }, [vehiculos]);
 
   const handleSearch = () => {
     setPage(1);
@@ -567,13 +612,15 @@ export default function VehiculosPage() {
           resetForm();
         } else if (viewingVehiculo) {
           setViewingVehiculo(null);
+        } else if (showCuadrantesModal) {
+          setShowCuadrantesModal(null);
         }
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [showCreateModal, editingVehiculo, viewingVehiculo, canCreate]);
+  }, [showCreateModal, editingVehiculo, viewingVehiculo, showCuadrantesModal, canCreate]);
 
   /**
    * getTipoNombre
@@ -1223,6 +1270,18 @@ export default function VehiculosPage() {
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <button
+                          onClick={() => setShowCuadrantesModal(v)}
+                          className="relative p-2 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                          title="Ver cuadrantes asignados"
+                        >
+                          <MapPin size={14} />
+                          {cuadrantesCount[v.id] > 0 && (
+                            <span className="absolute -top-1 -right-1 w-4 h-4 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                              {cuadrantesCount[v.id]}
+                            </span>
+                          )}
+                        </button>
+                        <button
                           onClick={() => setViewingVehiculo(v)}
                           className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                           title="Ver detalle"
@@ -1498,6 +1557,14 @@ export default function VehiculosPage() {
           </div>
         </div>
       )}
+
+      {/* Modal Cuadrantes del Vehículo */}
+      {showCuadrantesModal && (
+        <VehiculoCuadrantesModal
+          vehiculo={showCuadrantesModal}
+          onClose={() => setShowCuadrantesModal(null)}
+        />
+      )}
     </div>
   );
-}
+};

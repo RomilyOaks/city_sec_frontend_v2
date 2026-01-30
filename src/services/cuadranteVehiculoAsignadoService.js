@@ -123,6 +123,19 @@ export const cuadranteVehiculoAsignadoService = {
       params: { ...params, vehiculo_id: vehiculoId } 
     });
     return response.data;
+  },
+
+  /**
+   * Obtener cuadrantes asignados a un vehículo específico (endpoint nuevo)
+   * @param {number} vehiculoId - ID del vehículo
+   * @param {Object} params - Parámetros adicionales (estado, etc.)
+   * @returns {Promise<Object>} Cuadrantes asignados al vehículo
+   */
+  getCuadrantesByVehiculo: async (vehiculoId, params = {}) => {
+    const response = await api.get(`/cuadrantes-vehiculos-asignados/vehiculo/${vehiculoId}`, { 
+      params 
+    });
+    return response.data;
   }
 };
 
