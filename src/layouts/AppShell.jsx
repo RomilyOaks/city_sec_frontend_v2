@@ -37,6 +37,7 @@ import {
   Lock,
   Clipboard,
   Radio,
+  FileText,
 } from "lucide-react";
 
 import ThemeToggle from "../components/common/ThemeToggle.jsx";
@@ -296,6 +297,9 @@ export default function AppShell() {
               </SidebarLink>
               <SidebarLink to="/catalogos/radios-tetra" icon={Radio}>
                 Radios Tetra
+              </SidebarLink>
+              <SidebarLink to="/catalogos/tipos-subtipos-novedad" icon={FileText}>
+                Tipos y Subtipos de Novedad
               </SidebarLink>
             </SidebarDropdown>
 

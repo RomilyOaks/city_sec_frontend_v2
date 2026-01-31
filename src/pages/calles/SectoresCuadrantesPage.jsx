@@ -606,13 +606,15 @@ export default function SectoresCuadrantesPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
                           <div className="flex items-center justify-center gap-2">
-                            <button
-                              onClick={() => handleViewMapaCuadrante(cuadrante)}
-                              className="p-1 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded transition-colors"
-                              title="Ver mapa del cuadrante"
-                            >
-                              <Map size={18} />
-                            </button>
+                            {cuadrante.poligono_json && (
+                              <button
+                                onClick={() => handleViewMapaCuadrante(cuadrante)}
+                                className="p-1 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded transition-colors"
+                                title="Ver mapa del cuadrante"
+                              >
+                                <Map size={18} />
+                              </button>
+                            )}
                             <button
                               onClick={() => handleViewVehiculosCuadrante(cuadrante)}
                               className="p-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
