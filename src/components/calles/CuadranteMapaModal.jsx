@@ -276,11 +276,11 @@ export default function CuadranteMapaModal({
                     <Polygon
                       positions={polygonPositions}
                       pathOptions={{
-                        color: colorMapa,
-                        fillColor: colorMapa,
-                        fillOpacity: 0.2,
-                        weight: 3,
-                        opacity: 0.7,
+                        color: "#ef4444",
+                        fillColor: "#ef4444",
+                        fillOpacity: 0.25,
+                        weight: 4,
+                        opacity: 1,
                       }}
                     />
                   )}
@@ -315,6 +315,11 @@ export default function CuadranteMapaModal({
                 {cuadrante?.sector?.nombre && (
                   <div className="flex items-center gap-2 text-primary-600 dark:text-primary-400">
                     <span>Sector: {cuadrante.sector.nombre}</span>
+                  </div>
+                )}
+                {cuadrante?.cuadrante_code && (
+                  <div className="flex items-center gap-2 text-primary-600 dark:text-primary-400">
+                    <span>Código Cuadrante: {cuadrante.cuadrante_code}</span>
                   </div>
                 )}
               </div>
