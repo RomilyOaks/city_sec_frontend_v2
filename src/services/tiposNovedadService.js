@@ -50,7 +50,16 @@ export const listTiposNovedad = async () => {
  */
 export const getTipoNovedadById = async (id) => {
   const response = await api.get(`/tipos-novedad/${id}`);
-  return response.data;
+  console.log("[tiposNovedadService] getTipoNovedadById - response.data:", response.data);
+
+  const rawData = response?.data;
+
+  // Extraer data si viene envuelta
+  if (rawData && rawData.data && typeof rawData.data === "object") {
+    return rawData.data;
+  }
+
+  return rawData;
 };
 
 /**

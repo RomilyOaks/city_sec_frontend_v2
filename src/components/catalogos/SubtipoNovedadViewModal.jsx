@@ -196,10 +196,10 @@ export default function SubtipoNovedadViewModal({ subtipo, onClose }) {
                   <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">Creado por</p>
                   <p className="font-medium text-slate-900 dark:text-slate-50 flex items-center gap-2">
                     <User size={14} className="text-slate-400" />
-                    {subtipoData?.creador
-                      ? `${subtipoData.creador.username || ""} ${
-                          subtipoData.creador.nombres || subtipoData.creador.apellidos
-                            ? `(${[subtipoData.creador.nombres, subtipoData.creador.apellidos].filter(Boolean).join(" ")})`
+                    {subtipoData?.creadorSubtipoNovedad
+                      ? `${subtipoData.creadorSubtipoNovedad.username || ""} ${
+                          subtipoData.creadorSubtipoNovedad.nombres || subtipoData.creadorSubtipoNovedad.apellidos
+                            ? `(${[subtipoData.creadorSubtipoNovedad.nombres, subtipoData.creadorSubtipoNovedad.apellidos].filter(Boolean).join(" ")})`
                             : ""
                         }`.trim()
                       : subtipoData?.created_by || "—"}
@@ -227,10 +227,10 @@ export default function SubtipoNovedadViewModal({ subtipo, onClose }) {
                     <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">Actualizado por</p>
                     <p className="font-medium text-slate-900 dark:text-slate-50 flex items-center gap-2">
                       <User size={14} className="text-slate-400" />
-                      {subtipoData?.actualizador
-                        ? `${subtipoData.actualizador.username || ""} ${
-                            subtipoData.actualizador.nombres || subtipoData.actualizador.apellidos
-                              ? `(${[subtipoData.actualizador.nombres, subtipoData.actualizador.apellidos].filter(Boolean).join(" ")})`
+                      {subtipoData?.actualizadorSubtipoNovedad
+                        ? `${subtipoData.actualizadorSubtipoNovedad.username || ""} ${
+                            subtipoData.actualizadorSubtipoNovedad.nombres || subtipoData.actualizadorSubtipoNovedad.apellidos
+                              ? `(${[subtipoData.actualizadorSubtipoNovedad.nombres, subtipoData.actualizadorSubtipoNovedad.apellidos].filter(Boolean).join(" ")})`
                               : ""
                           }`.trim()
                         : subtipoData?.updated_by || "—"}
