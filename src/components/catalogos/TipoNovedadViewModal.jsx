@@ -13,14 +13,15 @@ export default function TipoNovedadViewModal({ tipo, onClose }) {
   const [tipoData, setTipoData] = useState(tipo);
   const [loading, setLoading] = useState(false);
 
-  // Cargar datos completos si solo tenemos datos básicos
+  // Cargar datos completos del tipo
   useEffect(() => {
     const fetchTipoCompleto = async () => {
-      if (!tipo?.id || (tipo?.nombre && tipo?.descripcion)) return;
+      if (!tipo?.id) return;
 
       setLoading(true);
       try {
         const data = await getTipoNovedadById(tipo.id);
+        console.log("[TipoNovedadViewModal] data recibida:", data);
         setTipoData(data);
       } catch (error) {
         console.error("Error cargando tipo de novedad:", error);
@@ -38,12 +39,13 @@ export default function TipoNovedadViewModal({ tipo, onClose }) {
     const handleKeyDown = (e) => {
       if (e.key === "Escape") {
         e.preventDefault();
+        e.stopImmediatePropagation(); // Evitar que otros handlers procesen el evento
         onClose();
       }
     };
 
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown, true); // Usar capture phase
+    return () => document.removeEventListener("keydown", handleKeyDown, true);
   }, [onClose]);
 
   if (loading) {
@@ -165,7 +167,13 @@ export default function TipoNovedadViewModal({ tipo, onClose }) {
                   <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">Creado por</p>
                   <p className="font-medium text-slate-900 dark:text-slate-50 flex items-center gap-2">
                     <User size={14} className="text-slate-400" />
-                    {tipoData?.creador?.username || tipoData?.created_by || "—"}
+                    {tipoData?.creadorTipoNovedad
+                      ? `${tipoData.creadorTipoNovedad.username || ""} ${
+                          tipoData.creadorTipoNovedad.nombres || tipoData.creadorTipoNovedad.apellidos
+                            ? `(${[tipoData.creadorTipoNovedad.nombres, tipoData.creadorTipoNovedad.apellidos].filter(Boolean).join(" ")})`
+                            : ""
+                        }`.trim()
+                      : tipoData?.created_by || "—"}
                   </p>
                 </div>
 
@@ -173,18 +181,33 @@ export default function TipoNovedadViewModal({ tipo, onClose }) {
                   <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">Última Actualización</p>
                   <p className="font-medium text-slate-900 dark:text-slate-50 flex items-center gap-2">
                     <Calendar size={14} className="text-slate-400" />
-                    {tipoData?.updated_at 
-                      ? new Date(tipoData.updated_at).toLocaleDateString('es-PE', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
+                    {tipoData?.updated_at
+                      ? new Date(tipoData.updated_at).toLocaleDateString("es-PE", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
                         })
-                      : "—"
-                    }
+                      : "—"}
                   </p>
                 </div>
+
+                {tipoData?.updated_by && (
+                  <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">Actualizado por</p>
+                    <p className="font-medium text-slate-900 dark:text-slate-50 flex items-center gap-2">
+                      <User size={14} className="text-slate-400" />
+                      {tipoData?.actualizadorTipoNovedad
+                        ? `${tipoData.actualizadorTipoNovedad.username || ""} ${
+                            tipoData.actualizadorTipoNovedad.nombres || tipoData.actualizadorTipoNovedad.apellidos
+                              ? `(${[tipoData.actualizadorTipoNovedad.nombres, tipoData.actualizadorTipoNovedad.apellidos].filter(Boolean).join(" ")})`
+                              : ""
+                          }`.trim()
+                        : tipoData?.updated_by || "—"}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Estado */}

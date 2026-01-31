@@ -80,12 +80,13 @@ export default function TipoNovedadFormModal({ tipo, onClose, onSuccess }) {
     const handleKeyDown = (e) => {
       if (e.key === "Escape") {
         e.preventDefault();
+        e.stopImmediatePropagation(); // Evitar que otros handlers procesen el evento
         onClose();
       }
     };
 
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown, true); // Usar capture phase
+    return () => document.removeEventListener("keydown", handleKeyDown, true);
   }, [onClose]);
 
   return (
