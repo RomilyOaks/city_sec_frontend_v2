@@ -337,7 +337,7 @@ export default function TiposSubtiposNovedadPage() {
                 placeholder="Buscar tipos de novedad..."
                 value={searchTipos}
                 onChange={(e) => setSearchTipos(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950/40 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
+                className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
               />
             </div>
           </div>
@@ -468,7 +468,7 @@ export default function TiposSubtiposNovedadPage() {
                 placeholder="Buscar subtipos de novedad..."
                 value={searchSubtipos}
                 onChange={(e) => setSearchSubtipos(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-950/40 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
+                className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
               />
             </div>
           </div>

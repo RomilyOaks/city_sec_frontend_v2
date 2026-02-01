@@ -74,7 +74,7 @@ export default function TipoNovedadViewModal({ tipo, onClose }) {
               {tipoData?.nombre?.charAt(0) || "T"}
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-50">
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
                 {tipoData?.nombre || "Tipo de Novedad"}
               </h2>
               <p className="text-sm text-slate-600 dark:text-slate-400">
@@ -95,36 +95,36 @@ export default function TipoNovedadViewModal({ tipo, onClose }) {
           <div className="space-y-6">
             {/* Información Principal */}
             <div className="space-y-4">
-              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+              <div className="p-4 bg-slate-50 dark:bg-slate-700 rounded-lg">
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">Nombre</p>
-                <p className="font-medium text-slate-900 dark:text-slate-50">
+                <p className="font-medium text-slate-900 dark:text-white">
                   {tipoData?.nombre || "—"}
                 </p>
               </div>
 
-              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+              <div className="p-4 bg-slate-50 dark:bg-slate-700 rounded-lg">
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">Descripción</p>
-                <p className="text-slate-900 dark:text-slate-50">
+                <p className="text-slate-900 dark:text-white">
                   {tipoData?.descripcion || "Sin descripción"}
                 </p>
               </div>
 
-              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+              <div className="p-4 bg-slate-50 dark:bg-slate-700 rounded-lg">
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">Color de Identificación</p>
                 <div className="flex items-center gap-3">
                   <div
                     className="w-8 h-8 rounded-full border-2 border-slate-300 dark:border-slate-600"
                     style={{ backgroundColor: tipoData?.color || "#6B7280" }}
                   />
-                  <span className="font-mono text-slate-900 dark:text-slate-50">
+                  <span className="font-mono text-slate-900 dark:text-white">
                     {tipoData?.color || "#6B7280"}
                   </span>
                 </div>
               </div>
 
-              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+              <div className="p-4 bg-slate-50 dark:bg-slate-700 rounded-lg">
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">Subtipos Asociados</p>
-                <p className="font-medium text-slate-900 dark:text-slate-50">
+                <p className="font-medium text-slate-900 dark:text-white">
                   {tipoData?.subtipos_count || 0} subtipos
                 </p>
               </div>
@@ -132,23 +132,23 @@ export default function TipoNovedadViewModal({ tipo, onClose }) {
 
             {/* Información de Auditoría */}
             <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
-              <h3 className="text-lg font-medium text-slate-900 dark:text-slate-50 mb-4 flex items-center gap-2">
+              <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                 <FileText size={20} />
                 Información de Auditoría
               </h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                <div className="p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
                   <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">ID</p>
-                  <p className="font-medium text-slate-900 dark:text-slate-50 flex items-center gap-2">
+                  <p className="font-medium text-slate-900 dark:text-white flex items-center gap-2">
                     <Hash size={14} className="text-slate-400" />
                     {tipoData?.id || "—"}
                   </p>
                 </div>
 
-                <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                <div className="p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
                   <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">Fecha de Creación</p>
-                  <p className="font-medium text-slate-900 dark:text-slate-50 flex items-center gap-2">
+                  <p className="font-medium text-slate-900 dark:text-white flex items-center gap-2">
                     <Calendar size={14} className="text-slate-400" />
                     {tipoData?.created_at 
                       ? new Date(tipoData.created_at).toLocaleDateString('es-PE', {
@@ -163,9 +163,9 @@ export default function TipoNovedadViewModal({ tipo, onClose }) {
                   </p>
                 </div>
 
-                <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                <div className="p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
                   <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">Creado por</p>
-                  <p className="font-medium text-slate-900 dark:text-slate-50 flex items-center gap-2">
+                  <p className="font-medium text-slate-900 dark:text-white flex items-center gap-2">
                     <User size={14} className="text-slate-400" />
                     {tipoData?.creadorTipoNovedad
                       ? `${tipoData.creadorTipoNovedad.username || ""} ${
@@ -177,9 +177,9 @@ export default function TipoNovedadViewModal({ tipo, onClose }) {
                   </p>
                 </div>
 
-                <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                <div className="p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
                   <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">Última Actualización</p>
-                  <p className="font-medium text-slate-900 dark:text-slate-50 flex items-center gap-2">
+                  <p className="font-medium text-slate-900 dark:text-white flex items-center gap-2">
                     <Calendar size={14} className="text-slate-400" />
                     {tipoData?.updated_at
                       ? new Date(tipoData.updated_at).toLocaleDateString("es-PE", {
@@ -194,9 +194,9 @@ export default function TipoNovedadViewModal({ tipo, onClose }) {
                 </div>
 
                 {tipoData?.updated_by && (
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                  <div className="p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
                     <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">Actualizado por</p>
-                    <p className="font-medium text-slate-900 dark:text-slate-50 flex items-center gap-2">
+                    <p className="font-medium text-slate-900 dark:text-white flex items-center gap-2">
                       <User size={14} className="text-slate-400" />
                       {tipoData?.actualizadorTipoNovedad
                         ? `${tipoData.actualizadorTipoNovedad.username || ""} ${
