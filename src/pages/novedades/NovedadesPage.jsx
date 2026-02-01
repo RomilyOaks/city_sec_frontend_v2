@@ -16,7 +16,7 @@
  *
  * @module src/pages/novedades/NovedadesPage.jsx
  */
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { showValidationError } from "../../utils/errorUtils";
@@ -195,6 +195,21 @@ const getCurrentDateTimeLocal = () => {
 };
 
 /**
+ * Helper para obtener rango de fechas por defecto (últimos 7 días)
+ * Retorna { fecha_inicio: "YYYY-MM-DD", fecha_fin: "YYYY-MM-DD" }
+ */
+const getDefaultDateRange = () => {
+  const now = new Date();
+  const fechaFin = now.toISOString().split("T")[0];
+
+  const hace7Dias = new Date(now);
+  hace7Dias.setDate(hace7Dias.getDate() - 7);
+  const fechaInicio = hace7Dias.toISOString().split("T")[0];
+
+  return { fecha_inicio: fechaInicio, fecha_fin: fechaFin };
+};
+
+/**
  * Helper para formatear dirección completa para display
  */
 const formatDireccionCompleta = (direccion) => {
@@ -273,10 +288,7 @@ export default function NovedadesPage() {
   const [filterTipo, setFilterTipo] = useState("");
   const [filterEstado, setFilterEstado] = useState("1"); // Por defecto: Pendiente de registro
   const [filterPrioridad, setFilterPrioridad] = useState("");
-  const [filters, setFilters] = useState({
-    fecha_inicio: "", // No establecer por defecto para que el usuario elija
-    fecha_fin: "",    // No establecer por defecto para que el usuario elija
-  });
+  const [filters, setFilters] = useState(() => getDefaultDateRange()); // Últimos 7 días por defecto
 
   // Catálogos
   const [tipos, setTipos] = useState([]);
@@ -838,6 +850,21 @@ export default function NovedadesPage() {
     setPage(1);
     fetchNovedades({ nextPage: 1 });
   };
+
+  // Ref para evitar ejecutar el auto-filtro en el montaje inicial
+  const isFirstFilterRender = useRef(true);
+
+  // Auto-ejecutar filtro cuando cambian los dropdowns
+  useEffect(() => {
+    // Evitar ejecutar en el montaje inicial (ya lo hace el useEffect de [page, canRead])
+    if (isFirstFilterRender.current) {
+      isFirstFilterRender.current = false;
+      return;
+    }
+    setPage(1);
+    fetchNovedades({ nextPage: 1 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterTipo, filterEstado, filterPrioridad]);
 
   const handleDelete = async (n) => {
     const confirmed = window.confirm(`¿Eliminar novedad "${n.novedad_code}"?`);
