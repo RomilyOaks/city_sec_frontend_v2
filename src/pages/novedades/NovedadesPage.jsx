@@ -134,8 +134,8 @@ const NUEVOS_ORIGEN_LLAMADA_OPTIONS = [
     color: "text-purple-600"
   },
   {
-    value: "BOTON_EMERGENCIA_ALERTA_SURCO",
-    label: "Botón Emergencia (App ALERTA SURCO)",
+    value: "BOTON_EMERGENCIA_ALERTA",
+    label: "Botón Emergencia",
     icon: AlertTriangle,
     color: "text-red-600"
   },
