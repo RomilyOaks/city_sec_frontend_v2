@@ -176,7 +176,8 @@ export default function LoginPage() {
                 </text>
               </svg>
               <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">
-                CitySecure
+                {/* CitySecure */}
+                Seguridad Ciudadana
               </h1>
             </div>
             <p className="text-sm text-slate-500 dark:text-slate-300 mt-1">
