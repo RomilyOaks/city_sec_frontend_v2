@@ -280,11 +280,14 @@ export default function CuadranteMapaModal({
                     <Polygon
                       positions={polygonPositions}
                       pathOptions={{
-                        color: "#ef4444",
-                        fillColor: "#ef4444",
-                        fillOpacity: 0.25,
-                        weight: 4,
-                        opacity: 1,
+                        color: colorMapa,
+                        fillColor: colorMapa,
+                        fillOpacity: 0.3,
+                        weight: 3,
+                        opacity: 0.9,
+                        lineCap: "round",
+                        lineJoin: "round",
+                        dashArray: null,
                       }}
                     />
                   )}
