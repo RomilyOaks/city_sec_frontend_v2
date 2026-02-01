@@ -19,7 +19,7 @@
 | **TELEFONO_107** | 📞 `Phone` | Azul (`text-blue-600`) | Llamadas tradicionales |
 | **RADIO_TETRA** | 📻 `Radio` | Verde (`text-green-600`) | Comunicación por radio |
 | **REDES_SOCIALES** | 📱 `Share2` | Púrpura (`text-purple-600`) | Publicaciones sociales |
-| **BOTON_EMERGENCIA_ALERTA_SURCO** | 🚨 `AlertTriangle` | Rojo (`text-red-600`) | Emergencias App |
+| **BOTON_EMERGENCIA_ALERTA** | 🚨 `AlertTriangle` | Rojo (`text-red-600`) | Emergencias App |
 | **BOTON_DENUNCIA_VECINO_ALERTA** | 🏠 `Home` | Naranja (`text-orange-600`) | Denuncias vecinales |
 | **ANALITICA** | 📊 `BarChart3` | Índigo (`text-indigo-600`) | Datos y análisis |
 | **APP_PODER_JUDICIAL** | ⚖️ `Scale` | Gris (`text-gray-700`) | Sistema judicial |

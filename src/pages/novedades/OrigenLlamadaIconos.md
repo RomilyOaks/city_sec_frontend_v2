@@ -21,7 +21,7 @@
 | `TELEFONO_107` | Llamada Telefónica (107) | 📞 `Phone` | `Phone` | Llamada telefónica tradicional |
 | `RADIO_TETRA` | Llamada Radio TETRA | 📻 `Radio` | `Radio` | Comunicación por radio |
 | `REDES_SOCIALES` | Redes Sociales | 📱 `Share2` | `Share2` | Compartir en redes sociales |
-| `BOTON_EMERGENCIA_ALERTA_SURCO` | Botón Emergencia (App ALERTA SURCO) | 🚨 `AlertTriangle` | `AlertTriangle` | Botón de emergencia |
+| `BOTON_EMERGENCIA_ALERTA` | Botón Emergencia | 🚨 `AlertTriangle` | `AlertTriangle` | Botón de emergencia |
 | `BOTON_DENUNCIA_VECINO_ALERTA` | Botón Denuncia (App VECINO ALERTA) | 🏠 `Home` | `Home` | Denuncia desde vecino |
 | `ANALITICA` | Analítica | 📊 `BarChart3` | `BarChart3` | Datos y análisis |
 | `APP_PODER_JUDICIAL` | APP Poder Judicial | ⚖️ `Scale` | `Scale` | Sistema judicial |
@@ -51,9 +51,9 @@ const ORIGEN_LLAMADA_CON_ICONOS = [
     icon: Share2,
     color: "text-purple-600" // Púrpura para redes
   },
-  { 
-    value: "BOTON_EMERGENCIA_ALERTA_SURCO", 
-    label: "Botón Emergencia (App ALERTA SURCO)", 
+  {
+    value: "BOTON_EMERGENCIA_ALERTA",
+    label: "Botón Emergencia",
     icon: AlertTriangle,
     color: "text-red-600" // Rojo para emergencia
   },
