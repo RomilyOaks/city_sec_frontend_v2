@@ -13,6 +13,7 @@ import {
 import { listCuadrantes } from "../../services/cuadrantesService";
 import toast from "react-hot-toast";
 import { useAuthStore } from "../../store/useAuthStore";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 
 const LADOS = [
   { value: "AMBOS", label: "Ambos lados" },
@@ -30,6 +31,10 @@ export default function CalleCuadranteFormModal({
   onSuccess,
 }) {
   const { user } = useAuthStore();
+
+  // Bloquear scroll del body cuando el modal está abierto
+  useBodyScrollLock(isOpen);
+
   const [loading, setLoading] = useState(false);
   const [cuadrantes, setCuadrantes] = useState([]);
   const [loadingCuadrantes, setLoadingCuadrantes] = useState(true);

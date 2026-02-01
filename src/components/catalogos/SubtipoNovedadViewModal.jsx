@@ -7,11 +7,15 @@
 import { useState, useEffect } from "react";
 import { X, FileText, Calendar, User, Hash, Flag, Tag } from "lucide-react";
 import { getSubtipoNovedadById } from "../../services/subtiposNovedadService";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 import toast from "react-hot-toast";
 
 export default function SubtipoNovedadViewModal({ subtipo, onClose }) {
   const [subtipoData, setSubtipoData] = useState(subtipo);
   const [loading, setLoading] = useState(false);
+
+  // Bloquear scroll del body cuando el modal está abierto
+  useBodyScrollLock(true);
 
   // Cargar datos completos del subtipo
   useEffect(() => {

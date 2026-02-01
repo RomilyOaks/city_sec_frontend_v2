@@ -18,6 +18,7 @@ import toast from "react-hot-toast";
 import cuadranteVehiculoAsignadoService from "../../services/cuadranteVehiculoAsignadoService.js";
 import CuadranteMapaModal from "../calles/CuadranteMapaModal.jsx";
 import { getCuadranteById } from "../../services/cuadrantesService.js";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 
 /**
  * Modal para mostrar cuadrantes asignados a un vehículo
@@ -27,6 +28,9 @@ import { getCuadranteById } from "../../services/cuadrantesService.js";
  * @returns {JSX.Element}
  */
 export default function VehiculoCuadrantesModal({ vehiculo, onClose }) {
+  // Bloquear scroll del body cuando el modal está abierto
+  useBodyScrollLock(true);
+
   const [cuadrantesAsignados, setCuadrantesAsignados] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);

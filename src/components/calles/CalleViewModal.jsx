@@ -8,6 +8,7 @@
 
 import { useEffect } from "react";
 import { X, MapPin } from "lucide-react";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 
 /**
  * CalleViewModal - Modal de solo consulta
@@ -18,6 +19,9 @@ import { X, MapPin } from "lucide-react";
  * @param {Object} props.calle - Calle a mostrar
  */
 export default function CalleViewModal({ isOpen, onClose, calle }) {
+  // Bloquear scroll del body cuando el modal está abierto
+  useBodyScrollLock(isOpen);
+
   // Manejo de tecla ESC para cerrar
   useEffect(() => {
     const handleEscape = (e) => {

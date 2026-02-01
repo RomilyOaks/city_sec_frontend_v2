@@ -7,6 +7,7 @@ import { listCuadrantes, getCuadranteById } from "../../services/cuadrantesServi
 import { listUbigeos, getUbigeoByCode } from "../../services/novedadesService";
 import { toast } from "react-hot-toast";
 import { getDefaultUbigeo } from "../../config/defaults";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 
 /**
  * File: src/components/direcciones/DireccionFormModal.jsx
@@ -24,6 +25,9 @@ import { getDefaultUbigeo } from "../../config/defaults";
  */
 
 export default function DireccionFormModal({ isOpen, onClose, direccion: direccionInicial = null }) {
+  // Bloquear scroll del body cuando el modal está abierto
+  useBodyScrollLock(isOpen);
+
   const TIPOS_COMPLEMENTO = [
     { value: "DEPTO", label: "Departamento" },
     { value: "OFICINA", label: "Oficina" },

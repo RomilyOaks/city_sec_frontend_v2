@@ -8,6 +8,7 @@
 
 import { useEffect } from "react";
 import { X, Map } from "lucide-react";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 
 /**
  * SectorViewModal - Modal de solo consulta
@@ -18,6 +19,9 @@ import { X, Map } from "lucide-react";
  * @param {Object} props.sector - Sector a mostrar
  */
 export default function SectorViewModal({ isOpen, onClose, sector }) {
+  // Bloquear scroll del body cuando el modal está abierto
+  useBodyScrollLock(isOpen);
+
   // Manejo de tecla ESC para cerrar
   useEffect(() => {
     if (!isOpen) return;

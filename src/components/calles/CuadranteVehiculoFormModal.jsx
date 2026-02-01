@@ -17,6 +17,7 @@ import { X, Car, Save, AlertCircle, RefreshCw } from "lucide-react";
 import toast from "react-hot-toast";
 import cuadranteVehiculoAsignadoService from "../../services/cuadranteVehiculoAsignadoService.js";
 import { listVehiculosDisponibles } from "../../services/vehiculosService.js";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 
 /**
  * Modal para formulario de asignación vehículo-cuadrante
@@ -29,14 +30,17 @@ import { listVehiculosDisponibles } from "../../services/vehiculosService.js";
  * @param {Object} props.asignacion - Datos de la asignación (modo edit)
  * @returns {JSX.Element}
  */
-export default function CuadranteVehiculoFormModal({ 
-  isOpen, 
-  onClose, 
-  onSuccess, 
-  mode, 
-  cuadrante, 
-  asignacion 
+export default function CuadranteVehiculoFormModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  mode,
+  cuadrante,
+  asignacion
 }) {
+  // Bloquear scroll del body cuando el modal está abierto
+  useBodyScrollLock(isOpen);
+
   // Estado del formulario
   const [formData, setFormData] = useState({
     cuadrante_id: cuadrante?.id || "",

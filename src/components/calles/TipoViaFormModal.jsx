@@ -12,6 +12,7 @@ import {
   updateTipoVia,
   listTiposVia,
 } from "../../services/tiposViaService";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 
 /**
  * TipoViaFormModal - Modal para CRUD de tipos de vía
@@ -24,6 +25,9 @@ export default function TipoViaFormModal({
   initialData = null,
   mode = "create", // "create" | "edit"
 }) {
+  // Bloquear scroll del body cuando el modal está abierto
+  useBodyScrollLock(isOpen);
+
   // ============================================
   // ESTADO
   // ============================================

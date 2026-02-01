@@ -48,6 +48,7 @@ import {
 // RBAC
 import { canPerformAction } from "../../../rbac/rbac.js";
 import { useAuthStore } from "../../../store/useAuthStore.js";
+import useBodyScrollLock from "../../../hooks/useBodyScrollLock";
 
 // Componentes
 import NovedadDetalleModal from "../../../components/NovedadDetalleModal.jsx";
@@ -70,6 +71,9 @@ export default function NovedadesPersonalModal({
   personal,
   cuadrante,
 }) {
+  // Bloquear scroll del body cuando el modal está abierto
+  useBodyScrollLock(isOpen);
+
   // Auth y permisos
   const user = useAuthStore((s) => s.user);
   const canCreate = canPerformAction(user, "operativos.personal.novedades.create");

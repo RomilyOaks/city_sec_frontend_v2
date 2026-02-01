@@ -25,6 +25,7 @@ import {
 } from "../../../services/operativosVehiculosService.js";
 import { canPerformAction } from "../../../rbac/rbac.js";
 import { useAuthStore } from "../../../store/useAuthStore.js";
+import useBodyScrollLock from "../../../hooks/useBodyScrollLock";
 import AsignarVehiculoForm from "./AsignarVehiculoForm.jsx";
 import VerVehiculoModal from "./VerVehiculoModal.jsx";
 import EditarVehiculoForm from "./EditarVehiculoForm.jsx";
@@ -38,6 +39,9 @@ import EditarVehiculoForm from "./EditarVehiculoForm.jsx";
  * @param {Object} props.turno - Turno operativo seleccionado
  */
 export default function OperativosVehiculosModal({ isOpen, onClose, turno }) {
+  // Bloquear scroll del body cuando el modal está abierto
+  useBodyScrollLock(isOpen);
+
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
   const canCreate = canPerformAction(user, "operativos_vehiculos_create");

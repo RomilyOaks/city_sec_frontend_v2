@@ -8,6 +8,7 @@ import {
 import { listUbigeos, getUbigeoByCode } from "../../services/novedadesService";
 import { toast } from "react-hot-toast";
 import { getDefaultUbigeo } from "../../config/defaults";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 
 /**
  * File: src/components/catalogos/UnidadOficinaFormModal.jsx
@@ -30,6 +31,9 @@ export default function UnidadOficinaFormModal({
   onClose,
   unidadOficina: unidadOficinaInicial = null,
 }) {
+  // Bloquear scroll del body cuando el modal está abierto
+  useBodyScrollLock(isOpen);
+
   const TIPOS_UNIDAD = [
     { value: "SERENAZGO", label: "Serenazgo" },
     { value: "PNP", label: "PNP (Policía Nacional)" },

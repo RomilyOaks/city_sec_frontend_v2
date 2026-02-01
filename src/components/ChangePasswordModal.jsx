@@ -12,6 +12,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { X, Eye, EyeOff, Lock, Check } from "lucide-react";
 import toast from "react-hot-toast";
 import { changePassword } from "../services/authService";
+import useBodyScrollLock from "../hooks/useBodyScrollLock";
 
 const schema = z
   .object({
@@ -42,6 +43,9 @@ const schema = z
  */
 
 export default function ChangePasswordModal({ isOpen, onClose }) {
+  // Bloquear scroll del body cuando el modal está abierto
+  useBodyScrollLock(isOpen);
+
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);

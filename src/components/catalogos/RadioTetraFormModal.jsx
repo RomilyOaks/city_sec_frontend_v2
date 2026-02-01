@@ -10,6 +10,7 @@ import React, { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
 import { X, Save } from "lucide-react";
 import { radioTetraService } from "../../services/radiosTetraService.js";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 
 /**
  * Modal para crear/editar radios TETRA
@@ -24,6 +25,9 @@ export default function RadioTetraFormModal({
   mode = "create", // "create" | "edit"
   radio = null,
 }) {
+  // Bloquear scroll del body cuando el modal está abierto
+  useBodyScrollLock(isOpen);
+
   // Estados del formulario
   const [formData, setFormData] = useState({
     radio_tetra_code: "",

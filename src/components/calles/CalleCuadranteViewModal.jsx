@@ -8,6 +8,7 @@
 
 import { useEffect } from "react";
 import { X, MapPin } from "lucide-react";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 
 /**
  * CalleCuadranteViewModal - Modal de solo consulta
@@ -22,6 +23,9 @@ export default function CalleCuadranteViewModal({
   onClose,
   calleCuadrante,
 }) {
+  // Bloquear scroll del body cuando el modal está abierto
+  useBodyScrollLock(isOpen);
+
   if (!isOpen || !calleCuadrante) return null;
 
   // Debug: Log del objeto completo para ver qué relaciones trae

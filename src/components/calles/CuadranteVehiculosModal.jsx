@@ -31,6 +31,7 @@ import toast from "react-hot-toast";
 import cuadranteVehiculoAsignadoService from "../../services/cuadranteVehiculoAsignadoService.js";
 import CuadranteVehiculoFormModal from "./CuadranteVehiculoFormModal.jsx";
 import { useAuthStore } from "../../store/useAuthStore.js";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 
 /**
  * Modal para gestión de vehículos asignados a cuadrante
@@ -42,6 +43,9 @@ import { useAuthStore } from "../../store/useAuthStore.js";
  */
 export default function CuadranteVehiculosModal({ isOpen, onClose, cuadrante }) {
   const { can, user } = useAuthStore();
+
+  // Bloquear scroll del body cuando el modal está abierto
+  useBodyScrollLock(isOpen);
 
   // Estados principales
   const [asignaciones, setAsignaciones] = useState([]);
