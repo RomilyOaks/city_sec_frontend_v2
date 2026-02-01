@@ -12,6 +12,7 @@
 
 import { useEffect } from "react";
 import { X, PersonStanding, Check, Minus } from "lucide-react";
+import useBodyScrollLock from "../../../hooks/useBodyScrollLock";
 
 // Servicios
 import {
@@ -30,6 +31,9 @@ import {
  * @param {Object} props.personal - Objeto con datos del personal asignado
  */
 export default function VerPersonalModal({ isOpen, onClose, personal }) {
+  // Bloquear scroll del body cuando el modal está abierto
+  useBodyScrollLock(isOpen);
+
   // ============================================================================
   // EFECTOS
   // ============================================================================

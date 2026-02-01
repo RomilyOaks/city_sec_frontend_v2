@@ -28,6 +28,7 @@ import {
 } from "../../services/callesService";
 import { listUbigeos, getUbigeoByCode } from "../../services/novedadesService";
 import { getDefaultUbigeo } from "../../config/defaults";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 
 /**
  * Capitaliza la primera letra de cada palabra
@@ -82,6 +83,8 @@ export default function CalleFormModal({
   initialData = null,
   mode = "create", // "create" | "edit"
 }) {
+  // Bloquear scroll del body cuando el modal está abierto
+  useBodyScrollLock(isOpen);
 
   // ============================================
   // ESTADO

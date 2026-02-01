@@ -11,8 +11,12 @@ import { listUbigeos, getUbigeoByCode } from "../../services/novedadesService";
 import { listPersonalSelector } from "../../services/personalService";
 import toast from "react-hot-toast";
 import { getDefaultUbigeo } from "../../config/defaults";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 
 export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) {
+  // Bloquear scroll del body cuando el modal está abierto
+  useBodyScrollLock(isOpen);
+
   const [activeTab, setActiveTab] = useState("basicos");
   const [formData, setFormData] = useState({
     codigo: "",

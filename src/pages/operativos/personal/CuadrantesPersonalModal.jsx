@@ -35,6 +35,7 @@ import { listCuadrantes } from "../../../services/cuadrantesService.js";
 // RBAC
 import { canPerformAction } from "../../../rbac/rbac.js";
 import { useAuthStore } from "../../../store/useAuthStore.js";
+import useBodyScrollLock from "../../../hooks/useBodyScrollLock";
 
 /**
  * CuadrantesPersonalModal
@@ -56,6 +57,9 @@ export default function CuadrantesPersonalModal({
   onOpenNovedades,
   isNovedadesModalOpen = false,
 }) {
+  // Bloquear scroll del body cuando el modal está abierto
+  useBodyScrollLock(isOpen);
+
   // Auth y permisos
   const user = useAuthStore((s) => s.user);
   const canCreate = canPerformAction(user, "operativos.personal.cuadrantes.create");

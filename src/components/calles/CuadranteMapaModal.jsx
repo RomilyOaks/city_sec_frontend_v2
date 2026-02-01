@@ -10,6 +10,7 @@ import { MapContainer, TileLayer, Polygon, Marker, useMap } from "react-leaflet"
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { getCuadranteById } from "../../services/cuadrantesService";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 
 // Fix para iconos de Leaflet en React
 delete L.Icon.Default.prototype._getIconUrl;
@@ -136,6 +137,9 @@ export default function CuadranteMapaModal({
   const [cuadrante, setCuadrante] = useState(cuadranteProp);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Bloquear scroll del body cuando el modal está abierto
+  useBodyScrollLock(isOpen);
 
   // Cargar cuadrante por ID si no se pasa el objeto completo
   useEffect(() => {

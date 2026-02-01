@@ -8,6 +8,7 @@
 
 import { useEffect } from "react";
 import { X, Map } from "lucide-react";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 
 /**
  * CuadranteViewModal - Modal de solo consulta
@@ -18,6 +19,9 @@ import { X, Map } from "lucide-react";
  * @param {Object} props.cuadrante - Cuadrante a mostrar
  */
 export default function CuadranteViewModal({ isOpen, onClose, cuadrante }) {
+  // Bloquear scroll del body cuando el modal está abierto
+  useBodyScrollLock(isOpen);
+
   // Manejo de tecla ESC para cerrar
   useEffect(() => {
     const handleEscape = (e) => {

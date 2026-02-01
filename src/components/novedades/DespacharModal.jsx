@@ -23,6 +23,7 @@ import {
   Info,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 import { getHorarioActivo } from "../../services/horariosTurnosService.js";
 import {
   getTurnoActivo,
@@ -103,6 +104,9 @@ export default function DespacharModal({
 }) {
   // Obtener usuario autenticado
   const user = useAuthStore((s) => s.user);
+
+  // Bloquear scroll del body cuando el modal está abierto
+  useBodyScrollLock(isOpen);
 
   // Estado del turno activo
   const [turnoActivo, setTurnoActivo] = useState(null);

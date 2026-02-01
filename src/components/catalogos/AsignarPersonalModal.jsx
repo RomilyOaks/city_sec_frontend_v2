@@ -11,6 +11,7 @@ import { toast } from "react-hot-toast";
 import { X, UserPlus, Save } from "lucide-react";
 import { radioTetraService } from "../../services/radiosTetraService.js";
 import PersonalDropdown from "./PersonalDropdown.jsx";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 
 /**
  * Modal para asignar personal a radios TETRA
@@ -24,6 +25,9 @@ export default function AsignarPersonalModal({
   onSuccess,
   radio = null,
 }) {
+  // Bloquear scroll del body cuando el modal está abierto
+  useBodyScrollLock(isOpen);
+
   // Estados
   const [personalSeleccionado, setPersonalSeleccionado] = useState(null);
   const [loading, setLoading] = useState(false);

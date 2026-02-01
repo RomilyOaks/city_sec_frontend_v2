@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { X, MapPin, Navigation, Map as MapIcon } from "lucide-react";
 import { getUbigeoByCode } from "../../services/novedadesService";
 import { getDireccionById } from "../../services/direccionesService";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 
 /**
  * DireccionViewModal - Modal de solo consulta
@@ -20,6 +21,9 @@ import { getDireccionById } from "../../services/direccionesService";
  * @param {Object} props.direccion - Dirección inicial (puede no tener relaciones)
  */
 export default function DireccionViewModal({ isOpen, onClose, direccion: direccionInicial }) {
+  // Bloquear scroll del body cuando el modal está abierto
+  useBodyScrollLock(isOpen);
+
   const [ubigeoInfo, setUbigeoInfo] = useState(null);
   const [direccion, setDireccion] = useState(null);
   const [loading, setLoading] = useState(true);

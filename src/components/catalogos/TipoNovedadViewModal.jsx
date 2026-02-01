@@ -7,11 +7,15 @@
 import { useState, useEffect } from "react";
 import { X, FileText, Calendar, User, Hash } from "lucide-react";
 import { getTipoNovedadById } from "../../services/tiposNovedadService";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 import toast from "react-hot-toast";
 
 export default function TipoNovedadViewModal({ tipo, onClose }) {
   const [tipoData, setTipoData] = useState(tipo);
   const [loading, setLoading] = useState(false);
+
+  // Bloquear scroll del body cuando el modal está abierto
+  useBodyScrollLock(true);
 
   // Cargar datos completos del tipo
   useEffect(() => {

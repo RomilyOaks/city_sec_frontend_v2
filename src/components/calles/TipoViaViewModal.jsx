@@ -8,6 +8,7 @@
 
 import { useEffect } from "react";
 import { X, Type } from "lucide-react";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 
 /**
  * TipoViaViewModal - Modal de solo consulta
@@ -18,6 +19,9 @@ import { X, Type } from "lucide-react";
  * @param {Object} props.tipoVia - Tipo de vía a mostrar
  */
 export default function TipoViaViewModal({ isOpen, onClose, tipoVia }) {
+  // Bloquear scroll del body cuando el modal está abierto
+  useBodyScrollLock(isOpen);
+
   if (!isOpen || !tipoVia) return null;
 
   // Manejo de tecla ESC para cerrar

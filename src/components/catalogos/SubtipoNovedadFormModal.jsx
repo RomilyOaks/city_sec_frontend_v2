@@ -8,9 +8,13 @@ import { useState, useEffect } from "react";
 import { X, Save } from "lucide-react";
 import { createSubtipoNovedad, updateSubtipoNovedad } from "../../services/subtiposNovedadService";
 import { listTiposNovedad } from "../../services/tiposNovedadService";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 import toast from "react-hot-toast";
 
 export default function SubtipoNovedadFormModal({ subtipo, tipoId, onClose, onSuccess }) {
+  // Bloquear scroll del body cuando el modal está abierto
+  useBodyScrollLock(true);
+
   const [formData, setFormData] = useState({
     nombre: "",
     descripcion: "",

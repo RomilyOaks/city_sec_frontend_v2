@@ -11,6 +11,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { createCuadrante, updateCuadrante } from "../../services/cuadrantesService";
 import { listSectores } from "../../services/sectoresService";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 import toast from "react-hot-toast";
 
 // Fix para iconos de Leaflet en React
@@ -224,6 +225,9 @@ function MapaVisualizacion({ poligonoJson, latitud, longitud, colorMapa, nombre 
 }
 
 export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSuccess, preselectedSectorId }) {
+  // Bloquear scroll del body cuando el modal está abierto
+  useBodyScrollLock(isOpen);
+
   const [activeTab, setActiveTab] = useState("basicos");
   const [formData, setFormData] = useState({
     cuadrante_code: "",

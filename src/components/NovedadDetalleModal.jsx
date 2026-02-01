@@ -27,6 +27,7 @@ import {
   getNovedadById,
   getHistorialEstados,
 } from "../services/novedadesService";
+import UbicacionMiniMapa from "./UbicacionMiniMapa";
 
 const ORIGEN_LLAMADA_OPTIONS = [
   { value: "TELEFONO_107", label: "Teléfono 107", icon: Phone },
@@ -155,6 +156,16 @@ export default function NovedadDetalleModal({
 
     fetchData();
   }, [isOpen, novedadId, initialNovedad]);
+
+  // Bloquear scroll del body cuando el modal está abierto
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -444,6 +455,20 @@ export default function NovedadDetalleModal({
                           : "—"}
                       </p>
                     </div>
+                  </div>
+
+                  {/* Mapa de ubicación */}
+                  <div className="pt-2">
+                    <h4 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3">
+                      Ubicación en Mapa
+                    </h4>
+                    <UbicacionMiniMapa
+                      latitud={novedad.latitud}
+                      longitud={novedad.longitud}
+                      height="220px"
+                      zoom={16}
+                      showCoordinates={false}
+                    />
                   </div>
                 </div>
               )}

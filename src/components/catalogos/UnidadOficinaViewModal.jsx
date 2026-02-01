@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { X, Building2, MapPin, Clock, Phone, Mail } from "lucide-react";
 import { getUbigeoByCode } from "../../services/novedadesService";
 import { getUnidadOficinaById } from "../../services/unidadesOficinaService";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 
 /**
  * UnidadOficinaViewModal - Modal de solo consulta
@@ -24,6 +25,9 @@ export default function UnidadOficinaViewModal({
   onClose,
   unidad: unidadInicial,
 }) {
+  // Bloquear scroll del body cuando el modal está abierto
+  useBodyScrollLock(isOpen);
+
   console.log(
     "🔵 [UnidadOficinaViewModal] Renderizando componente. isOpen:",
     isOpen,
