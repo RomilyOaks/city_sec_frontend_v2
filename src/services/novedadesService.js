@@ -387,3 +387,11 @@ export async function getDashboardStats() {
   const res = await api.get("/novedades/dashboard/stats");
   return res?.data?.data || res?.data || {};
 }
+
+/**
+ * Obtener novedades en atención (estados 2-5: Despachada, En Ruta, En Lugar, En Atención)
+ */
+export async function getNovedadesEnAtencion() {
+  const res = await api.get("/novedades/dashboard/en-atencion");
+  return res?.data?.data || res?.data || {};
+}
