@@ -15,6 +15,7 @@ import {
   getEstadisticasNovedades,
   listNovedades,
   listEstadosNovedad,
+  getNovedadesEnAtencion,
 } from "../../services/novedadesService";
 import MapaIncidentes from "../../components/MapaIncidentes";
 
@@ -39,7 +40,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState({
     personalActivo: 0,
     vehiculosOperativos: 0,
-    novedadesAbiertas: 0,
+    novedadesEnAtencion: 0,
     novedadesResueltasHoy: 0,
     tiempoPromedioRespuesta: 0,
     novedadesPorPrioridad: [],
@@ -52,13 +53,14 @@ export default function DashboardPage() {
   const fetchStats = async () => {
     setLoading(true);
     try {
-      const [personalStats, vehiculosStats, novedadesStats, novedadesList, estadosRes] =
+      const [personalStats, vehiculosStats, novedadesStats, novedadesList, estadosRes, enAtencionRes] =
         await Promise.all([
           getEstadisticasPersonal(),
           getEstadisticasVehiculos(),
           getEstadisticasNovedades(),
           listNovedades({ limit: 100 }), // Cargar novedades para el mapa
           listEstadosNovedad(), // Cargar estados para filtro del mapa
+          getNovedadesEnAtencion(), // Nuevo endpoint para novedades en atención
         ]);
 
       // Guardar estados para el mapa
@@ -90,50 +92,29 @@ export default function DashboardPage() {
         vehiculosStats?.vehiculosDisponibles ||
         0;
 
-      // Novedades - usar totalNovedades del día
-      const totalNovedadesHoy = novedadesStats?.totalNovedades || 0;
-      const novedadesPorEstado = novedadesStats?.novedadesPorEstado || [];
+      // Novedades en atención (del nuevo endpoint)
+      const novedadesEnAtencion = enAtencionRes?.totalEnAtencion || 0;
 
-      // Estados finales (cerrados/resueltos/derivados)
-      const estadosFinales = [
-        "cerrado",
-        "cancelado",
-        "derivado",
-        "resuelto",
-        "archivado",
-      ];
-      let novedadesAbiertas = 0;
+      // Novedades resueltas hoy (del endpoint de estadísticas)
+      const novedadesPorEstado = novedadesStats?.novedadesPorEstado || [];
+      const estadosFinales = ["cerrado", "cancelado", "derivado", "resuelto", "archivado"];
       let novedadesResueltasHoy = 0;
 
       if (novedadesPorEstado.length > 0) {
         novedadesPorEstado.forEach((e) => {
-          const nombreEstado = (e.novedadEstado?.nombre || "")
-            .toLowerCase()
-            .replace(/\s+/g, " ")
-            .trim();
+          const nombreEstado = (e.novedadEstado?.nombre || "").toLowerCase().trim();
           const cantidad = parseInt(e.dataValues?.cantidad || e.cantidad || 0);
-
-          // Verificar si es un estado final
-          const esEstadoFinal = estadosFinales.some((ef) =>
-            nombreEstado.includes(ef)
-          );
-
+          const esEstadoFinal = estadosFinales.some((ef) => nombreEstado.includes(ef));
           if (esEstadoFinal) {
             novedadesResueltasHoy += cantidad;
-          } else {
-            // Estados abiertos: Pendiente, Despachado, En Atención, En Ruta, etc.
-            novedadesAbiertas += cantidad;
           }
         });
-      } else {
-        // Si no hay desglose por estado, usar el total como abiertas
-        novedadesAbiertas = totalNovedadesHoy;
       }
 
       setStats({
         personalActivo,
         vehiculosOperativos,
-        novedadesAbiertas,
+        novedadesEnAtencion,
         novedadesResueltasHoy,
         tiempoPromedioRespuesta: novedadesStats?.tiempoPromedioRespuesta || 0,
         novedadesPorPrioridad: novedadesStats?.novedadesPorPrioridad || [],
@@ -167,8 +148,8 @@ export default function DashboardPage() {
       bgColor: "bg-emerald-50 dark:bg-emerald-900/20",
     },
     {
-      label: "Novedades Abiertas",
-      value: stats.novedadesAbiertas,
+      label: "Novedades en Atención",
+      value: stats.novedadesEnAtencion,
       icon: AlertTriangle,
       color: "text-amber-600 dark:text-amber-400",
       bgColor: "bg-amber-50 dark:bg-amber-900/20",
@@ -183,7 +164,8 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-50">
           Dashboard
@@ -198,42 +180,65 @@ export default function DashboardPage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {cards.map((item) => (
-          <div
-            key={item.label}
-            className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm"
-          >
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                {item.label}
-              </p>
-              <div className={`p-2 rounded-lg ${item.bgColor}`}>
-                <item.icon size={18} className={item.color} />
-              </div>
-            </div>
-            <p className="text-3xl font-bold text-slate-900 dark:text-slate-50 mt-3">
-              {loading ? "—" : item.value}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      {/* Estadísticas adicionales */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Tiempo promedio de respuesta */}
-        <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <Clock size={18} className="text-slate-500" />
+      {/* Layout principal: Mapa a la izquierda, Cards a la derecha */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        {/* Mapa de Incidentes - Ocupa 3 columnas */}
+        <div className="lg:col-span-3 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <Map size={18} className="text-slate-500" />
             <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-              Tiempo Promedio de Respuesta
+              Mapa de Incidentes
             </p>
+            <span className="text-xs text-slate-500 ml-auto">
+              {novedadesParaMapa.length} incidentes georeferenciados
+            </span>
           </div>
-          <p className="text-2xl font-bold text-slate-900 dark:text-slate-50">
-            {loading ? "—" : `${stats.tiempoPromedioRespuesta} min`}
-          </p>
+          <MapaIncidentes
+            novedades={novedadesParaMapa}
+            estados={estadosNovedad}
+            height="500px"
+            showFilters={true}
+          />
         </div>
 
+        {/* Cards de estadísticas - Columna derecha vertical */}
+        <div className="lg:col-span-1 flex flex-col gap-4">
+          {cards.map((item) => (
+            <div
+              key={item.label}
+              className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm"
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  {item.label}
+                </p>
+                <div className={`p-2 rounded-lg ${item.bgColor}`}>
+                  <item.icon size={18} className={item.color} />
+                </div>
+              </div>
+              <p className="text-3xl font-bold text-slate-900 dark:text-slate-50 mt-3">
+                {loading ? "—" : item.value}
+              </p>
+            </div>
+          ))}
+
+          {/* Tiempo promedio de respuesta */}
+          <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <Clock size={16} className="text-slate-500" />
+              <p className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                Tiempo Promedio Respuesta
+              </p>
+            </div>
+            <p className="text-2xl font-bold text-slate-900 dark:text-slate-50">
+              {loading ? "—" : `${stats.tiempoPromedioRespuesta} min`}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Estadísticas adicionales - Segunda fila */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Novedades por prioridad */}
         <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
@@ -247,7 +252,7 @@ export default function DashboardPage() {
           ) : stats.novedadesPorPrioridad.length === 0 ? (
             <p className="text-slate-500 text-sm">Sin novedades hoy</p>
           ) : (
-            <div className="flex gap-4">
+            <div className="flex gap-4 flex-wrap">
               {stats.novedadesPorPrioridad.map((p) => (
                 <div
                   key={p.prioridad_actual}
@@ -273,49 +278,34 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
-      </div>
 
-      {/* Novedades por tipo */}
-      {stats.novedadesPorTipo.length > 0 && (
+        {/* Novedades por tipo */}
         <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
           <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
             Novedades por Tipo (Hoy)
           </p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            {stats.novedadesPorTipo.map((t, idx) => (
-              <div
-                key={idx}
-                className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50"
-              >
-                <span className="text-sm text-slate-600 dark:text-slate-400 truncate">
-                  {t.novedadTipoNovedad?.nombre || "Sin tipo"}
-                </span>
-                <span className="font-semibold text-slate-900 dark:text-slate-50 ml-2">
-                  {t.dataValues?.cantidad || t.cantidad || 0}
-                </span>
-              </div>
-            ))}
-          </div>
+          {loading ? (
+            <p className="text-slate-500">Cargando...</p>
+          ) : stats.novedadesPorTipo.length === 0 ? (
+            <p className="text-slate-500 text-sm">Sin novedades hoy</p>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              {stats.novedadesPorTipo.slice(0, 6).map((t, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50"
+                >
+                  <span className="text-xs text-slate-600 dark:text-slate-400 truncate">
+                    {t.novedadTipoNovedad?.nombre || "Sin tipo"}
+                  </span>
+                  <span className="font-semibold text-sm text-slate-900 dark:text-slate-50 ml-2">
+                    {t.dataValues?.cantidad || t.cantidad || 0}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
-
-      {/* Mapa de Incidentes */}
-      <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
-        <div className="flex items-center gap-2 mb-4">
-          <Map size={18} className="text-slate-500" />
-          <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-            Mapa de Incidentes
-          </p>
-          <span className="text-xs text-slate-500 ml-auto">
-            {novedadesParaMapa.length} incidentes georeferenciados
-          </span>
-        </div>
-        <MapaIncidentes
-          novedades={novedadesParaMapa}
-          estados={estadosNovedad}
-          height="450px"
-          showFilters={true}
-        />
       </div>
     </div>
   );
