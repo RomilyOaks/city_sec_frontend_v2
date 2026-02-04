@@ -734,6 +734,9 @@ export default function NovedadesPage() {
   // Debounced search de dirección
   useEffect(() => {
     if (pageTab !== PAGE_TABS.REGISTRO) return;
+    
+    // No hacer búsqueda si ya hay una dirección seleccionada
+    if (direccionMatch) return;
 
     const timer = setTimeout(() => {
       if (registroFormData.referencia_ubicacion) {
@@ -742,7 +745,7 @@ export default function NovedadesPage() {
     }, 500); // 500ms debounce
 
     return () => clearTimeout(timer);
-  }, [registroFormData.referencia_ubicacion, pageTab]);
+  }, [registroFormData.referencia_ubicacion, pageTab, direccionMatch]);
 
   // Cargar catálogos al entrar a tab REGISTRO
   useEffect(() => {

@@ -8,6 +8,7 @@ import { listUbigeos, getUbigeoByCode } from "../../services/novedadesService";
 import { toast } from "react-hot-toast";
 import { getDefaultUbigeo } from "../../config/defaults";
 import useBodyScrollLock from "../../hooks/useBodyScrollLock";
+import { showValidationError } from "../../utils/errorUtils.js";
 
 /**
  * File: src/components/direcciones/DireccionFormModal.jsx
@@ -460,8 +461,8 @@ export default function DireccionFormModal({ isOpen, onClose, direccion: direcci
     } catch (error) {
       console.error("Error al guardar dirección:", error);
 
-      const errorMsg = error.response?.data?.message || error.message || "Error al guardar la dirección";
-      toast.error(errorMsg);
+      // Usar la utilidad de errores para mostrar mensajes específicos
+      showValidationError(error, toast, "Error al guardar la dirección");
     } finally {
       setLoading(false);
     }
