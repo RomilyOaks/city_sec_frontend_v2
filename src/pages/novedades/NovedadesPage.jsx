@@ -80,6 +80,7 @@ import {
 import { listSectores as listSectoresService } from "../../services/sectoresService.js";
 import { listCuadrantes as listCuadrantesService } from "../../services/cuadrantesService.js";
 import { listCalles } from "../../services/callesService.js";
+import { getCuadrantesPorCalle } from "../../services/callesCuadrantesService.js";
 import { useAuthStore } from "../../store/useAuthStore.js";
 import { canPerformAction, canAccessRoute } from "../../rbac/rbac.js";
 import { getDefaultUbigeo } from "../../config/defaults.js";
@@ -244,10 +245,46 @@ const formatDireccionCompleta = (direccion) => {
     );
   }
 
-  // Referencia
-  if (direccion.referencia) {
-    parts.push(`(${direccion.referencia})`);
+  // NO incluir referencia aquí - va separado
+
+  return parts.join(" ");
+};
+
+/**
+ * Helper para formatear dirección manual desde formulario
+ */
+const formatDireccionManual = (formData, callesList) => {
+  const parts = [];
+
+  // Calle seleccionada
+  if (formData.calle_id && callesList) {
+    const calle = callesList.find(c => c.id === parseInt(formData.calle_id));
+    if (calle?.nombre_completo) {
+      parts.push(calle.nombre_completo);
+    }
   }
+
+  // Número municipal
+  if (formData.numero_municipal) {
+    parts.push(`N° ${formData.numero_municipal}`);
+  }
+
+  // Manzana y Lote
+  if (formData.manzana && formData.lote) {
+    parts.push(`Mz. ${formData.manzana} Lt. ${formData.lote}`);
+  }
+
+  // Urbanización
+  if (formData.urbanizacion) {
+    parts.push(`- ${formData.urbanizacion}`);
+  }
+
+  // Complemento
+  if (formData.tipo_complemento && formData.numero_complemento) {
+    parts.push(`(${formData.tipo_complemento} ${formData.numero_complemento})`);
+  }
+
+  // NO incluir detalles_ubicacion aquí - va separado en referencia_ubicacion
 
   return parts.join(" ");
 };
@@ -363,7 +400,8 @@ export default function NovedadesPage() {
   const [searchingDireccion, setSearchingDireccion] = useState(false);
   const [showManualLocation, setShowManualLocation] = useState(false);
   const [direccionesOptions, setDireccionesOptions] = useState([]);
-  const [selectedDireccionId, setSelectedDireccionId] = useState("");
+  // eslint-disable-next-line no-unused-vars
+  const [selectedDireccionId, setSelectedDireccionId] = useState(""); // Mantenido para reset
 
   // Datos del formulario REGISTRO
   const [registroFormData, setRegistroFormData] = useState({
@@ -410,8 +448,12 @@ export default function NovedadesPage() {
 
   // Catálogos para REGISTRO
   const [calles, setCalles] = useState([]);
+  const [calleSearchText, setCalleSearchText] = useState("");
+  const [callesFiltered, setCallesFiltered] = useState([]);
+  const [showCalleDropdown, setShowCalleDropdown] = useState(false);
   const [sectoresRegistro, setSectoresRegistro] = useState([]);
   const [cuadrantesRegistro, setCuadrantesRegistro] = useState([]);
+  const [autoPopulatedFromCalle, setAutoPopulatedFromCalle] = useState(false); // Track if sector/cuadrante auto-populated from calle
 
   // Form data para atención de novedad
   const [atencionData, setAtencionData] = useState({
@@ -826,6 +868,26 @@ export default function NovedadesPage() {
       setCuadrantesRegistro([]);
     }
   }, [registroFormData.sector_id, pageTab, showManualLocation]);
+
+  // Auto-buscar sector/cuadrante cuando se tiene calle_id + (numero_municipal OR manzana)
+  useEffect(() => {
+    if (
+      pageTab === PAGE_TABS.REGISTRO &&
+      showManualLocation &&
+      registroFormData.calle_id &&
+      (registroFormData.numero_municipal || registroFormData.manzana) &&
+      !autoPopulatedFromCalle // Solo buscar si no ya fue auto-poblado
+    ) {
+      lookupCallesCuadrantes(registroFormData.calle_id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    registroFormData.calle_id,
+    registroFormData.numero_municipal,
+    registroFormData.manzana,
+    pageTab,
+    showManualLocation,
+  ]);
 
   // Cargar información de ubigeo cuando cambia el ubigeo_code
   useEffect(() => {
@@ -1383,6 +1445,99 @@ export default function NovedadesPage() {
   };
 
   /**
+   * handleCalleSearch - Filtra calles mientras el usuario escribe (para ingreso manual)
+   */
+  const handleCalleSearch = (searchText) => {
+    setCalleSearchText(searchText);
+
+    if (!searchText || searchText.length < 2) {
+      setCallesFiltered([]);
+      setShowCalleDropdown(false);
+      return;
+    }
+
+    const searchLower = searchText.toLowerCase().trim();
+    const filtered = calles.filter((calle) => {
+      const nombreCompleto = (calle.nombre_completo || "").toLowerCase();
+      return nombreCompleto.includes(searchLower);
+    });
+
+    setCallesFiltered(filtered.slice(0, 15)); // Limitar a 15 resultados
+    setShowCalleDropdown(filtered.length > 0);
+  };
+
+  /**
+   * handleCalleSelect - Cuando el usuario selecciona una calle del dropdown
+   */
+  const handleCalleSelect = (calle) => {
+    setRegistroFormData((prev) => ({
+      ...prev,
+      calle_id: String(calle.id),
+    }));
+    setCalleSearchText(calle.nombre_completo || `${calle.tipo_via?.abreviatura || ""} ${calle.nombre_via}`.trim());
+    setShowCalleDropdown(false);
+    setCallesFiltered([]);
+  };
+
+  /**
+   * handleClearCalle - Limpia la selección de calle
+   */
+  const handleClearCalle = () => {
+    setRegistroFormData((prev) => ({
+      ...prev,
+      calle_id: "",
+      sector_id: "",
+      cuadrante_id: "",
+    }));
+    setCalleSearchText("");
+    setCallesFiltered([]);
+    setShowCalleDropdown(false);
+    setAutoPopulatedFromCalle(false);
+    setCuadrantesRegistro([]);
+  };
+
+  /**
+   * lookupCallesCuadrantes - Busca en calles_cuadrantes para auto-poblar sector/cuadrante
+   * Se ejecuta cuando se tiene calle_id + (numero_municipal OR manzana)
+   */
+  const lookupCallesCuadrantes = async (calleId) => {
+    if (!calleId) return;
+
+    try {
+      const cuadrantesData = await getCuadrantesPorCalle(calleId);
+
+      // getCuadrantesPorCalle retorna array de relaciones calle-cuadrante
+      // Cada item tiene: calle_id, cuadrante_id, y posiblemente sector_id
+      const items = Array.isArray(cuadrantesData) ? cuadrantesData : (cuadrantesData?.items || []);
+
+      if (items.length > 0) {
+        // Tomar el primer cuadrante encontrado para la calle
+        const firstRelation = items[0];
+        const cuadranteId = firstRelation.cuadrante_id;
+        const sectorId = firstRelation.sector_id || firstRelation.cuadrante?.sector_id;
+
+        if (sectorId && cuadranteId) {
+          // Cargar los cuadrantes del sector primero
+          await loadCuadrantesForSector(sectorId);
+
+          // Actualizar el form con sector y cuadrante
+          setRegistroFormData((prev) => ({
+            ...prev,
+            sector_id: String(sectorId),
+            cuadrante_id: String(cuadranteId),
+          }));
+
+          // Marcar que fueron auto-poblados
+          setAutoPopulatedFromCalle(true);
+        }
+      }
+    } catch (error) {
+      console.error("Error al buscar cuadrantes por calle:", error);
+      // No mostrar error al usuario, simplemente no auto-poblar
+    }
+  };
+
+  /**
    * handleSelectDireccion - Cuando el usuario selecciona una dirección del dropdown
    * Ahora también actualiza latitud, longitud y ubigeo_code
    */
@@ -1494,68 +1649,165 @@ export default function NovedadesPage() {
    * handleSaveRegistro - Guarda la novedad desde el panel REGISTRO
    */
   const handleSaveRegistro = async () => {
-    // 1. Validar formulario
-    const errors = validateRegistroForm();
+    // 0. Auto-generar referencia_ubicacion si estamos en modo manual y no existe
+    let workingFormData = { ...registroFormData };
+
+    if (!direccionMatch && showManualLocation && !workingFormData.referencia_ubicacion) {
+      // Buscar la calle seleccionada para obtener su nombre
+      const calleSeleccionada = calles.find(c => String(c.id) === String(workingFormData.calle_id));
+      if (calleSeleccionada) {
+        const calleName = calleSeleccionada.nombre_completo ||
+          `${calleSeleccionada.tipo_via?.abreviatura || ""} ${calleSeleccionada.nombre_via}`.trim();
+
+        // Construir referencia_ubicacion desde los datos manuales
+        let referenciaAuto = calleName;
+        if (workingFormData.numero_municipal) {
+          referenciaAuto += ` N° ${workingFormData.numero_municipal}`;
+        }
+        if (workingFormData.manzana && workingFormData.lote) {
+          referenciaAuto += ` Mz. ${workingFormData.manzana} Lt. ${workingFormData.lote}`;
+        } else if (workingFormData.manzana) {
+          referenciaAuto += ` Mz. ${workingFormData.manzana}`;
+        }
+        if (workingFormData.urbanizacion) {
+          referenciaAuto += `, ${workingFormData.urbanizacion}`;
+        }
+
+        workingFormData.referencia_ubicacion = referenciaAuto;
+        // Actualizar el estado también
+        setRegistroFormData(prev => ({ ...prev, referencia_ubicacion: referenciaAuto }));
+      }
+    }
+
+    // 1. Validar formulario (usando workingFormData actualizado)
+    const errors = [];
+
+    // Campos requeridos básicos
+    if (!workingFormData.fecha_hora_ocurrencia) {
+      errors.push("Fecha y hora de ocurrencia es requerida");
+    }
+
+    if (!workingFormData.referencia_ubicacion) {
+      errors.push("Dirección de referencia es requerida");
+    }
+
+    // Validación condicional según origen_llamada
+    if (workingFormData.origen_llamada === "RADIO_TETRA") {
+      if (!workingFormData.radio_tetra_id) {
+        errors.push("Debe seleccionar un radio TETRA");
+      }
+    } else {
+      // Para otros orígenes, validar teléfono si no es anónimo
+      if (workingFormData.es_anonimo === 0 && !workingFormData.reportante_telefono) {
+        errors.push("Teléfono del reportante es requerido");
+      }
+    }
+
+    // Si no hay match de dirección, validar campos manuales
+    if (!direccionMatch && showManualLocation) {
+      if (!workingFormData.calle_id) errors.push("Debe seleccionar una calle");
+      if (!workingFormData.sector_id) errors.push("Debe seleccionar un sector");
+      if (!workingFormData.cuadrante_id) errors.push("Debe seleccionar un cuadrante");
+    }
+
+    // Incidente
+    if (!workingFormData.tipo_novedad_id) errors.push("Tipo de novedad es requerido");
+    if (!workingFormData.subtipo_novedad_id) errors.push("Subtipo es requerido");
+    if (!workingFormData.descripcion || workingFormData.descripcion.trim().length < 10) {
+      errors.push("Descripción debe tener al menos 10 caracteres");
+    }
+
+    // Reportante (solo si NO es anónimo)
+    if (workingFormData.es_anonimo === 0) {
+      if (!workingFormData.reportante_nombre) {
+        errors.push("Nombre del reportante es requerido");
+      }
+      if (!workingFormData.reportante_doc_identidad) {
+        errors.push("Documento de identidad es requerido");
+      }
+    }
+
     if (errors.length > 0) {
       errors.forEach((err) => toast.error(err));
       return;
     }
 
     setSaving(true);
-    let finalDireccionId = registroFormData.direccion_id;
+    let finalDireccionId = workingFormData.direccion_id;
 
     try {
-      // 2. Crear dirección SI NO existe match
+      // 2. Crear dirección SI NO existe match (dirección manual)
       if (!direccionMatch && showManualLocation) {
-        const nuevaDireccion = await createDireccion({
-          calle_id: registroFormData.calle_id,
-          sector_id: registroFormData.sector_id,
-          cuadrante_id: registroFormData.cuadrante_id,
-          referencia: registroFormData.referencia_ubicacion,
-          tipo_complemento: registroFormData.tipo_complemento || null,
-          numero_complemento: registroFormData.numero_complemento || null,
-          manzana: registroFormData.manzana || null,
-          lote: registroFormData.lote || null,
-          urbanizacion: registroFormData.urbanizacion || null,
+        // Construir direccion_completa para la nueva dirección (sin detalles_ubicacion que va a novedad)
+        const direccionCompletaTexto = formatDireccionManual(
+          { ...workingFormData, detalles_ubicacion: "" }, // Sin detalles, esos van a novedad
+          calles
+        );
+
+        const direccionPayload = {
+          calle_id: workingFormData.calle_id ? Number(workingFormData.calle_id) : null,
+          sector_id: workingFormData.sector_id ? Number(workingFormData.sector_id) : null,
+          cuadrante_id: workingFormData.cuadrante_id ? Number(workingFormData.cuadrante_id) : null,
+          numero_municipal: workingFormData.numero_municipal || null,
+          referencia: workingFormData.detalles_ubicacion || null, // Solo detalles adicionales como referencia
+          direccion_completa: direccionCompletaTexto || null, // Texto concatenado de la dirección
+          tipo_complemento: workingFormData.tipo_complemento || null,
+          numero_complemento: workingFormData.numero_complemento || null,
+          manzana: workingFormData.manzana || null,
+          lote: workingFormData.lote || null,
+          urbanizacion: workingFormData.urbanizacion || null,
+          ubigeo_code: workingFormData.ubigeo_code || defaultUbigeo?.code || null,
+          // Latitud y longitud son opcionales
+          latitud: workingFormData.latitud && workingFormData.latitud !== "" ? parseFloat(workingFormData.latitud) : null,
+          longitud: workingFormData.longitud && workingFormData.longitud !== "" ? parseFloat(workingFormData.longitud) : null,
           verificada: 0, // Marcar como no verificada
-        });
+        };
+
+        console.log("📍 Creando nueva dirección:", direccionPayload);
+        const nuevaDireccion = await createDireccion(direccionPayload);
+        console.log("✅ Dirección creada:", nuevaDireccion);
         finalDireccionId = nuevaDireccion.id;
         toast.success("Nueva dirección creada");
       }
 
-      // 3. Crear novedad
+      // 3. Crear novedad (latitud y longitud son opcionales)
+      const latitudValue = workingFormData.latitud && workingFormData.latitud !== "" ? parseFloat(workingFormData.latitud) : null;
+      const longitudValue = workingFormData.longitud && workingFormData.longitud !== "" ? parseFloat(workingFormData.longitud) : null;
+
       const novedadPayload = {
-        origen_llamada: registroFormData.origen_llamada,
-        reportante_telefono: registroFormData.origen_llamada === "RADIO_TETRA" ? null : registroFormData.reportante_telefono,
-        radio_tetra_id: registroFormData.origen_llamada === "RADIO_TETRA" ? registroFormData.radio_tetra_id : null,
-        fecha_hora_ocurrencia: registroFormData.fecha_hora_ocurrencia,
-        es_anonimo: registroFormData.es_anonimo,
-        reportante_tipo_doc: registroFormData.reportante_tipo_doc,
+        origen_llamada: workingFormData.origen_llamada,
+        reportante_telefono: workingFormData.origen_llamada === "RADIO_TETRA" ? null : workingFormData.reportante_telefono,
+        radio_tetra_id: workingFormData.origen_llamada === "RADIO_TETRA" ? workingFormData.radio_tetra_id : null,
+        fecha_hora_ocurrencia: workingFormData.fecha_hora_ocurrencia,
+        es_anonimo: workingFormData.es_anonimo,
+        reportante_tipo_doc: workingFormData.reportante_tipo_doc,
         // Concatenar tipo de documento con número
-        reportante_doc_identidad: registroFormData.reportante_doc_identidad
-          ? `${registroFormData.reportante_tipo_doc} ${registroFormData.reportante_doc_identidad}`
+        reportante_doc_identidad: workingFormData.reportante_doc_identidad
+          ? `${workingFormData.reportante_tipo_doc} ${workingFormData.reportante_doc_identidad}`
           : "",
-        reportante_nombre: registroFormData.reportante_nombre,
+        reportante_nombre: workingFormData.reportante_nombre,
         direccion_id: finalDireccionId ? Number(finalDireccionId) : null,
-        referencia_ubicacion: registroFormData.referencia_ubicacion,
-        // Si hay dirección seleccionada, usar su direccion_completa, sino usar el campo manual
+        // Solo guardar detalles adicionales en referencia_ubicacion (no el campo de búsqueda)
+        referencia_ubicacion: workingFormData.detalles_ubicacion || null,
+        // Si hay dirección seleccionada, usar su direccion_completa, sino construir desde datos manuales
         localizacion: direccionMatch
           ? formatDireccionCompleta(direccionMatch)
-          : registroFormData.localizacion,
-        tipo_novedad_id: Number(registroFormData.tipo_novedad_id),
-        subtipo_novedad_id: Number(registroFormData.subtipo_novedad_id),
-        descripcion: registroFormData.descripcion,
-        prioridad_actual: registroFormData.prioridad_actual || "MEDIA",
-        personal_cargo_id: registroFormData.personal_cargo_id ? Number(registroFormData.personal_cargo_id) : null,
+          : formatDireccionManual(workingFormData, calles),
+        tipo_novedad_id: Number(workingFormData.tipo_novedad_id),
+        subtipo_novedad_id: Number(workingFormData.subtipo_novedad_id),
+        descripcion: workingFormData.descripcion,
+        prioridad_actual: workingFormData.prioridad_actual || "MEDIA",
+        personal_cargo_id: workingFormData.personal_cargo_id ? Number(workingFormData.personal_cargo_id) : null,
         estado_novedad_id: 1, // Pendiente De Registro
         created_by: user?.id,
-        sector_id: registroFormData.sector_id ? Number(registroFormData.sector_id) : null,
-        cuadrante_id: registroFormData.cuadrante_id ? Number(registroFormData.cuadrante_id) : null,
-        latitud: registroFormData.latitud || null,
-        longitud: registroFormData.longitud || null,
-        ubigeo_code: registroFormData.ubigeo_code || defaultUbigeo?.code || null,
+        sector_id: workingFormData.sector_id ? Number(workingFormData.sector_id) : null,
+        cuadrante_id: workingFormData.cuadrante_id ? Number(workingFormData.cuadrante_id) : null,
+        latitud: latitudValue,
+        longitud: longitudValue,
+        ubigeo_code: workingFormData.ubigeo_code || defaultUbigeo?.code || null,
       };
 
+      console.log("📋 Payload novedad a enviar:", novedadPayload);
       const resultado = await createNovedad(novedadPayload);
       console.log("✅ Novedad creada, resultado:", resultado);
 
@@ -1655,6 +1907,12 @@ export default function NovedadesPage() {
     setShowManualLocation(false);
     setDireccionesOptions([]);
     setSelectedDireccionId("");
+    // Limpiar estados de autocomplete de calle
+    setCalleSearchText("");
+    setCallesFiltered([]);
+    setShowCalleDropdown(false);
+    setAutoPopulatedFromCalle(false);
+    setCuadrantesRegistro([]);
   };
 
   /**
@@ -2044,7 +2302,11 @@ export default function NovedadesPage() {
                             </div>
                           </td>
                           <td className="px-3 py-2 text-slate-700 dark:text-slate-200 max-w-[150px] truncate hidden md:table-cell">
-                            {n.localizacion || n.referencia_ubicacion || "—"}
+                            {n.localizacion
+                              ? n.referencia_ubicacion
+                                ? `${n.localizacion} (${n.referencia_ubicacion})`
+                                : n.localizacion
+                              : n.referencia_ubicacion || "—"}
                           </td>
                           <td className="px-3 py-2">
                             <span
@@ -2253,18 +2515,37 @@ export default function NovedadesPage() {
                       {!loadingRadios && !errorRadios && (
                         <select
                           value={registroFormData.radio_tetra_id || ""}
-                          onChange={(e) =>
-                            setRegistroFormData({
-                              ...registroFormData,
-                              radio_tetra_id: e.target.value ? Number(e.target.value) : null,
-                            })
-                          }
+                          onChange={(e) => {
+                            const radioId = e.target.value ? Number(e.target.value) : null;
+                            const selectedRadio = radiosTetra.find(r => r.id === radioId);
+
+                            // Auto-poblar datos del reportante si el radio tiene personal asignado
+                            if (selectedRadio?.personalAsignado) {
+                              const personal = selectedRadio.personalAsignado;
+                              const nombreCompleto = [personal.nombres, personal.apellido_paterno, personal.apellido_materno]
+                                .filter(Boolean).join(' ');
+
+                              setRegistroFormData({
+                                ...registroFormData,
+                                radio_tetra_id: radioId,
+                                reportante_nombre: nombreCompleto || registroFormData.reportante_nombre,
+                                reportante_tipo_doc: personal.doc_tipo || "DNI",
+                                reportante_doc_identidad: personal.doc_numero || registroFormData.reportante_doc_identidad,
+                              });
+                            } else {
+                              setRegistroFormData({
+                                ...registroFormData,
+                                radio_tetra_id: radioId,
+                              });
+                            }
+                          }}
                           className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
                         >
                           <option value="">Seleccione un radio...</option>
                           {radiosTetra.map((radio) => (
                             <option key={radio.id} value={radio.id}>
                               {radio.radio_tetra_code} - {radio.descripcion || 'Sin descripción'}
+                              {radio.personalAsignado && ` (${radio.personalAsignado.nombres || ''} ${radio.personalAsignado.apellido_paterno || ''})`}
                             </option>
                           ))}
                         </select>
@@ -2421,8 +2702,8 @@ export default function NovedadesPage() {
                   Información de Ubicación
                 </h3>
                 <div className="space-y-4">
-                  {/* Campo de búsqueda de dirección */}
-                  <div>
+                  {/* Campo de búsqueda de dirección con sugerencias inline */}
+                  <div className="relative">
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                       {direccionMatch ? "Dirección Seleccionada" : "Buscar Dirección"} <span className="text-red-500">*</span>
                     </label>
@@ -2441,7 +2722,7 @@ export default function NovedadesPage() {
                           }
                         }}
                         readOnly={!!direccionMatch}
-                        placeholder="Ej: Arequipa, Benavides, etc."
+                        placeholder="Escriba para buscar una dirección..."
                         className={`w-full px-3 py-2 rounded-lg border text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 ${
                           direccionMatch
                             ? "border-green-500 bg-green-50 dark:bg-green-900/20 cursor-not-allowed"
@@ -2453,48 +2734,96 @@ export default function NovedadesPage() {
                           <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-600"></div>
                         </div>
                       )}
-                    </div>
-
-                    {/* Helper visible solo cuando NO hay dirección seleccionada */}
-                    {!direccionMatch && (
-                      <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 pl-1">
-                        ¿No encuentras la dirección?{" "}
+                      {/* Botón X para limpiar cuando hay dirección seleccionada */}
+                      {direccionMatch && (
                         <button
                           type="button"
                           onClick={() => {
-                            // Preparar el formulario de ingreso manual
-                            setDireccionesOptions([]);
                             setDireccionMatch(null);
                             setSelectedDireccionId("");
-                            setShowManualLocation(true);
+                            setRegistroFormData((prev) => ({
+                              ...prev,
+                              direccion_id: "",
+                              referencia_ubicacion: "",
+                              detalles_ubicacion: "",
+                              sector_id: "",
+                              cuadrante_id: "",
+                              latitud: "",
+                              longitud: "",
+                              ubigeo_code: "",
+                            }));
                           }}
-                          className="text-primary-600 hover:underline"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-red-500"
+                          title="Cambiar dirección"
                         >
-                          Ingresar manualmente
+                          <X size={16} />
                         </button>
+                      )}
+                    </div>
+
+                    {/* Sugerencias inline de direcciones */}
+                    {direccionesOptions.length > 0 && !direccionMatch && (
+                      <div className="absolute z-20 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        {direccionesOptions.map((dir) => (
+                          <button
+                            key={dir.id}
+                            type="button"
+                            onClick={() => handleSelectDireccion(String(dir.id))}
+                            className="w-full px-4 py-3 text-left hover:bg-slate-100 dark:hover:bg-slate-700 border-b border-slate-200 dark:border-slate-600 last:border-0"
+                          >
+                            <div className="font-medium text-slate-900 dark:text-slate-50">
+                              {formatDireccionCompleta(dir)}
+                            </div>
+                            <div className="flex gap-2 mt-1">
+                              {dir.sector?.nombre && (
+                                <span className="text-xs px-2 py-0.5 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
+                                  {dir.sector.nombre}
+                                </span>
+                              )}
+                              {dir.cuadrante?.nombre && (
+                                <span className="text-xs px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                                  {dir.cuadrante.nombre}
+                                </span>
+                              )}
+                            </div>
+                          </button>
+                        ))}
                       </div>
                     )}
+
+                    {/* Mensaje cuando no hay resultados */}
+                    {registroFormData.referencia_ubicacion &&
+                      registroFormData.referencia_ubicacion.length >= 3 &&
+                      direccionesOptions.length === 0 &&
+                      !searchingDireccion &&
+                      !direccionMatch && (
+                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                          No se encontraron direcciones. Puede{" "}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDireccionesOptions([]);
+                              setDireccionMatch(null);
+                              setSelectedDireccionId("");
+                              setShowManualLocation(true);
+                            }}
+                            className="text-primary-600 hover:underline font-medium"
+                          >
+                            ingresar manualmente
+                          </button>
+                        </p>
+                      )}
+
+                    {/* Helper con mínimo de caracteres */}
+                    {!direccionMatch &&
+                      registroFormData.referencia_ubicacion &&
+                      registroFormData.referencia_ubicacion.length < 3 &&
+                      registroFormData.referencia_ubicacion.length > 0 && (
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          Escriba al menos 3 caracteres para buscar
+                        </p>
+                      )}
                   </div>
-                  {/* Dropdown de direcciones encontradas */}
-                  {direccionesOptions.length > 0 && !direccionMatch && (
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                        Seleccione una Dirección
-                      </label>
-                      <select
-                        value={selectedDireccionId}
-                        onChange={(e) => handleSelectDireccion(e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
-                      >
-                        <option value="">Seleccionar dirección...</option>
-                        {direccionesOptions.map((dir) => (
-                          <option key={dir.id} value={dir.id}>
-                            {formatDireccionCompleta(dir)}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
                   {/* Dirección seleccionada con badges */}
                   {direccionMatch && (
                     <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
@@ -2572,9 +2901,14 @@ export default function NovedadesPage() {
                         <input
                           type="checkbox"
                           checked={showManualLocation}
-                          onChange={(e) =>
-                            setShowManualLocation(e.target.checked)
-                          }
+                          onChange={(e) => {
+                            setShowManualLocation(e.target.checked);
+                            // Reset auto-populated state when toggling manual location off
+                            if (!e.target.checked) {
+                              setAutoPopulatedFromCalle(false);
+                              setCuadrantesRegistro([]);
+                            }
+                          }}
                           className="rounded border-slate-300 dark:border-slate-600"
                         />
                         <span className="text-sm font-medium text-amber-700 dark:text-amber-400">
@@ -2592,28 +2926,77 @@ export default function NovedadesPage() {
                       </p>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Calle */}
-                        <div>
+                        {/* Calle con autocomplete */}
+                        <div className="relative">
                           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                             Calle <span className="text-red-500">*</span>
                           </label>
-                          <select
-                            value={registroFormData.calle_id}
-                            onChange={(e) =>
-                              setRegistroFormData({
-                                ...registroFormData,
-                                calle_id: e.target.value,
-                              })
-                            }
-                            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
-                          >
-                            <option value="">Seleccionar calle</option>
-                            {calles.map((c) => (
-                              <option key={c.id} value={c.id}>
-                                {c.nombre_completo}
-                              </option>
-                            ))}
-                          </select>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              value={calleSearchText}
+                              onChange={(e) => handleCalleSearch(e.target.value)}
+                              onFocus={() => {
+                                if (calleSearchText.length >= 2) {
+                                  handleCalleSearch(calleSearchText);
+                                }
+                              }}
+                              placeholder="Escriba para buscar una calle..."
+                              className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                            />
+                            {/* Botón X para limpiar cuando hay calle seleccionada */}
+                            {registroFormData.calle_id && (
+                              <button
+                                type="button"
+                                onClick={handleClearCalle}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-red-500"
+                                title="Limpiar selección"
+                              >
+                                <X size={16} />
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Dropdown de resultados de calles */}
+                          {showCalleDropdown && callesFiltered.length > 0 && (
+                            <div className="absolute z-20 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                              {callesFiltered.map((calle) => (
+                                <button
+                                  key={calle.id}
+                                  type="button"
+                                  onClick={() => handleCalleSelect(calle)}
+                                  className="w-full px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-700 border-b border-slate-200 dark:border-slate-600 last:border-0"
+                                >
+                                  <div className="font-medium text-slate-900 dark:text-slate-50 text-sm">
+                                    {calle.nombre_completo || `${calle.tipo_via?.abreviatura || ""} ${calle.nombre_via}`.trim()}
+                                  </div>
+                                  {calle.urbanizacion && (
+                                    <div className="text-xs text-slate-500 dark:text-slate-400">
+                                      {calle.urbanizacion}
+                                    </div>
+                                  )}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Mensaje de ayuda */}
+                          {calleSearchText && calleSearchText.length < 2 && (
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                              Escriba al menos 2 caracteres
+                            </p>
+                          )}
+                          {calleSearchText && calleSearchText.length >= 2 && callesFiltered.length === 0 && !registroFormData.calle_id && (
+                            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                              No se encontraron calles
+                            </p>
+                          )}
+                          {/* Indicador de calle seleccionada */}
+                          {registroFormData.calle_id && (
+                            <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                              ✓ Calle seleccionada
+                            </p>
+                          )}
                         </div>
 
                         {/* Número Municipal */}
@@ -2743,6 +3126,11 @@ export default function NovedadesPage() {
                         <div>
                           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                             Sector <span className="text-red-500">*</span>
+                            {autoPopulatedFromCalle && (
+                              <span className="text-xs text-green-600 dark:text-green-400 ml-1">
+                                (auto)
+                              </span>
+                            )}
                           </label>
                           <select
                             value={registroFormData.sector_id}
@@ -2756,7 +3144,12 @@ export default function NovedadesPage() {
                                 loadCuadrantesForSector(e.target.value);
                               }
                             }}
-                            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                            disabled={autoPopulatedFromCalle}
+                            className={`w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary-500 ${
+                              autoPopulatedFromCalle
+                                ? "border-green-400 dark:border-green-600 bg-green-50 dark:bg-green-900/20 text-slate-700 dark:text-slate-300 cursor-not-allowed"
+                                : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                            }`}
                           >
                             <option value="">Seleccionar sector</option>
                             {sectoresRegistro.map((s) => (
@@ -2771,6 +3164,11 @@ export default function NovedadesPage() {
                         <div>
                           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                             Cuadrante <span className="text-red-500">*</span>
+                            {autoPopulatedFromCalle && (
+                              <span className="text-xs text-green-600 dark:text-green-400 ml-1">
+                                (auto)
+                              </span>
+                            )}
                           </label>
                           <select
                             value={registroFormData.cuadrante_id}
@@ -2780,8 +3178,12 @@ export default function NovedadesPage() {
                                 cuadrante_id: e.target.value,
                               })
                             }
-                            disabled={!registroFormData.sector_id}
-                            className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
+                            disabled={!registroFormData.sector_id || autoPopulatedFromCalle}
+                            className={`w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary-500 disabled:opacity-50 ${
+                              autoPopulatedFromCalle
+                                ? "border-green-400 dark:border-green-600 bg-green-50 dark:bg-green-900/20 text-slate-700 dark:text-slate-300 cursor-not-allowed"
+                                : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                            }`}
                           >
                             <option value="">Seleccionar cuadrante</option>
                             {cuadrantesRegistro.map((c) => (
@@ -2804,25 +3206,40 @@ export default function NovedadesPage() {
                       value={registroFormData.detalles_ubicacion}
                       onChange={(e) => {
                         const detalles = e.target.value;
-                        // Obtener la dirección base (sin detalles previos)
-                        const direccionBase = direccionMatch
-                          ? formatDireccionCompleta(direccionMatch)
-                          : registroFormData.referencia_ubicacion.split(" - ")[0];
-                        // Concatenar detalles al final de la dirección
-                        const direccionCompleta = detalles
-                          ? `${direccionBase} - ${detalles}`
-                          : direccionBase;
-                        setRegistroFormData({
-                          ...registroFormData,
-                          detalles_ubicacion: detalles,
-                          referencia_ubicacion: direccionCompleta,
-                        });
+                        // En modo manual, solo guardar detalles sin tocar referencia_ubicacion
+                        // En modo con dirección seleccionada, actualizar también referencia_ubicacion
+                        if (showManualLocation && !direccionMatch) {
+                          // Modo manual: solo guardar detalles
+                          setRegistroFormData({
+                            ...registroFormData,
+                            detalles_ubicacion: detalles,
+                          });
+                        } else if (direccionMatch) {
+                          // Modo con dirección seleccionada: concatenar a la dirección
+                          const direccionBase = formatDireccionCompleta(direccionMatch);
+                          const direccionCompleta = detalles
+                            ? `${direccionBase} - ${detalles}`
+                            : direccionBase;
+                          setRegistroFormData({
+                            ...registroFormData,
+                            detalles_ubicacion: detalles,
+                            referencia_ubicacion: direccionCompleta,
+                          });
+                        } else {
+                          // Fallback: solo guardar detalles
+                          setRegistroFormData({
+                            ...registroFormData,
+                            detalles_ubicacion: detalles,
+                          });
+                        }
                       }}
                       placeholder="Ej. Frente al parque, al costado del colegio..."
                       className="w-full rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50"
                     />
                     <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                      Este detalle se agregará al final de la dirección seleccionada
+                      {showManualLocation && !direccionMatch
+                        ? "Este detalle se guardará como referencia adicional de la dirección"
+                        : "Este detalle se agregará al final de la dirección seleccionada"}
                     </p>
                   </div>
                   {/* Campos para latitud, longitud y ubigeo (read-only si vienen de dirección seleccionada) */}
