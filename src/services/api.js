@@ -30,11 +30,12 @@ const api = axios.create({
  * @returns {import('axios').AxiosRequestConfig}
  */ api.interceptors.request.use((config) => {
   if (DEBUG) {
-     
+
     console.debug("[api] request", {
       baseURL: config.baseURL,
       url: config.url,
       method: config.method,
+      data: config.data,
     });
   }
 

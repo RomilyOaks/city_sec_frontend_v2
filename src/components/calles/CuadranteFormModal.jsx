@@ -11,6 +11,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { createCuadrante, updateCuadrante } from "../../services/cuadrantesService";
 import { listSectores } from "../../services/sectoresService";
+import { listSubsectoresBySector } from "../../services/subsectoresService";
 import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 import toast from "react-hot-toast";
 
@@ -224,7 +225,7 @@ function MapaVisualizacion({ poligonoJson, latitud, longitud, colorMapa, nombre 
   );
 }
 
-export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSuccess, preselectedSectorId }) {
+export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSuccess, preselectedSectorId, preselectedSubsectorId }) {
   // Bloquear scroll del body cuando el modal está abierto
   useBodyScrollLock(isOpen);
 
@@ -233,6 +234,7 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
     cuadrante_code: "",
     nombre: "",
     sector_id: "",
+    subsector_id: "",
     zona_code: "",
     latitud: "",
     longitud: "",
@@ -241,8 +243,10 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
     color_mapa: "#108981",
   });
   const [sectores, setSectores] = useState([]);
+  const [subsectores, setSubsectores] = useState([]);
   const [loading, setLoading] = useState(false);
   const [loadingSectores, setLoadingSectores] = useState(false);
+  const [loadingSubsectores, setLoadingSubsectores] = useState(false);
 
   // Cargar sectores
   useEffect(() => {
@@ -264,6 +268,28 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
     }
   };
 
+  // Cargar subsectores cuando cambia el sector
+  useEffect(() => {
+    if (formData.sector_id) {
+      loadSubsectores(formData.sector_id);
+    } else {
+      setSubsectores([]);
+    }
+  }, [formData.sector_id]);
+
+  const loadSubsectores = async (sectorId) => {
+    setLoadingSubsectores(true);
+    try {
+      const result = await listSubsectoresBySector(sectorId, { limit: 100 });
+      setSubsectores(result.items || []);
+    } catch (error) {
+      console.error("Error al cargar subsectores:", error);
+      setSubsectores([]);
+    } finally {
+      setLoadingSubsectores(false);
+    }
+  };
+
   useEffect(() => {
     if (!isOpen) return; // Solo ejecutar cuando el modal se abre
 
@@ -280,6 +306,7 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
         cuadrante_code: cuadrante.cuadrante_code || cuadrante.codigo || "",
         nombre: cuadrante.nombre || "",
         sector_id: cuadrante.sector_id || "",
+        subsector_id: cuadrante.subsector_id || "",
         zona_code: cuadrante.zona_code || "",
         latitud: cuadrante.latitud || "",
         longitud: cuadrante.longitud || "",
@@ -292,6 +319,7 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
         cuadrante_code: "",
         nombre: "",
         sector_id: preselectedSectorId || "",
+        subsector_id: preselectedSubsectorId || "",
         zona_code: "",
         latitud: "",
         longitud: "",
@@ -318,6 +346,7 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
       cuadrante_code: "",
       nombre: "",
       sector_id: "",
+      subsector_id: "",
       zona_code: "",
       latitud: "",
       longitud: "",
@@ -325,6 +354,7 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
       radio_metros: "",
       color_mapa: "#108981",
     });
+    setSubsectores([]);
     setActiveTab("basicos");
     onClose();
   };
@@ -371,14 +401,60 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
     setLoading(true);
 
     try {
-      // Preparar datos para envío (sin incluir descripcion)
+      // Validar campos requeridos
+      if (!formData.sector_id) {
+        toast.error("Debe seleccionar un sector");
+        setLoading(false);
+        return;
+      }
+
+      if (!formData.subsector_id) {
+        toast.error("Debe seleccionar un subsector");
+        setLoading(false);
+        return;
+      }
+
+      // Parsear IDs
+      const sectorId = Number(formData.sector_id);
+      const subsectorId = Number(formData.subsector_id);
+
+      // Validar que sean números válidos
+      if (isNaN(sectorId) || sectorId <= 0) {
+        toast.error("ID de sector inválido");
+        setLoading(false);
+        return;
+      }
+
+      if (isNaN(subsectorId) || subsectorId <= 0) {
+        toast.error("ID de subsector inválido");
+        setLoading(false);
+        return;
+      }
+
+      // Calcular lat/lng desde el polígono si no están definidos
+      let latitud = formData.latitud ? parseFloat(formData.latitud) : null;
+      let longitud = formData.longitud ? parseFloat(formData.longitud) : null;
+
+      if ((!latitud || !longitud) && formData.poligono_json) {
+        const polygonPositions = parsePolygonJson(formData.poligono_json);
+        if (polygonPositions && polygonPositions.length > 0) {
+          const centroide = calcularCentroide(polygonPositions);
+          if (centroide) {
+            latitud = centroide[0];
+            longitud = centroide[1];
+          }
+        }
+      }
+
+      // Preparar datos para envío
       const dataToSend = {
         cuadrante_code: formData.cuadrante_code,
         nombre: formData.nombre,
-        sector_id: parseInt(formData.sector_id),
+        sector_id: sectorId,
+        subsector_id: subsectorId,
         zona_code: formData.zona_code || null,
-        latitud: formData.latitud ? parseFloat(formData.latitud) : null,
-        longitud: formData.longitud ? parseFloat(formData.longitud) : null,
+        latitud: latitud,
+        longitud: longitud,
         poligono_json: formData.poligono_json || null,
         radio_metros: formData.radio_metros ? parseFloat(formData.radio_metros) : null,
         color_mapa: formData.color_mapa || "#108981",
@@ -526,7 +602,11 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
                   id="cuadrante-sector"
                   name="sector_id"
                   value={formData.sector_id}
-                  onChange={handleChange}
+                  onChange={(e) => {
+                    handleChange(e);
+                    // Limpiar subsector al cambiar de sector
+                    setFormData(prev => ({ ...prev, sector_id: e.target.value, subsector_id: "" }));
+                  }}
                   required
                   disabled={loadingSectores || (!!preselectedSectorId && !cuadrante)}
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50"
@@ -543,6 +623,45 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
                 {preselectedSectorId && !cuadrante && (
                   <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                     El sector está preseleccionado según el sector actual
+                  </p>
+                )}
+              </div>
+
+              {/* Subsector */}
+              <div>
+                <label
+                  htmlFor="cuadrante-subsector"
+                  className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+                >
+                  Subsector <span className="text-red-500">*</span>
+                </label>
+                <select
+                  id="cuadrante-subsector"
+                  name="subsector_id"
+                  value={formData.subsector_id}
+                  onChange={handleChange}
+                  required
+                  disabled={!formData.sector_id || loadingSubsectores || (!!preselectedSubsectorId && !cuadrante)}
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50"
+                >
+                  <option value="">
+                    {!formData.sector_id
+                      ? "Primero seleccione un sector"
+                      : loadingSubsectores
+                      ? "Cargando..."
+                      : subsectores.length === 0
+                      ? "No hay subsectores disponibles"
+                      : "Seleccione un subsector"}
+                  </option>
+                  {subsectores.map((subsector) => (
+                    <option key={subsector.id} value={subsector.id}>
+                      {subsector.subsector_code} - {subsector.nombre}
+                    </option>
+                  ))}
+                </select>
+                {preselectedSubsectorId && !cuadrante && (
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    El subsector está preseleccionado según el subsector actual
                   </p>
                 )}
               </div>
