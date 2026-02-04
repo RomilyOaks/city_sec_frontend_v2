@@ -11,6 +11,7 @@ import {
   updateCalleCuadrante,
 } from "../../services/callesCuadrantesService";
 import { listCuadrantes } from "../../services/cuadrantesService";
+import { listSectores } from "../../services/sectoresService";
 import toast from "react-hot-toast";
 import { useAuthStore } from "../../store/useAuthStore";
 import useBodyScrollLock from "../../hooks/useBodyScrollLock";
@@ -36,9 +37,12 @@ export default function CalleCuadranteFormModal({
   useBodyScrollLock(isOpen);
 
   const [loading, setLoading] = useState(false);
+  const [sectores, setSectores] = useState([]);
+  const [loadingSectores, setLoadingSectores] = useState(true);
   const [cuadrantes, setCuadrantes] = useState([]);
-  const [loadingCuadrantes, setLoadingCuadrantes] = useState(true);
+  const [loadingCuadrantes, setLoadingCuadrantes] = useState(false);
   const [validationError, setValidationError] = useState("");
+  const [selectedSectorId, setSelectedSectorId] = useState("");
 
   const [formData, setFormData] = useState({
     calle_id: calleId || "",
@@ -90,28 +94,63 @@ export default function CalleCuadranteFormModal({
     }
   }, [calleCuadrante, calleId, isOpen]);
 
-  // Cargar lista de cuadrantes
+  // Cargar lista de sectores al abrir el modal
+  useEffect(() => {
+    const loadSectores = async () => {
+      try {
+        setLoadingSectores(true);
+        const result = await listSectores({ limit: 100 });
+        setSectores(result.items || []);
+      } catch (error) {
+        console.error("Error al cargar sectores:", error);
+        toast.error("Error al cargar sectores");
+      } finally {
+        setLoadingSectores(false);
+      }
+    };
+
+    if (isOpen) {
+      loadSectores();
+      // Si es edición, cargar el sector del cuadrante existente
+      if (calleCuadrante?.cuadrante?.sector_id) {
+        setSelectedSectorId(String(calleCuadrante.cuadrante.sector_id));
+      } else if (calleCuadrante?.Cuadrante?.sector_id) {
+        setSelectedSectorId(String(calleCuadrante.Cuadrante.sector_id));
+      }
+    } else {
+      // Limpiar al cerrar
+      setSelectedSectorId("");
+      setCuadrantes([]);
+    }
+  }, [isOpen, calleCuadrante]);
+
+  // Cargar cuadrantes cuando cambia el sector seleccionado
   useEffect(() => {
     const loadCuadrantes = async () => {
+      if (!selectedSectorId) {
+        setCuadrantes([]);
+        return;
+      }
+
       try {
         setLoadingCuadrantes(true);
-        console.log("📡 [Modal] Cargando cuadrantes para dropdown...");
-        const result = await listCuadrantes({ limit: 100 }); // Límite razonable
-        console.log("✅ [Modal] Cuadrantes recibidos:", result);
+        const result = await listCuadrantes({
+          limit: 100,
+          sector_id: selectedSectorId
+        });
         setCuadrantes(result.items || []);
       } catch (error) {
-        console.error("❌ [Modal] Error al cargar cuadrantes:", error);
-        console.error("❌ [Modal] Error response:", error.response?.data);
+        console.error("Error al cargar cuadrantes:", error);
         toast.error("Error al cargar cuadrantes");
       } finally {
         setLoadingCuadrantes(false);
       }
     };
 
-    if (isOpen) {
+    if (isOpen && selectedSectorId) {
       loadCuadrantes();
     }
-  }, [isOpen]);
+  }, [isOpen, selectedSectorId]);
 
   // Keyboard shortcuts: ESC para cerrar, ALT+G para guardar, P/I/A para cambiar Lado
   useEffect(() => {
@@ -169,8 +208,17 @@ export default function CalleCuadranteFormModal({
       prioridad: 1,
       observaciones: "",
     });
+    setSelectedSectorId("");
+    setCuadrantes([]);
     setValidationError("");
     onClose();
+  };
+
+  const handleSectorChange = (e) => {
+    const sectorId = e.target.value;
+    setSelectedSectorId(sectorId);
+    // Limpiar cuadrante al cambiar de sector
+    setFormData(prev => ({ ...prev, cuadrante_id: "" }));
   };
 
   const handleChange = (e) => {
@@ -323,6 +371,31 @@ export default function CalleCuadranteFormModal({
           onSubmit={handleSubmit}
           className="p-6 space-y-6"
         >
+          {/* Sector - Para filtrar cuadrantes */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              Sector <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={selectedSectorId}
+              onChange={handleSectorChange}
+              disabled={loadingSectores || !!calleCuadrante}
+              className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
+            >
+              <option value="">
+                {loadingSectores ? "Cargando sectores..." : "Seleccione un sector"}
+              </option>
+              {sectores.map((sector) => (
+                <option key={sector.id} value={sector.id}>
+                  {sector.sector_code} - {sector.nombre}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              Seleccione primero el sector para filtrar los cuadrantes disponibles
+            </p>
+          </div>
+
           {/* Cuadrante - Campo obligatorio */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
@@ -333,19 +406,21 @@ export default function CalleCuadranteFormModal({
               value={formData.cuadrante_id}
               onChange={handleChange}
               required
-              disabled={loadingCuadrantes || !!calleCuadrante}
+              disabled={!selectedSectorId || loadingCuadrantes || !!calleCuadrante}
               className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-slate-700 dark:text-white disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
             >
               <option value="">
-                {loadingCuadrantes ? "Cargando..." : "Seleccione un cuadrante"}
+                {!selectedSectorId
+                  ? "Primero seleccione un sector"
+                  : loadingCuadrantes
+                  ? "Cargando cuadrantes..."
+                  : cuadrantes.length === 0
+                  ? "No hay cuadrantes en este sector"
+                  : "Seleccione un cuadrante"}
               </option>
               {cuadrantes.map((cuad) => (
                 <option key={cuad.id} value={cuad.id}>
-                  {cuad.cuadrante_code || cuad.codigo} -{" "}
-                  {cuad.Sector?.sector_code ||
-                    cuad.sector?.sector_code ||
-                    "S/N"}{" "}
-                  {cuad.Sector?.nombre || cuad.sector?.nombre || cuad.nombre}
+                  {cuad.cuadrante_code || cuad.codigo} - {cuad.nombre}
                 </option>
               ))}
             </select>

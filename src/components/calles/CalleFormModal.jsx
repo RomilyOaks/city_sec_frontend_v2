@@ -29,6 +29,7 @@ import {
 import { listUbigeos, getUbigeoByCode } from "../../services/novedadesService";
 import { getDefaultUbigeo } from "../../config/defaults";
 import useBodyScrollLock from "../../hooks/useBodyScrollLock";
+import toast from "react-hot-toast";
 
 /**
  * Capitaliza la primera letra de cada palabra
@@ -331,10 +332,10 @@ export default function CalleFormModal({
 
       if (mode === "create") {
         await createCalle(dataToSend);
-        window.alert("✅ ÉXITO\n\nCalle creada exitosamente");
+        toast.success("Calle creada exitosamente");
       } else {
         await updateCalle(initialData.id, dataToSend);
-        window.alert("✅ ÉXITO\n\nCalle actualizada exitosamente");
+        toast.success("Calle actualizada exitosamente");
       }
 
       onSuccess?.();
