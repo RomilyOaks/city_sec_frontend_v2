@@ -381,6 +381,7 @@ export default function NovedadesPage() {
 
     // Ubicación
     referencia_ubicacion: "",
+    detalles_ubicacion: "", // Detalles adicionales que se concatenan a la dirección
     direccion_id: "",
     calle_id: "",
     numero_municipal: "",
@@ -1403,9 +1404,14 @@ export default function NovedadesPage() {
         selected.sector_id || selected.cuadrante?.sector_id || "";
       const cuadranteId = selected.cuadrante_id || "";
 
+      // Formatear la dirección completa para mostrar en el campo de búsqueda
+      const direccionFormateada = formatDireccionCompleta(selected);
+
       setRegistroFormData((prev) => ({
         ...prev,
         direccion_id: selected.id,
+        referencia_ubicacion: direccionFormateada, // Actualizar con la dirección seleccionada
+        detalles_ubicacion: "", // Limpiar detalles al seleccionar nueva dirección
         sector_id: sectorId ? String(sectorId) : "",
         cuadrante_id: cuadranteId ? String(cuadranteId) : "",
         latitud: selected.latitud || "",
@@ -1621,6 +1627,7 @@ export default function NovedadesPage() {
       reportante_doc_identidad: "",
       reportante_nombre: "",
       referencia_ubicacion: "",
+      detalles_ubicacion: "",
       direccion_id: "",
       calle_id: "",
       numero_municipal: "",
@@ -2527,6 +2534,8 @@ export default function NovedadesPage() {
                             setRegistroFormData((prev) => ({
                               ...prev,
                               direccion_id: "",
+                              referencia_ubicacion: "",
+                              detalles_ubicacion: "",
                               sector_id: "",
                               cuadrante_id: "",
                             }));
@@ -2774,32 +2783,31 @@ export default function NovedadesPage() {
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                       Detalles Adicionales de Ubicación
                     </label>
-                    {/*
-                    <textarea
-                      value={registroFormData.localizacion}
-                      onChange={(e) =>
-                        setRegistroFormData({
-                          ...registroFormData,
-                          localizacion: e.target.value,
-                        })
-                      }
-                      placeholder="Ej: Frente al parque, al costado del colegio..."
-                      rows={3}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
-                    />
-                    */}
                     <input
                       type="text"
-                      value={registroFormData.referencia_ubicacion}
-                      onChange={(e) =>
+                      value={registroFormData.detalles_ubicacion}
+                      onChange={(e) => {
+                        const detalles = e.target.value;
+                        // Obtener la dirección base (sin detalles previos)
+                        const direccionBase = direccionMatch
+                          ? formatDireccionCompleta(direccionMatch)
+                          : registroFormData.referencia_ubicacion.split(" - ")[0];
+                        // Concatenar detalles al final de la dirección
+                        const direccionCompleta = detalles
+                          ? `${direccionBase} - ${detalles}`
+                          : direccionBase;
                         setRegistroFormData({
                           ...registroFormData,
-                          referencia_ubicacion: e.target.value,
-                        })
-                      }
+                          detalles_ubicacion: detalles,
+                          referencia_ubicacion: direccionCompleta,
+                        });
+                      }}
                       placeholder="Ej. Frente al parque, al costado del colegio..."
                       className="w-full rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50"
                     />
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      Este detalle se agregará al final de la dirección seleccionada
+                    </p>
                   </div>
                   {/* 🆕 Campos para latitud, longitud y ubigeo (editables si dirección no tiene datos) */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
