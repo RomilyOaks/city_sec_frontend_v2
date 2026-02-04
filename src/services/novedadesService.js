@@ -371,8 +371,10 @@ export async function getEstadosSiguientes(estadoActualId) {
 
 export const listRadiosTetra = async () => {
   try {
-    const response = await api.get("/radios-tetra/disponibles");
-    // La respuesta viene como: { success: true, data: { radios: [...], total: N } }
+    // Usar /para-dropdown para obtener TODOS los radios activos (con y sin personal asignado)
+    // Este endpoint incluye personal_seguridad_id y personalAsignado para precarga
+    const response = await api.get("/radios-tetra/para-dropdown");
+    // La respuesta viene como: { success: true, data: { radios: [...], resumen: {...} } }
     return response.data?.data?.radios || [];
   } catch (error) {
     console.error("Error obteniendo radios TETRA:", error);

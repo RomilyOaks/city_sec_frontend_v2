@@ -260,13 +260,22 @@ export default function DireccionesPage() {
   // UTILIDADES
   // ============================================
   function formatDireccion(dir) {
-    if (dir.direccion_completa) return dir.direccion_completa;
+    let base = dir.direccion_completa;
 
-    const partes = [];
-    if (dir.calle?.nombre_completo) partes.push(dir.calle.nombre_completo);
-    if (dir.numero_municipal) partes.push(`N° ${dir.numero_municipal}`);
-    if (dir.manzana && dir.lote) partes.push(`Mz. ${dir.manzana} Lt. ${dir.lote}`);
-    return partes.join(" ") || "Sin especificar";
+    if (!base) {
+      const partes = [];
+      if (dir.calle?.nombre_completo) partes.push(dir.calle.nombre_completo);
+      if (dir.numero_municipal) partes.push(`N° ${dir.numero_municipal}`);
+      if (dir.manzana && dir.lote) partes.push(`Mz. ${dir.manzana} Lt. ${dir.lote}`);
+      base = partes.join(" ") || "Sin especificar";
+    }
+
+    // Concatenar referencia si existe (para mostrar en grilla)
+    if (dir.referencia) {
+      return `${base} (${dir.referencia})`;
+    }
+
+    return base;
   }
 
   // ============================================
