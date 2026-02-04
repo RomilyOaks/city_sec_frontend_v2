@@ -2421,21 +2421,29 @@ export default function NovedadesPage() {
                   {/* Campo de búsqueda de dirección */}
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      Buscar Dirección <span className="text-red-500">*</span>
+                      {direccionMatch ? "Dirección Seleccionada" : "Buscar Dirección"} <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
                       <input
                         type="text"
                         value={registroFormData.referencia_ubicacion}
                         onChange={(e) => {
-                          setRegistroFormData({
-                            ...registroFormData,
-                            referencia_ubicacion: e.target.value,
-                          });
-                          handleDireccionSearch(e.target.value);
+                          // Solo permitir búsqueda si no hay dirección seleccionada
+                          if (!direccionMatch) {
+                            setRegistroFormData({
+                              ...registroFormData,
+                              referencia_ubicacion: e.target.value,
+                            });
+                            handleDireccionSearch(e.target.value);
+                          }
                         }}
+                        readOnly={!!direccionMatch}
                         placeholder="Ej: Arequipa, Benavides, etc."
-                        className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                        className={`w-full px-3 py-2 rounded-lg border text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 ${
+                          direccionMatch
+                            ? "border-green-500 bg-green-50 dark:bg-green-900/20 cursor-not-allowed"
+                            : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900"
+                        }`}
                       />
                       {searchingDireccion && (
                         <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -2444,23 +2452,25 @@ export default function NovedadesPage() {
                       )}
                     </div>
 
-                    {/* Helper visible para descubrir la entrada manual */}
-                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 pl-1">
-                      ¿No encuentras la dirección?{" "}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          // Preparar el formulario de ingreso manual
-                          setDireccionesOptions([]);
-                          setDireccionMatch(null);
-                          setSelectedDireccionId("");
-                          setShowManualLocation(true);
-                        }}
-                        className="text-primary-600 hover:underline"
-                      >
-                        Ingresar manualmente
-                      </button>
-                    </div>
+                    {/* Helper visible solo cuando NO hay dirección seleccionada */}
+                    {!direccionMatch && (
+                      <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 pl-1">
+                        ¿No encuentras la dirección?{" "}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            // Preparar el formulario de ingreso manual
+                            setDireccionesOptions([]);
+                            setDireccionMatch(null);
+                            setSelectedDireccionId("");
+                            setShowManualLocation(true);
+                          }}
+                          className="text-primary-600 hover:underline"
+                        >
+                          Ingresar manualmente
+                        </button>
+                      </div>
+                    )}
                   </div>
                   {/* Dropdown de direcciones encontradas */}
                   {direccionesOptions.length > 0 && !direccionMatch && (
@@ -2538,6 +2548,9 @@ export default function NovedadesPage() {
                               detalles_ubicacion: "",
                               sector_id: "",
                               cuadrante_id: "",
+                              latitud: "",
+                              longitud: "",
+                              ubigeo_code: "",
                             }));
                           }}
                           className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
@@ -2809,14 +2822,14 @@ export default function NovedadesPage() {
                       Este detalle se agregará al final de la dirección seleccionada
                     </p>
                   </div>
-                  {/* 🆕 Campos para latitud, longitud y ubigeo (editables si dirección no tiene datos) */}
+                  {/* Campos para latitud, longitud y ubigeo (read-only si vienen de dirección seleccionada) */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                     <div>
                       <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
                         Latitud{" "}
-                        {direccionMatch && direccionMatch.latitud && (
-                          <span className="text-xs text-slate-500">
-                            (desde dirección)
+                        {direccionMatch && (
+                          <span className="text-xs text-green-600 dark:text-green-400">
+                            (auto)
                           </span>
                         )}
                       </label>
@@ -2824,16 +2837,18 @@ export default function NovedadesPage() {
                         type="text"
                         value={registroFormData.latitud || ""}
                         onChange={(e) => {
-                          setRegistroFormData({
-                            ...registroFormData,
-                            latitud: e.target.value,
-                          });
+                          if (!direccionMatch) {
+                            setRegistroFormData({
+                              ...registroFormData,
+                              latitud: e.target.value,
+                            });
+                          }
                         }}
-                        readOnly={direccionMatch && direccionMatch.latitud}
-                        className={`w-full rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-slate-900 dark:text-slate-50 ${
-                          direccionMatch && direccionMatch.latitud
-                            ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
-                            : "bg-white dark:bg-slate-950/40"
+                        readOnly={!!direccionMatch}
+                        className={`w-full rounded-lg border px-3 py-2 text-slate-900 dark:text-slate-50 ${
+                          direccionMatch
+                            ? "border-green-500 bg-green-50 dark:bg-green-900/20 cursor-not-allowed"
+                            : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40"
                         }`}
                         placeholder="-12.0464"
                       />
@@ -2841,9 +2856,9 @@ export default function NovedadesPage() {
                     <div>
                       <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
                         Longitud{" "}
-                        {direccionMatch && direccionMatch.longitud && (
-                          <span className="text-xs text-slate-500">
-                            (desde dirección)
+                        {direccionMatch && (
+                          <span className="text-xs text-green-600 dark:text-green-400">
+                            (auto)
                           </span>
                         )}
                       </label>
@@ -2851,16 +2866,18 @@ export default function NovedadesPage() {
                         type="text"
                         value={registroFormData.longitud || ""}
                         onChange={(e) => {
-                          setRegistroFormData({
-                            ...registroFormData,
-                            longitud: e.target.value,
-                          });
+                          if (!direccionMatch) {
+                            setRegistroFormData({
+                              ...registroFormData,
+                              longitud: e.target.value,
+                            });
+                          }
                         }}
-                        readOnly={direccionMatch && direccionMatch.longitud}
-                        className={`w-full rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-slate-900 dark:text-slate-50 ${
-                          direccionMatch && direccionMatch.longitud
-                            ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
-                            : "bg-white dark:bg-slate-950/40"
+                        readOnly={!!direccionMatch}
+                        className={`w-full rounded-lg border px-3 py-2 text-slate-900 dark:text-slate-50 ${
+                          direccionMatch
+                            ? "border-green-500 bg-green-50 dark:bg-green-900/20 cursor-not-allowed"
+                            : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40"
                         }`}
                         placeholder="-77.0428"
                       />
@@ -2868,9 +2885,9 @@ export default function NovedadesPage() {
                     <div>
                       <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
                         Código Ubigeo{" "}
-                        {direccionMatch && direccionMatch.ubigeo_code && (
-                          <span className="text-xs text-slate-500">
-                            (desde dirección)
+                        {direccionMatch && (
+                          <span className="text-xs text-green-600 dark:text-green-400">
+                            (auto)
                           </span>
                         )}
                       </label>
@@ -2878,16 +2895,18 @@ export default function NovedadesPage() {
                         type="text"
                         value={registroFormData.ubigeo_code || ""}
                         onChange={(e) => {
-                          setRegistroFormData({
-                            ...registroFormData,
-                            ubigeo_code: e.target.value,
-                          });
+                          if (!direccionMatch) {
+                            setRegistroFormData({
+                              ...registroFormData,
+                              ubigeo_code: e.target.value,
+                            });
+                          }
                         }}
-                        readOnly={direccionMatch && direccionMatch.ubigeo_code}
-                        className={`w-full rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-slate-900 dark:text-slate-50 ${
-                          direccionMatch && direccionMatch.ubigeo_code
-                            ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
-                            : "bg-white dark:bg-slate-950/40"
+                        readOnly={!!direccionMatch}
+                        className={`w-full rounded-lg border px-3 py-2 text-slate-900 dark:text-slate-50 ${
+                          direccionMatch
+                            ? "border-green-500 bg-green-50 dark:bg-green-900/20 cursor-not-allowed"
+                            : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40"
                         }`}
                         placeholder="150101"
                       />
