@@ -5,7 +5,7 @@
  * @module src/components/UbicacionMiniMapa.jsx
  */
 
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
 import L from "leaflet";
 import { MapPin } from "lucide-react";
@@ -43,6 +43,54 @@ function RecenterMap({ center, zoom }) {
       map.setView(center, zoom);
     }
   }, [center, zoom, map]);
+
+  return null;
+}
+
+// Componente para habilitar scroll zoom solo al hacer click en el mapa
+function ScrollWheelZoomOnFocus() {
+  const map = useMap();
+
+  useEffect(() => {
+    const container = map.getContainer();
+
+    const enableZoom = () => {
+      map.scrollWheelZoom.enable();
+      container.style.cursor = "grab";
+    };
+
+    const disableZoom = () => {
+      map.scrollWheelZoom.disable();
+      container.style.cursor = "default";
+    };
+
+    // Inicialmente deshabilitado
+    map.scrollWheelZoom.disable();
+
+    // Habilitar al hacer click dentro del mapa
+    container.addEventListener("click", enableZoom);
+    container.addEventListener("mouseenter", () => {
+      container.style.outline = "2px solid #3b82f6";
+      container.style.outlineOffset = "-2px";
+    });
+    container.addEventListener("mouseleave", () => {
+      disableZoom();
+      container.style.outline = "none";
+    });
+
+    // Deshabilitar al hacer click fuera
+    const handleOutsideClick = (e) => {
+      if (!container.contains(e.target)) {
+        disableZoom();
+      }
+    };
+    document.addEventListener("click", handleOutsideClick);
+
+    return () => {
+      container.removeEventListener("click", enableZoom);
+      document.removeEventListener("click", handleOutsideClick);
+    };
+  }, [map]);
 
   return null;
 }
@@ -123,7 +171,7 @@ export default function UbicacionMiniMapa({
           center={center}
           zoom={zoom}
           style={{ height: "100%", width: "100%" }}
-          scrollWheelZoom={true}
+          scrollWheelZoom={false}
           zoomControl={true}
         >
           <TileLayer
@@ -131,6 +179,7 @@ export default function UbicacionMiniMapa({
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
+          <ScrollWheelZoomOnFocus />
           <RecenterMap center={center} zoom={zoom} />
 
           <Marker position={center} icon={markerIcon} />

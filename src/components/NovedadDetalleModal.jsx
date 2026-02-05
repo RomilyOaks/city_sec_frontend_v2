@@ -274,10 +274,28 @@ export default function NovedadDetalleModal({
                 </div>
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50 mt-1">
                   {novedad.novedadTipoNovedad?.nombre || "Novedad"}
+                  {novedad.novedadSubtipoNovedad?.nombre && (
+                    <span className="font-normal text-sm text-slate-500 dark:text-slate-400">
+                      {" / "}{novedad.novedadSubtipoNovedad.nombre}
+                    </span>
+                  )}
                 </h3>
-                <p className="text-sm text-slate-500">
-                  {novedad.novedadSubtipoNovedad?.nombre || ""}
-                </p>
+                {(novedad.localizacion || novedad.referencia_ubicacion) && (
+                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5 truncate max-w-md" title={
+                    novedad.localizacion
+                      ? novedad.referencia_ubicacion
+                        ? `${novedad.localizacion} (${novedad.referencia_ubicacion})`
+                        : novedad.localizacion
+                      : novedad.referencia_ubicacion
+                  }>
+                    <MapPin size={12} className="inline mr-1" />
+                    {novedad.localizacion
+                      ? novedad.referencia_ubicacion
+                        ? `${novedad.localizacion} (${novedad.referencia_ubicacion})`
+                        : novedad.localizacion
+                      : novedad.referencia_ubicacion}
+                  </p>
+                )}
               </div>
             </div>
           ) : (
@@ -324,44 +342,13 @@ export default function NovedadDetalleModal({
               {/* Tab 0: Datos Básicos */}
               {activeTab === 0 && (
                 <div className="space-y-4">
-                  <div>
-                    <h4 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">
-                      Descripción
-                    </h4>
-                    <p className="text-slate-900 dark:text-slate-50 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      {novedad.descripcion || "—"}
-                    </p>
-                  </div>
+                  {/* Fila 1: Origen de Llamada | Teléfono/Radio */}
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Tipo de Novedad
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50 font-medium">
-                        {novedad.novedadTipoNovedad?.nombre || "—"}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Subtipo
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {novedad.novedadSubtipoNovedad?.nombre || "—"}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Fecha/Hora Ocurrencia
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {formatFecha(novedad.fecha_hora_ocurrencia)}
-                      </p>
-                    </div>
                     <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
                       <span className="text-xs font-medium text-slate-500">
                         Origen de Llamada
                       </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
+                      <p className="text-sm text-slate-900 dark:text-slate-50 font-medium">
                         {ORIGEN_LLAMADA_OPTIONS.find(
                           (o) => o.value === novedad.origen_llamada
                         )?.label ||
@@ -371,10 +358,42 @@ export default function NovedadDetalleModal({
                     </div>
                     <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
                       <span className="text-xs font-medium text-slate-500">
-                        Prioridad
+                        {novedad.reportante_telefono ? "Teléfono" : "Radio TETRA"}
+                      </span>
+                      <p className="text-sm text-slate-900 dark:text-slate-50 font-medium">
+                        {novedad.reportante_telefono || novedad.novedadRadioTetra?.codigo_radio || "—"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Fila 2: Descripción + Observaciones (ancho completo) */}
+                  <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                    <span className="text-xs font-medium text-slate-500">
+                      Descripción
+                    </span>
+                    <p className="text-sm text-slate-900 dark:text-slate-50 mt-1">
+                      {novedad.descripcion || "—"}
+                    </p>
+                    {novedad.observaciones && (
+                      <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                        <span className="text-xs font-medium text-slate-500">
+                          Observaciones
+                        </span>
+                        <p className="text-sm text-slate-700 dark:text-slate-300 mt-1">
+                          {novedad.observaciones}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Fila 3: Fecha/Hora Ocurrencia | Estado */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                      <span className="text-xs font-medium text-slate-500">
+                        Fecha/Hora Ocurrencia
                       </span>
                       <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {novedad.prioridad_actual || "MEDIA"}
+                        {formatFecha(novedad.fecha_hora_ocurrencia)}
                       </p>
                     </div>
                     <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
@@ -386,39 +405,25 @@ export default function NovedadDetalleModal({
                       </p>
                     </div>
                   </div>
-                  {novedad.observaciones && (
-                    <div>
-                      <h4 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">
-                        Observaciones
-                      </h4>
-                      <p className="text-sm text-slate-700 dark:text-slate-300 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                        {novedad.observaciones}
-                      </p>
-                    </div>
-                  )}
                 </div>
               )}
 
               {/* Tab 1: Ubicación */}
               {activeTab === 1 && (
                 <div className="space-y-4">
+                  {/* Mapa prominente primero */}
+                  <div>
+                    <UbicacionMiniMapa
+                      latitud={novedad.latitud}
+                      longitud={novedad.longitud}
+                      height="350px"
+                      zoom={16}
+                      showCoordinates={false}
+                    />
+                  </div>
+
+                  {/* Cards debajo del mapa */}
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Localización
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {novedad.localizacion || "—"}
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Referencia
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {novedad.referencia_ubicacion || "—"}
-                      </p>
-                    </div>
                     <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
                       <span className="text-xs font-medium text-slate-500">
                         Sector
@@ -455,20 +460,6 @@ export default function NovedadDetalleModal({
                           : "—"}
                       </p>
                     </div>
-                  </div>
-
-                  {/* Mapa de ubicación */}
-                  <div className="pt-2">
-                    <h4 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3">
-                      Ubicación en Mapa
-                    </h4>
-                    <UbicacionMiniMapa
-                      latitud={novedad.latitud}
-                      longitud={novedad.longitud}
-                      height="220px"
-                      zoom={16}
-                      showCoordinates={false}
-                    />
                   </div>
                 </div>
               )}

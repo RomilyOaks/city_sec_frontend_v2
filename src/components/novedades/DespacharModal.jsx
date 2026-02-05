@@ -36,6 +36,7 @@ import {
   mostrarErroresEspecificos,
 } from "../../services/operativosHelperService.js";
 import { useAuthStore } from "../../store/useAuthStore.js";
+import UbicacionMiniMapa from "../UbicacionMiniMapa";
 
 /**
  * Obtiene la fecha actual local en formato YYYY-MM-DD
@@ -548,6 +549,22 @@ export default function DespacharModal({
                     </span>
                   )}
                 </div>
+                {(novedad?.localizacion || novedad?.referencia_ubicacion) && (
+                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5 truncate max-w-md" title={
+                    novedad.localizacion
+                      ? novedad.referencia_ubicacion
+                        ? `${novedad.localizacion} (${novedad.referencia_ubicacion})`
+                        : novedad.localizacion
+                      : novedad.referencia_ubicacion
+                  }>
+                    <MapPin size={12} className="inline mr-1" />
+                    {novedad.localizacion
+                      ? novedad.referencia_ubicacion
+                        ? `${novedad.localizacion} (${novedad.referencia_ubicacion})`
+                        : novedad.localizacion
+                      : novedad.referencia_ubicacion}
+                  </p>
+                )}
               </div>
             </div>
             <button
@@ -776,13 +793,30 @@ export default function DespacharModal({
             {/* ===================== TAB 1: UBICACIÓN (READ-ONLY) ===================== */}
             {activeTab === 1 && (
               <div className="space-y-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <Info size={16} className="text-slate-400" />
-                  <span className="text-xs text-slate-500 dark:text-slate-400">
-                    Información de solo lectura
-                  </span>
+                {/* Mapa prominente */}
+                <div>
+                  <UbicacionMiniMapa
+                    latitud={novedad?.latitud}
+                    longitud={novedad?.longitud}
+                    height="350px"
+                    zoom={16}
+                    showCoordinates={false}
+                  />
                 </div>
 
+                {/* Coordenadas con estilo amber */}
+                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                  <label className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                    Coordenadas
+                  </label>
+                  <p className="font-mono text-sm text-amber-900 dark:text-amber-100">
+                    {novedad?.latitud && novedad?.longitud
+                      ? `${novedad.latitud}, ${novedad.longitud}`
+                      : "Sin coordenadas"}
+                  </p>
+                </div>
+
+                {/* Sector y Cuadrante */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                     <label className="text-xs text-slate-500 dark:text-slate-400">
@@ -803,87 +837,6 @@ export default function DespacharModal({
                     </p>
                   </div>
                 </div>
-
-                <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                  <label className="text-xs text-slate-500 dark:text-slate-400">
-                    Dirección Completa
-                  </label>
-                  <p className="font-semibold text-slate-900 dark:text-slate-50">
-                    {buildDireccionCompleta()}
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                    <label className="text-xs text-slate-500 dark:text-slate-400">
-                      Tipo de Vía
-                    </label>
-                    <p className="font-semibold text-slate-900 dark:text-slate-50">
-                      {novedad?.novedadDireccion?.tipoVia?.nombre ||
-                       novedad?.novedadDireccion?.tipo_via?.nombre ||
-                       "—"}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                    <label className="text-xs text-slate-500 dark:text-slate-400">
-                      Nombre de Vía
-                    </label>
-                    <p className="font-semibold text-slate-900 dark:text-slate-50">
-                      {novedad?.novedadDireccion?.calle?.nombre ||
-                       novedad?.novedadDireccion?.nombre_via ||
-                       "—"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                    <label className="text-xs text-slate-500 dark:text-slate-400">
-                      Número
-                    </label>
-                    <p className="font-semibold text-slate-900 dark:text-slate-50">
-                      {novedad?.novedadDireccion?.numero || "S/N"}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                    <label className="text-xs text-slate-500 dark:text-slate-400">
-                      Manzana
-                    </label>
-                    <p className="font-semibold text-slate-900 dark:text-slate-50">
-                      {novedad?.novedadDireccion?.manzana || "—"}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                    <label className="text-xs text-slate-500 dark:text-slate-400">
-                      Lote
-                    </label>
-                    <p className="font-semibold text-slate-900 dark:text-slate-50">
-                      {novedad?.novedadDireccion?.lote || "—"}
-                    </p>
-                  </div>
-                </div>
-
-                {(novedad?.referencia_ubicacion || novedad?.localizacion) && (
-                  <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
-                    <label className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-                      Referencia / Localización
-                    </label>
-                    <p className="text-amber-900 dark:text-amber-100">
-                      {novedad.referencia_ubicacion || novedad.localizacion}
-                    </p>
-                  </div>
-                )}
-
-                {(novedad?.latitud || novedad?.longitud) && (
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                    <label className="text-xs text-slate-500 dark:text-slate-400">
-                      Coordenadas
-                    </label>
-                    <p className="font-mono text-sm text-slate-900 dark:text-slate-50">
-                      {novedad.latitud}, {novedad.longitud}
-                    </p>
-                  </div>
-                )}
               </div>
             )}
 
