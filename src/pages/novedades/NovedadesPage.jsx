@@ -87,17 +87,15 @@ import { getDefaultUbigeo } from "../../config/defaults.js";
 
 // Constantes
 const ORIGEN_LLAMADA_OPTIONS = [
-  { value: "TELEFONO_107", label: "Teléfono 107", icon: Phone },
-  { value: "BOTON_PANICO", label: "Botón de Pánico", icon: Bell },
-  { value: "CAMARA", label: "Cámara", icon: Camera },
-  { value: "PATRULLAJE", label: "Patrullaje", icon: Car },
-  { value: "CIUDADANO", label: "Ciudadano", icon: Users },
-  {
-    value: "INTERVENCION_DIRECTA",
-    label: "Intervención Directa",
-    icon: Shield,
-  },
-  { value: "OTROS", label: "Otros", icon: Radio },
+  { value: "TELEFONO_107", label: "Llamada Telefónica (107)", icon: Phone },
+  { value: "RADIO_TETRA", label: "Radio TETRA", icon: Radio },
+  { value: "REDES_SOCIALES", label: "Redes Sociales", icon: Share2 },
+  { value: "BOTON_EMERGENCIA_ALERTA", label: "Botón Emergencia", icon: AlertTriangle },
+  { value: "BOTON_DENUNCIA_VECINO_ALERTA", label: "Botón Denuncia", icon: Home },
+  { value: "INTERVENCION_DIRECTA", label: "Intervención Directa", icon: Shield },
+  { value: "VIDEO_CCO", label: "Video CCO", icon: Video },
+  { value: "ANALITICA", label: "Analítica", icon: BarChart3 },
+  { value: "APP_PODER_JUDICIAL", label: "APP Poder Judicial", icon: Scale },
 ];
 
 const PRIORIDAD_OPTIONS = ["ALTA", "MEDIA", "BAJA"];
@@ -146,9 +144,15 @@ const NUEVOS_ORIGEN_LLAMADA_OPTIONS = [
     icon: Home,
     color: "text-orange-600"
   },
-  { 
-    value: "ANALITICA", 
-    label: "Analítica", 
+  {
+    value: "INTERVENCION_DIRECTA",
+    label: "Intervención Directa",
+    icon: Shield,
+    color: "text-teal-600"
+  },
+  {
+    value: "ANALITICA",
+    label: "Analítica",
     icon: BarChart3,
     color: "text-indigo-600"
   },
