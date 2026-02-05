@@ -281,14 +281,14 @@ export default function NovedadDetalleModal({
                   )}
                 </h3>
                 {(novedad.localizacion || novedad.referencia_ubicacion) && (
-                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5 truncate max-w-md" title={
+                  <p className="text-sm font-semibold text-amber-800 dark:text-amber-200 mt-0.5 truncate max-w-md" title={
                     novedad.localizacion
                       ? novedad.referencia_ubicacion
                         ? `${novedad.localizacion} (${novedad.referencia_ubicacion})`
                         : novedad.localizacion
                       : novedad.referencia_ubicacion
                   }>
-                    <MapPin size={12} className="inline mr-1" />
+                    <MapPin size={14} className="inline mr-1" />
                     {novedad.localizacion
                       ? novedad.referencia_ubicacion
                         ? `${novedad.localizacion} (${novedad.referencia_ubicacion})`
@@ -361,7 +361,7 @@ export default function NovedadDetalleModal({
                         {novedad.reportante_telefono ? "Teléfono" : "Radio TETRA"}
                       </span>
                       <p className="text-sm text-slate-900 dark:text-slate-50 font-medium">
-                        {novedad.reportante_telefono || novedad.novedadRadioTetra?.codigo_radio || "—"}
+                        {novedad.reportante_telefono || novedad.novedadRadioTetra?.radio_tetra_code || novedad.radioTetra?.radio_tetra_code || novedad.radio_tetra?.radio_tetra_code || "—"}
                       </p>
                     </div>
                   </div>
