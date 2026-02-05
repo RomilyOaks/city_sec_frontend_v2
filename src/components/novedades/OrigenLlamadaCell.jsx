@@ -7,6 +7,7 @@ import {
   Share2,
   AlertTriangle,
   Home,
+  Shield,
   BarChart3,
   Scale,
   Video,
@@ -44,9 +45,15 @@ const ORIGEN_LLAMADA_CONFIG = [
     icon: Home,
     color: "text-orange-600"
   },
-  { 
-    value: "ANALITICA", 
-    label: "Analítica", 
+  {
+    value: "INTERVENCION_DIRECTA",
+    label: "Intervención Directa",
+    icon: Shield,
+    color: "text-teal-600"
+  },
+  {
+    value: "ANALITICA",
+    label: "Analítica",
     icon: BarChart3,
     color: "text-indigo-600"
   },

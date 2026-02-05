@@ -30,17 +30,15 @@ import {
 import UbicacionMiniMapa from "./UbicacionMiniMapa";
 
 const ORIGEN_LLAMADA_OPTIONS = [
-  { value: "TELEFONO_107", label: "Teléfono 107", icon: Phone },
-  { value: "BOTON_PANICO", label: "Botón de Pánico", icon: Bell },
-  { value: "CAMARA", label: "Cámara", icon: Camera },
-  { value: "PATRULLAJE", label: "Patrullaje", icon: Car },
-  { value: "CIUDADANO", label: "Ciudadano", icon: Users },
-  {
-    value: "INTERVENCION_DIRECTA",
-    label: "Intervención Directa",
-    icon: Shield,
-  },
-  { value: "OTROS", label: "Otros", icon: Radio },
+  { value: "TELEFONO_107", label: "Llamada Telefónica (107)", icon: Phone },
+  { value: "RADIO_TETRA", label: "Llamada Radio TETRA", icon: Radio },
+  { value: "REDES_SOCIALES", label: "Redes Sociales", icon: Users },
+  { value: "BOTON_EMERGENCIA_ALERTA", label: "Botón Emergencia", icon: Bell },
+  { value: "BOTON_DENUNCIA_VECINO_ALERTA", label: "Botón Denuncia (App VECINO ALERTA)", icon: Bell },
+  { value: "INTERVENCION_DIRECTA", label: "Intervención Directa", icon: Shield },
+  { value: "VIDEO_CCO", label: "Video CCO", icon: Camera },
+  { value: "ANALITICA", label: "Analítica", icon: Clock },
+  { value: "APP_PODER_JUDICIAL", label: "APP Poder Judicial", icon: Shield },
 ];
 
 /**
