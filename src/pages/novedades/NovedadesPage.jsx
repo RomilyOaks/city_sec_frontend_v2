@@ -49,6 +49,7 @@ import {
   BarChart3,
   Scale,
   Video,
+  Loader2,
 } from "lucide-react";
 import DespacharModal from "../../components/novedades/DespacharModal";
 import NovedadDetalleModal from "../../components/NovedadDetalleModal";
@@ -84,6 +85,7 @@ import { getCuadrantesPorCalle } from "../../services/callesCuadrantesService.js
 import { useAuthStore } from "../../store/useAuthStore.js";
 import { canPerformAction, canAccessRoute } from "../../rbac/rbac.js";
 import { getDefaultUbigeo } from "../../config/defaults.js";
+import { geocodificarDireccion, validarCoordenadasPeru, getDescripcionLocationType, getDescripcionFuente } from "../../services/geocodingService.js";
 
 // Constantes
 const ORIGEN_LLAMADA_OPTIONS = [
@@ -370,6 +372,10 @@ export default function NovedadesPage() {
   const [gpsLoading, setGpsLoading] = useState(false);
   const [showSeguimientoModal, setShowSeguimientoModal] = useState(false);
   const [selectedNovedadSeguimiento, setSelectedNovedadSeguimiento] = useState(null);
+
+  // Estados para geocodificación en formulario manual
+  const [geocodingData, setGeocodingData] = useState(null);
+  const [loadingGeocoding, setLoadingGeocoding] = useState(false);
 
   // Form data para creación
   const [formData, setFormData] = useState({
@@ -677,7 +683,6 @@ export default function NovedadesPage() {
         e.preventDefault();
         // Usar la nueva pestaña REGISTRO en lugar del modal antiguo
         if (canCreate && !showCreateForm && !showAtencionModal && !viewingNovedad) {
-          console.log("⌨️ ALT+N presionado - Abriendo Nueva Novedad en pestaña");
           setPageTab(PAGE_TABS.REGISTRO);
           resetRegistroForm();
           // Poner foco en el primer campo después de que se renderice
@@ -749,7 +754,6 @@ export default function NovedadesPage() {
       if (e.altKey && e.key.toLowerCase() === "n") {
         e.preventDefault();
         if (canCreate && !showCreateForm && !showAtencionModal && !viewingNovedad) {
-          console.log("⌨️ ALT+N presionado - Abriendo Nueva Novedad");
           setPageTab(PAGE_TABS.REGISTRO);
           resetRegistroForm();
 
@@ -1213,8 +1217,6 @@ export default function NovedadesPage() {
    */
   const handleSaveSeguimiento = async (seguimientoData) => {
     try {
-      console.log("🔵 INICIO handleSaveSeguimiento - timestamp:", new Date().toISOString());
-
       // Calcular tiempo transcurrido en minutos desde el estado anterior
       const fechaActual = new Date(seguimientoData.fecha_despacho);
       const fechaEstadoAnterior = selectedNovedadSeguimiento.updated_at
@@ -1262,13 +1264,7 @@ export default function NovedadesPage() {
         },
       };
 
-      console.log("📋 DEBUG - Payload de seguimiento:", payload);
-      console.log("⏱️ DEBUG - Tiempo transcurrido:", tiempo_en_estado_min, "minutos");
-      console.log("🚀 ANTES de llamar asignarRecursos - timestamp:", new Date().toISOString());
-
       await asignarRecursos(selectedNovedadSeguimiento.id, payload);
-
-      console.log("✅ DESPUÉS de llamar asignarRecursos - timestamp:", new Date().toISOString());
 
       toast.success("Novedad despachada exitosamente");
       setShowSeguimientoModal(false);
@@ -1286,7 +1282,7 @@ export default function NovedadesPage() {
         }
       }
     } catch (error) {
-      console.error("❌ Error al guardar seguimiento:", error);
+      console.error("Error al guardar seguimiento:", error);
       toast.error(error.response?.data?.message || "Error al despachar novedad");
       throw error;
     }
@@ -1589,64 +1585,87 @@ export default function NovedadesPage() {
   };
 
   /**
-   * validateRegistroForm - Valida el formulario REGISTRO
+   * Función para construir dirección completa para geocodificación en formulario manual
    */
-  const validateRegistroForm = () => {
-    const errors = [];
-
-    // Campos requeridos básicos
-    if (!registroFormData.fecha_hora_ocurrencia) {
-      errors.push("Fecha y hora de ocurrencia es requerida");
-    }
-
-    if (!registroFormData.referencia_ubicacion) {
-      errors.push("Dirección de referencia es requerida");
-    }
-
-    // Validación condicional según origen_llamada
-    if (registroFormData.origen_llamada === "RADIO_TETRA") {
-      if (!registroFormData.radio_tetra_id) {
-        errors.push("Debe seleccionar un radio TETRA");
-      }
-    } else {
-      // Para otros orígenes, validar teléfono si no es anónimo
-      if (registroFormData.es_anonimo === 0 && !registroFormData.reportante_telefono) {
-        errors.push("Teléfono del reportante es requerido");
+  const construirDireccionManualParaGeocodificar = () => {
+    const partes = [];
+    
+    // Obtener nombre de la calle seleccionada
+    if (registroFormData.calle_id && calles) {
+      const calle = calles.find(c => c.id === parseInt(registroFormData.calle_id));
+      if (calle?.nombre_completo) {
+        partes.push(calle.nombre_completo);
       }
     }
-
-    // Si no hay match de dirección, validar campos manuales
-    if (!direccionMatch) {
-      if (!registroFormData.calle_id) errors.push("Debe seleccionar una calle");
-      if (!registroFormData.sector_id)
-        errors.push("Debe seleccionar un sector");
-      if (!registroFormData.cuadrante_id)
-        errors.push("Debe seleccionar un cuadrante");
+    
+    // Número municipal
+    if (registroFormData.numero_municipal) {
+      partes.push(registroFormData.numero_municipal);
     }
-
-    // Incidente
-    if (!registroFormData.tipo_novedad_id)
-      errors.push("Tipo de novedad es requerido");
-    if (!registroFormData.subtipo_novedad_id)
-      errors.push("Subtipo es requerido");
-    if (
-      !registroFormData.descripcion ||
-      registroFormData.descripcion.trim().length < 10
-    ) {
-      errors.push("Descripción debe tener al menos 10 caracteres");
+    
+    // Manzana y Lote
+    if (registroFormData.manzana && registroFormData.lote) {
+      partes.push(`Mz. ${registroFormData.manzana} Lt. ${registroFormData.lote}`);
     }
+    
+    // Urbanización
+    if (registroFormData.urbanizacion) {
+      partes.push(registroFormData.urbanizacion);
+    }
+    
+    // Referencia
+    if (registroFormData.referencia_ubicacion) {
+      partes.push(`(${registroFormData.referencia_ubicacion})`);
+    }
+    
+    return partes.join(" ");
+  };
 
-    // Reportante (solo si NO es anónimo)
-    if (registroFormData.es_anonimo === 0) {
-      if (!registroFormData.reportante_nombre) {
-        errors.push("Nombre del reportante es requerido");
+  /**
+   * Handler para geocodificar dirección manual en formulario de novedades
+   */
+  const handleGeocodificarDireccionManual = async () => {
+    const direccionCompleta = construirDireccionManualParaGeocodificar();
+    
+    if (!direccionCompleta || direccionCompleta.length < 5) {
+      toast.error("Por favor, ingrese al menos una calle y número");
+      return;
+    }
+    
+    setLoadingGeocoding(true);
+    setGeocodingData(null);
+    
+    try {
+      const resultado = await geocodificarDireccion(direccionCompleta);
+      
+      // Validar que las coordenadas sean válidas para Perú
+      if (!validarCoordenadasPeru(resultado.latitud, resultado.longitud)) {
+        toast("Las coordenadas obtenidas están fuera del territorio peruano", { icon: "⚠️" });
       }
-      if (!registroFormData.reportante_doc_identidad) {
-        errors.push("Documento de identidad es requerido");
-      }
-    }
+      
+      // Actualizar el formulario de registro con las coordenadas
+      setRegistroFormData(prev => ({
+        ...prev,
+        latitud: resultado.latitud != null ? resultado.latitud.toString() : "",
+        longitud: resultado.longitud != null ? resultado.longitud.toString() : ""
+      }));
+      
+      // Guardar datos de geocodificación para mostrar información
+      setGeocodingData(resultado);
+      
+      // Mostrar toast de éxito con información detallada
+      const locationType = getDescripcionLocationType(resultado.location_type);
+      const fuente = getDescripcionFuente(resultado.fuente_geocodificacion);
+      
+      toast.success(`📍 Dirección geocodificada (${locationType}) - Fuente: ${fuente}`);
 
-    return errors;
+    } catch (error) {
+      console.error('Error en geocodificación manual:', error);
+      toast.error(error.message || "No se pudo geocodificar la dirección");
+      setGeocodingData(null);
+    } finally {
+      setLoadingGeocoding(false);
+    }
   };
 
   /**
@@ -1736,6 +1755,9 @@ export default function NovedadesPage() {
       return;
     }
 
+    // Limpiar errores de validación previos
+    setValidationError(null);
+
     setSaving(true);
     let finalDireccionId = workingFormData.direccion_id;
 
@@ -1764,12 +1786,13 @@ export default function NovedadesPage() {
           // Latitud y longitud son opcionales
           latitud: workingFormData.latitud && workingFormData.latitud !== "" ? parseFloat(workingFormData.latitud) : null,
           longitud: workingFormData.longitud && workingFormData.longitud !== "" ? parseFloat(workingFormData.longitud) : null,
+          // Datos de geocodificación (si se geocodificó la dirección)
+          fuente_geocodificacion: geocodingData?.fuente_geocodificacion || null,
+          location_type: geocodingData?.location_type || null,
           verificada: 0, // Marcar como no verificada
         };
 
-        console.log("📍 Creando nueva dirección:", direccionPayload);
         const nuevaDireccion = await createDireccion(direccionPayload);
-        console.log("✅ Dirección creada:", nuevaDireccion);
         finalDireccionId = nuevaDireccion.id;
         toast.success("Nueva dirección creada");
       }
@@ -1811,9 +1834,7 @@ export default function NovedadesPage() {
         ubigeo_code: workingFormData.ubigeo_code || defaultUbigeo?.code || null,
       };
 
-      console.log("📋 Payload novedad a enviar:", novedadPayload);
       const resultado = await createNovedad(novedadPayload);
-      console.log("✅ Novedad creada, resultado:", resultado);
 
       toast.success(
         `Novedad ${resultado?.data?.novedad_code || "creada"} exitosamente`
@@ -1839,18 +1860,13 @@ export default function NovedadesPage() {
    */
   const loadCuadrantesForSector = async (sectorId) => {
     try {
-      console.log("🔍 Cargando cuadrantes para sector_id:", sectorId);
       const data = await listCuadrantesService({
         sector_id: sectorId,
         limit: 100, // Backend requiere límite máximo de 100
       });
-      console.log("✅ Cuadrantes cargados:", data);
       setCuadrantesRegistro(data.items || data || []);
     } catch (error) {
-      console.error("❌ Error al cargar cuadrantes del sector:", sectorId);
-      console.error("Detalles del error:", error);
-      console.error("Response:", error.response?.data);
-      console.error("Status:", error.response?.status);
+      console.error("Error al cargar cuadrantes del sector:", error);
       toast.error(
         `Error al cargar cuadrantes del sector: ${
           error.response?.data?.message || error.message
@@ -1917,6 +1933,9 @@ export default function NovedadesPage() {
     setShowCalleDropdown(false);
     setAutoPopulatedFromCalle(false);
     setCuadrantesRegistro([]);
+    // Limpiar errores de validación y datos de geocodificación
+    setValidationError(null);
+    setGeocodingData(null);
   };
 
   /**
@@ -3247,7 +3266,64 @@ export default function NovedadesPage() {
                     </p>
                   </div>
                   {/* Campos para latitud, longitud y ubigeo (read-only si vienen de dirección seleccionada) */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                    {/* Botón de geocodificación - solo visible en modo manual */}
+                    {showManualLocation && !direccionMatch && (
+                      <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
+                            📍 Geocodificación Automática
+                          </p>
+                          <p className="text-xs text-blue-700 dark:text-blue-300">
+                            Obtenga coordenadas GPS automáticamente para la dirección ingresada
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleGeocodificarDireccionManual}
+                          disabled={loadingGeocoding || !registroFormData.calle_id}
+                          className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+                        >
+                          {loadingGeocoding ? (
+                            <>
+                              <Loader2 size={16} className="animate-spin" />
+                              Geocodificando...
+                            </>
+                          ) : (
+                            <>
+                              <MapPin size={16} />
+                              Geocodificar
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Información de geocodificación */}
+                    {geocodingData && showManualLocation && !direccionMatch && (
+                      <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <MapPin size={16} className="text-green-600 dark:text-green-400 mt-0.5" />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-green-800 dark:text-green-200 mb-1">
+                              ✅ Dirección geocodificada exitosamente
+                            </p>
+                            <div className="text-xs text-green-700 dark:text-green-300 space-y-1">
+                              <p>
+                                <strong>Precisión:</strong> {getDescripcionLocationType(geocodingData.location_type)}
+                              </p>
+                              <p>
+                                <strong>Fuente:</strong> {getDescripcionFuente(geocodingData.fuente_geocodificacion)}
+                              </p>
+                              <p>
+                                <strong>Coordenadas:</strong> {parseFloat(geocodingData.latitud).toFixed(6)}, {parseFloat(geocodingData.longitud).toFixed(6)}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
                         Latitud{" "}

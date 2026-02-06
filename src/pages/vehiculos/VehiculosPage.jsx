@@ -298,7 +298,7 @@ export default function VehiculosPage() {
             // Usar el count del backend si está disponible, sino usar el length del array
             const count = response?.count || (Array.isArray(response?.data) ? response.data.length : 0);
             counts[vehiculo.id] = count;
-          } catch (error) {
+          } catch {
             // Si hay error, asumir 0 cuadrantes
             counts[vehiculo.id] = 0;
           }
