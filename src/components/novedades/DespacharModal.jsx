@@ -479,40 +479,6 @@ export default function DespacharModal({
     return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
   };
 
-  // Construir dirección completa desde los campos de la novedad
-  const buildDireccionCompleta = () => {
-    const parts = [];
-
-    // Tipo de vía + nombre de calle
-    const tipoVia = novedad?.novedadDireccion?.tipoVia?.nombre || novedad?.novedadDireccion?.tipo_via?.nombre;
-    const calle = novedad?.novedadDireccion?.calle?.nombre || novedad?.novedadDireccion?.nombre_via;
-
-    if (tipoVia && calle) {
-      parts.push(`${tipoVia} ${calle}`);
-    } else if (calle) {
-      parts.push(calle);
-    }
-
-    // Número
-    const numero = novedad?.novedadDireccion?.numero;
-    if (numero) {
-      parts.push(`Nº ${numero}`);
-    }
-
-    // Manzana y Lote
-    const manzana = novedad?.novedadDireccion?.manzana;
-    const lote = novedad?.novedadDireccion?.lote;
-    if (manzana) parts.push(`Mz. ${manzana}`);
-    if (lote) parts.push(`Lt. ${lote}`);
-
-    // Usar localizacion o direccion_texto si no hay campos estructurados
-    if (parts.length === 0) {
-      return novedad?.localizacion || novedad?.direccion_texto || "—";
-    }
-
-    return parts.join(" ") || "—";
-  };
-
   if (!isOpen) return null;
 
   return (

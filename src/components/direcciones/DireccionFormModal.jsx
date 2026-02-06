@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X } from "lucide-react";
+import { X, MapPin, Loader2 } from "lucide-react";
 import { validarDireccion, createDireccion, updateDireccion, getDireccionById } from "../../services/direccionesService";
 import { listCallesActivas } from "../../services/callesService";
 import { listSectores } from "../../services/sectoresService";
@@ -9,6 +9,7 @@ import { toast } from "react-hot-toast";
 import { getDefaultUbigeo } from "../../config/defaults";
 import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 import { showValidationError } from "../../utils/errorUtils.js";
+import { geocodificarDireccion, validarCoordenadasPeru, getDescripcionLocationType, getDescripcionFuente } from "../../services/geocodingService.js";
 
 /**
  * File: src/components/direcciones/DireccionFormModal.jsx
@@ -53,6 +54,8 @@ export default function DireccionFormModal({ isOpen, onClose, direccion: direcci
   const [ubigeoOptions, setUbigeoOptions] = useState([]);
   const [showUbigeoDropdown, setShowUbigeoDropdown] = useState(false);
   const [defaultUbigeo, setDefaultUbigeo] = useState(null); // Ubigeo por defecto
+  const [geocodingData, setGeocodingData] = useState(null); // Datos de geocodificación
+  const [loadingGeocoding, setLoadingGeocoding] = useState(false); // Estado de carga de geocodificación
   const [formData, setFormData] = useState({
     calle_id: "",
     numero_municipal: "",
@@ -422,6 +425,86 @@ export default function DireccionFormModal({ isOpen, onClose, direccion: direcci
     }
   };
 
+  // Función para construir dirección completa para geocodificación
+  const construirDireccionParaGeocodificar = () => {
+    const partes = [];
+    
+    // Obtener nombre de la calle
+    const calleSeleccionada = calles.find(c => c.id === parseInt(formData.calle_id));
+    if (calleSeleccionada?.nombre_completo) {
+      partes.push(calleSeleccionada.nombre_completo);
+    }
+    
+    // Número municipal
+    if (formData.numero_municipal) {
+      partes.push(formData.numero_municipal);
+    }
+    
+    // Manzana y Lote
+    if (formData.manzana && formData.lote) {
+      partes.push(`Mz. ${formData.manzana} Lt. ${formData.lote}`);
+    }
+    
+    // Urbanización
+    if (formData.urbanizacion) {
+      partes.push(formData.urbanizacion);
+    }
+    
+    // Referencia
+    if (formData.referencia) {
+      partes.push(`(${formData.referencia})`);
+    }
+    
+    return partes.join(" ");
+  };
+
+  // Handler para geocodificar dirección
+  const handleGeocodificar = async () => {
+    const direccionCompleta = construirDireccionParaGeocodificar();
+    
+    if (!direccionCompleta || direccionCompleta.length < 5) {
+      toast.error("Por favor, ingrese al menos una calle y número");
+      return;
+    }
+    
+    setLoadingGeocoding(true);
+    setGeocodingData(null);
+    
+    try {
+      const resultado = await geocodificarDireccion(direccionCompleta);
+      
+      // Validar que las coordenadas sean válidas para Perú
+      if (!validarCoordenadasPeru(resultado.latitud, resultado.longitud)) {
+        toast.warning("Las coordenadas obtenidas están fuera del territorio peruano");
+      }
+      
+      // Actualizar el formulario con las coordenadas
+      setFormData(prev => ({
+        ...prev,
+        latitud: resultado.latitud.toString(),
+        longitud: resultado.longitud.toString()
+      }));
+      
+      // Guardar datos de geocodificación para mostrar información
+      setGeocodingData(resultado);
+      
+      // Mostrar toast de éxito con información detallada
+      const locationType = getDescripcionLocationType(resultado.location_type);
+      const fuente = getDescripcionFuente(resultado.fuente_geocodificacion);
+      
+      toast.success(`📍 Dirección geocodificada (${locationType}) - Fuente: ${fuente}`);
+      
+      console.log('✅ Geocodificación exitosa:', resultado);
+      
+    } catch (error) {
+      console.error('❌ Error en geocodificación:', error);
+      toast.error(error.message || "No se pudo geocodificar la dirección");
+      setGeocodingData(null);
+    } finally {
+      setLoadingGeocoding(false);
+    }
+  };
+
   // Handler para submit del formulario
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -445,6 +528,12 @@ export default function DireccionFormModal({ isOpen, onClose, direccion: direcci
         latitud: formData.latitud || null,
         longitud: formData.longitud || null,
         observaciones: formData.observaciones || null,
+        // Campos de geocodificación
+        ...(geocodingData && {
+          geocodificada: geocodingData.geocodificada,
+          location_type: geocodingData.location_type,
+          fuente_geocodificacion: geocodingData.fuente_geocodificacion,
+        }),
       };
 
       if (direccion) {
@@ -779,32 +868,83 @@ export default function DireccionFormModal({ isOpen, onClose, direccion: direcci
           </div>
 
           {/* Coordenadas GPS */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                Latitud
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Coordenadas GPS
               </label>
-              <input
-                type="text"
-                name="latitud"
-                value={formData.latitud}
-                onChange={handleChange}
-                placeholder="Ej: -13.5226"
-                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
-              />
+              <button
+                type="button"
+                onClick={handleGeocodificar}
+                disabled={loadingGeocoding || !formData.calle_id}
+                className="flex items-center gap-2 px-3 py-1.5 bg-primary-600 hover:bg-primary-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                {loadingGeocoding ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Geocodificando...
+                  </>
+                ) : (
+                  <>
+                    <MapPin size={16} />
+                    Geocodificar
+                  </>
+                )}
+              </button>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                Longitud
-              </label>
-              <input
-                type="text"
-                name="longitud"
-                value={formData.longitud}
-                onChange={handleChange}
-                placeholder="Ej: -71.9675"
-                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
-              />
+            
+            {/* Información de geocodificación */}
+            {geocodingData && (
+              <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <MapPin size={16} className="text-green-600 dark:text-green-400 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-green-800 dark:text-green-200 mb-1">
+                      ✅ Dirección geocodificada exitosamente
+                    </p>
+                    <div className="text-xs text-green-700 dark:text-green-300 space-y-1">
+                      <p>
+                        <strong>Precisión:</strong> {getDescripcionLocationType(geocodingData.location_type)}
+                      </p>
+                      <p>
+                        <strong>Fuente:</strong> {getDescripcionFuente(geocodingData.fuente_geocodificacion)}
+                      </p>
+                      <p>
+                        <strong>Coordenadas:</strong> {parseFloat(geocodingData.latitud).toFixed(6)}, {parseFloat(geocodingData.longitud).toFixed(6)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Latitud
+                </label>
+                <input
+                  type="text"
+                  name="latitud"
+                  value={formData.latitud}
+                  onChange={handleChange}
+                  placeholder="Ej: -13.5226"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Longitud
+                </label>
+                <input
+                  type="text"
+                  name="longitud"
+                  value={formData.longitud}
+                  onChange={handleChange}
+                  placeholder="Ej: -71.9675"
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+                />
+              </div>
             </div>
           </div>
 
