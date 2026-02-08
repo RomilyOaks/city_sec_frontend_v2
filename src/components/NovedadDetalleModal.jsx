@@ -7,7 +7,7 @@
  * @module src/components/NovedadDetalleModal.jsx
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   X,
   FileText,
@@ -22,11 +22,15 @@ import {
   Shield,
   Radio,
   Truck,
+  Loader2,
 } from "lucide-react";
+import toast from "react-hot-toast";
 import {
   getNovedadById,
   getHistorialEstados,
+  updateNovedad,
 } from "../services/novedadesService";
+import { geocodificarDireccion } from "../services/direccionesService";
 import UbicacionMiniMapa from "./UbicacionMiniMapa";
 
 const ORIGEN_LLAMADA_OPTIONS = [
@@ -128,6 +132,43 @@ export default function NovedadDetalleModal({
   const [activeTab, setActiveTab] = useState(0);
   const [historial, setHistorial] = useState([]);
   const [loadingHistorial, setLoadingHistorial] = useState(false);
+
+  // Estado para ajuste de coordenadas en el mapa
+  const [editedCoordinates, setEditedCoordinates] = useState(null);
+  const [savingCoordinates, setSavingCoordinates] = useState(false);
+
+  // Handler para ajustar coordenadas desde el mapa
+  const handleCoordinatesChange = useCallback(async (newLat, newLng) => {
+    if (!novedad?.id) {
+      toast.error("No se puede actualizar: falta ID de la novedad");
+      return;
+    }
+
+    setSavingCoordinates(true);
+    try {
+      await updateNovedad(novedad.id, {
+        latitud: newLat,
+        longitud: newLng,
+      });
+
+      if (novedad.direccion_id) {
+        await geocodificarDireccion(novedad.direccion_id, {
+          latitud: newLat,
+          longitud: newLng,
+          fuente: "Ajuste manual en mapa",
+        });
+      }
+
+      setEditedCoordinates({ latitud: newLat, longitud: newLng });
+      toast.success("Ubicación actualizada correctamente");
+    } catch (error) {
+      console.error("Error al actualizar coordenadas:", error);
+      toast.error(error.response?.data?.message || "Error al actualizar la ubicación");
+      setEditedCoordinates(null);
+    } finally {
+      setSavingCoordinates(false);
+    }
+  }, [novedad?.id, novedad?.direccion_id]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -409,14 +450,26 @@ export default function NovedadDetalleModal({
               {/* Tab 1: Ubicación */}
               {activeTab === 1 && (
                 <div className="space-y-4">
-                  {/* Mapa prominente primero */}
-                  <div>
+                  {/* Mapa prominente con modo editable */}
+                  <div className="relative">
+                    {savingCoordinates && (
+                      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center rounded-lg z-[1000]">
+                        <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-xl flex items-center gap-3">
+                          <Loader2 className="animate-spin text-blue-600" size={20} />
+                          <p className="text-sm text-slate-700 dark:text-slate-300">
+                            Guardando ubicación...
+                          </p>
+                        </div>
+                      </div>
+                    )}
                     <UbicacionMiniMapa
-                      latitud={novedad.latitud}
-                      longitud={novedad.longitud}
+                      latitud={editedCoordinates?.latitud ?? novedad.latitud}
+                      longitud={editedCoordinates?.longitud ?? novedad.longitud}
                       height="350px"
                       zoom={16}
                       showCoordinates={false}
+                      editable={true}
+                      onCoordinatesChange={handleCoordinatesChange}
                     />
                   </div>
 
@@ -449,12 +502,19 @@ export default function NovedadDetalleModal({
                       </p>
                     </div>
                     <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                      <span className="text-xs font-medium text-slate-500">
-                        Coordenadas
-                      </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {novedad.latitud && novedad.longitud
-                          ? `${novedad.latitud}, ${novedad.longitud}`
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-slate-500">
+                          Coordenadas
+                        </span>
+                        {editedCoordinates && (
+                          <span className="text-xs font-medium text-green-600 dark:text-green-400">
+                            (Actualizado)
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-slate-900 dark:text-slate-50 font-mono">
+                        {(editedCoordinates?.latitud ?? novedad.latitud) && (editedCoordinates?.longitud ?? novedad.longitud)
+                          ? `${parseFloat(editedCoordinates?.latitud ?? novedad.latitud).toFixed(6)}, ${parseFloat(editedCoordinates?.longitud ?? novedad.longitud).toFixed(6)}`
                           : "—"}
                       </p>
                     </div>

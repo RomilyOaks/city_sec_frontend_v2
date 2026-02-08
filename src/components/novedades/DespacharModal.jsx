@@ -36,6 +36,8 @@ import {
   mostrarErroresEspecificos,
 } from "../../services/operativosHelperService.js";
 import { useAuthStore } from "../../store/useAuthStore.js";
+import { updateNovedad } from "../../services/novedadesService.js";
+import { geocodificarDireccion } from "../../services/direccionesService.js";
 import UbicacionMiniMapa from "../UbicacionMiniMapa";
 
 /**
@@ -119,6 +121,10 @@ export default function DespacharModal({
   const [vehiculosDisponibles, setVehiculosDisponibles] = useState([]);
   const [personalDisponible, setPersonalDisponible] = useState([]); // 🔥 NUEVO
   const [loadingOperativos, setLoadingOperativos] = useState(false);
+
+  // Estado para ajuste de coordenadas en el mapa
+  const [editedCoordinates, setEditedCoordinates] = useState(null);
+  const [savingCoordinates, setSavingCoordinates] = useState(false);
 
   // Pestaña activa: 0=Info General, 1=Ubicación, 2=Recursos (editable)
   const [activeTab, setActiveTab] = useState(2); // Por defecto en Recursos
@@ -245,6 +251,41 @@ export default function DespacharModal({
     }
   }, [isOpen, turnoActivo?.turno, loadOperativosData]);
 
+  // Handler para ajustar coordenadas desde el mapa
+  const handleCoordinatesChange = useCallback(async (newLat, newLng) => {
+    if (!novedad?.id) {
+      toast.error("No se puede actualizar: falta ID de la novedad");
+      return;
+    }
+
+    setSavingCoordinates(true);
+    try {
+      // 1. Actualizar coordenadas en la novedad
+      await updateNovedad(novedad.id, {
+        latitud: newLat,
+        longitud: newLng,
+      });
+
+      // 2. Si tiene dirección asociada, actualizar también
+      if (novedad.direccion_id) {
+        await geocodificarDireccion(novedad.direccion_id, {
+          latitud: newLat,
+          longitud: newLng,
+          fuente: "Ajuste manual en mapa",
+        });
+      }
+
+      setEditedCoordinates({ latitud: newLat, longitud: newLng });
+      toast.success("Ubicación actualizada correctamente");
+    } catch (error) {
+      console.error("Error al actualizar coordenadas:", error);
+      toast.error(error.response?.data?.message || "Error al actualizar la ubicación");
+      setEditedCoordinates(null);
+    } finally {
+      setSavingCoordinates(false);
+    }
+  }, [novedad?.id, novedad?.direccion_id]);
+
   const handleClose = useCallback(() => {
     if (saving) return;
     setFormData({
@@ -255,6 +296,7 @@ export default function DespacharModal({
       unidad_oficina_id: "1",
     });
     setActiveTab(2);
+    setEditedCoordinates(null);
     onClose();
   }, [saving, onClose]);
 
@@ -759,25 +801,44 @@ export default function DespacharModal({
             {/* ===================== TAB 1: UBICACIÓN (READ-ONLY) ===================== */}
             {activeTab === 1 && (
               <div className="space-y-4">
-                {/* Mapa prominente */}
-                <div>
+                {/* Mapa prominente con modo editable */}
+                <div className="relative">
+                  {savingCoordinates && (
+                    <div className="absolute inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center rounded-lg z-[1000]">
+                      <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-xl flex items-center gap-3">
+                        <Loader2 className="animate-spin text-blue-600" size={20} />
+                        <p className="text-sm text-slate-700 dark:text-slate-300">
+                          Guardando ubicación...
+                        </p>
+                      </div>
+                    </div>
+                  )}
                   <UbicacionMiniMapa
-                    latitud={novedad?.latitud}
-                    longitud={novedad?.longitud}
+                    latitud={editedCoordinates?.latitud ?? novedad?.latitud}
+                    longitud={editedCoordinates?.longitud ?? novedad?.longitud}
                     height="350px"
                     zoom={16}
                     showCoordinates={false}
+                    editable={true}
+                    onCoordinatesChange={handleCoordinatesChange}
                   />
                 </div>
 
                 {/* Coordenadas con estilo amber */}
                 <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
-                  <label className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-                    Coordenadas
-                  </label>
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                      Coordenadas
+                    </label>
+                    {editedCoordinates && (
+                      <span className="text-xs font-medium text-green-600 dark:text-green-400">
+                        (Actualizado)
+                      </span>
+                    )}
+                  </div>
                   <p className="font-mono text-sm text-amber-900 dark:text-amber-100">
-                    {novedad?.latitud && novedad?.longitud
-                      ? `${novedad.latitud}, ${novedad.longitud}`
+                    {(editedCoordinates?.latitud ?? novedad?.latitud) && (editedCoordinates?.longitud ?? novedad?.longitud)
+                      ? `${parseFloat(editedCoordinates?.latitud ?? novedad.latitud).toFixed(6)}, ${parseFloat(editedCoordinates?.longitud ?? novedad.longitud).toFixed(6)}`
                       : "Sin coordenadas"}
                   </p>
                 </div>
