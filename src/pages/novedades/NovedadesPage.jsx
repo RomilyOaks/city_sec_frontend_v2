@@ -202,6 +202,19 @@ const getCurrentDateTimeLocal = () => {
 };
 
 /**
+ * Convierte un valor datetime-local a formato para backend (sin Z, sin T).
+ * El backend interpreta este formato como hora local Peru sin conversión timezone.
+ * Ejemplo: "2026-02-08T18:37" → "2026-02-08 18:37:00"
+ */
+const toBackendDatetime = (datetimeLocalValue) => {
+  if (!datetimeLocalValue) return null;
+  // Reemplazar T por espacio y asegurar formato con segundos
+  const clean = datetimeLocalValue.replace("T", " ");
+  // Si no tiene segundos, agregarlos
+  return clean.length <= 16 ? clean + ":00" : clean;
+};
+
+/**
  * Helper para obtener rango de fechas por defecto (últimos 7 días)
  * Retorna { fecha_inicio: "YYYY-MM-DD", fecha_fin: "YYYY-MM-DD" }
  */
@@ -331,6 +344,7 @@ export default function NovedadesPage() {
   const [filterTipo, setFilterTipo] = useState("");
   const [filterEstado, setFilterEstado] = useState("1"); // Por defecto: Pendiente de registro
   const [filterPrioridad, setFilterPrioridad] = useState("");
+  const [filterOrigenLlamada, setFilterOrigenLlamada] = useState("");
   const [filters, setFilters] = useState(() => getDefaultDateRange()); // Últimos 7 días por defecto
 
   // Catálogos
@@ -514,6 +528,7 @@ export default function NovedadesPage() {
         tipo_novedad_id: filterTipo || undefined,
         estado_novedad_id: filterEstado || undefined,
         prioridad_actual: filterPrioridad || undefined,
+        origen_llamada: filterOrigenLlamada || undefined,
         search: search || undefined,
         sort: "prioridad_actual,novedad_code",
         order: "asc,desc", // Ordenar por prioridad ASC, luego novedad_code DESC (usando índice idx_novedad_prioridad)
@@ -938,7 +953,7 @@ export default function NovedadesPage() {
     setPage(1);
     fetchNovedades({ nextPage: 1 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterTipo, filterEstado, filterPrioridad]);
+  }, [filterTipo, filterEstado, filterPrioridad, filterOrigenLlamada]);
 
   const handleDelete = async (n) => {
     const confirmed = window.confirm(`¿Eliminar novedad "${n.novedad_code}"?`);
@@ -1065,7 +1080,7 @@ export default function NovedadesPage() {
       await createNovedad({
         tipo_novedad_id: Number(formData.tipo_novedad_id),
         subtipo_novedad_id: Number(formData.subtipo_novedad_id),
-        fecha_hora_ocurrencia: formData.fecha_hora_ocurrencia,
+        fecha_hora_ocurrencia: toBackendDatetime(formData.fecha_hora_ocurrencia),
         origen_llamada: formData.origen_llamada,
         localizacion: formData.localizacion || undefined,
         referencia_ubicacion: formData.referencia_ubicacion || undefined,
@@ -1244,8 +1259,8 @@ export default function NovedadesPage() {
         unidad_oficina_id: seguimientoData.unidad_oficina_id,
         personal_seguridad2_id: seguimientoData.personal_seguridad2_id,
 
-        // Fechas y kilometraje
-        fecha_despacho: seguimientoData.fecha_despacho,
+        // Fechas y kilometraje (sin Z, backend interpreta como hora local Peru)
+        fecha_despacho: toBackendDatetime(seguimientoData.fecha_despacho) || toBackendDatetime(getCurrentDateTimeLocal()),
         km_inicial: seguimientoData.km_inicial,
 
         // Observaciones de la novedad (se graba en novedades_incidentes.observaciones)
@@ -1257,7 +1272,7 @@ export default function NovedadesPage() {
           estado_anterior_id: selectedNovedadSeguimiento.estado_novedad_id || 1,
           estado_nuevo_id: 2, // DESPACHADO
           observaciones: observacionesFinal,
-          fecha_cambio: seguimientoData.fecha_despacho,
+          fecha_cambio: toBackendDatetime(seguimientoData.fecha_despacho) || toBackendDatetime(getCurrentDateTimeLocal()),
           tiempo_en_estado_min: tiempo_en_estado_min >= 0 ? tiempo_en_estado_min : 0,
           created_by: user?.id || null,
           updated_by: user?.id || null,
@@ -1336,7 +1351,7 @@ export default function NovedadesPage() {
         personal_seguridad4_id: atencionData.personal_seguridad4_id
           ? Number(atencionData.personal_seguridad4_id)
           : undefined,
-        fecha_despacho: atencionData.fecha_despacho || undefined,
+        fecha_despacho: toBackendDatetime(atencionData.fecha_despacho) || undefined,
         turno: atencionData.turno || undefined,
         tiempo_respuesta_minutos: atencionData.tiempo_respuesta_minutos
           ? Number(atencionData.tiempo_respuesta_minutos)
@@ -1385,6 +1400,7 @@ export default function NovedadesPage() {
     setFilterTipo("");
     setFilterEstado(""); // Cambiar a "Todos" en lugar de "1"
     setFilterPrioridad("");
+    setFilterOrigenLlamada("");
     setFilters({
       fecha_inicio: "",
       fecha_fin: "",
@@ -1787,6 +1803,7 @@ export default function NovedadesPage() {
           latitud: workingFormData.latitud && workingFormData.latitud !== "" ? parseFloat(workingFormData.latitud) : null,
           longitud: workingFormData.longitud && workingFormData.longitud !== "" ? parseFloat(workingFormData.longitud) : null,
           // Datos de geocodificación (si se geocodificó la dirección)
+          geocodificada: geocodingData ? 1 : 0,
           fuente_geocodificacion: geocodingData?.fuente_geocodificacion || null,
           location_type: geocodingData?.location_type || null,
           verificada: 0, // Marcar como no verificada
@@ -1805,7 +1822,7 @@ export default function NovedadesPage() {
         origen_llamada: workingFormData.origen_llamada,
         reportante_telefono: workingFormData.origen_llamada === "RADIO_TETRA" ? null : workingFormData.reportante_telefono,
         radio_tetra_id: workingFormData.origen_llamada === "RADIO_TETRA" ? workingFormData.radio_tetra_id : null,
-        fecha_hora_ocurrencia: workingFormData.fecha_hora_ocurrencia,
+        fecha_hora_ocurrencia: toBackendDatetime(workingFormData.fecha_hora_ocurrencia),
         es_anonimo: workingFormData.es_anonimo,
         reportante_tipo_doc: workingFormData.reportante_tipo_doc,
         // Concatenar tipo de documento con número
@@ -2160,7 +2177,15 @@ export default function NovedadesPage() {
                   />
                   <input
                     value={search}
-                    onChange={(e) => setSearch(e.target.value)}
+                    onChange={(e) => {
+                      setSearch(e.target.value);
+                      if (e.target.value) {
+                        setFilterTipo("");
+                        setFilterEstado("");
+                        setFilterPrioridad("");
+                        setFilterOrigenLlamada("");
+                      }
+                    }}
                     onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                     placeholder="Buscar por código, descripción, ubicación, teléfono..."
                     className="w-full pl-9 pr-3 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
@@ -2219,9 +2244,9 @@ export default function NovedadesPage() {
                 </div>
               </div>
               
-              {/* Segunda fila - Filtros de fecha */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3">
-                <div className="lg:col-span-1">
+              {/* Segunda fila - Filtros de fecha + Origen Llamada */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-3 gap-3">
+                <div>
                   <input
                     type="date"
                     value={filters.fecha_inicio}
@@ -2230,7 +2255,7 @@ export default function NovedadesPage() {
                     placeholder="Fecha inicio"
                   />
                 </div>
-                <div className="lg:col-span-1">
+                <div>
                   <input
                     type="date"
                     value={filters.fecha_fin}
@@ -2239,6 +2264,18 @@ export default function NovedadesPage() {
                     placeholder="Fecha fin"
                   />
                 </div>
+                <select
+                  value={filterOrigenLlamada}
+                  onChange={(e) => setFilterOrigenLlamada(e.target.value)}
+                  className="text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-2 py-1.5 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
+                >
+                  <option value="">Todos los orígenes</option>
+                  {ORIGEN_LLAMADA_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
