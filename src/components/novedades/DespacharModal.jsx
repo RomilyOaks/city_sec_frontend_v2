@@ -41,6 +41,21 @@ import { geocodificarDireccion } from "../../services/direccionesService.js";
 import UbicacionMiniMapa from "../UbicacionMiniMapa";
 
 /**
+ * Obtiene la fecha/hora actual local en formato "YYYY-MM-DD HH:mm:ss" (sin Z).
+ * El backend interpreta este formato como hora local Peru sin conversión timezone.
+ */
+const getLocalDatetime = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  const seconds = String(now.getSeconds()).padStart(2, "0");
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+};
+
+/**
  * Obtiene la fecha actual local en formato YYYY-MM-DD
  * Compatible con backend que usa timezone America/Lima
  */
@@ -403,7 +418,7 @@ export default function DespacharModal({
             {
               novedad_id: novedad.id,
               prioridad_actual: novedad.prioridad_actual,
-              fecha_despacho: new Date().toISOString(),
+              fecha_despacho: getLocalDatetime(),
               observaciones: formData.observaciones_despacho
             }
           );
@@ -435,14 +450,8 @@ export default function DespacharModal({
         }
       }
 
-      // Usar fecha/hora actual del cronómetro
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, "0");
-      const day = String(now.getDate()).padStart(2, "0");
-      const hours = String(now.getHours()).padStart(2, "0");
-      const minutes = String(now.getMinutes()).padStart(2, "0");
-      const fechaDespachoActual = `${year}-${month}-${day}T${hours}:${minutes}`;
+      // Usar fecha/hora actual sin Z (backend interpreta como hora local Peru)
+      const fechaDespachoActual = getLocalDatetime();
 
       // Construir payload para el backend de novedades
       const payload = {

@@ -29,6 +29,7 @@ export async function listNovedades({
   estado_novedad_id,
   tipo_novedad_id,
   prioridad_actual,
+  origen_llamada,
   sector_id,
   fecha_inicio,
   fecha_fin,
@@ -42,6 +43,7 @@ export async function listNovedades({
   if (estado_novedad_id) params.append("estado_novedad_id", estado_novedad_id);
   if (tipo_novedad_id) params.append("tipo_novedad_id", tipo_novedad_id);
   if (prioridad_actual) params.append("prioridad_actual", prioridad_actual);
+  if (origen_llamada) params.append("origen_llamada", origen_llamada);
   if (sector_id) params.append("sector_id", sector_id);
   if (fecha_inicio) params.append("fecha_inicio", fecha_inicio);
   if (fecha_fin) params.append("fecha_fin", fecha_fin);
