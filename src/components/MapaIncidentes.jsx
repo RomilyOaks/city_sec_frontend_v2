@@ -12,6 +12,11 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import { Eye } from "lucide-react";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import NovedadDetalleModal from "./NovedadDetalleModal";
+import {
+  listUnidadesOficina,
+  listVehiculos,
+  listPersonalSeguridad,
+} from "../services/novedadesService";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -252,6 +257,11 @@ export default function MapaIncidentes({
   const [selectedNovedadId, setSelectedNovedadId] = useState(null);
   const [selectedNovedadData, setSelectedNovedadData] = useState(null);
 
+  // Estados para recursos (para la pestaña RECURSOS del modal)
+  const [unidadesOficina, setUnidadesOficina] = useState([]);
+  const [vehiculos, setVehiculos] = useState([]);
+  const [personalSeguridad, setPersonalSeguridad] = useState([]);
+
   // Calcular estados activos (orden > es_inicial y es_final = 0)
   const estadosActivos = useMemo(() => {
     return estados
@@ -287,8 +297,30 @@ export default function MapaIncidentes({
   };
 
   const getEstadoColor = (estado) => {
-    return ESTADO_COLORS[estado] || ESTADO_COLORS.default;
+    const estadoInfo = estados.find((e) => e.nombre === estado);
+    return estadoInfo?.color || "#6B7280";
   };
+
+  // Cargar recursos para el modal de novedades
+  const fetchRecursos = async () => {
+    try {
+      const [unidades, vehic, personal] = await Promise.all([
+        listUnidadesOficina(),
+        listVehiculos(),
+        listPersonalSeguridad(),
+      ]);
+      setUnidadesOficina(unidades || []);
+      setVehiculos(vehic || []);
+      setPersonalSeguridad(personal || []);
+    } catch (error) {
+      console.error("Error cargando recursos:", error);
+    }
+  };
+
+  // Cargar recursos al montar el componente
+  useEffect(() => {
+    fetchRecursos();
+  }, []);
 
   // Usar estados del prop para el dropdown, ordenados por campo 'orden'
   const estadosParaFiltro = useMemo(() => {
@@ -483,6 +515,10 @@ export default function MapaIncidentes({
           setSelectedNovedadId(null);
           setSelectedNovedadData(null);
         }}
+        showDespacharButton={false}
+        unidadesOficina={unidadesOficina}
+        vehiculos={vehiculos}
+        personalSeguridad={personalSeguridad}
       />
     </div>
   );

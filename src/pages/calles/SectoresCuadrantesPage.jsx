@@ -5,7 +5,7 @@
  * Jerarquía: Sector -> Subsector -> Cuadrante
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Plus, Search, Edit, Trash2, X, Map, ChevronRight, ArrowLeft, Eye, Info, Car, Layers } from "lucide-react";
 import {
   listSectores,
@@ -14,8 +14,6 @@ import {
 import {
   listSubsectoresBySector,
   deleteSubsector,
-  createSubsector,
-  updateSubsector,
 } from "../../services/subsectoresService";
 import {
   listCuadrantes,
@@ -88,7 +86,7 @@ export default function SectoresCuadrantesPage() {
       loadSectores();
     }, 300);
     return () => clearTimeout(timeoutId);
-  }, [currentPageSectores, searchSectores]);
+  }, [loadSectores]);
 
   useEffect(() => {
     if (view === "subsectores" && selectedSector) {
@@ -97,7 +95,7 @@ export default function SectoresCuadrantesPage() {
       }, 300);
       return () => clearTimeout(timeoutId);
     }
-  }, [view, selectedSector, currentPageSubsectores, searchSubsectores]);
+  }, [view, selectedSector, loadSubsectores]);
 
   useEffect(() => {
     if (view === "cuadrantes" && selectedSubsector) {
@@ -106,7 +104,7 @@ export default function SectoresCuadrantesPage() {
       }, 300);
       return () => clearTimeout(timeoutId);
     }
-  }, [view, selectedSubsector, currentPageCuadrantes, searchCuadrantes]);
+  }, [view, selectedSubsector, loadCuadrantes]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -120,9 +118,9 @@ export default function SectoresCuadrantesPage() {
       window.addEventListener("keydown", handleKeyDown);
       return () => window.removeEventListener("keydown", handleKeyDown);
     }
-  }, [view]);
+  }, [view, handleBack]);
 
-  const loadSectores = async () => {
+  const loadSectores = useCallback(async () => {
     setLoadingSectores(true);
     try {
       const result = await listSectores({
@@ -138,9 +136,9 @@ export default function SectoresCuadrantesPage() {
     } finally {
       setLoadingSectores(false);
     }
-  };
+  }, [currentPageSectores, limit, searchSectores]);
 
-  const loadSubsectores = async () => {
+  const loadSubsectores = useCallback(async () => {
     if (!selectedSector) return;
     setLoadingSubsectores(true);
     try {
@@ -157,9 +155,9 @@ export default function SectoresCuadrantesPage() {
     } finally {
       setLoadingSubsectores(false);
     }
-  };
+  }, [selectedSector, currentPageSubsectores, limit, searchSubsectores]);
 
-  const loadCuadrantes = async () => {
+  const loadCuadrantes = useCallback(async () => {
     if (!selectedSubsector) return;
     setLoadingCuadrantes(true);
     try {
@@ -178,7 +176,7 @@ export default function SectoresCuadrantesPage() {
     } finally {
       setLoadingCuadrantes(false);
     }
-  };
+  }, [selectedSubsector, currentPageCuadrantes, limit, searchCuadrantes]);
 
   // ============================================
   // NAVIGATION HANDLERS
@@ -198,7 +196,7 @@ export default function SectoresCuadrantesPage() {
     setCurrentPageCuadrantes(1);
   };
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     if (view === "cuadrantes") {
       setView("subsectores");
       setSelectedSubsector(null);
@@ -210,7 +208,7 @@ export default function SectoresCuadrantesPage() {
       setSubsectores([]);
       setPaginationSubsectores(null);
     }
-  };
+  }, [view]);
 
   const handleBackToSectores = () => {
     setView("sectores");
@@ -233,10 +231,10 @@ export default function SectoresCuadrantesPage() {
   // HANDLERS - SECTORES
   // ============================================
 
-  const handleCreateSector = () => {
+  const handleCreateSector = useCallback(() => {
     setEditingSector(null);
     setShowCreateSectorModal(true);
-  };
+  }, []);
 
   const handleEditSector = (sector) => {
     setEditingSector(sector);
@@ -269,10 +267,10 @@ export default function SectoresCuadrantesPage() {
   // HANDLERS - SUBSECTORES
   // ============================================
 
-  const handleCreateSubsector = () => {
+  const handleCreateSubsector = useCallback(() => {
     setEditingSubsector(null);
     setShowCreateSubsectorModal(true);
-  };
+  }, []);
 
   const handleEditSubsector = (subsector) => {
     setEditingSubsector(subsector);
@@ -300,10 +298,10 @@ export default function SectoresCuadrantesPage() {
   // HANDLERS - CUADRANTES
   // ============================================
 
-  const handleCreateCuadrante = () => {
+  const handleCreateCuadrante = useCallback(() => {
     setEditingCuadrante(null);
     setShowCreateCuadranteModal(true);
-  };
+  }, []);
 
   const handleEditCuadrante = (cuadrante) => {
     setEditingCuadrante(cuadrante);
@@ -361,7 +359,7 @@ export default function SectoresCuadrantesPage() {
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [view]);
+  }, [view, can, handleCreateSector, handleCreateSubsector, handleCreateCuadrante]);
 
   // ============================================
   // RENDER HELPERS
