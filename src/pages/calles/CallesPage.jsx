@@ -10,7 +10,7 @@
  * @module src/pages/calles/CallesPage.jsx
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Search, Edit, Trash2, MapPin, Filter, X, Eye } from "lucide-react";
 import {
@@ -63,11 +63,63 @@ export default function CallesPage() {
   const canReadCuadrantes = hasPermission(["calles.calles_cuadrantes.read"]);
 
   // ============================================
+  // FUNCIONES DE CARGA
+  // ============================================
+  const loadCalles = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Construir parámetros solo si tienen valor
+      const params = {
+        page: currentPage,
+        limit,
+      };
+
+      if (search) params.search = search;
+      if (tipo_via_id) params.tipo_via_id = tipo_via_id;
+      if (es_principal !== "") params.es_principal = es_principal; // Solo si tiene valor
+
+      const response = await listCalles(params);
+
+      // Manejar diferentes formatos de respuesta
+      let callesData = [];
+      let paginationData = null;
+
+      // 🔥 NUEVO: Buscar en items primero (Railway devuelve así)
+      if (response.items && Array.isArray(response.items)) {
+        callesData = response.items;
+        paginationData = response.pagination || null;
+      } else if (response.data && Array.isArray(response.data)) {
+        callesData = response.data;
+        paginationData = response.data?.pagination || null;
+      }
+
+      setCalles(callesData);
+      setPagination(paginationData);
+    } catch (error) {
+      console.error("Error al cargar calles:", error);
+      setError("Error al cargar las calles");
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, search, tipo_via_id, es_principal, limit]);
+
+  async function loadTiposVia() {
+    try {
+      const data = await listTiposVia();
+      setTiposVia(data || []);
+    } catch (error) {
+      console.error("Error al cargar tipos de vía:", error);
+    }
+  }
+
+  // ============================================
   // EFECTOS
   // ============================================
   useEffect(() => {
     loadCalles();
-  }, [currentPage, search, tipo_via_id, es_principal]);
+  }, [loadCalles]);
 
   useEffect(() => {
     loadTiposVia();
@@ -86,77 +138,6 @@ export default function CallesPage() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [canCreate]);
-
-  // ============================================
-  // FUNCIONES DE CARGA
-  // ============================================
-  async function loadCalles() {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Construir parámetros solo si tienen valor
-      const params = {
-        page: currentPage,
-        limit,
-      };
-
-      if (search) params.search = search;
-      if (tipo_via_id) params.tipo_via_id = tipo_via_id;
-      if (es_principal !== "") params.es_principal = es_principal; // Solo si tiene valor
-
-      console.log("📡 Llamando listCalles con params:", params);
-      const response = await listCalles(params);
-      console.log("📦 Respuesta completa del backend:", response);
-
-      // Manejar diferentes formatos de respuesta
-      let callesData = [];
-      let paginationData = null;
-
-      // 🔥 NUEVO: Buscar en items primero (Railway devuelve así)
-      if (response.items && Array.isArray(response.items)) {
-        callesData = response.items;
-        paginationData = response.pagination || null;
-      } else if (response.data && Array.isArray(response.data)) {
-        // Formato: { success: true, data: [...], pagination: {...} }
-        callesData = response.data;
-        paginationData = response.pagination || null;
-      } else if (response.calles && Array.isArray(response.calles)) {
-        // Formato: { calles: [...], pagination: {...} }
-        callesData = response.calles;
-        paginationData = response.pagination || null;
-      } else if (Array.isArray(response)) {
-        // Formato: [...]
-        callesData = response;
-      } else {
-        console.warn("⚠️ Formato de respuesta desconocido:", response);
-        callesData = [];
-      }
-
-      console.log("✅ Calles procesadas:", callesData.length);
-      setCalles(callesData);
-      setPagination(paginationData);
-    } catch (error) {
-      console.error("❌ Error al cargar calles:", error);
-      setError(
-        error.response?.data?.message ||
-          error.message ||
-          "Error al cargar calles"
-      );
-      setCalles([]);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function loadTiposVia() {
-    try {
-      const data = await listTiposVia();
-      setTiposVia(data || []);
-    } catch (error) {
-      console.error("Error al cargar tipos de vía:", error);
-    }
-  }
 
   // ============================================
   // HANDLERS
@@ -202,12 +183,6 @@ export default function CallesPage() {
   }
 
   function handleViewCuadrantes(calle) {
-    console.log("🗺️ Navegando a cuadrantes con calle:", {
-      id: calle.id,
-      nombre: calle.nombre_completo,
-      calle_code: calle.calle_code,
-      objeto_completo: calle
-    });
     navigate("/calles/calles-cuadrantes", { state: { calle } });
   }
 
@@ -406,6 +381,9 @@ export default function CallesPage() {
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 dark:text-slate-300 uppercase">
                     Categoría
                   </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 dark:text-slate-300 uppercase">
+                    Sentido
+                  </th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-slate-600 dark:text-slate-300 uppercase">
                     Acciones
                   </th>
@@ -439,6 +417,17 @@ export default function CallesPage() {
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400">
                       {calle.categoria_via || "-"}
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      {calle.sentido_via ? (
+                        <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/30 px-2 py-1 text-xs font-medium text-blue-800 dark:text-blue-300">
+                          {calle.sentido_via.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-1 text-xs font-medium text-slate-800 dark:text-slate-300">
+                          Doble Vía
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right text-sm">
                       <div className="flex items-center justify-end gap-2">

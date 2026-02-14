@@ -108,6 +108,8 @@ export default function CalleFormModal({
     categoria_via: "LOCAL",
     latitud: "",
     longitud: "",
+    tipo_pavimento: "",
+    sentido_via: "",
   });
 
   // ============================================
@@ -142,6 +144,8 @@ export default function CalleFormModal({
           categoria_via: initialData.categoria_via || "LOCAL",
           latitud: initialData.latitud || "",
           longitud: initialData.longitud || "",
+          tipo_pavimento: initialData.tipo_pavimento || "",
+          sentido_via: initialData.sentido_via || "",
         });
 
         // Set UBIGEO search text
@@ -383,6 +387,8 @@ export default function CalleFormModal({
       categoria_via: "LOCAL",
       latitud: "",
       longitud: "",
+      tipo_pavimento: "",
+      sentido_via: "",
     });
     setActiveTab(0);
     setUbigeoSearch("");
@@ -477,9 +483,13 @@ export default function CalleFormModal({
                 </label>
                 <select
                   value={formData.tipo_via_id}
-                  onChange={(e) =>
-                    setFormData({ ...formData, tipo_via_id: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setFormData({ ...formData, tipo_via_id: e.target.value });
+                    // Auto-foco al campo nombre de vía
+                    setTimeout(() => {
+                      document.getElementById('nombre_via_input')?.focus();
+                    }, 100);
+                  }}
                   className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
                   required
                   autoFocus
@@ -500,6 +510,7 @@ export default function CalleFormModal({
                 </label>
                 <input
                   type="text"
+                  id="nombre_via_input"
                   value={formData.nombre_via}
                   onChange={(e) =>
                     setFormData({ ...formData, nombre_via: e.target.value })
@@ -517,6 +528,50 @@ export default function CalleFormModal({
                 <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                   Se capitalizará al salir del campo
                 </p>
+              </div>
+
+              {/* Tipo de Pavimento y Sentido de Vía */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Tipo de Pavimento */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
+                    Tipo de Pavimento
+                  </label>
+                  <select
+                    value={formData.tipo_pavimento}
+                    onChange={(e) =>
+                      setFormData({ ...formData, tipo_pavimento: e.target.value })
+                    }
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+                  >
+                    <option value="">Seleccionar...</option>
+                    <option value="ASFALTO">Asfalto</option>
+                    <option value="CONCRETO">Concreto</option>
+                    <option value="AFIRMADO">Afirmado</option>
+                    <option value="TROCHA">Trocha</option>
+                    <option value="ADOQUIN">Adoquín</option>
+                    <option value="SIN_PAVIMENTO">Sin Pavimento</option>
+                  </select>
+                </div>
+
+                {/* Sentido de Vía */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
+                    Sentido de Vía
+                  </label>
+                  <select
+                    value={formData.sentido_via}
+                    onChange={(e) =>
+                      setFormData({ ...formData, sentido_via: e.target.value })
+                    }
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+                  >
+                    <option value="">Seleccionar...</option>
+                    <option value="UNA_VIA">Una Vía</option>
+                    <option value="DOBLE_VIA">Doble Vía</option>
+                    <option value="VARIABLE">Variable</option>
+                  </select>
+                </div>
               </div>
 
               {/* Vía Principal y Categoría */}
@@ -716,6 +771,22 @@ export default function CalleFormModal({
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-600 dark:text-slate-400">
+                      Tipo de Pavimento:
+                    </span>
+                    <span className="font-medium text-slate-900 dark:text-slate-50">
+                      {formData.tipo_pavimento ? formData.tipo_pavimento.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : "-"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600 dark:text-slate-400">
+                      Sentido de Vía:
+                    </span>
+                    <span className="font-medium text-slate-900 dark:text-slate-50">
+                      {formData.sentido_via ? formData.sentido_via.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : "-"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600 dark:text-slate-400">
                       UBIGEO:
                     </span>
                     <span className="font-medium text-slate-900 dark:text-slate-50">
@@ -723,6 +794,65 @@ export default function CalleFormModal({
                     </span>
                   </div>
                 </div>
+
+                {/* Campos de Auditoría */}
+                {mode === "edit" && initialData && (
+                  <div className="mt-6 p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                    <h3 className="text-sm font-semibold text-amber-900 dark:text-amber-200 mb-3">
+                      📋 Información de Auditoría
+                    </h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-amber-700 dark:text-amber-400">
+                          Creado por:
+                        </span>
+                        <span className="font-medium text-amber-900 dark:text-amber-200">
+                          {initialData.created_by?.username || initialData.created_by || "-"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-amber-700 dark:text-amber-400">
+                          Fecha de Creación:
+                        </span>
+                        <span className="font-medium text-amber-900 dark:text-amber-200">
+                          {initialData.created_at 
+                            ? new Date(initialData.created_at).toLocaleString('es-PE', {
+                                day: '2-digit',
+                                month: '2-digit', 
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })
+                            : "-"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-amber-700 dark:text-amber-400">
+                          Actualizado por:
+                        </span>
+                        <span className="font-medium text-amber-900 dark:text-amber-200">
+                          {initialData.updated_by?.username || initialData.updated_by || "-"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-amber-700 dark:text-amber-400">
+                          Última Actualización:
+                        </span>
+                        <span className="font-medium text-amber-900 dark:text-amber-200">
+                          {initialData.updated_at 
+                            ? new Date(initialData.updated_at).toLocaleString('es-PE', {
+                                day: '2-digit',
+                                month: '2-digit', 
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })
+                            : "-"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

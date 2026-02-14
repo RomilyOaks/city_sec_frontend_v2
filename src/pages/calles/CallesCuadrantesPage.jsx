@@ -14,6 +14,7 @@ import {
   ArrowLeft,
   MapPin,
   Eye,
+  Map,
 } from "lucide-react";
 import { listCalles, deleteCalle } from "../../services/callesService";
 import {
@@ -38,6 +39,13 @@ export default function CallesCuadrantesPage() {
   const [selectedCalle, setSelectedCalle] = useState(
     location.state?.calle || null
   );
+
+  // Efecto para manejar el estado inicial cuando viene de otra página
+  useEffect(() => {
+    if (location.state?.calle && !selectedCalle) {
+      setSelectedCalle(location.state.calle);
+    }
+  }, [location.state?.calle, selectedCalle]);
 
   // Detectar si vino desde otra página (Maestro de Calles)
   const [cameFromExternalPage] = useState(!!location.state?.calle);
@@ -248,6 +256,16 @@ export default function CallesCuadrantesPage() {
   const handleViewCuadrante = (cuadrante) => {
     setViewingCuadrante(cuadrante);
     setShowViewCuadranteModal(true);
+  };
+
+  const handleViewMapaCuadrante = (cuadrante) => {
+    // Abrir modal de mapa del cuadrante (similar a funcionalidad existente en sectores)
+    console.log("🗺️ Abriendo mapa para cuadrante:", cuadrante);
+    // Aquí se puede abrir un modal con el mapa del polígono del cuadrante
+    // Por ahora, mostrar toast informativo
+    toast.success(`🗺️ Mapa del cuadrante ${cuadrante.cuadrante?.cuadrante_code || cuadrante.codigo}`, {
+      description: "Funcionalidad de mapa en desarrollo"
+    });
   };
 
   const handleEditCuadrante = (cuadrante) => {
@@ -595,6 +613,16 @@ export default function CallesCuadrantesPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
                           <div className="flex items-center justify-center gap-2">
+                            {/* Botón de mapa si tiene polígono */}
+                            {cuad.cuadrante?.poligono && (
+                              <button
+                                onClick={() => handleViewMapaCuadrante(cuad)}
+                                className="text-green-600 hover:text-green-800 dark:text-green-400"
+                                title="Ver mapa del cuadrante"
+                              >
+                                <Map size={18} />
+                              </button>
+                            )}
                             <button
                               onClick={() => handleViewCuadrante(cuad)}
                               className="text-slate-600 hover:text-slate-800 dark:text-slate-400"

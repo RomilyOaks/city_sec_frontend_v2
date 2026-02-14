@@ -119,3 +119,14 @@ export async function getUserById(userId) {
   const res = await api.get(`/usuarios/${userId}`);
   return res?.data?.data || res?.data || null;
 }
+
+/**
+ * Resetea la contraseña de un usuario (acción de admin).
+ * @param {number|string} userId
+ * @param {string} newPassword
+ * @returns {Promise<any>}
+ */
+export async function resetUserPassword(userId, newPassword) {
+  const res = await api.patch(`/usuarios/${userId}/reset-password`, { newPassword });
+  return res?.data;
+}

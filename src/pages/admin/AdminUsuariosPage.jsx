@@ -16,6 +16,7 @@ import toast from "react-hot-toast";
 import {
   Eye,
   EyeOff,
+  KeyRound,
   Pencil,
   Plus,
   RefreshCw,
@@ -29,6 +30,7 @@ import {
   createUser,
   deleteUser,
   listUsers,
+  resetUserPassword,
   restoreUser,
   updateUser,
   changeUserEstado,
@@ -90,6 +92,7 @@ export default function AdminUsuariosPage() {
   const canCreate = canPerformAction(user, "usuarios_create");
   const canEdit = canPerformAction(user, "usuarios_update");
   const canSoftDelete = canPerformAction(user, "usuarios_delete");
+  const canResetPassword = canPerformAction(user, "usuarios_reset_password");
 
   const [showPassword, setShowPassword] = useState(false);
   const [capsLockOn, setCapsLockOn] = useState(false);
@@ -115,6 +118,12 @@ export default function AdminUsuariosPage() {
     personal_seguridad_id: "",
   });
   const [editSaving, setEditSaving] = useState(false);
+
+  // Reset password modal
+  const [resetPwUser, setResetPwUser] = useState(null);
+  const [resetPwForm, setResetPwForm] = useState({ newPassword: "", confirmPassword: "" });
+  const [resetPwShow, setResetPwShow] = useState(false);
+  const [resetPwSaving, setResetPwSaving] = useState(false);
 
   // Lista de personal para asignar
   const [personalList, setPersonalList] = useState([]);
@@ -249,11 +258,12 @@ export default function AdminUsuariosPage() {
   // Hotkeys: Alt+G = Guardar, Alt+N = Nuevo, Escape = Cerrar
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Alt+G = Guardar (submit form de creación o edición)
+      // Alt+G = Guardar (submit form de creación, edición o reset password)
       if (e.altKey && e.key.toLowerCase() === "g") {
         e.preventDefault();
-        if (showCreateForm) {
-          // Disparar submit del form
+        if (resetPwUser) {
+          document.getElementById("btn-reset-password")?.click();
+        } else if (showCreateForm) {
           const form = document.getElementById("form-crear-usuario");
           if (form) form.requestSubmit();
         } else if (editingUser) {
@@ -263,9 +273,8 @@ export default function AdminUsuariosPage() {
       // Alt+N = Nuevo usuario
       if (e.altKey && e.key.toLowerCase() === "n") {
         e.preventDefault();
-        if (canCreate && !showCreateForm && !editingUser) {
+        if (canCreate && !showCreateForm && !editingUser && !resetPwUser) {
           setShowCreateForm(true);
-          // Autofocus en el campo usuario después de que se renderice
           setTimeout(() => {
             document.getElementById("input-username")?.focus();
           }, 100);
@@ -273,7 +282,11 @@ export default function AdminUsuariosPage() {
       }
       // Escape = Cerrar modal/form
       if (e.key === "Escape") {
-        if (editingUser) {
+        if (resetPwUser) {
+          setResetPwUser(null);
+          setResetPwForm({ newPassword: "", confirmPassword: "" });
+          setResetPwShow(false);
+        } else if (editingUser) {
           setEditingUser(null);
         } else if (showCreateForm) {
           setShowCreateForm(false);
@@ -284,7 +297,7 @@ export default function AdminUsuariosPage() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [showCreateForm, editingUser, canCreate]);
+  }, [showCreateForm, editingUser, resetPwUser, canCreate]);
 
   // Autofocus cuando se abre el formulario de creación
   useEffect(() => {
@@ -548,6 +561,58 @@ export default function AdminUsuariosPage() {
     }
   };
 
+  const generatePassword = () => {
+    const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const lower = "abcdefghijklmnopqrstuvwxyz";
+    const digits = "0123456789";
+    const all = upper + lower + digits;
+    let pw =
+      upper[Math.floor(Math.random() * upper.length)] +
+      lower[Math.floor(Math.random() * lower.length)] +
+      digits[Math.floor(Math.random() * digits.length)];
+    for (let i = 3; i < 12; i++) {
+      pw += all[Math.floor(Math.random() * all.length)];
+    }
+    // Shuffle
+    pw = pw.split("").sort(() => Math.random() - 0.5).join("");
+    setResetPwForm({ newPassword: pw, confirmPassword: pw });
+    setResetPwShow(true);
+  };
+
+  const resetPwValid = (() => {
+    const p = resetPwForm.newPassword;
+    return (
+      p.length >= 8 &&
+      /[a-z]/.test(p) &&
+      /[A-Z]/.test(p) &&
+      /\d/.test(p) &&
+      p === resetPwForm.confirmPassword
+    );
+  })();
+
+  const handleResetPassword = async () => {
+    if (!resetPwUser || !resetPwValid) return;
+    try {
+      setResetPwSaving(true);
+      await resetUserPassword(resetPwUser.id, resetPwForm.newPassword);
+      toast.success(
+        `Contraseña reseteada para "${resetPwUser.username}". Comunique la nueva contraseña al usuario.`,
+        { duration: 6000 }
+      );
+      setResetPwUser(null);
+      setResetPwForm({ newPassword: "", confirmPassword: "" });
+      setResetPwShow(false);
+    } catch (err) {
+      toast.error(
+        err?.response?.data?.message ||
+          err?.message ||
+          "No se pudo resetear la contraseña"
+      );
+    } finally {
+      setResetPwSaving(false);
+    }
+  };
+
   return (
     <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
       <div className="flex items-center justify-between gap-3">
@@ -776,6 +841,20 @@ export default function AdminUsuariosPage() {
                               title="Editar"
                             >
                               <Pencil size={14} />
+                            </button>
+                          )}
+                          {canResetPassword && !u.deletedAt && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setResetPwUser(u);
+                                setResetPwForm({ newPassword: "", confirmPassword: "" });
+                                setResetPwShow(false);
+                              }}
+                              className="inline-flex items-center justify-center rounded-lg border border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-900 p-2 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                              title="Resetear contraseña"
+                            >
+                              <KeyRound size={14} />
                             </button>
                           )}
                           {u.deletedAt ? (
@@ -1124,6 +1203,117 @@ export default function AdminUsuariosPage() {
               Alt+G = Guardar | Esc = Cancelar
             </p>
           </form>
+        </div>
+      )}
+
+      {/* Modal de reset password */}
+      {resetPwUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 p-6 shadow-xl">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
+              Resetear contraseña
+            </h3>
+            <p className="text-sm text-slate-500 dark:text-slate-300 mt-1">
+              Usuario: <strong>{resetPwUser.username}</strong> ({resetPwUser.nombres} {resetPwUser.apellidos})
+            </p>
+
+            <div className="mt-4 space-y-4">
+              <div>
+                <div className="flex items-center justify-between">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                    Nueva contraseña
+                  </label>
+                  <button
+                    type="button"
+                    onClick={generatePassword}
+                    className="text-xs text-primary-600 dark:text-primary-400 hover:underline"
+                  >
+                    Generar aleatoria
+                  </button>
+                </div>
+                <div className="mt-1 relative">
+                  <input
+                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 pr-10 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500/60 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
+                    type={resetPwShow ? "text" : "password"}
+                    placeholder="Mínimo 8 caracteres"
+                    autoComplete="new-password"
+                    value={resetPwForm.newPassword}
+                    onChange={(e) => setResetPwForm((f) => ({ ...f, newPassword: e.target.value }))}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setResetPwShow((v) => !v)}
+                    className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-50"
+                  >
+                    {resetPwShow ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                  Confirmar contraseña
+                </label>
+                <input
+                  className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500/60 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
+                  type={resetPwShow ? "text" : "password"}
+                  placeholder="Repita la contraseña"
+                  autoComplete="new-password"
+                  value={resetPwForm.confirmPassword}
+                  onChange={(e) => setResetPwForm((f) => ({ ...f, confirmPassword: e.target.value }))}
+                />
+                {resetPwForm.confirmPassword && resetPwForm.newPassword !== resetPwForm.confirmPassword && (
+                  <p className="mt-1 text-xs text-red-600">Las contraseñas no coinciden</p>
+                )}
+              </div>
+
+              {/* Indicadores de fortaleza */}
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-slate-600 dark:text-slate-300">Requisitos:</p>
+                {[
+                  { ok: resetPwForm.newPassword.length >= 8, label: "Mínimo 8 caracteres" },
+                  { ok: /[A-Z]/.test(resetPwForm.newPassword), label: "Al menos una mayúscula" },
+                  { ok: /[a-z]/.test(resetPwForm.newPassword), label: "Al menos una minúscula" },
+                  { ok: /\d/.test(resetPwForm.newPassword), label: "Al menos un número" },
+                ].map((r) => (
+                  <p key={r.label} className={`text-xs flex items-center gap-1 ${r.ok ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400 dark:text-slate-500"}`}>
+                    <span className={`inline-block w-3.5 h-3.5 rounded-full text-center text-[10px] leading-[14px] font-bold ${r.ok ? "bg-emerald-100 dark:bg-emerald-900/40" : "bg-slate-100 dark:bg-slate-800"}`}>
+                      {r.ok ? "\u2713" : "\u2022"}
+                    </span>
+                    {r.label}
+                  </p>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-between">
+              <span className="text-xs text-slate-400">
+                Alt+G = Guardar | Esc = Cancelar
+              </span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setResetPwUser(null);
+                    setResetPwForm({ newPassword: "", confirmPassword: "" });
+                    setResetPwShow(false);
+                  }}
+                  className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                >
+                  Cancelar
+                </button>
+                <button
+                  id="btn-reset-password"
+                  type="button"
+                  disabled={!resetPwValid || resetPwSaving}
+                  onClick={handleResetPassword}
+                  className="rounded-lg bg-primary-700 text-white px-4 py-2 text-sm font-medium hover:bg-primary-800 disabled:opacity-60"
+                >
+                  {resetPwSaving ? "Guardando\u2026" : "Resetear contrase\u00f1a"}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
