@@ -14,6 +14,7 @@ import {
   ArrowLeft,
   MapPin,
   Eye,
+  Map,
 } from "lucide-react";
 import { listCalles, deleteCalle } from "../../services/callesService";
 import {
@@ -24,6 +25,7 @@ import { useAuthStore } from "../../store/useAuthStore";
 import CalleFormModal from "../../components/calles/CalleFormModal";
 import CalleCuadranteFormModal from "../../components/calles/CalleCuadranteFormModal";
 import CalleCuadranteViewModal from "../../components/calles/CalleCuadranteViewModal";
+import CuadranteMapaModal from "../../components/calles/CuadranteMapaModal";
 import toast from "react-hot-toast";
 
 export default function CallesCuadrantesPage() {
@@ -65,6 +67,8 @@ export default function CallesCuadrantesPage() {
 
   const [showViewCuadranteModal, setShowViewCuadranteModal] = useState(false);
   const [viewingCuadrante, setViewingCuadrante] = useState(null);
+  const [showMapaCuadranteModal, setShowMapaCuadranteModal] = useState(false);
+  const [mapaCuadrante, setMapaCuadrante] = useState(null);
 
   const limit = 15;
 
@@ -248,6 +252,11 @@ export default function CallesCuadrantesPage() {
   const handleViewCuadrante = (cuadrante) => {
     setViewingCuadrante(cuadrante);
     setShowViewCuadranteModal(true);
+  };
+
+  const handleViewMapaCuadrante = (cuadrante) => {
+    setMapaCuadrante(cuadrante);
+    setShowMapaCuadranteModal(true);
   };
 
   const handleEditCuadrante = (cuadrante) => {
@@ -596,6 +605,15 @@ export default function CallesCuadrantesPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
                           <div className="flex items-center justify-center gap-2">
+                            {cuad.cuadrante?.poligono_json && (
+                              <button
+                                onClick={() => handleViewMapaCuadrante(cuad.cuadrante)}
+                                className="p-1 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded transition-colors"
+                                title="Ver mapa"
+                              >
+                                <Map size={18} />
+                              </button>
+                            )}
                             <button
                               onClick={() => handleViewCuadrante(cuad)}
                               className="text-slate-600 hover:text-slate-800 dark:text-slate-400"
@@ -704,6 +722,17 @@ export default function CallesCuadrantesPage() {
             setViewingCuadrante(null);
           }}
           calleCuadrante={viewingCuadrante}
+        />
+      )}
+
+      {showMapaCuadranteModal && mapaCuadrante && (
+        <CuadranteMapaModal
+          isOpen={showMapaCuadranteModal}
+          onClose={() => {
+            setShowMapaCuadranteModal(false);
+            setMapaCuadrante(null);
+          }}
+          cuadrante={mapaCuadrante}
         />
       )}
     </div>
