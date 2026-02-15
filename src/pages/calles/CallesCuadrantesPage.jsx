@@ -158,14 +158,6 @@ export default function CallesCuadrantesPage() {
       return;
     }
 
-    console.log("📡 Cargando cuadrantes para calle:", {
-      calle_id: selectedCalle.id,
-      nombre: selectedCalle.nombre_completo,
-      page: currentPageCuadrantes,
-      limit,
-      search: searchCuadrantes,
-    });
-
     setLoadingCuadrantes(true);
 
     try {
@@ -176,11 +168,8 @@ export default function CallesCuadrantesPage() {
         search: searchCuadrantes || undefined,
       });
 
-      console.log("📦 Respuesta de cuadrantes:", result);
-
       const cuadrantesData =
         result.items || result.data?.items || result.data || [];
-      console.log("✅ Cuadrantes procesados:", cuadrantesData);
 
       setCuadrantes(cuadrantesData);
       setPaginationCuadrantes(result.pagination || result.data?.pagination);
@@ -204,11 +193,8 @@ export default function CallesCuadrantesPage() {
   };
 
   const handleBackToCalles = () => {
-    console.log("🔙 Volviendo a vista de calles");
-
     // Si vino desde otra página (Maestro de Calles), usar navigate para ir atrás en el historial
     if (cameFromExternalPage) {
-      console.log("↩️ Regresando a página anterior (Maestro de Calles)");
       navigate(-1); // Regresar a la página anterior
     } else {
       // Si ya estaba en esta página, solo cambiar la vista interna

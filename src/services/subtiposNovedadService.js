@@ -17,10 +17,7 @@ export const listSubtiposNovedad = async (tipoNovedadId = null) => {
   if (tipoNovedadId) {
     url += `?tipo_novedad_id=${tipoNovedadId}`;
   }
-  console.log("[subtiposNovedadService] URL solicitada:", url);
-
   const response = await api.get(url);
-  console.log("[subtiposNovedadService] listSubtiposNovedad - response.data:", response.data);
 
   // El backend puede devolver diferentes formatos:
   const rawData = response?.data;
@@ -28,17 +25,14 @@ export const listSubtiposNovedad = async (tipoNovedadId = null) => {
 
   // Si tiene propiedad 'data', extraerla
   if (rawData && rawData.data && Array.isArray(rawData.data)) {
-    console.log("[subtiposNovedadService] Formato detectado: { data: Array }");
     result = rawData.data;
   }
   // Si tiene propiedad 'items', extraerla
   else if (rawData && rawData.items && Array.isArray(rawData.items)) {
-    console.log("[subtiposNovedadService] Formato detectado: { items: Array }");
     result = rawData.items;
   }
   // Si es un array directamente
   else if (Array.isArray(rawData)) {
-    console.log("[subtiposNovedadService] Formato detectado: Array directo");
     result = rawData;
   } else {
     console.warn("[subtiposNovedadService] Formato no reconocido, retornando array vacío");
@@ -48,7 +42,6 @@ export const listSubtiposNovedad = async (tipoNovedadId = null) => {
   // Filtrar en frontend si el backend no filtró correctamente
   if (tipoNovedadId && result.length > 0) {
     const filtered = result.filter((s) => s.tipo_novedad_id === tipoNovedadId);
-    console.log(`[subtiposNovedadService] Filtrado frontend: ${result.length} -> ${filtered.length} subtipos para tipo_novedad_id=${tipoNovedadId}`);
     return filtered;
   }
 
@@ -62,8 +55,6 @@ export const listSubtiposNovedad = async (tipoNovedadId = null) => {
  */
 export const getSubtipoNovedadById = async (id) => {
   const response = await api.get(`/subtipos-novedad/${id}`);
-  console.log("[subtiposNovedadService] getSubtipoNovedadById - response.data:", response.data);
-
   const rawData = response?.data;
 
   // Extraer data si viene envuelta

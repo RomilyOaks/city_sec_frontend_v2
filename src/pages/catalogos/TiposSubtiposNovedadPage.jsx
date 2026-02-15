@@ -70,8 +70,6 @@ export default function TiposSubtiposNovedadPage() {
       const data = showEliminadosTipos
         ? await getTiposNovedadEliminados()
         : await listTiposNovedad();
-      console.log("[TiposSubtiposNovedadPage] fetchTipos - data recibida:", data);
-      console.log("[TiposSubtiposNovedadPage] Array.isArray(data):", Array.isArray(data));
       setTipos(Array.isArray(data) ? data : []);
     } catch (error) {
       toast.error("Error al cargar tipos de novedad");
@@ -90,7 +88,6 @@ export default function TiposSubtiposNovedadPage() {
       const data = showEliminadosSubtipos
         ? await getSubtiposNovedadEliminados()
         : await listSubtiposNovedad(selectedTipo.id);
-      console.log("[TiposSubtiposNovedadPage] fetchSubtipos - data recibida:", data);
       setSubtipos(Array.isArray(data) ? data : []);
     } catch (error) {
       toast.error("Error al cargar subtipos de novedad");

@@ -49,11 +49,7 @@ export const listUnidadesOficina = async ({
   if (ubigeo_code) params.append("ubigeo_code", ubigeo_code);
 
   const url = `/unidades-oficina?${params.toString()}`;
-  console.log("🔗 [unidadesOficinaService] Llamando a:", url);
-
   const res = await api.get(url);
-  console.log("📦 [unidadesOficinaService] Respuesta raw:", res.data);
-
   return res.data?.data || res.data;
 };
 
@@ -73,8 +69,6 @@ export const listUnidadesOficinaActivas = async () => {
  */
 export const getUnidadOficinaById = async (id) => {
   const res = await api.get(`/unidades-oficina/${id}`);
-  console.log("📦 [getUnidadOficinaById] Respuesta completa:", res);
-  console.log("📦 [getUnidadOficinaById] res.data:", res.data);
 
   // Manejar diferentes estructuras de respuesta del backend
   if (res.data?.data) {

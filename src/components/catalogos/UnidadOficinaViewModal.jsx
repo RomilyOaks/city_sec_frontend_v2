@@ -28,13 +28,6 @@ export default function UnidadOficinaViewModal({
   // Bloquear scroll del body cuando el modal está abierto
   useBodyScrollLock(isOpen);
 
-  console.log(
-    "🔵 [UnidadOficinaViewModal] Renderizando componente. isOpen:",
-    isOpen,
-    "unidadInicial:",
-    unidadInicial
-  );
-
   const [ubigeoInfo, setUbigeoInfo] = useState(null);
   const [unidad, setUnidad] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -42,13 +35,6 @@ export default function UnidadOficinaViewModal({
 
   // Cargar unidad completa con todas las relaciones desde el backend
   useEffect(() => {
-    console.log(
-      "🔶 [UnidadOficinaViewModal] useEffect disparado. isOpen:",
-      isOpen,
-      "unidadInicial:",
-      unidadInicial
-    );
-
     const loadUnidadCompleta = async () => {
       if (!unidadInicial) {
         console.warn("⚠️ [UnidadOficinaViewModal] No hay unidadInicial");
@@ -63,10 +49,6 @@ export default function UnidadOficinaViewModal({
         unidadInicial.nombre && unidadInicial.tipo_unidad;
 
       if (tieneDatosCompletos) {
-        console.log(
-          "✅ [UnidadOficinaViewModal] Usando datos de unidadInicial (ya completos):",
-          unidadInicial
-        );
         setUnidad(unidadInicial);
         setLoading(false);
         return;
@@ -85,20 +67,7 @@ export default function UnidadOficinaViewModal({
       try {
         setLoading(true);
         setError(null);
-        console.log(
-          "🏢 [UnidadOficinaViewModal] Cargando unidad/oficina completa desde backend, ID:",
-          unidadInicial.id
-        );
-
         const unidadCompleta = await getUnidadOficinaById(unidadInicial.id);
-
-        console.log(
-          "✅ [UnidadOficinaViewModal] Unidad/oficina completa cargada:",
-          unidadCompleta
-        );
-        console.log("  - Nombre:", unidadCompleta?.nombre);
-        console.log("  - Tipo:", unidadCompleta?.tipo_unidad);
-        console.log("  - Ubigeo:", unidadCompleta?.ubigeo);
 
         if (unidadCompleta && unidadCompleta.id) {
           setUnidad(unidadCompleta);

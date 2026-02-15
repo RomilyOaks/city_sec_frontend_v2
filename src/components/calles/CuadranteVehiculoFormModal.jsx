@@ -234,8 +234,6 @@ export default function CuadranteVehiculoFormModal({
   // Verificar si existe asignación anulada para reactivar
   const verificarAsignacionAnulada = async (cuadranteId, vehiculoId) => {
     try {
-      console.log(`🔍 Verificando asignación anulada para cuadrante ${cuadranteId} y vehículo ${vehiculoId}`);
-      
       // Primero buscar asignaciones activas (sin soft delete)
       const response = await cuadranteVehiculoAsignadoService.getAsignacionesByCuadrante(cuadranteId);
       let asignaciones = [];
@@ -250,30 +248,20 @@ export default function CuadranteVehiculoFormModal({
         asignaciones = response;
       }
 
-      console.log(`📋 Total asignaciones encontradas (activas): ${asignaciones.length}`);
-      console.log(`📋 Asignaciones activas:`, asignaciones);
-
       // Buscar asignación con mismo vehículo pero estado = 0 (anulada) en las activas
       const asignacionAnulada = asignaciones.find(asig => {
         const mismoVehiculo = asig.vehiculo_id === Number(vehiculoId);
         const estaAnulada = asig.estado === false || asig.estado === 0;
         const tieneSoftDelete = asig.deleted_at;
         
-        console.log(`🔍 Analizando asignación ID ${asig.id}: vehículo=${asig.vehiculo_id}, estado=${asig.estado}, deleted_at=${asig.deleted_at}`);
-        console.log(`   - Mismo vehículo: ${mismoVehiculo}`);
-        console.log(`   - Está anulada: ${estaAnulada}`);
-        console.log(`   - Tiene soft delete: ${tieneSoftDelete}`);
-        
         return mismoVehiculo && estaAnulada && tieneSoftDelete;
       });
 
       if (asignacionAnulada) {
-        console.log(`✅ Asignación anulada encontrada en activas: ID ${asignacionAnulada.id}`);
         return asignacionAnulada;
       }
 
       // Si no encuentra en activas, buscar en eliminadas
-      console.log(`🔍 No encontrada en activas, buscando en eliminadas...`);
       
       try {
         // Buscar asignaciones eliminadas para este cuadrante
@@ -290,32 +278,22 @@ export default function CuadranteVehiculoFormModal({
           asignacionesEliminadas = responseEliminadas;
         }
 
-        console.log(`📋 Total asignaciones encontradas (eliminadas): ${asignacionesEliminadas.length}`);
-        console.log(`📋 Asignaciones eliminadas:`, asignacionesEliminadas);
-
         // Buscar en asignaciones eliminadas
         const asignacionEliminada = asignacionesEliminadas.find(asig => {
           const mismoVehiculo = asig.vehiculo_id === Number(vehiculoId);
           const estaAnulada = asig.estado === false || asig.estado === 0;
           const tieneSoftDelete = asig.deleted_at;
           
-          console.log(`🔍 Analizando asignación eliminada ID ${asig.id}: vehículo=${asig.vehiculo_id}, estado=${asig.estado}, deleted_at=${asig.deleted_at}`);
-          console.log(`   - Mismo vehículo: ${mismoVehiculo}`);
-          console.log(`   - Está anulada: ${estaAnulada}`);
-          console.log(`   - Tiene soft delete: ${tieneSoftDelete}`);
-          
           return mismoVehiculo && (estaAnulada || !asig.estado) && tieneSoftDelete;
         });
 
         if (asignacionEliminada) {
-          console.log(`✅ Asignación anulada encontrada en eliminadas: ID ${asignacionEliminada.id}`);
           return asignacionEliminada;
         }
-      } catch (error) {
-        console.log(`⚠️ No se pudo buscar en eliminadas:`, error);
+      } catch {
+        // No se pudo buscar en eliminadas
       }
 
-      console.log(`❌ No se encontró asignación anulada para reactivar`);
       return null;
     } catch (error) {
       console.error("❌ Error verificando asignaciones existentes:", error);
@@ -326,10 +304,6 @@ export default function CuadranteVehiculoFormModal({
   // Reactivar asignación existente
   const reactivarAsignacion = async (asignacionId) => {
     try {
-      console.log(`🔄 Reactivando asignación ID ${asignacionId}`);
-      
-      // Usar el endpoint específico de reactivación (no requiere body)
-      console.log(`📋 Usando endpoint de reactivación específico`);
       await cuadranteVehiculoAsignadoService.reactivarAsignacion(asignacionId);
       
       // NO actualizar observaciones después de reactivar para evitar inconsistencias
@@ -342,7 +316,6 @@ export default function CuadranteVehiculoFormModal({
       
       // Si el endpoint de reactivación no funciona, mostrar error amigable
       if (error.response?.status === 404 || error.response?.status === 405) {
-        console.log(`⚠️ Endpoint de reactivación no disponible`);
         toast.error("No se puede reactivar la asignación. El endpoint de reactivación no está disponible.");
       } else {
         toast.error("Error al reactivar la asignación");
@@ -360,50 +333,33 @@ export default function CuadranteVehiculoFormModal({
       return;
     }
 
-    console.log(`🚀 Iniciando handleSubmit - Modo: ${mode}`);
-    console.log(`📋 Form data:`, formData);
-
     setSaving(true);
     
     try {
       // Si es modo creación, verificar si existe asignación anulada
       if (mode === "create") {
-        console.log(`🔍 Modo creación - Verificando asignación anulada...`);
-        
-        // Agregar más logs para debugging
-        console.log(`🔍 Buscando asignación anulada para cuadrante ${formData.cuadrante_id} y vehículo ${formData.vehiculo_id}`);
-        
         const asignacionAnulada = await verificarAsignacionAnulada(
           formData.cuadrante_id, 
           formData.vehiculo_id
         );
 
-        console.log(`📋 Resultado verificación:`, asignacionAnulada);
-
         if (asignacionAnulada) {
-          console.log(`⚠️ Asignación anulada encontrada - Mostrando confirmación`);
           // Mostrar confirmación para reactivar
           const confirmarReactivacion = window.confirm(
             "Esta asignación ya fue realizada pero está anulada. ¿Desea reactivarla?"
           );
 
           if (confirmarReactivacion) {
-            console.log(`✅ Usuario confirmó reactivación - Reactivando asignación ${asignacionAnulada.id}`);
             await reactivarAsignacion(asignacionAnulada.id);
             return;
           } else {
-            console.log(`❌ Usuario canceló reactivación`);
             setSaving(false);
             return; // Usuario canceló la reactivación
           }
-        } else {
-          console.log(`❌ NO SE ENCONTRÓ ASIGNACIÓN ANULADA - Procediendo con creación normal`);
-          console.log(`⚠️ Esto probablemente causará error 409 si hay una asignación existente`);
         }
       }
 
       // Si no hay asignación anulada o el usuario no quiere reactivar, proceder normalmente
-      console.log(`📝 Creando/actualizando asignación...`);
       const dataToSubmit = {
         cuadrante_id: formData.cuadrante_id,
         vehiculo_id: Number(formData.vehiculo_id),
@@ -411,15 +367,11 @@ export default function CuadranteVehiculoFormModal({
         estado: formData.estado
       };
 
-      console.log(`📋 Data to submit:`, dataToSubmit);
-
       let response;
       if (mode === "create") {
-        console.log(`🆕 Creando nueva asignación...`);
         response = await cuadranteVehiculoAsignadoService.createAsignacion(dataToSubmit);
         toast.success("Asignación creada exitosamente");
       } else {
-        console.log(`✏️ Actualizando asignación existente...`);
         response = await cuadranteVehiculoAsignadoService.updateAsignacion(asignacion.id, dataToSubmit);
         toast.success("Asignación actualizada exitosamente");
       }

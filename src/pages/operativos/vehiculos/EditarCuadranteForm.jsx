@@ -138,7 +138,6 @@ export default function EditarCuadranteForm({
         incidentes_reportados: formData.incidentes_reportados && formData.incidentes_reportados.trim() !== "" ? formData.incidentes_reportados : null,
       };
       
-      console.log("Payload enviado:", payload); // Debug
       await api.put(`/operativos/${turnoId}/vehiculos/${vehiculoId}/cuadrantes/${cuadrante.id}`, payload);
       
       onSuccess && onSuccess();

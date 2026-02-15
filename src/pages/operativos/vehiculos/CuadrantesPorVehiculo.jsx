@@ -76,9 +76,6 @@ export default function CuadrantesPorVehiculo() {
   const [showEditForm, setShowEditForm] = useState(false);
   const [selectedCuadrante, setSelectedCuadrante] = useState(null);
 
-  // 🔥 DEBUG: Log después de declarar loading
-  console.log("🎨 Componente CuadrantesPorVehiculo renderizado - loading:", loading);
-
   // Obtener sector_id desde query params
   useEffect(() => {
     const sectorFromUrl = searchParams.get('sector_id');
@@ -89,7 +86,6 @@ export default function CuadrantesPorVehiculo() {
 
   // Cargar datos del vehículo por separado
   const fetchVehiculo = useCallback(async () => {
-    console.log("🔍 fetchVehiculo llamado - turnoId:", turnoId, "vehiculoId:", vehiculoId);
     try {
       const response = await api.get(`/operativos/${turnoId}/vehiculos/${vehiculoId}`);
       const vehiculoData = response.data?.data || response.data;
@@ -108,15 +104,12 @@ export default function CuadrantesPorVehiculo() {
           kilometraje_fin: vehiculoData.kilometraje_fin,
           kilometros_recorridos: vehiculoData.kilometros_recorridos
         };
-        console.log("🚗 Vehículo cargado:", vehiculoInfo);
         setVehiculo(vehiculoInfo);
-        
+
         // Obtener sector_id del turno incluido en la respuesta
         if (vehiculoData.turno?.sector_id) {
-          console.log("📍 Sector ID desde turno.sector_id:", vehiculoData.turno.sector_id);
           setSectorId(vehiculoData.turno.sector_id);
         } else if (vehiculoData.turno?.sector?.id) {
-          console.log("📍 Sector ID desde turno.sector.id:", vehiculoData.turno.sector.id);
           setSectorId(vehiculoData.turno.sector.id);
         }
       }
@@ -134,9 +127,6 @@ export default function CuadrantesPorVehiculo() {
 
   // Cargar datos del vehículo y sus cuadrantes
   const fetchCuadrantes = useCallback(async () => {
-    console.log("🔍 fetchCuadrantes llamado - turnoId:", turnoId, "vehiculoId:", vehiculoId, "sectorId:", sectorId);
-    console.trace("📋 Stack trace de fetchCuadrantes");
-    
     setLoading(true);
     setError(null);
     setUsingDemoData(false);
@@ -145,25 +135,18 @@ export default function CuadrantesPorVehiculo() {
     await fetchVehiculo();
     
     try {
-      console.log("🚀 Haciendo llamada API a cuadrantes...");
       const response = await api.get(`/operativos/${turnoId}/vehiculos/${vehiculoId}/cuadrantes`);
       const data = response.data?.data || response.data || [];
-      console.log("📊 Respuesta API cuadrantes:", data);
       
       // Filtrar solo cuadrantes activos (estado_registro=1 y deleted_at=null)
       const cuadrantesActivos = Array.isArray(data) 
         ? data.filter(c => c.estado_registro === 1 && !c.deleted_at) 
         : [];
       
-      console.log("✅ Cuadrantes activos filtrados:", cuadrantesActivos);
-      
       if (cuadrantesActivos.length > 0) {
         setCuadrantes(cuadrantesActivos);
         setUsingDemoData(false);
-        console.log("✅ Cuadrantes reales establecidos");
       } else {
-        // Si no hay cuadrantes, usar datos de demostración
-        console.log("⚠️ No hay cuadrantes asignados, usando datos de demostración");
         const demoData = [
           {
             id: 1,
@@ -235,7 +218,6 @@ export default function CuadrantesPorVehiculo() {
           }
         });
         setUsingDemoData(true);
-        console.log("✅ Demo data establecida");
       }
     } catch (err) {
       console.error("❌ Error cargando cuadrantes:", err);
@@ -293,26 +275,18 @@ export default function CuadrantesPorVehiculo() {
       toast.error(errorMessage);
     } finally {
       setLoading(false);
-      console.log("🏁 fetchCuadrantes finalizado");
     }
   }, [turnoId, vehiculoId, fetchVehiculo]);
 
   useEffect(() => {
-    console.log("🔄 useEffect principal ejecutado - turnoId:", turnoId, "vehiculoId:", vehiculoId, "canRead:", canRead);
-    console.trace("📋 Stack trace del useEffect principal");
-    
     if (!canRead) {
-      console.log("❌ Sin permisos, cancelando");
       setError("No tienes permisos para ver esta información");
       setLoading(false);
       return;
     }
 
     if (turnoId && vehiculoId) {
-      console.log("✅ Parámetros válidos, llamando fetchCuadrantes");
       fetchCuadrantes();
-    } else {
-      console.log("⚠️ Parámetros inválidos - turnoId:", turnoId, "vehiculoId:", vehiculoId);
     }
   }, [turnoId, vehiculoId, canRead, fetchCuadrantes]);
 

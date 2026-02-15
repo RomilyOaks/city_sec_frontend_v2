@@ -25,7 +25,6 @@ export default function SubtipoNovedadViewModal({ subtipo, onClose }) {
       setLoading(true);
       try {
         const data = await getSubtipoNovedadById(subtipo.id);
-        console.log("[SubtipoNovedadViewModal] data recibida:", data);
         setSubtipoData(data);
       } catch (error) {
         console.error("Error cargando subtipo de novedad:", error);

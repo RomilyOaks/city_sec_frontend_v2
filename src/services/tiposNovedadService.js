@@ -12,7 +12,6 @@ import api from "./api.js";
  */
 export const listTiposNovedad = async () => {
   const response = await api.get("/tipos-novedad");
-  console.log("[tiposNovedadService] listTiposNovedad - response.data:", response.data);
 
   // El backend puede devolver diferentes formatos:
   // Formato 1: Array directamente
@@ -23,19 +22,16 @@ export const listTiposNovedad = async () => {
 
   // Si tiene propiedad 'data', extraerla
   if (rawData && rawData.data && Array.isArray(rawData.data)) {
-    console.log("[tiposNovedadService] Formato detectado: { data: Array }");
     return rawData.data;
   }
 
   // Si tiene propiedad 'items', extraerla
   if (rawData && rawData.items && Array.isArray(rawData.items)) {
-    console.log("[tiposNovedadService] Formato detectado: { items: Array }");
     return rawData.items;
   }
 
   // Si es un array directamente
   if (Array.isArray(rawData)) {
-    console.log("[tiposNovedadService] Formato detectado: Array directo");
     return rawData;
   }
 
@@ -50,8 +46,6 @@ export const listTiposNovedad = async () => {
  */
 export const getTipoNovedadById = async (id) => {
   const response = await api.get(`/tipos-novedad/${id}`);
-  console.log("[tiposNovedadService] getTipoNovedadById - response.data:", response.data);
-
   const rawData = response?.data;
 
   // Extraer data si viene envuelta

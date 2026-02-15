@@ -405,8 +405,6 @@ export default function OperativosTurnoPage() {
         payload.observaciones = formData.observaciones.trim();
       }
 
-      console.log('📤 Payload completo a enviar:', JSON.stringify(payload, null, 2));
-
       await createOperativosTurno(payload);
       toast.success("Turno operativo creado exitosamente");
       setShowCreateModal(false);

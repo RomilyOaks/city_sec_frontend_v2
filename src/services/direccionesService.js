@@ -51,11 +51,7 @@ export const listDirecciones = async ({
   if (geocodificada !== null) params.append("geocodificada", geocodificada);
 
   const url = `/direcciones?${params.toString()}`;
-  console.log("🔗 [direccionesService] Llamando a:", url);
-
   const res = await api.get(url);
-  console.log("📦 [direccionesService] Respuesta raw:", res.data);
-
   return res.data?.data || res.data;
 };
 

@@ -25,7 +25,6 @@ export default function TipoNovedadViewModal({ tipo, onClose }) {
       setLoading(true);
       try {
         const data = await getTipoNovedadById(tipo.id);
-        console.log("[TipoNovedadViewModal] data recibida:", data);
         setTipoData(data);
       } catch (error) {
         console.error("Error cargando tipo de novedad:", error);

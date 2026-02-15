@@ -100,7 +100,6 @@ const getFechaCorrectaParaTurno = (turnoActivo, fechaLocal) => {
     const fecha = new Date(fechaLocal);
     fecha.setDate(fecha.getDate() - 1); // Restar un día
     const fechaAnterior = fecha.toISOString().split('T')[0];
-    console.log("🔄 Turno cruza medianoche, usando fecha anterior:", fechaAnterior);
     return fechaAnterior;
   }
   

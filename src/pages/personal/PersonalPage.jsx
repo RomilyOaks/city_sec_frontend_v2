@@ -166,7 +166,6 @@ export default function PersonalPage() {
     getDefaultUbigeo()
       .then((ubigeo) => {
         setDefaultUbigeo(ubigeo);
-        console.log("📍 Ubigeo default cargado (Personal):", ubigeo);
       })
       .catch((err) => {
         console.error("Error cargando ubigeo default:", err);

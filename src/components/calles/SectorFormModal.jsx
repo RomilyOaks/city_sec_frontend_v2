@@ -41,7 +41,6 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
     getDefaultUbigeo()
       .then((ubigeo) => {
         setDefaultUbigeo(ubigeo);
-        console.log("📍 Ubigeo default cargado (Sectores):", ubigeo);
       })
       .catch((error) => {
         console.error("Error cargando ubigeo default:", error);

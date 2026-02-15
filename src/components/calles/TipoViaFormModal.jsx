@@ -138,15 +138,11 @@ export default function TipoViaFormModal({
     try {
       setLoading(true);
 
-      console.log("📤 [TipoViaFormModal] Enviando datos:", formData);
-
       if (mode === "create") {
-        const response = await createTipoVia(formData);
-        console.log("✅ [TipoViaFormModal] Respuesta crear:", response);
+        await createTipoVia(formData);
         window.alert("✅ ÉXITO\n\nTipo de vía creado exitosamente");
       } else {
-        const response = await updateTipoVia(initialData.id, formData);
-        console.log("✅ [TipoViaFormModal] Respuesta actualizar:", response);
+        await updateTipoVia(initialData.id, formData);
         window.alert("✅ ÉXITO\n\nTipo de vía actualizado exitosamente");
       }
 
