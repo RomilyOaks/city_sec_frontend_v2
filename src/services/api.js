@@ -8,7 +8,7 @@
 
 import axios from "axios";
 
-import { API_URL, DEBUG } from "../config/constants";
+import { API_URL } from "../config/constants";
 import { useAuthStore } from "../store/useAuthStore";
 
 /**
@@ -24,21 +24,10 @@ const api = axios.create({
 });
 /**
  * Request interceptor
- * - Logs request details when DEBUG is enabled
  * - Injects Authorization header from the auth store when a token is present
  * @param {import('axios').AxiosRequestConfig} config
  * @returns {import('axios').AxiosRequestConfig}
  */ api.interceptors.request.use((config) => {
-  if (DEBUG) {
-
-    console.debug("[api] request", {
-      baseURL: config.baseURL,
-      url: config.url,
-      method: config.method,
-      data: config.data,
-    });
-  }
-
   const token = useAuthStore.getState().token;
   if (token) {
     config.headers = config.headers || {};
@@ -49,7 +38,6 @@ const api = axios.create({
 
 /**
  * Response interceptor
- * - Logs errors when DEBUG is enabled
  * - Triggers global logout on 401 responses
  * @param {import('axios').AxiosResponse} response
  * @param {any} error
@@ -57,17 +45,6 @@ const api = axios.create({
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (DEBUG) {
-       
-      console.debug("[api] error", {
-        message: error?.message,
-        code: error?.code,
-        status: error?.response?.status,
-        url: error?.config?.url,
-        baseURL: error?.config?.baseURL,
-      });
-    }
-
     const status = error?.response?.status;
     if (status === 401) {
       useAuthStore.getState().logout();
