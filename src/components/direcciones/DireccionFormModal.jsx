@@ -169,7 +169,6 @@ export default function DireccionFormModal({ isOpen, onClose, direccion: direcci
     getDefaultUbigeo()
       .then((ubigeo) => {
         setDefaultUbigeo(ubigeo);
-        console.log("📍 Ubigeo default cargado (Direcciones):", ubigeo);
       })
       .catch((err) => {
         console.error("Error cargando ubigeo default:", err);
@@ -194,15 +193,8 @@ export default function DireccionFormModal({ isOpen, onClose, direccion: direcci
 
       try {
         setLoadingDireccion(true);
-        console.log("📍 [DireccionFormModal] Cargando dirección completa con relaciones, ID:", direccionInicial.id);
-
         const direccionCompleta = await getDireccionById(direccionInicial.id);
         setDireccion(direccionCompleta);
-
-        console.log("✅ [DireccionFormModal] Dirección completa cargada:", direccionCompleta);
-        console.log("  - Sector:", direccionCompleta.sector);
-        console.log("  - Cuadrante:", direccionCompleta.cuadrante);
-        console.log("  - Calle:", direccionCompleta.calle);
       } catch (error) {
         console.error("❌ [DireccionFormModal] Error al cargar dirección completa:", error);
         // Si falla, usar la dirección inicial sin relaciones
@@ -411,13 +403,6 @@ export default function DireccionFormModal({ isOpen, onClose, direccion: direcci
           ubigeo_code: cuadranteData.ubigeo_code ?? prev.ubigeo_code,
         }));
 
-        console.log("📍 Cuadrante seleccionado - Datos asignados:", {
-          cuadrante_id: cuadranteId,
-          latitud: cuadranteData.latitud,
-          longitud: cuadranteData.longitud,
-          sector_id: cuadranteData.sector_id,
-          ubigeo_code: cuadranteData.ubigeo_code,
-        });
       }
     } catch (error) {
       console.error("Error al obtener datos del cuadrante:", error);
@@ -493,8 +478,6 @@ export default function DireccionFormModal({ isOpen, onClose, direccion: direcci
       const fuente = getDescripcionFuente(resultado.fuente_geocodificacion);
       
       toast.success(`📍 Dirección geocodificada (${locationType}) - Fuente: ${fuente}`);
-      
-      console.log('✅ Geocodificación exitosa:', resultado);
       
     } catch (error) {
       console.error('❌ Error en geocodificación:', error);

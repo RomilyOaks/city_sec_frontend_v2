@@ -122,10 +122,6 @@ export default function DireccionesPage() {
 
       const result = await listDirecciones(params);
 
-      console.log("📊 [DireccionesPage] Resultado del API:", result);
-      console.log("📊 [DireccionesPage] Items recibidos:", result.items || result.data?.items || []);
-      console.log("📊 [DireccionesPage] Total items:", result.pagination?.totalItems || result.data?.pagination?.totalItems);
-
       setDirecciones(result.items || result.data?.items || []);
       setPagination(result.pagination || result.data?.pagination);
     } catch (err) {
@@ -175,7 +171,6 @@ export default function DireccionesPage() {
     // Si parece un código de dirección, normalizar automáticamente
     if (looksLikeDireccionCode(rawValue)) {
       const normalized = normalizeDireccionCode(rawValue);
-      console.log(`🔍 Búsqueda normalizada: "${rawValue}" → "${normalized}"`);
       setSearch(normalized);
     } else {
       // Búsqueda normal por otros campos
@@ -196,23 +191,18 @@ export default function DireccionesPage() {
   async function handleDelete(id) {
     try {
       // Primero obtener la información de la dirección para mostrarla en los mensajes
-      console.log("🔍 Obteniendo información de la dirección, ID:", id);
       let direccionInfo = null;
       let direccionCompleta = "";
 
       try {
         direccionInfo = await getDireccionById(id);
         direccionCompleta = direccionInfo?.direccion_completa || "";
-        console.log("📍 Dirección obtenida:", direccionCompleta);
       } catch (error) {
         console.warn("⚠️ No se pudo obtener información de la dirección:", error);
       }
 
       // Verificar si la dirección puede ser eliminada
-      console.log("🔍 Verificando si la dirección puede ser eliminada, ID:", id);
       const checkResult = await checkDireccionCanDelete(id);
-
-      console.log("📋 Resultado de verificación:", checkResult);
 
       // Si no se puede eliminar, mostrar el error y detener
       if (checkResult && !checkResult.canDelete) {

@@ -86,9 +86,7 @@ export default function TiposViaPage() {
 
       if (search) params.search = search;
 
-      console.log("📡 Llamando listTiposVia con params:", params);
       const response = await listTiposVia(params);
-      console.log("📦 Respuesta completa del backend:", response);
 
       // Manejar diferentes formatos de respuesta
       let tiposViaData = [];
@@ -106,8 +104,6 @@ export default function TiposViaPage() {
         console.warn("⚠️ Formato de respuesta desconocido:", response);
         tiposViaData = [];
       }
-
-      console.log("✅ Tipos de vía procesados:", tiposViaData.length);
 
       // Ordenar los datos según el criterio seleccionado
       const sortedData = [...tiposViaData].sort((a, b) => {

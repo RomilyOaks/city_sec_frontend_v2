@@ -428,7 +428,6 @@ async function findPersonalOperativoExistente(turnoId, personalId) {
     );
 
     if (encontrado) {
-      console.log('✅ Personal operativo existente encontrado:', encontrado);
       return encontrado;
     }
 
@@ -457,7 +456,6 @@ async function findCuadrantePersonalExistente(turnoId, operativoPersonalId, cuad
     );
 
     if (encontrado) {
-      console.log('✅ Cuadrante personal existente encontrado:', encontrado);
       return encontrado;
     }
 
@@ -497,13 +495,9 @@ export async function crearOperativoPersonalCompleto(payload) {
     const seconds = String(horaActual.getSeconds()).padStart(2, "0");
     const horaIngreso = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
 
-    console.log('🔍 DEBUG - Payload completo:', payload);
-    console.log('🔍 DEBUG - Hora ingreso formateada:', horaIngreso);
-
     // ============================================================================
     // PASO 1: Asignar personal al turno → Obtener operativos_personal.id
     // ============================================================================
-    console.log('🔥 Paso 1: Asignando personal al turno...');
 
     let operativoPersonalId = null;
     let asignacionTurno = null;
@@ -515,7 +509,6 @@ export async function crearOperativoPersonalCompleto(payload) {
     );
 
     if (personalExistente) {
-      console.log('✅ Personal ya asignado al turno, usando ID existente:', personalExistente.id);
       operativoPersonalId = personalExistente.id;
       asignacionTurno = { data: personalExistente };
     } else {
@@ -526,8 +519,6 @@ export async function crearOperativoPersonalCompleto(payload) {
         estado_operativo_id: 1 // ACTIVO
       };
 
-      console.log('🔍 DEBUG - Payload Paso 1:', payloadPaso1);
-
       try {
         asignacionTurno = await api.post(
           `/operativos/${payload.turno_id}/personal`,
@@ -536,14 +527,12 @@ export async function crearOperativoPersonalCompleto(payload) {
 
         // Obtener el ID del registro creado
         operativoPersonalId = asignacionTurno.data?.data?.id || asignacionTurno.data?.id;
-        console.log('✅ Personal asignado al turno. operativos_personal.id =', operativoPersonalId);
 
       } catch (error) {
         // Si ya está asignado, buscar el ID existente
         if (error.response?.data?.message?.includes('ya ha sido asignado') ||
             error.response?.data?.message?.includes('already assigned') ||
             error.response?.status === 409) {
-          console.log('⚠️ Personal ya asignado, buscando ID existente...');
           const existente = await findPersonalOperativoExistente(
             payload.turno_id,
             payload.personal_cargo_id
@@ -551,7 +540,6 @@ export async function crearOperativoPersonalCompleto(payload) {
           if (existente) {
             operativoPersonalId = existente.id;
             asignacionTurno = { data: existente };
-            console.log('✅ Usando ID existente:', operativoPersonalId);
           } else {
             throw new Error('Personal ya asignado pero no se pudo obtener su ID');
           }
@@ -568,8 +556,6 @@ export async function crearOperativoPersonalCompleto(payload) {
     // ============================================================================
     // PASO 2: Asignar cuadrante al personal → Obtener operativos_personal_cuadrantes.id
     // ============================================================================
-    console.log('🔥 Paso 2: Asignando cuadrante al personal...');
-    console.log('   └─ Usando operativoPersonalId:', operativoPersonalId);
 
     let operativoPersonalCuadranteId = null;
     let asignacionCuadrante = null;
@@ -582,7 +568,6 @@ export async function crearOperativoPersonalCompleto(payload) {
     );
 
     if (cuadranteExistente) {
-      console.log('✅ Cuadrante ya asignado, usando ID existente:', cuadranteExistente.id);
       operativoPersonalCuadranteId = cuadranteExistente.id;
       asignacionCuadrante = { data: cuadranteExistente };
     } else {
@@ -590,8 +575,6 @@ export async function crearOperativoPersonalCompleto(payload) {
         cuadrante_id: payload.cuadrante_id,
         hora_ingreso: horaIngreso
       };
-
-      console.log('🔍 DEBUG - Payload Paso 2:', payloadPaso2);
 
       try {
         asignacionCuadrante = await api.post(
@@ -601,13 +584,11 @@ export async function crearOperativoPersonalCompleto(payload) {
 
         // Obtener el ID del registro creado
         operativoPersonalCuadranteId = asignacionCuadrante.data?.data?.id || asignacionCuadrante.data?.id;
-        console.log('✅ Cuadrante asignado. operativos_personal_cuadrantes.id =', operativoPersonalCuadranteId);
 
       } catch (error) {
         // Si ya está asignado, buscar el ID existente
         if (error.response?.status === 409 ||
             error.response?.data?.message?.includes('ya asignado')) {
-          console.log('⚠️ Cuadrante ya asignado, buscando ID existente...');
           const existente = await findCuadrantePersonalExistente(
             payload.turno_id,
             operativoPersonalId,
@@ -616,7 +597,6 @@ export async function crearOperativoPersonalCompleto(payload) {
           if (existente) {
             operativoPersonalCuadranteId = existente.id;
             asignacionCuadrante = { data: existente };
-            console.log('✅ Usando ID existente:', operativoPersonalCuadranteId);
           } else {
             throw new Error('Cuadrante ya asignado pero no se pudo obtener su ID');
           }
@@ -633,9 +613,6 @@ export async function crearOperativoPersonalCompleto(payload) {
     // ============================================================================
     // PASO 3: Asignar novedad al cuadrante
     // ============================================================================
-    console.log('🔥 Paso 3: Asignando novedad al cuadrante...');
-    console.log('   └─ Usando operativoPersonalId:', operativoPersonalId);
-    console.log('   └─ Usando operativoPersonalCuadranteId:', operativoPersonalCuadranteId);
 
     const payloadPaso3 = {
       novedad_id: payload.novedad_id,
@@ -645,15 +622,11 @@ export async function crearOperativoPersonalCompleto(payload) {
       observaciones: payload.observaciones || ''
     };
 
-    console.log('🔍 DEBUG - Payload Paso 3:', payloadPaso3);
-
     // URL CORRECTA: /operativos/{turnoId}/personal/{operativoPersonalId}/cuadrantes/{operativoPersonalCuadranteId}/novedades
     const asignacionNovedad = await api.post(
       `/operativos/${payload.turno_id}/personal/${operativoPersonalId}/cuadrantes/${operativoPersonalCuadranteId}/novedades`,
       payloadPaso3
     );
-
-    console.log('✅ Novedad asignada:', asignacionNovedad.data);
 
     return {
       success: true,

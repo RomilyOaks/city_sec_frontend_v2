@@ -48,20 +48,14 @@ export default function DireccionesEliminadasPage() {
       params.append("paranoid", "false"); // ← Incluir soft-deleted en Sequelize
 
       const url = `/direcciones?${params.toString()}`;
-      console.log("🔗 [DireccionesEliminadasPage] Llamando a:", url);
 
       const res = await api.get(url);
-      console.log("📦 [DireccionesEliminadasPage] Respuesta raw:", res.data);
 
       const data = res.data?.data || res.data;
       const allItems = data.items || data || [];
 
       // Filtrar solo las que tienen deleted_at NOT NULL (eliminadas)
       const eliminadas = allItems.filter(d => d.deleted_at !== null);
-
-      console.log("📦 [DireccionesEliminadasPage] Total recibidas:", allItems.length);
-      console.log("📦 [DireccionesEliminadasPage] Direcciones eliminadas:", eliminadas.length);
-      console.log("📦 [DireccionesEliminadasPage] Direcciones activas:", allItems.length - eliminadas.length);
 
       setDirecciones(eliminadas);
 
@@ -123,7 +117,6 @@ export default function DireccionesEliminadasPage() {
 
     try {
       setLoading(true);
-      console.log("♻️ Reactivando dirección ID:", id);
 
       await reactivarDireccion(id);
 

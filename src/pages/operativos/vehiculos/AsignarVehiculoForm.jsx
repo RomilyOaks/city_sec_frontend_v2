@@ -77,19 +77,11 @@ export default function AsignarVehiculoForm({ turnoId, vehiculosAsignados = [], 
   useEffect(() => {
     // 🔥 ANTI-BUCLE: Solo cargar una vez
     if (hasFetchedRef.current) {
-      console.log("🛑 [DEBUG] Ya se cargaron los catálogos, omitiendo...");
       return;
     }
 
-    // 🔥 DEBUG: Estado de autenticación
-    console.log("🔍 [DEBUG] AsignarVehiculoForm - useEffect disparado");
-    console.log("🔍 [DEBUG] isAuthenticated:", isAuthenticated);
-    console.log("🔍 [DEBUG] token existe:", !!token);
-    console.log("🔍 [DEBUG] vehiculosAsignados:", vehiculosAsignados?.length || 0);
-
     // 🔥 PROTECCIÓN: No cargar si no está autenticado
     if (!isAuthenticated || !token) {
-      console.log("🔒 Usuario no autenticado - omitiendo carga de catálogos");
       setLoadingCatalogos(false);
       return;
     }
@@ -98,26 +90,14 @@ export default function AsignarVehiculoForm({ turnoId, vehiculosAsignados = [], 
     hasFetchedRef.current = true;
 
     const loadCatalogos = async () => {
-      console.log("🚀 [DEBUG] loadCatalogos INICIANDO...");
       setLoadingCatalogos(true);
       try {
-        // 🔥 DEBUG: Llamadas individuales con timestamps
-        console.log("📡 [DEBUG] Llamando listVehiculosDisponibles...");
         const vehiculosPromise = listVehiculosDisponibles();
-        
-        console.log("📡 [DEBUG] Llamando listPersonal...");
         const personalPromise = listPersonal({ limit: 100 });
-        
-        console.log("📡 [DEBUG] Llamando listRadiosTetraActivos...");
         const radiosPromise = listRadiosTetraActivos();
-        
-        console.log("📡 [DEBUG] Llamando listEstadosOperativosActivos...");
         const estadosPromise = listEstadosOperativosActivos();
-        
-        console.log("📡 [DEBUG] Llamando listTiposCopilotoActivos...");
         const tiposPromise = listTiposCopilotoActivos();
 
-        console.log("⏳ [DEBUG] Esperando Promise.all...");
         const [vehiculosRes, personalRes, radiosRes, estadosRes, tiposRes] = await Promise.all([
           vehiculosPromise,
           personalPromise,
@@ -125,13 +105,6 @@ export default function AsignarVehiculoForm({ turnoId, vehiculosAsignados = [], 
           estadosPromise,
           tiposPromise,
         ]);
-
-        console.log("✅ [DEBUG] Todas las respuestas recibidas:");
-        console.log("  - vehiculosRes:", vehiculosRes);
-        console.log("  - personalRes:", personalRes);
-        console.log("  - radiosRes:", radiosRes);
-        console.log("  - estadosRes:", estadosRes);
-        console.log("  - tiposRes:", tiposRes);
 
         // Procesar vehículos y filtrar los ya asignados
         const vehiculosData = Array.isArray(vehiculosRes)
@@ -212,7 +185,6 @@ export default function AsignarVehiculoForm({ turnoId, vehiculosAsignados = [], 
         
         // 🔥 MANEJO ESPECÍFICO PARA 401
         if (err?.response?.status === 401) {
-          console.log("🚫 Error 401 - No autenticado, deteniendo intentos");
           toast.error("Sesión expirada. Por favor inicie sesión nuevamente.");
           // No reintentar automáticamente
           return;
@@ -227,7 +199,6 @@ export default function AsignarVehiculoForm({ turnoId, vehiculosAsignados = [], 
         setEstados([]);
         setTiposCopiloto([]);
       } finally {
-        console.log("🏁 [DEBUG] loadCatalogos FINALIZADO");
         setLoadingCatalogos(false);
       }
     };

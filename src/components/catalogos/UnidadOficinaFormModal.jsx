@@ -94,7 +94,6 @@ export default function UnidadOficinaFormModal({
     getDefaultUbigeo()
       .then((ubigeo) => {
         setDefaultUbigeo(ubigeo);
-        console.log("📍 Ubigeo default cargado (Unidades):", ubigeo);
       })
       .catch((err) => {
         console.error("Error cargando ubigeo default:", err);
@@ -111,20 +110,10 @@ export default function UnidadOficinaFormModal({
 
       try {
         setLoadingUnidad(true);
-        console.log(
-          "📍 [UnidadOficinaFormModal] Cargando unidad completa, ID:",
-          unidadOficinaInicial.id
-        );
-
         const unidadCompleta = await getUnidadOficinaById(
           unidadOficinaInicial.id
         );
         setUnidadOficina(unidadCompleta);
-
-        console.log(
-          "✅ [UnidadOficinaFormModal] Unidad completa cargada:",
-          unidadCompleta
-        );
       } catch (error) {
         console.error(
           "❌ [UnidadOficinaFormModal] Error al cargar unidad completa:",
@@ -366,8 +355,6 @@ export default function UnidadOficinaFormModal({
           : formatTimeForBackend(formData.horario_fin) || null,
         estado: formData.estado,
       };
-
-      console.log("📤 [UnidadOficinaFormModal] Payload:", payload);
 
       if (unidadOficina) {
         // Actualizar unidad existente

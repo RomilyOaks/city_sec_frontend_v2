@@ -28,32 +28,6 @@ export default function CalleCuadranteViewModal({
 
   if (!isOpen || !calleCuadrante) return null;
 
-  // Debug: Log del objeto completo para ver qué relaciones trae
-  useEffect(() => {
-    if (calleCuadrante) {
-      console.log(
-        "🔍 [CalleCuadranteViewModal] Objeto completo:",
-        calleCuadrante
-      );
-      console.log(
-        "🔍 [CalleCuadranteViewModal] created_by:",
-        calleCuadrante.created_by
-      );
-      console.log(
-        "🔍 [CalleCuadranteViewModal] updated_by:",
-        calleCuadrante.updated_by
-      );
-      console.log(
-        "🔍 [CalleCuadranteViewModal] creadorCalleCuadrante:",
-        calleCuadrante.creadorCalleCuadrante
-      );
-      console.log(
-        "🔍 [CalleCuadranteViewModal] actualizadorCalleCuadrante:",
-        calleCuadrante.actualizadorCalleCuadrante
-      );
-    }
-  }, [calleCuadrante]);
-
   // Manejo de tecla ESC para cerrar
   useEffect(() => {
     const handleEscape = (e) => {

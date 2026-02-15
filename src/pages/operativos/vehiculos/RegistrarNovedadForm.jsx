@@ -100,9 +100,6 @@ export default function RegistrarNovedadForm({
         operativosNovedadesService.getNovedadesByCuadrante(turnoId, vehiculoId, cuadranteId)
       ]);
       
-      console.log("Respuesta del API - Novedades disponibles:", disponiblesResponse);
-      console.log("Respuesta del API - Novedades asignadas:", asignadasResponse);
-      
       // Procesar novedades disponibles
       let novedadesData = [];
       if (disponiblesResponse.data) {
@@ -121,11 +118,9 @@ export default function RegistrarNovedadForm({
       
       // Obtener IDs de novedades ya asignadas
       const idsAsignados = new Set(asignadasData.map(n => n.novedad_id || n.novedad?.id));
-      console.log("IDs de novedades ya asignadas:", [...idsAsignados]);
-      
+
       // Filtrar novedades disponibles que NO estén ya asignadas
       const novedadesFiltradas = novedadesData.filter(n => !idsAsignados.has(n.id));
-      console.log("Novedades filtradas (no asignadas):", novedadesFiltradas);
       
       setNovedadesDisponibles(novedadesFiltradas);
     } catch (err) {
@@ -156,7 +151,6 @@ export default function RegistrarNovedadForm({
           }
         }
       ];
-      console.log("Usando datos de demo:", demoData);
       setNovedadesDisponibles(demoData);
     } finally {
       setLoadingNovedades(false);
@@ -300,15 +294,9 @@ export default function RegistrarNovedadForm({
         payload.acciones_tomadas = formData.acciones_tomadas.trim();
       }
 
-      // 🔥 DEBUG: Ver payload y parámetros
-      console.log("🚀 [DEBUG] handleSubmit - Enviando novedad");
-      console.log("📦 [DEBUG] Payload:", JSON.stringify(payload, null, 2));
-      console.log("🔗 [DEBUG] turnoId:", turnoId, "vehiculoId:", vehiculoId, "cuadranteId:", cuadranteId);
-
       let response;
       if (novedad) {
         // Editar novedad existente
-        console.log("✏️ [DEBUG] Modo EDITAR - novedadId:", novedad.id);
         response = await operativosNovedadesService.updateNovedad(
           turnoId,
           vehiculoId,
@@ -319,7 +307,6 @@ export default function RegistrarNovedadForm({
         toast.success("Novedad actualizada exitosamente");
       } else {
         // Crear nueva novedad
-        console.log("➕ [DEBUG] Modo CREAR");
         response = await operativosNovedadesService.createNovedad(
           turnoId,
           vehiculoId,
@@ -329,14 +316,10 @@ export default function RegistrarNovedadForm({
         toast.success("Novedad registrada exitosamente");
       }
 
-      console.log("✅ [DEBUG] Respuesta exitosa:", response);
       onSuccess && onSuccess(response.data?.data || response.data);
       onClose && onClose();
     } catch (err) {
-      console.error("❌ [DEBUG] Error guardando novedad:", err);
-      console.error("❌ [DEBUG] Error response:", err.response);
-      console.error("❌ [DEBUG] Error response data:", err.response?.data);
-      console.error("❌ [DEBUG] Error response status:", err.response?.status);
+      console.error("Error guardando novedad:", err);
       const errorMsg = err.response?.data?.message || err.response?.data?.error || "Error al guardar novedad";
       toast.error(errorMsg);
     } finally {

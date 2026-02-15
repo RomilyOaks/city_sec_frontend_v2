@@ -38,16 +38,8 @@ export default function DireccionViewModal({ isOpen, onClose, direccion: direcci
 
       try {
         setLoading(true);
-        console.log("📍 Cargando dirección completa con relaciones, ID:", direccionInicial.id);
-
         const direccionCompleta = await getDireccionById(direccionInicial.id);
         setDireccion(direccionCompleta);
-
-        console.log("✅ Dirección completa cargada:", direccionCompleta);
-        console.log("  - Sector:", direccionCompleta.sector);
-        console.log("  - Cuadrante:", direccionCompleta.cuadrante);
-        console.log("  - Calle:", direccionCompleta.calle);
-        console.log("  - Ubigeo:", direccionCompleta.ubigeo);
       } catch (error) {
         console.error("❌ Error al cargar dirección completa:", error);
         // Si falla, usar la dirección inicial

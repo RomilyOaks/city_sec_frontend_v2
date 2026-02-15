@@ -183,11 +183,9 @@ export default function AsignarCuadranteForm({
         observaciones: formData.observaciones && formData.observaciones.trim() !== "" ? formData.observaciones : null,
       };
       
-      console.log("Payload enviado en creación:", payload); // Debug
       // Llamada real al API
       const response = await api.post(`/operativos/${turnoId}/vehiculos/${vehiculoId}/cuadrantes`, payload);
-      console.log("Cuadrante asignado:", response.data);
-      
+
       toast.success("Cuadrante asignado exitosamente");
       onSuccess && onSuccess(response.data?.data || response.data);
     } catch (err) {
