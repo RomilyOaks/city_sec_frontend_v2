@@ -3,6 +3,23 @@
  */
 
 /**
+ * Muestra un error en consola y toast con formato consistente
+ * @param {string} message - Mensaje de error
+ * @param {Error} error - Objeto de error completo
+ */
+export function logApiError(message, error = null) {
+  console.error(`[API_ERROR] ${message}`, error);
+  
+  // Extraer mensaje del error si existe
+  const errorMessage = error?.response?.data?.message || 
+                     error?.message || 
+                     message || 
+                     'Error desconocido';
+  
+  return errorMessage;
+}
+
+/**
  * Extrae mensajes de error específicos del backend
  * @param {Object} error - Error对象 de axios o fetch
  * @returns {string} - Mensaje de error formateado
