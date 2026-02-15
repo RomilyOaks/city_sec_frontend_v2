@@ -91,11 +91,15 @@ export async function getEstadisticasPersonal() {
 
 /**
  * Listar conductores (personal con licencia)
+ * @param {{ disponible?: boolean }} [options]
+ * @param {boolean} [options.disponible] - Si true, solo devuelve conductores sin vehículo asignado
+ * @returns {Promise<Array>}
  */
-export async function listConductores() {
+export async function listConductores({ disponible } = {}) {
   try {
-    // Intentar endpoint específico de conductores
-    const res = await api.get("/personal/conductores");
+    const params = {};
+    if (disponible) params.disponible = true;
+    const res = await api.get("/personal/conductores", { params });
     const data =
       res?.data?.data?.conductores ||
       res?.data?.conductores ||
@@ -104,8 +108,8 @@ export async function listConductores() {
       [];
     return Array.isArray(data) ? data : [];
   } catch (err) {
+    console.warn("[listConductores] Error:", err?.response?.status, err?.response?.data || err?.message);
     // Fallback: obtener todo el personal y filtrar los que tienen licencia
-    console.warn("Endpoint conductores no disponible, usando fallback", err);
     const res = await api.get("/personal?limit=100");
     const personal =
       res?.data?.data?.personal ||
@@ -114,7 +118,8 @@ export async function listConductores() {
       res?.data ||
       [];
     const list = Array.isArray(personal) ? personal : [];
-    return list.filter((p) => p.licencia && p.estado === 1);
+    const filtered = list.filter((p) => p.licencia && p.estado === 1);
+    return filtered;
   }
 }
 
