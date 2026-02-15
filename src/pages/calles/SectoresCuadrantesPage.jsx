@@ -77,49 +77,6 @@ export default function SectoresCuadrantesPage() {
 
   const limit = 15;
 
-  // ============================================
-  // LOAD DATA
-  // ============================================
-
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      loadSectores();
-    }, 300);
-    return () => clearTimeout(timeoutId);
-  }, [loadSectores]);
-
-  useEffect(() => {
-    if (view === "subsectores" && selectedSector) {
-      const timeoutId = setTimeout(() => {
-        loadSubsectores();
-      }, 300);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [view, selectedSector, loadSubsectores]);
-
-  useEffect(() => {
-    if (view === "cuadrantes" && selectedSubsector) {
-      const timeoutId = setTimeout(() => {
-        loadCuadrantes();
-      }, 300);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [view, selectedSubsector, loadCuadrantes]);
-
-  // Keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.keyCode === 33) { // PageUp
-        e.preventDefault();
-        handleBack();
-      }
-    };
-    if (view !== "sectores") {
-      window.addEventListener("keydown", handleKeyDown);
-      return () => window.removeEventListener("keydown", handleKeyDown);
-    }
-  }, [view, handleBack]);
-
   const loadSectores = useCallback(async () => {
     setLoadingSectores(true);
     try {
@@ -157,7 +114,7 @@ export default function SectoresCuadrantesPage() {
     }
   }, [selectedSector, currentPageSubsectores, limit, searchSubsectores]);
 
-  const loadCuadrantes = useCallback(async () => {
+const loadCuadrantes = useCallback(async () => {
     if (!selectedSubsector) return;
     setLoadingCuadrantes(true);
     try {
@@ -176,7 +133,70 @@ export default function SectoresCuadrantesPage() {
     } finally {
       setLoadingCuadrantes(false);
     }
-  }, [selectedSubsector, currentPageCuadrantes, limit, searchCuadrantes]);
+  }, [selectedSubsector, currentPageCuadrantes, limit, searchCuadrantes]);  
+
+  // ============================================
+  // LOAD DATA
+  // ============================================
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      loadSectores();
+    }, 300);
+    return () => clearTimeout(timeoutId);
+  }, [loadSectores]);
+
+  useEffect(() => {
+    if (view === "subsectores" && selectedSector) {
+      const timeoutId = setTimeout(() => {
+        loadSubsectores();
+      }, 300);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [view, selectedSector, loadSubsectores]);
+
+  useEffect(() => {
+    if (view === "cuadrantes" && selectedSubsector) {
+      const timeoutId = setTimeout(() => {
+        loadCuadrantes();
+      }, 300);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [view, selectedSubsector, loadCuadrantes]);
+
+    const handleBack = useCallback(() => {
+    if (view === "cuadrantes") {
+      setView("subsectores");
+      setSelectedSubsector(null);
+      setCuadrantes([]);
+      setPaginationCuadrantes(null);
+    } else if (view === "subsectores") {
+      setView("sectores");
+      setSelectedSector(null);
+      setSubsectores([]);
+      setPaginationSubsectores(null);
+    }
+  }, [view]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.keyCode === 33) { // PageUp
+        e.preventDefault();
+        handleBack();
+      }
+    };
+    if (view !== "sectores") {
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [view, handleBack]);
+
+  
+
+  
+
+  
 
   // ============================================
   // NAVIGATION HANDLERS
@@ -196,19 +216,7 @@ export default function SectoresCuadrantesPage() {
     setCurrentPageCuadrantes(1);
   };
 
-  const handleBack = useCallback(() => {
-    if (view === "cuadrantes") {
-      setView("subsectores");
-      setSelectedSubsector(null);
-      setCuadrantes([]);
-      setPaginationCuadrantes(null);
-    } else if (view === "subsectores") {
-      setView("sectores");
-      setSelectedSector(null);
-      setSubsectores([]);
-      setPaginationSubsectores(null);
-    }
-  }, [view]);
+
 
   const handleBackToSectores = () => {
     setView("sectores");

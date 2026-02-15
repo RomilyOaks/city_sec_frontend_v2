@@ -15,7 +15,8 @@
  */
 
 import { useState, useEffect } from "react";
-import { Plus, Search, Edit, Trash2, MapPin, Filter, X, Map as MapIcon, Navigation, RefreshCw, Eye } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Plus, Search, Edit, Trash2, RefreshCw, RotateCcw, MapPin, Navigation, Map as MapIcon, Filter, X, Eye, Archive } from "lucide-react";
 import { listDirecciones, deleteDireccion, checkDireccionCanDelete, getDireccionById } from "../../services/direccionesService";
 import { listCallesActivas } from "../../services/callesService";
 import { useAuthStore } from "../../store/useAuthStore";
@@ -34,6 +35,8 @@ export default function DireccionesPage() {
   // ============================================
   // ESTADO
   // ============================================
+  const { user } = useAuthStore();
+  const navigate = useNavigate();
   const [direcciones, setDirecciones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -50,6 +53,13 @@ export default function DireccionesPage() {
   // Paginación
   const [currentPage, setCurrentPage] = useState(1);
   const [limit] = useState(20);
+
+  // ============================================
+  // FUNCIONES DE NAVEGACIÓN
+  // ============================================
+  const handleDireccionesEliminadas = () => {
+    navigate("/calles/direcciones-eliminadas");
+  };
 
   // Modales
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -295,6 +305,17 @@ export default function DireccionesPage() {
             Gestiona el catálogo de direcciones con geocodificación
           </p>
         </div>
+
+        {user?.roles?.some(r => r.slug === "super_admin") && (
+          <button
+            onClick={handleDireccionesEliminadas}
+            className="inline-flex items-center gap-2 rounded-lg border border-red-300 dark:border-red-700 px-4 py-2 text-sm font-medium text-red-700 dark:text-red-200 hover:bg-red-50 dark:hover:bg-red-800"
+            title="Ver direcciones eliminadas"
+          >
+            <Archive size={18} />
+            Direcciones Eliminadas
+          </button>
+        )}
 
         {canCreate && (
           <button
