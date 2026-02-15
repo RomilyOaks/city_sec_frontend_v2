@@ -445,7 +445,6 @@ export default function AdminUsuariosPage() {
         personal_seguridad_id: personalId,
         estado: estadoInicial,
       };
-      console.log("[Crear Usuario] Payload enviado:", payload);
       await createUser(payload);
 
       toast.success("Usuario creado");
