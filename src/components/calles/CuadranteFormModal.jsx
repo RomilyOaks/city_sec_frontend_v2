@@ -471,9 +471,28 @@ export default function CuadranteFormModal({ isOpen, onClose, cuadrante, onSucce
       handleClose();
     } catch (error) {
       console.error("Error al guardar cuadrante:", error);
-      toast.error(
-        error.response?.data?.message || "Error al guardar el cuadrante"
-      );
+      
+      // Manejar errores de validación específicos
+      if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
+        const validationErrors = error.response.data.errors;
+        const errorMessages = validationErrors.map(err => 
+          `${err.field}: ${err.message}`
+        ).join('\n');
+        
+        toast.error(`Errores de validación:\n${errorMessages}`, {
+          duration: 8000,
+          style: {
+            whiteSpace: 'pre-line',
+            maxWidth: '500px'
+          }
+        });
+      } else {
+        // Error genérico
+        const errorMessage = error.response?.data?.message || 
+                         error.message || 
+                         "Error al guardar el cuadrante";
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }

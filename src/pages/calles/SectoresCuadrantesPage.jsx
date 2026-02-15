@@ -20,6 +20,7 @@ import {
   deleteCuadrante,
 } from "../../services/cuadrantesService";
 import { useAuthStore } from "../../store/useAuthStore";
+import { logApiError } from "../../utils/errorUtils";
 import SectorFormModal from "../../components/calles/SectorFormModal";
 import CuadranteFormModal from "../../components/calles/CuadranteFormModal";
 import SectorViewModal from "../../components/calles/SectorViewModal";
@@ -88,8 +89,8 @@ export default function SectoresCuadrantesPage() {
       setSectores(result.items || []);
       setPaginationSectores(result.pagination);
     } catch (error) {
-      console.error("Error al cargar sectores:", error);
-      toast.error("Error al cargar sectores");
+      const errorMessage = logApiError('cargar sectores', error);
+      toast.error(errorMessage);
     } finally {
       setLoadingSectores(false);
     }
@@ -107,8 +108,8 @@ export default function SectoresCuadrantesPage() {
       setSubsectores(result.items || []);
       setPaginationSubsectores(result.pagination);
     } catch (error) {
-      console.error("Error al cargar subsectores:", error);
-      toast.error("Error al cargar subsectores");
+      const errorMessage = logApiError('cargar subsectores', error);
+      toast.error(errorMessage);
     } finally {
       setLoadingSubsectores(false);
     }
@@ -118,7 +119,6 @@ const loadCuadrantes = useCallback(async () => {
     if (!selectedSubsector) return;
     setLoadingCuadrantes(true);
     try {
-      // Usar listCuadrantes con subsector_id como query parameter
       const result = await listCuadrantes({
         page: currentPageCuadrantes,
         limit,
@@ -128,8 +128,8 @@ const loadCuadrantes = useCallback(async () => {
       setCuadrantes(result.items || []);
       setPaginationCuadrantes(result.pagination);
     } catch (error) {
-      console.error("Error al cargar cuadrantes:", error);
-      toast.error("Error al cargar cuadrantes");
+      const errorMessage = logApiError('cargar cuadrantes', error);
+      toast.error(errorMessage);
     } finally {
       setLoadingCuadrantes(false);
     }
@@ -261,8 +261,8 @@ const loadCuadrantes = useCallback(async () => {
       toast.success("Sector eliminado correctamente");
       loadSectores();
     } catch (error) {
-      console.error("Error al eliminar sector:", error);
-      toast.error(error.response?.data?.message || "Error al eliminar el sector");
+      const errorMessage = logApiError('eliminar sector', error);
+      toast.error(errorMessage);
     }
   };
 
@@ -292,8 +292,8 @@ const loadCuadrantes = useCallback(async () => {
       toast.success("Subsector eliminado correctamente");
       loadSubsectores();
     } catch (error) {
-      console.error("Error al eliminar subsector:", error);
-      toast.error(error.response?.data?.message || "Error al eliminar el subsector");
+      const errorMessage = logApiError('eliminar subsector', error);
+      toast.error(errorMessage);
     }
   };
 
@@ -338,8 +338,8 @@ const loadCuadrantes = useCallback(async () => {
       toast.success("Cuadrante eliminado correctamente");
       loadCuadrantes();
     } catch (error) {
-      console.error("Error al eliminar cuadrante:", error);
-      toast.error(error.response?.data?.message || "Error al eliminar el cuadrante");
+      const errorMessage = logApiError('eliminar cuadrante', error);
+      toast.error(errorMessage);
     }
   };
 

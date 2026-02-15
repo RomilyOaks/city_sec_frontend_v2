@@ -33,7 +33,7 @@ export default function CallesPage() {
   // ESTADO
   // ============================================
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { hasAnyPermission } = useAuthStore();
   const [calles, setCalles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -57,11 +57,10 @@ export default function CallesPage() {
   const [selectedCalle, setSelectedCalle] = useState(null);
 
   // Permisos
-  const hasPermission = useAuthStore((s) => s.hasAnyPermission);
-  const canCreate = hasPermission(["calles.calles.create"]);
-  const canUpdate = hasPermission(["calles.calles.update"]);
-  const canDelete = hasPermission(["calles.calles.delete"]);
-  const canReadCuadrantes = hasPermission(["calles.calles_cuadrantes.read"]);
+  const canCreate = hasAnyPermission(["calles.calles.create"]);
+  const canUpdate = hasAnyPermission(["calles.calles.update"]);
+  const canDelete = hasAnyPermission(["calles.calles.delete"]);
+  const canReadCuadrantes = hasAnyPermission(["calles.calles_cuadrantes.read"]);
 
   // ============================================
   // FUNCIONES DE CARGA

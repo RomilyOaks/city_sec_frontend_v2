@@ -5,7 +5,6 @@
  */
 
 import api from "./api";
-import { DEBUG } from "../config/constants";
 
 /**
  * Intenta autenticar con `username_or_email` y `password`.
@@ -15,10 +14,6 @@ import { DEBUG } from "../config/constants";
  */
 export async function login({ username_or_email, password }) {
   const res = await api.post("/auth/login", { username_or_email, password });
-  if (DEBUG) {
-     
-    console.debug("[authService.login] raw response", res?.data);
-  }
 
   const payload = res?.data?.data || res?.data || {};
   const token =
@@ -73,10 +68,6 @@ export async function register({
     apellidos,
     telefono,
   });
-  if (DEBUG) {
-     
-    console.debug("[authService.register] raw response", res?.data);
-  }
   return res?.data;
 }
 /**
