@@ -127,3 +127,12 @@ export async function listTiposVia() {
   const res = await api.get("/tipos-via/activos");
   return res?.data?.data || res?.data || [];
 }
+
+/**
+ * Obtener lista única de urbanizaciones
+ * @returns {Promise<Array<string>>} Array de urbanizaciones únicas
+ */
+export async function getUrbanizaciones() {
+  const res = await api.get("/calles/urbanizaciones");
+  return res?.data?.data || res?.data || [];
+}
