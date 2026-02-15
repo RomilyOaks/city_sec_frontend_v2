@@ -211,6 +211,7 @@ export default function VehiculosPage() {
   const [tiposVehiculo, setTiposVehiculo] = useState([]);
   const [unidades, setUnidades] = useState([]);
   const [conductores, setConductores] = useState([]);
+  const [currentConductor, setCurrentConductor] = useState(null); // Conductor asignado al vehículo en edición
 
   // Refs para mantener valores actualizados en el event listener
   const formDataRef = useRef(formData);
@@ -231,22 +232,23 @@ export default function VehiculosPage() {
     editingVehiculoRef.current = editingVehiculo;
   }, [editingVehiculo]);
 
-  // Cargar catálogos
+  // Cargar catálogos (conductores disponibles = sin vehículo asignado)
+  const loadCatalogos = async () => {
+    try {
+      const [tiposRes, unidadesRes, conductoresRes] = await Promise.all([
+        listTiposVehiculo(),
+        listUnidades(),
+        listConductores({ disponible: true }),
+      ]);
+      setTiposVehiculo(Array.isArray(tiposRes) ? tiposRes : []);
+      setUnidades(Array.isArray(unidadesRes) ? unidadesRes : []);
+      setConductores(Array.isArray(conductoresRes) ? conductoresRes : []);
+    } catch (err) {
+      console.error("[VehiculosPage] Error cargando catálogos:", err);
+    }
+  };
+
   useEffect(() => {
-    const loadCatalogos = async () => {
-      try {
-        const [tiposRes, unidadesRes, conductoresRes] = await Promise.all([
-          listTiposVehiculo(),
-          listUnidades(),
-          listConductores(),
-        ]);
-        setTiposVehiculo(Array.isArray(tiposRes) ? tiposRes : []);
-        setUnidades(Array.isArray(unidadesRes) ? unidadesRes : []);
-        setConductores(Array.isArray(conductoresRes) ? conductoresRes : []);
-      } catch (err) {
-        console.error("Error cargando catálogos:", err);
-      }
-    };
     loadCatalogos();
   }, []);
 
@@ -423,7 +425,7 @@ export default function VehiculosPage() {
         fec_manten: formData.fec_manten || undefined,
         conductor_asignado_id: formData.conductor_asignado_id
           ? Number(formData.conductor_asignado_id)
-          : undefined,
+          : null,
         estado_operativo: formData.estado_operativo || "DISPONIBLE",
         observaciones: formData.observaciones?.trim() || undefined,
       };
@@ -433,6 +435,8 @@ export default function VehiculosPage() {
       setShowCreateModal(false);
       resetForm();
       fetchVehiculos({ nextPage: 1 });
+      // Recargar conductores disponibles
+      loadCatalogos();
     } catch (err) {
       toast.error(extractErrorMessage(err));
     } finally {
@@ -506,7 +510,7 @@ export default function VehiculosPage() {
         fec_manten: formData.fec_manten || undefined,
         conductor_asignado_id: formData.conductor_asignado_id
           ? Number(formData.conductor_asignado_id)
-          : undefined,
+          : null,
         estado_operativo: formData.estado_operativo || "DISPONIBLE",
         observaciones: formData.observaciones?.trim() || undefined,
       };
@@ -516,6 +520,8 @@ export default function VehiculosPage() {
       setEditingVehiculo(null);
       resetForm();
       fetchVehiculos({ nextPage: page });
+      // Recargar conductores disponibles
+      loadCatalogos();
     } catch (err) {
       toast.error(extractErrorMessage(err));
     } finally {
@@ -529,7 +535,19 @@ export default function VehiculosPage() {
    *
    * @param {Object} v - vehículo seleccionado
    */
-  const openEditModal = (v) => {
+  const openEditModal = async (v) => {
+    // Si el vehículo tiene conductor asignado, buscarlo en la lista completa
+    if (v.conductor_asignado_id) {
+      try {
+        const allConductores = await listConductores();
+        const found = allConductores.find((c) => c.id === v.conductor_asignado_id);
+        setCurrentConductor(found || null);
+      } catch {
+        setCurrentConductor(null);
+      }
+    } else {
+      setCurrentConductor(null);
+    }
     setEditingVehiculo(v);
     setFormData({
       tipo_id: v.tipo_id || "",
@@ -1040,6 +1058,12 @@ export default function VehiculosPage() {
               className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
             >
               <option value="">— Sin asignar —</option>
+              {/* Incluir conductor actual del vehículo en edición si no está en la lista de disponibles */}
+              {currentConductor && editingVehiculo && !conductores.some((c) => c.id === currentConductor.id) && (
+                <option key={currentConductor.id} value={currentConductor.id}>
+                  {currentConductor.nombres} {currentConductor.apellido_paterno} {currentConductor.apellido_materno} - {currentConductor.licencia || "Sin licencia"} (actual)
+                </option>
+              )}
               {conductores.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.nombres} {c.apellido_paterno} {c.apellido_materno} -{" "}
@@ -1048,7 +1072,7 @@ export default function VehiculosPage() {
               ))}
             </select>
             <p className="mt-1 text-xs text-slate-500">
-              Solo personal con licencia de conducir
+              Solo personal con licencia y sin vehículo asignado
             </p>
           </div>
           <div className="col-span-2">
