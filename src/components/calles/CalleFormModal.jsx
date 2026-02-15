@@ -26,10 +26,22 @@ import {
   updateCalle,
   listTiposVia,
 } from "../../services/callesService";
-import { listUbigeos, getUbigeoByCode } from "../../services/novedadesService";
+import { listUbigeos } from "../../services/novedadesService";
 import { getDefaultUbigeo } from "../../config/defaults";
 import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 import toast from "react-hot-toast";
+import api from "../../services/api";
+
+// Función temporal para urbanizaciones (mover a service después)
+async function getUrbanizaciones() {
+  try {
+    const res = await api.get("/calles/urbanizaciones");
+    return res?.data?.data || res?.data || [];
+  } catch (error) {
+    console.error("Error al cargar urbanizaciones:", error);
+    return [];
+  }
+}
 
 /**
  * Capitaliza la primera letra de cada palabra
@@ -97,10 +109,16 @@ export default function CalleFormModal({
   const [ubigeoSearch, setUbigeoSearch] = useState("");
   const [showUbigeoDropdown, setShowUbigeoDropdown] = useState(false);
   const [defaultUbigeo, setDefaultUbigeo] = useState(null); // Ubigeo por defecto
+  
+  // Estado para autocompletado de urbanizaciones
+  const [urbanizaciones, setUrbanizaciones] = useState([]);
+  const [showUrbanizacionesDropdown, setShowUrbanizacionesDropdown] = useState(false);
+  const [urbanizacionSearch, setUrbanizacionSearch] = useState("");
 
   const [formData, setFormData] = useState({
     tipo_via_id: "",
     nombre_via: "",
+    nombre_anterior: "",
     ubigeo_code: "",
     urbanizacion: "",
     referencia: "",
@@ -120,7 +138,6 @@ export default function CalleFormModal({
     getDefaultUbigeo()
       .then((ubigeo) => {
         setDefaultUbigeo(ubigeo);
-        console.log("📍 Ubigeo default cargado (Calles):", ubigeo);
       })
       .catch((err) => {
         console.error("Error cargando ubigeo default:", err);
@@ -130,6 +147,7 @@ export default function CalleFormModal({
   useEffect(() => {
     if (isOpen) {
       loadTiposVia();
+      loadUrbanizaciones();
       // ❌ NO cargar todos los UBIGEOs al inicio (son miles)
       // La búsqueda se hace en tiempo real conforme escribe
 
@@ -137,6 +155,7 @@ export default function CalleFormModal({
         setFormData({
           tipo_via_id: initialData.tipo_via_id || "",
           nombre_via: initialData.nombre_via || "",
+          nombre_anterior: initialData.nombre_anterior || "",
           ubigeo_code: initialData.ubigeo_code || "",
           urbanizacion: initialData.urbanizacion || "",
           referencia: initialData.observaciones || initialData.referencia || "", // ← Mapeo
@@ -147,47 +166,33 @@ export default function CalleFormModal({
           tipo_pavimento: initialData.tipo_pavimento || "",
           sentido_via: initialData.sentido_via || "",
         });
-
-        // Set UBIGEO search text
-        if (initialData.Ubigeo) {
-          // Caso 1: Viene con la relación cargada
-          setUbigeoSearch(
-            `${initialData.Ubigeo.departamento}/${initialData.Ubigeo.provincia}/${initialData.Ubigeo.distrito}`
-          );
-        } else if (initialData.ubigeo_code) {
-          // Caso 2: Buscar el UBIGEO por código via API
-          fetchUbigeoByCode(initialData.ubigeo_code);
-        }
-      } else if (mode === "create" && defaultUbigeo) {
-        // Modo create: usar ubigeo por defecto
-        setFormData(prev => ({
-          ...prev,
-          ubigeo_code: defaultUbigeo.code,
-        }));
+        
+        // Sincronizar urbanización search
+        setUrbanizacionSearch(initialData.urbanizacion || "");
+      } else {
+        // Resetear formulario en modo creación
+        setFormData({
+          tipo_via_id: "",
+          nombre_via: "",
+          nombre_anterior: "",
+          ubigeo_code: "",
+          urbanizacion: "",
+          referencia: "",
+          es_principal: false,
+          categoria_via: "LOCAL",
+          latitud: "",
+          longitud: "",
+          tipo_pavimento: "",
+          sentido_via: "",
+        });
+        
+        // Resetear búsquedas
+        setUbigeoSearch("");
+        setUrbanizacionSearch("");
         setUbigeoSearch(`${defaultUbigeo.departamento}/${defaultUbigeo.provincia}/${defaultUbigeo.distrito}`);
       }
     }
   }, [isOpen, initialData, mode, defaultUbigeo]);
-
-  // Función para buscar UBIGEO por código (modo edit)
-  async function fetchUbigeoByCode(code) {
-    try {
-      const ubigeo = await getUbigeoByCode(code);
-      if (ubigeo) {
-        setUbigeoSearch(
-          `${ubigeo.departamento}/${ubigeo.provincia}/${ubigeo.distrito}`
-        );
-      } else {
-        setUbigeoSearch("");
-      }
-    } catch (err) {
-      console.error("Error buscando UBIGEO por código:", err);
-      setUbigeoSearch("");
-    }
-  }
-
-  // ❌ ELIMINADO: Ya no necesitamos este useEffect
-  // El UBIGEO se carga directamente en el useEffect principal
 
   // Shortcuts de teclado para navegación de pestañas
   useEffect(() => {
@@ -222,7 +227,7 @@ export default function CalleFormModal({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, activeTab]);
+  }, [isOpen, activeTab, onClose]);
 
   // ============================================
   // FUNCIONES DE CARGA
@@ -279,17 +284,50 @@ export default function CalleFormModal({
     setShowUbigeoDropdown(false);
   }
 
+  // Funciones para autocompletado de urbanizaciones
+  async function loadUrbanizaciones() {
+    try {
+      const data = await getUrbanizaciones();
+      setUrbanizaciones(data || []);
+    } catch (error) {
+      console.error("Error al cargar urbanizaciones:", error);
+    }
+  }
+
   function handleUrbanizacionChange(e) {
     const value = e.target.value;
-    // Solo actualizar el valor, NO capitalizar en tiempo real
+    setUrbanizacionSearch(value);
     setFormData({ ...formData, urbanizacion: value });
+    setShowUrbanizacionesDropdown(true);
   }
 
   function handleUrbanizacionBlur(e) {
+    // Capitalizar solo al salir del campo
+    const capitalized = capitalizeWords(e.target.value);
+    setFormData({ ...formData, urbanizacion: capitalized });
+    setUrbanizacionSearch(capitalized);
+    
+    // Delay para permitir click en dropdown
+    setTimeout(() => setShowUrbanizacionesDropdown(false), 200);
+  }
+
+  function handleUrbanizacionSelect(urbanizacion) {
+    const capitalized = capitalizeWords(urbanizacion);
+    setFormData({ ...formData, urbanizacion: capitalized });
+    setUrbanizacionSearch(capitalized);
+    setShowUrbanizacionesDropdown(false);
+  }
+
+  // Filtrar urbanizaciones según búsqueda
+  const filteredUrbanizaciones = urbanizaciones.filter((urb) =>
+    urb.toLowerCase().includes(urbanizacionSearch.toLowerCase())
+  );
+
+  function handleNombreAnteriorBlur(e) {
     const value = e.target.value;
     // Capitalizar solo al salir del campo
     const capitalized = capitalizeWords(value);
-    setFormData({ ...formData, urbanizacion: capitalized });
+    setFormData({ ...formData, nombre_anterior: capitalized });
   }
 
   function handleNextTab() {
@@ -380,6 +418,7 @@ export default function CalleFormModal({
     setFormData({
       tipo_via_id: "",
       nombre_via: "",
+      nombre_anterior: "",
       ubigeo_code: "",
       urbanizacion: "",
       referencia: "",
@@ -390,16 +429,14 @@ export default function CalleFormModal({
       tipo_pavimento: "",
       sentido_via: "",
     });
-    setActiveTab(0);
+    
+    // Resetear búsquedas
     setUbigeoSearch("");
+    setUrbanizacionSearch("");
+    
+    // Cerrar modal
     onClose();
   }
-
-  // ============================================
-  // DROPDOWN UBIGEO (API ya filtra)
-  // ============================================
-  // La API ya devuelve solo los distritos que coinciden con la búsqueda
-  const filteredUbigeos = ubigeos;
 
   // ============================================
   // RENDER
@@ -660,9 +697,9 @@ export default function CalleFormModal({
                 )}
 
                 {/* Dropdown de UBIGEO */}
-                {showUbigeoDropdown && filteredUbigeos.length > 0 && (
+                {showUbigeoDropdown && ubigeos.length > 0 && (
                   <div className="absolute z-10 mt-1 w-full max-h-60 overflow-y-auto rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg">
-                    {filteredUbigeos.slice(0, 50).map((ubigeo) => (
+                    {ubigeos.slice(0, 50).map((ubigeo) => (
                       <div
                         key={ubigeo.ubigeo_code}
                         onMouseDown={(e) => {
@@ -687,17 +724,59 @@ export default function CalleFormModal({
               </div>
 
               {/* Urbanización */}
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
                   Urbanización / Zona
                 </label>
                 <input
                   type="text"
-                  value={formData.urbanizacion}
+                  value={urbanizacionSearch}
                   onChange={handleUrbanizacionChange}
+                  onFocus={() => {
+                    if (urbanizacionSearch.length >= 1) {
+                      setShowUrbanizacionesDropdown(true);
+                    }
+                  }}
                   onBlur={handleUrbanizacionBlur}
                   className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
                   placeholder="Ejemplo: AAHH Villa El Salvador"
+                />
+                
+                {/* Dropdown de urbanizaciones */}
+                {showUrbanizacionesDropdown && filteredUrbanizaciones.length > 0 && (
+                  <div className="absolute z-10 mt-1 w-full max-h-60 overflow-y-auto rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg">
+                    {filteredUrbanizaciones.slice(0, 50).map((urbanizacion, index) => (
+                      <div
+                        key={index}
+                        onMouseDown={(e) => {
+                          e.preventDefault(); // Evita que se ejecute onBlur del input
+                          handleUrbanizacionSelect(urbanizacion);
+                        }}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-900 dark:text-slate-50 border-b border-slate-100 dark:border-slate-800 last:border-0 cursor-pointer"
+                      >
+                        {capitalizeWords(urbanizacion)}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Se capitalizará al salir del campo
+                </p>
+              </div>
+
+              {/* Nombre Anterior */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
+                  Nombre Anterior
+                </label>
+                <input
+                  type="text"
+                  value={formData.nombre_anterior}
+                  onChange={(e) => setFormData({ ...formData, nombre_anterior: e.target.value })}
+                  onBlur={handleNombreAnteriorBlur}
+                  className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+                  placeholder="Ejemplo: Antigua Calle Principal"
                 />
                 <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                   Se capitalizará al salir del campo
