@@ -33,6 +33,7 @@ export default function CallesPage() {
   // ESTADO
   // ============================================
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [calles, setCalles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

@@ -281,11 +281,6 @@ export default function AppShell() {
                     Direcciones
                   </SidebarLink>
                 )}
-                {user?.roles?.some(r => r.slug === "super_admin") && (
-                  <SidebarLink to="/calles/direcciones-eliminadas" icon={Trash2}>
-                    Direcciones Eliminadas
-                  </SidebarLink>
-                )}
               </SidebarDropdown>
             )}
 
