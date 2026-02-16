@@ -42,6 +42,7 @@ import {
 import { listConductores } from "../../services/personalService.js";
 import { useAuthStore } from "../../store/useAuthStore.js";
 import { canPerformAction } from "../../rbac/rbac.js";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock.js";
 import cuadranteVehiculoAsignadoService from "../../services/cuadranteVehiculoAsignadoService.js";
 import VehiculoCuadrantesModal from "../../components/vehiculos/VehiculoCuadrantesModal.jsx";
 
@@ -212,6 +213,10 @@ export default function VehiculosPage() {
   const [unidades, setUnidades] = useState([]);
   const [conductores, setConductores] = useState([]);
   const [currentConductor, setCurrentConductor] = useState(null); // Conductor asignado al vehículo en edición
+  const [viewConductor, setViewConductor] = useState(null); // Conductor para el modal de consulta
+
+  // Bloquear scroll del body cuando un modal está abierto
+  useBodyScrollLock(showCreateModal || !!editingVehiculo || !!viewingVehiculo);
 
   // Refs para mantener valores actualizados en el event listener
   const formDataRef = useRef(formData);
@@ -630,6 +635,7 @@ export default function VehiculosPage() {
           resetForm();
         } else if (viewingVehiculo) {
           setViewingVehiculo(null);
+          setViewConductor(null);
         } else if (showCuadrantesModal) {
           setShowCuadrantesModal(null);
         }
@@ -1306,7 +1312,20 @@ export default function VehiculosPage() {
                           )}
                         </button>
                         <button
-                          onClick={() => setViewingVehiculo(v)}
+                          onClick={async () => {
+                            setViewingVehiculo(v);
+                            if (v.conductor_asignado_id) {
+                              try {
+                                const allConductores = await listConductores();
+                                const found = allConductores.find((c) => c.id === v.conductor_asignado_id);
+                                setViewConductor(found || null);
+                              } catch {
+                                setViewConductor(null);
+                              }
+                            } else {
+                              setViewConductor(null);
+                            }
+                          }}
                           className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                           title="Ver detalle"
                         >
@@ -1475,7 +1494,7 @@ export default function VehiculosPage() {
                 Detalle del Vehículo
               </h2>
               <button
-                onClick={() => setViewingVehiculo(null)}
+                onClick={() => { setViewingVehiculo(null); setViewConductor(null); }}
                 className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
               >
                 <X size={18} />
@@ -1559,6 +1578,19 @@ export default function VehiculosPage() {
                 </div>
               </div>
 
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                <p className="text-slate-500 dark:text-slate-400 text-sm">
+                  Conductor Asignado
+                </p>
+                <p className="font-medium text-slate-900 dark:text-slate-50">
+                  {viewConductor
+                    ? `${viewConductor.nombres} ${viewConductor.apellido_paterno} ${viewConductor.apellido_materno || ""}`.trim()
+                    : viewingVehiculo.conductor_asignado_id
+                    ? "Cargando..."
+                    : "Sin asignar"}
+                </p>
+              </div>
+
               {viewingVehiculo.observaciones && (
                 <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                   <p className="text-slate-500 dark:text-slate-400 text-sm">
@@ -1572,7 +1604,7 @@ export default function VehiculosPage() {
             </div>
             <div className="flex justify-end p-4 border-t border-slate-200 dark:border-slate-700">
               <button
-                onClick={() => setViewingVehiculo(null)}
+                onClick={() => { setViewingVehiculo(null); setViewConductor(null); }}
                 className="px-4 py-2 rounded-lg bg-slate-800 dark:bg-slate-700 text-white hover:bg-slate-900 dark:hover:bg-slate-600"
               >
                 Cerrar
