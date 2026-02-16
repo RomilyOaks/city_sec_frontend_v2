@@ -263,22 +263,22 @@ export default function AppShell() {
                 ============================================ */}
             {canAccess("calles") && (
               <SidebarDropdown icon={MapPin} label="Gestión Vial">
-                <SidebarLink to="/calles" icon={MapPin}>
-                  Maestro de Calles
-                </SidebarLink>
-                {canAccess("calles_tipos_via") && (
-                  <SidebarLink to="/calles/tipos-via" icon={Type}>
-                    Tipos de Vías
-                  </SidebarLink>
-                )}
                 {canAccess("calles_sectores_cuadrantes") && (
                   <SidebarLink to="/calles/sectores-cuadrantes" icon={Map}>
                     Sectores y Cuadrantes
                   </SidebarLink>
                 )}
+                <SidebarLink to="/calles" icon={MapPin}>
+                  Maestro de Calles
+                </SidebarLink>
                 {canAccess("calles_direcciones") && (
                   <SidebarLink to="/calles/direcciones" icon={Navigation}>
                     Direcciones
+                  </SidebarLink>
+                )}
+                {canAccess("calles_tipos_via") && (
+                  <SidebarLink to="/calles/tipos-via" icon={Type}>
+                    Tipos de Vías
                   </SidebarLink>
                 )}
               </SidebarDropdown>
