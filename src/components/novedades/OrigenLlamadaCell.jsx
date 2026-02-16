@@ -11,6 +11,7 @@ import {
   BarChart3,
   Scale,
   Video,
+  Bot,
 } from 'lucide-react';
 
 // Constante con configuración de orígenes
@@ -63,11 +64,17 @@ const ORIGEN_LLAMADA_CONFIG = [
     icon: Scale,
     color: "text-gray-700"
   },
-  { 
-    value: "VIDEO_CCO", 
-    label: "Video CCO", 
+  {
+    value: "VIDEO_CCO",
+    label: "Video CCO",
     icon: Video,
     color: "text-cyan-600"
+  },
+  {
+    value: "BOT",
+    label: "Bot",
+    icon: Bot,
+    color: "text-violet-600"
   }
 ];
 
