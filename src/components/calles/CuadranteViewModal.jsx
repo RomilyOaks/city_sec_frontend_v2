@@ -105,14 +105,14 @@ export default function CuadranteViewModal({ isOpen, onClose, cuadrante }) {
             </p>
           </div>
 
-          {/* Descripción */}
-          {cuadrante.descripcion && (
+          {/* Referencia */}
+          {cuadrante.referencia && (
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                Descripción
+                Referencia
               </label>
               <p className="text-base text-slate-900 dark:text-white whitespace-pre-wrap p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
-                {cuadrante.descripcion}
+                {cuadrante.referencia}
               </p>
             </div>
           )}
