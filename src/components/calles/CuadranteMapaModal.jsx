@@ -48,10 +48,10 @@ function FitBoundsToPolygon({ positions, center }) {
           if (center) map.setView(center, 15);
         }
       } else if (center) {
-        map.setView(center, 15);
+        map.setView(center, 17);
       }
     } else if (center) {
-      map.setView(center, 15);
+      map.setView(center, 17);
     }
   }, [positions, center, map]);
 
@@ -265,7 +265,7 @@ export default function CuadranteMapaModal({
               <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm">
                 <MapContainer
                   center={center}
-                  zoom={15}
+                  zoom={hasPolygon ? 15 : 17}
                   style={{ height: "400px", width: "100%" }}
                   scrollWheelZoom={true}
                 >
