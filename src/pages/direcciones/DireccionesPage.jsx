@@ -22,6 +22,7 @@ import { listCallesActivas } from "../../services/callesService";
 import { useAuthStore } from "../../store/useAuthStore";
 import DireccionFormModal from "../../components/direcciones/DireccionFormModal";
 import DireccionViewModal from "../../components/direcciones/DireccionViewModal";
+import CuadranteMapaModal from "../../components/calles/CuadranteMapaModal";
 import { toast } from "react-hot-toast";
 import { normalizeDireccionCode, looksLikeDireccionCode } from "../../utils/direccionCodeHelper";
 
@@ -65,6 +66,8 @@ export default function DireccionesPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
+  const [showMapModal, setShowMapModal] = useState(false);
+  const [mapDireccion, setMapDireccion] = useState(null);
   const [selectedDireccion, setSelectedDireccion] = useState(null);
 
   // Permisos
@@ -477,7 +480,7 @@ export default function DireccionesPage() {
                   Sector
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-                  GPS
+                  Mapa
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                   Acciones
@@ -519,14 +522,24 @@ export default function DireccionesPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       {dir.geocodificada === 1 ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-green-100 dark:bg-green-900/20 px-2 py-1 text-xs font-medium text-green-700 dark:text-green-400">
-                          <Navigation size={12} />
-                          Sí
-                        </span>
+                        <button
+                          onClick={() => {
+                            setMapDireccion({
+                              nombre: formatDireccion(dir),
+                              latitud: dir.latitud,
+                              longitud: dir.longitud,
+                            });
+                            setShowMapModal(true);
+                          }}
+                          className="inline-flex items-center gap-1 rounded-full bg-green-100 dark:bg-green-900/20 px-2 py-1 text-xs font-medium text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/40 transition-colors"
+                          title="Ver en mapa"
+                        >
+                          <MapIcon size={12} />
+                          Ver
+                        </button>
                       ) : (
                         <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-1 text-xs font-medium text-slate-600 dark:text-slate-400">
-                          <MapIcon size={12} />
-                          No
+                          —
                         </span>
                       )}
                     </td>
@@ -620,6 +633,17 @@ export default function DireccionesPage() {
             setSelectedDireccion(null);
           }}
           direccion={selectedDireccion}
+        />
+      )}
+
+      {showMapModal && mapDireccion && (
+        <CuadranteMapaModal
+          isOpen={showMapModal}
+          onClose={() => {
+            setShowMapModal(false);
+            setMapDireccion(null);
+          }}
+          cuadrante={mapDireccion}
         />
       )}
     </div>
