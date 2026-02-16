@@ -40,6 +40,7 @@ import { listCargos, buscarUbigeo } from "../../services/catalogosService.js";
 import { listVehiculosDisponibles } from "../../services/vehiculosService.js";
 import { useAuthStore } from "../../store/useAuthStore.js";
 import { canPerformAction, canAccessRoute } from "../../rbac/rbac.js";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock.js";
 import { getDefaultUbigeo } from "../../config/defaults.js";
 
 const STATUS_OPTIONS = ["Activo", "Inactivo", "Suspendido", "Retirado"];
@@ -156,6 +157,9 @@ export default function PersonalPage() {
   const [editingPersonal, setEditingPersonal] = useState(null);
   const [viewingPersonal, setViewingPersonal] = useState(null);
   const [formData, setFormData] = useState(initialFormData);
+
+  // Bloquear scroll del body cuando un modal está abierto
+  useBodyScrollLock(showCreateModal || !!editingPersonal || !!viewingPersonal);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("basicos");
   const [docDuplicadoError, setDocDuplicadoError] = useState("");
