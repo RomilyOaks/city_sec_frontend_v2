@@ -23,6 +23,7 @@ import {
   Radio,
   Truck,
   Loader2,
+  Bot,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import {
@@ -43,6 +44,7 @@ const ORIGEN_LLAMADA_OPTIONS = [
   { value: "VIDEO_CCO", label: "Video CCO", icon: Camera },
   { value: "ANALITICA", label: "Analítica", icon: Clock },
   { value: "APP_PODER_JUDICIAL", label: "APP Poder Judicial", icon: Shield },
+  { value: "BOT", label: "Bot", icon: Bot },
 ];
 
 /**

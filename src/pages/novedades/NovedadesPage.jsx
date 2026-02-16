@@ -50,6 +50,7 @@ import {
   Scale,
   Video,
   Loader2,
+  Bot,
 } from "lucide-react";
 import DespacharModal from "../../components/novedades/DespacharModal";
 import NovedadDetalleModal from "../../components/NovedadDetalleModal";
@@ -98,6 +99,7 @@ const ORIGEN_LLAMADA_OPTIONS = [
   { value: "VIDEO_CCO", label: "Video CCO", icon: Video },
   { value: "ANALITICA", label: "Analítica", icon: BarChart3 },
   { value: "APP_PODER_JUDICIAL", label: "APP Poder Judicial", icon: Scale },
+  { value: "BOT", label: "Bot", icon: Bot },
 ];
 
 const PRIORIDAD_OPTIONS = ["ALTA", "MEDIA", "BAJA"];
@@ -164,11 +166,17 @@ const NUEVOS_ORIGEN_LLAMADA_OPTIONS = [
     icon: Scale,
     color: "text-gray-700"
   },
-  { 
-    value: "VIDEO_CCO", 
-    label: "Video CCO", 
+  {
+    value: "VIDEO_CCO",
+    label: "Video CCO",
     icon: Video,
     color: "text-cyan-600"
+  },
+  {
+    value: "BOT",
+    label: "Bot",
+    icon: Bot,
+    color: "text-violet-600"
   }
 ];
 
