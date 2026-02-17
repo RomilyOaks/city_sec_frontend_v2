@@ -3531,9 +3531,20 @@ export default function NovedadesPage() {
                       {(() => {
                         const words = searchTipoSubtipo.toLowerCase().split(/\s+/).filter(Boolean);
                         const filtered = subtipos.filter((st) => {
-                          const tipo = tipos.find((t) => t.id === st.tipo_novedad_id);
-                          const combined = `${(tipo?.nombre || "")} ${st.nombre}`.toLowerCase();
-                          return words.every((w) => combined.includes(w));
+                          const tipo = tipos.find((t) => t.id == st.tipo_novedad_id);
+                          const tipoNom = (tipo?.nombre || "").toLowerCase();
+                          const subtipoNom = st.nombre.toLowerCase();
+                          if (words.length === 1) {
+                            return tipoNom.includes(words[0]) || subtipoNom.includes(words[0]);
+                          }
+                          // Primera palabra busca en tipo, resto en subtipo
+                          const matchTipo = tipoNom.includes(words[0]);
+                          const restoWords = words.slice(1);
+                          const matchSubtipo = restoWords.every((w) => subtipoNom.includes(w));
+                          // También permitir búsqueda general por si el orden no importa
+                          const combined = `${tipoNom} ${subtipoNom}`;
+                          const matchCombined = words.every((w) => combined.includes(w));
+                          return (matchTipo && matchSubtipo) || matchCombined;
                         });
                         if (filtered.length === 0) {
                           return (
@@ -3543,7 +3554,7 @@ export default function NovedadesPage() {
                           );
                         }
                         return filtered.map((st) => {
-                          const tipo = tipos.find((t) => t.id === st.tipo_novedad_id);
+                          const tipo = tipos.find((t) => t.id == st.tipo_novedad_id);
                           const tipoNombre = tipo?.nombre || "Sin tipo";
                           return (
                             <button
