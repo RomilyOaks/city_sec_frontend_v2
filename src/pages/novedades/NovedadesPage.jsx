@@ -364,6 +364,9 @@ export default function NovedadesPage() {
   const [ubigeos, setUbigeos] = useState([]);
   const [ubigeoSearch, setUbigeoSearch] = useState("");
   const [registroUbigeoInfo, setRegistroUbigeoInfo] = useState(null);
+  const [searchTipoSubtipo, setSearchTipoSubtipo] = useState("");
+  const [showTipoSubtipoDropdown, setShowTipoSubtipoDropdown] = useState(false);
+  const tipoSubtipoRef = useRef(null);
   const [defaultUbigeo, setDefaultUbigeo] = useState(null); // Ubigeo por defecto desde backend
 
   // Modal de atención
@@ -576,14 +579,16 @@ export default function NovedadesPage() {
    */
   const fetchCatalogos = async () => {
     try {
-      const [tiposRes, estadosRes, sectoresRes] = await Promise.all([
+      const [tiposRes, estadosRes, sectoresRes, subtiposRes] = await Promise.all([
         listTiposNovedad(),
         listEstadosNovedad(),
         listSectores(),
+        listSubtiposNovedad(),
       ]);
       setTipos(Array.isArray(tiposRes) ? tiposRes : []);
       setEstados(Array.isArray(estadosRes) ? estadosRes : []);
       setSectores(Array.isArray(sectoresRes) ? sectoresRes : []);
+      setSubtipos(Array.isArray(subtiposRes) ? subtiposRes : []);
     } catch (err) {
       console.error("Error cargando catálogos:", err);
     }
@@ -656,6 +661,17 @@ export default function NovedadesPage() {
 
   useEffect(() => {
     fetchCatalogos();
+  }, []);
+
+  // Click fuera cierra dropdown de tipo/subtipo
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (tipoSubtipoRef.current && !tipoSubtipoRef.current.contains(e.target)) {
+        setShowTipoSubtipoDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // Cargar ubigeo por defecto al montar el componente
@@ -1901,19 +1917,6 @@ export default function NovedadesPage() {
   };
 
   /**
-   * loadSubtipos - Carga subtipos cuando se selecciona un tipo de novedad
-   */
-  const loadSubtipos = async (tipoId) => {
-    try {
-      const data = await listSubtiposNovedad(tipoId);
-      setSubtipos(data || []);
-    } catch (error) {
-      console.error("Error al cargar subtipos:", error);
-      toast.error("Error al cargar subtipos de novedad");
-    }
-  };
-
-  /**
    * resetRegistroForm - Limpia el formulario REGISTRO
    */
   const resetRegistroForm = () => {
@@ -1958,6 +1961,9 @@ export default function NovedadesPage() {
     setShowCalleDropdown(false);
     setAutoPopulatedFromCalle(false);
     setCuadrantesRegistro([]);
+    // Limpiar buscador tipo/subtipo
+    setSearchTipoSubtipo("");
+    setShowTipoSubtipoDropdown(false);
     // Limpiar errores de validación y datos de geocodificación
     setValidationError(null);
     setGeocodingData(null);
@@ -3476,68 +3482,106 @@ export default function NovedadesPage() {
                   />
                   Información del Incidente
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      Tipo de Novedad <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={registroFormData.tipo_novedad_id}
+                <div ref={tipoSubtipoRef} className="relative">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    Tipo / Subtipo de Novedad <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
+                    <input
+                      type="text"
+                      value={searchTipoSubtipo}
                       onChange={(e) => {
-                        setRegistroFormData({
-                          ...registroFormData,
-                          tipo_novedad_id: e.target.value,
-                          subtipo_novedad_id: "",
-                        });
-                        // Cargar subtipos
-                        if (e.target.value) {
-                          loadSubtipos(e.target.value);
+                        setSearchTipoSubtipo(e.target.value);
+                        setShowTipoSubtipoDropdown(true);
+                        if (!e.target.value) {
+                          setRegistroFormData({
+                            ...registroFormData,
+                            tipo_novedad_id: "",
+                            subtipo_novedad_id: "",
+                            prioridad_actual: "",
+                          });
                         }
                       }}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
-                    >
-                      <option value="">Seleccionar tipo</option>
-                      {tipos.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.nombre}
-                        </option>
-                      ))}
-                    </select>
+                      onFocus={() => setShowTipoSubtipoDropdown(true)}
+                      placeholder="Buscar tipo/subtipo de novedad..."
+                      className="w-full pl-9 pr-8 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                    />
+                    {searchTipoSubtipo && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchTipoSubtipo("");
+                          setShowTipoSubtipoDropdown(false);
+                          setRegistroFormData({
+                            ...registroFormData,
+                            tipo_novedad_id: "",
+                            subtipo_novedad_id: "",
+                            prioridad_actual: "",
+                          });
+                        }}
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        <X size={16} />
+                      </button>
+                    )}
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      Subtipo de Novedad <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={registroFormData.subtipo_novedad_id}
-                      onChange={(e) => {
-                        const selectedSubtipoId = e.target.value;
-                        const selectedSubtipo = subtipos.find(
-                          (st) => st.id === Number(selectedSubtipoId)
-                        );
-                        setRegistroFormData({
-                          ...registroFormData,
-                          subtipo_novedad_id: selectedSubtipoId,
-                          prioridad_actual: selectedSubtipo?.prioridad || "",
+                  {showTipoSubtipoDropdown && searchTipoSubtipo.length > 0 && (
+                    <div className="absolute z-50 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                      {(() => {
+                        const searchLower = searchTipoSubtipo.toLowerCase();
+                        const filtered = subtipos.filter((st) => {
+                          const tipo = tipos.find((t) => t.id === st.tipo_novedad_id);
+                          const tipoNombre = tipo?.nombre || "";
+                          return (
+                            tipoNombre.toLowerCase().includes(searchLower) ||
+                            st.nombre.toLowerCase().includes(searchLower)
+                          );
                         });
-                      }}
-                      disabled={!registroFormData.tipo_novedad_id}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
-                    >
-                      <option value="">Seleccionar subtipo</option>
-                      {subtipos
-                        .filter(
-                          (st) =>
-                            st.tipo_novedad_id ==
-                            registroFormData.tipo_novedad_id
-                        )
-                        .map((st) => (
-                          <option key={st.id} value={st.id}>
-                            {st.nombre}
-                          </option>
-                        ))}
-                    </select>
-                  </div>
+                        if (filtered.length === 0) {
+                          return (
+                            <div className="px-4 py-3 text-sm text-slate-500 dark:text-slate-400">
+                              No se encontraron resultados
+                            </div>
+                          );
+                        }
+                        return filtered.map((st) => {
+                          const tipo = tipos.find((t) => t.id === st.tipo_novedad_id);
+                          const tipoNombre = tipo?.nombre || "Sin tipo";
+                          return (
+                            <button
+                              key={st.id}
+                              type="button"
+                              onClick={() => {
+                                setRegistroFormData({
+                                  ...registroFormData,
+                                  tipo_novedad_id: String(st.tipo_novedad_id),
+                                  subtipo_novedad_id: String(st.id),
+                                  prioridad_actual: st.prioridad || "",
+                                });
+                                setSearchTipoSubtipo(`${tipoNombre} - ${st.nombre}`);
+                                setShowTipoSubtipoDropdown(false);
+                              }}
+                              className="w-full text-left px-4 py-2 text-sm hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-b-0"
+                            >
+                              <span className="font-medium text-primary-700 dark:text-primary-400">{tipoNombre}</span>
+                              <span className="text-slate-500 dark:text-slate-400"> - </span>
+                              <span className="text-slate-900 dark:text-white">{st.nombre}</span>
+                              {st.prioridad && (
+                                <span className={`ml-2 text-xs px-1.5 py-0.5 rounded ${
+                                  st.prioridad === "ALTA" ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" :
+                                  st.prioridad === "MEDIA" ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" :
+                                  "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                }`}>
+                                  {st.prioridad}
+                                </span>
+                              )}
+                            </button>
+                          );
+                        });
+                      })()}
+                    </div>
+                  )}
                 </div>
                 <div className="mt-4">
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
