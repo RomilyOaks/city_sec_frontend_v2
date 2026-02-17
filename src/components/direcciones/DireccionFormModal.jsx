@@ -478,7 +478,12 @@ export default function DireccionFormModal({ isOpen, onClose, direccion: direcci
       const fuente = getDescripcionFuente(resultado.fuente_geocodificacion);
       
       toast.success(`📍 Dirección geocodificada (${locationType}) - Fuente: ${fuente}`);
-      
+
+      // PLAN B: Intentar auto-asignar sector/cuadrante después de geocodificar
+      if (!formData.sector_id || !formData.cuadrante_id) {
+        handleAutoValidate();
+      }
+
     } catch (error) {
       console.error('❌ Error en geocodificación:', error);
       toast.error(error.message || "No se pudo geocodificar la dirección");
