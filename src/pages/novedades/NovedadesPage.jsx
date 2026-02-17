@@ -3529,14 +3529,11 @@ export default function NovedadesPage() {
                   {showTipoSubtipoDropdown && searchTipoSubtipo.length > 0 && (
                     <div className="absolute z-50 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                       {(() => {
-                        const searchLower = searchTipoSubtipo.toLowerCase();
+                        const words = searchTipoSubtipo.toLowerCase().split(/\s+/).filter(Boolean);
                         const filtered = subtipos.filter((st) => {
                           const tipo = tipos.find((t) => t.id === st.tipo_novedad_id);
-                          const tipoNombre = tipo?.nombre || "";
-                          return (
-                            tipoNombre.toLowerCase().includes(searchLower) ||
-                            st.nombre.toLowerCase().includes(searchLower)
-                          );
+                          const combined = `${(tipo?.nombre || "")} ${st.nombre}`.toLowerCase();
+                          return words.every((w) => combined.includes(w));
                         });
                         if (filtered.length === 0) {
                           return (
