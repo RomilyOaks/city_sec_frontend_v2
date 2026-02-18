@@ -1271,20 +1271,22 @@ export default function NovedadesPage() {
         ? seguimientoData.observaciones
         : (estadoDespachado?.descripcion || "Novedad despachada");
 
+      const fechaDespachoFinal = toBackendDatetime(seguimientoData.fecha_despacho) || toBackendDatetime(getCurrentDateTimeLocal());
+
       const payload = {
         novedad_id: selectedNovedadSeguimiento.id,
 
         // Cambio de estado
         estado_novedad_id: 2, // DESPACHADO
 
-        // Asignación de recursos
-        vehiculo_id: seguimientoData.vehiculo_id,
-        personal_cargo_id: seguimientoData.personal_cargo_id,
-        unidad_oficina_id: seguimientoData.unidad_oficina_id,
-        personal_seguridad2_id: seguimientoData.personal_seguridad2_id,
+        // Asignación de recursos (conversión explícita a Number para el backend)
+        ...(seguimientoData.unidad_oficina_id ? { unidad_oficina_id: Number(seguimientoData.unidad_oficina_id) } : {}),
+        ...(seguimientoData.vehiculo_id ? { vehiculo_id: Number(seguimientoData.vehiculo_id) } : {}),
+        ...(seguimientoData.personal_cargo_id ? { personal_cargo_id: Number(seguimientoData.personal_cargo_id) } : {}),
+        ...(seguimientoData.personal_seguridad2_id ? { personal_seguridad2_id: Number(seguimientoData.personal_seguridad2_id) } : {}),
 
         // Fechas y kilometraje (sin Z, backend interpreta como hora local Peru)
-        fecha_despacho: toBackendDatetime(seguimientoData.fecha_despacho) || toBackendDatetime(getCurrentDateTimeLocal()),
+        fecha_despacho: fechaDespachoFinal,
         km_inicial: seguimientoData.km_inicial,
 
         // Observaciones de la novedad (se graba en novedades_incidentes.observaciones)
@@ -1296,7 +1298,7 @@ export default function NovedadesPage() {
           estado_anterior_id: selectedNovedadSeguimiento.estado_novedad_id || 1,
           estado_nuevo_id: 2, // DESPACHADO
           observaciones: observacionesFinal,
-          fecha_cambio: toBackendDatetime(seguimientoData.fecha_despacho) || toBackendDatetime(getCurrentDateTimeLocal()),
+          fecha_cambio: fechaDespachoFinal,
           tiempo_en_estado_min: tiempo_en_estado_min >= 0 ? tiempo_en_estado_min : 0,
           created_by: user?.id || null,
           updated_by: user?.id || null,

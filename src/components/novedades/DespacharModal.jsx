@@ -351,6 +351,12 @@ export default function DespacharModal({
       return;
     }
 
+    // Validar que la novedad tenga sector asignado (requerido para crear operativo)
+    if (!novedad?.sector_id) {
+      toast.error("La novedad no tiene sector asignado. Edite la novedad y asigne un sector antes de despachar.");
+      return;
+    }
+
     // Validar personal duplicado
     const personalIds = [
       formData.personal_cargo_id,
