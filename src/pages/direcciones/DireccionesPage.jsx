@@ -17,12 +17,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Search, Edit, Trash2, RefreshCw, RotateCcw, MapPin, Navigation, Map as MapIcon, Filter, X, Eye, Archive } from "lucide-react";
-import { listDirecciones, deleteDireccion, checkDireccionCanDelete, getDireccionById } from "../../services/direccionesService";
+import { listDirecciones, deleteDireccion, checkDireccionCanDelete, getDireccionById, geocodificarDireccion as geocodificarDireccionService } from "../../services/direccionesService";
 import { listCallesActivas } from "../../services/callesService";
 import { useAuthStore } from "../../store/useAuthStore";
 import DireccionFormModal from "../../components/direcciones/DireccionFormModal";
 import DireccionViewModal from "../../components/direcciones/DireccionViewModal";
-import CuadranteMapaModal from "../../components/calles/CuadranteMapaModal";
+import UbicacionMiniMapa from "../../components/UbicacionMiniMapa";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 import { toast } from "react-hot-toast";
 import { normalizeDireccionCode, looksLikeDireccionCode } from "../../utils/direccionCodeHelper";
 
@@ -525,6 +526,7 @@ export default function DireccionesPage() {
                         <button
                           onClick={() => {
                             setMapDireccion({
+                              id: dir.id,
                               nombre: formatDireccion(dir),
                               latitud: dir.latitud,
                               longitud: dir.longitud,
@@ -637,15 +639,112 @@ export default function DireccionesPage() {
       )}
 
       {showMapModal && mapDireccion && (
-        <CuadranteMapaModal
+        <DireccionMapaModal
           isOpen={showMapModal}
+          direccion={mapDireccion}
           onClose={() => {
             setShowMapModal(false);
             setMapDireccion(null);
           }}
-          cuadrante={mapDireccion}
+          onCoordinatesUpdated={() => {
+            loadDirecciones();
+          }}
         />
       )}
+    </div>
+  );
+}
+
+/**
+ * DireccionMapaModal - Modal para ver y ajustar ubicación de una dirección
+ */
+function DireccionMapaModal({ isOpen, direccion, onClose, onCoordinatesUpdated }) {
+  const [saving, setSaving] = useState(false);
+
+  useBodyScrollLock(isOpen);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
+  const handleCoordinatesChange = async (lat, lng) => {
+    if (!direccion?.id) return;
+    setSaving(true);
+    try {
+      await geocodificarDireccionService(direccion.id, {
+        latitud: lat,
+        longitud: lng,
+        fuente: "Ajuste manual (mapa)",
+      });
+      toast.success("Ubicación actualizada correctamente");
+      if (onCoordinatesUpdated) onCoordinatesUpdated();
+      onClose();
+    } catch (err) {
+      console.error("Error actualizando ubicación:", err);
+      toast.error("Error al actualizar la ubicación");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="relative bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-3xl mx-4 max-h-[90vh] overflow-hidden">
+        {/* Header */}
+        <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between z-10">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary-50 dark:bg-primary-900/30">
+              <MapPin size={24} className="text-primary-600 dark:text-primary-400" />
+            </div>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white truncate">
+              {direccion?.nombre || "Ubicación"}
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+            title="Cerrar (ESC)"
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        {/* Mapa */}
+        <div className="p-6">
+          {saving && (
+            <div className="mb-3 text-sm text-blue-600 dark:text-blue-400 animate-pulse">
+              Guardando nueva ubicación...
+            </div>
+          )}
+          <UbicacionMiniMapa
+            latitud={direccion?.latitud}
+            longitud={direccion?.longitud}
+            zoom={17}
+            height="400px"
+            markerColor="red"
+            showCoordinates={true}
+            editable={true}
+            onCoordinatesChange={handleCoordinatesChange}
+          />
+        </div>
+
+        {/* Footer */}
+        <div className="border-t border-slate-200 dark:border-slate-700 px-6 py-3 flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
