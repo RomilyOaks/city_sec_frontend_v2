@@ -1216,6 +1216,10 @@ export default function AdminUsuariosPage() {
               Usuario: <strong>{resetPwUser.username}</strong> ({resetPwUser.nombres} {resetPwUser.apellidos})
             </p>
 
+            <form
+              autoComplete="off"
+              onSubmit={(e) => { e.preventDefault(); handleResetPassword(); }}
+            >
             <div className="mt-4 space-y-4">
               <div>
                 <div className="flex items-center justify-between">
@@ -1303,15 +1307,15 @@ export default function AdminUsuariosPage() {
                 </button>
                 <button
                   id="btn-reset-password"
-                  type="button"
+                  type="submit"
                   disabled={!resetPwValid || resetPwSaving}
-                  onClick={handleResetPassword}
                   className="rounded-lg bg-primary-700 text-white px-4 py-2 text-sm font-medium hover:bg-primary-800 disabled:opacity-60"
                 >
                   {resetPwSaving ? "Guardando\u2026" : "Resetear contrase\u00f1a"}
                 </button>
               </div>
             </div>
+            </form>
           </div>
         </div>
       )}
