@@ -170,7 +170,7 @@ export default function OperativosTurnoPage() {
   const [search, setSearch] = useState(""); // Valor con debounce que se envía al backend
   const [isSearching, setIsSearching] = useState(false); // Indicador de búsqueda activa
   const [filterSector, setFilterSector] = useState("");
-  const [filterFecha, setFilterFecha] = useState("");
+  const [filterFecha, setFilterFecha] = useState(getTodayDate());
   const [filterTurno, setFilterTurno] = useState("");
   const [filterEstado, setFilterEstado] = useState("");
 
@@ -859,7 +859,7 @@ export default function OperativosTurnoPage() {
               setFilterFecha(e.target.value);
               setPage(1);
             }}
-            className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+            className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 [color-scheme:light] dark:[color-scheme:dark]"
           />
 
           {/* Filtro Turno */}
