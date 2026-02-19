@@ -15,12 +15,21 @@ import api from "./api";
 export async function login({ username_or_email, password }) {
   const res = await api.post("/auth/login", { username_or_email, password });
 
+  // Log de diagnóstico — ver estructura real de la respuesta del backend
+  console.log("[login] res.data completo:", JSON.stringify(res?.data, null, 2));
+
   const payload = res?.data?.data || res?.data || {};
   const token =
     payload?.token ||
     payload?.access_token ||
     payload?.accessToken ||
     payload?.jwt ||
+    payload?.authToken ||
+    payload?.bearerToken ||
+    payload?.session_token ||
+    res?.data?.token ||
+    res?.data?.access_token ||
+    res?.data?.accessToken ||
     payload?.data?.token ||
     payload?.data?.access_token ||
     payload?.data?.accessToken ||
@@ -30,9 +39,16 @@ export async function login({ username_or_email, password }) {
     payload?.usuario ||
     payload?.user ||
     payload?.usuario_data ||
+    payload?.profile ||
+    res?.data?.usuario ||
+    res?.data?.user ||
     payload?.data?.usuario ||
     payload?.data?.user ||
     payload?.data?.usuario_data;
+
+  if (!token) {
+    console.warn("[login] Token no encontrado. Estructura recibida:", res?.data);
+  }
 
   return { token, usuario };
 }
