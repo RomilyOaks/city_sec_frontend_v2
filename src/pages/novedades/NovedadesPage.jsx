@@ -342,6 +342,12 @@ export default function NovedadesPage() {
   const canEdit = canPerformAction(user, "novedades_update");
   const canDelete = canPerformAction(user, "novedades_delete");
 
+  // Devuelve true si la novedad fue despachada por otro usuario distinto al logueado
+  const esDespachadoPorOtro = (n) => {
+    const uid = n?.usuarioDespacho?.id ?? n?.usuario_despacho_id;
+    return !!uid && uid !== user?.id;
+  };
+
   const [permissionErrorShown, setPermissionErrorShown] = useState(false);
   const [novedades, setNovedades] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -2405,19 +2411,26 @@ export default function NovedadesPage() {
                               <button
                                 onClick={() => {
                                   if (n.estado_novedad_id === 1) {
-                                    // Abrir directamente DespacharModal cuando estado es 1 (Pendiente de Registro)
                                     openSeguimientoModal(n);
                                   } else {
-                                    // Abrir panel intermedio para otros estados
                                     openViewingModalFromTruck(n);
                                   }
                                 }}
-                                className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                                title="Despachar novedad"
+                                disabled={esDespachadoPorOtro(n)}
+                                className={`p-1.5 rounded-lg ${
+                                  esDespachadoPorOtro(n)
+                                    ? "text-slate-300 dark:text-slate-600 cursor-not-allowed"
+                                    : "text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                }`}
+                                title={
+                                  esDespachadoPorOtro(n)
+                                    ? `Solo puede modificar el usuario que despachó (${n.usuarioDespacho?.username || "otro usuario"})`
+                                    : "Despachar novedad"
+                                }
                               >
                                 <Truck size={14} />
                               </button>
-                              {canEdit && !n.deleted_at && (
+                              {canEdit && !n.deleted_at && !esDespachadoPorOtro(n) && (
                                 <button
                                   onClick={() => openAtencionModal(n)}
                                   className="p-1.5 rounded-lg text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
