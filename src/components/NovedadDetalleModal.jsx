@@ -587,6 +587,7 @@ export default function NovedadDetalleModal({
               {/* Tab 3: Recursos */}
               {activeTab === 3 && (
                 <div className="space-y-4">
+                  {/* Unidad/Oficina — ancho completo */}
                   <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
                     <span className="text-xs font-medium text-slate-500">
                       Unidad/Oficina
@@ -598,44 +599,90 @@ export default function NovedadDetalleModal({
                       })()}
                     </p>
                   </div>
-                  <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                    <span className="text-xs font-medium text-slate-500">
-                      Vehículo Asignado
-                    </span>
-                    <p className="text-sm text-slate-900 dark:text-slate-50">
-                      {(() => {
-                        const vehiculo = vehiculos?.find(v => v.id === novedad.vehiculo_id);
-                        return vehiculo 
-                          ? `${vehiculo.placa} - ${vehiculo.marca} ${vehiculo.modelo_vehiculo || vehiculo.modelo}`
-                          : "—";
-                      })()}
-                    </p>
+
+                  {/* Fila: Vehículo Asignado | Conductor */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                      <span className="text-xs font-medium text-slate-500">
+                        Vehículo Asignado
+                      </span>
+                      <p className="text-sm text-slate-900 dark:text-slate-50">
+                        {(() => {
+                          const vehiculo = vehiculos?.find(v => v.id === novedad.vehiculo_id);
+                          return vehiculo
+                            ? `${vehiculo.placa} - ${vehiculo.marca} ${vehiculo.modelo_vehiculo || vehiculo.modelo || ""}`.trim()
+                            : "—";
+                        })()}
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                      <span className="text-xs font-medium text-slate-500">
+                        Conductor
+                      </span>
+                      <p className="text-sm text-slate-900 dark:text-slate-50">
+                        {(() => {
+                          const vehiculo = vehiculos?.find(v => v.id === novedad.vehiculo_id);
+                          if (!vehiculo) return "—";
+                          const rel = vehiculo.conductorAsignado || vehiculo.conductor_asignado || vehiculo.conductor;
+                          if (rel) {
+                            return `${rel.apellido_paterno || ""} ${rel.apellido_materno || ""} ${rel.nombres || ""}`.trim() || "—";
+                          }
+                          return "—";
+                        })()}
+                      </p>
+                    </div>
                   </div>
-                  <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                    <span className="text-xs font-medium text-slate-500">
-                      Personal a Cargo (Principal)
-                    </span>
-                    <p className="text-sm text-slate-900 dark:text-slate-50">
-                      {(() => {
-                        const personal = personalSeguridad?.find(p => p.id === novedad.personal_cargo_id);
-                        return personal 
-                          ? `${personal.doc_tipo || ''} ${personal.doc_numero || 'N/A'} - ${personal.nombres} ${personal.apellido_paterno}`
-                          : "—";
-                      })()}
-                    </p>
+
+                  {/* Fila: Personal asignado a pie | Personal Seguridad Auxiliar */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                      <span className="text-xs font-medium text-slate-500">
+                        Personal asignado a pie
+                      </span>
+                      <p className="text-sm text-slate-900 dark:text-slate-50">
+                        {(() => {
+                          const personal = personalSeguridad?.find(p => p.id === novedad.personal_cargo_id);
+                          return personal
+                            ? `${personal.nombres} ${personal.apellido_paterno}`
+                            : "—";
+                        })()}
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                      <span className="text-xs font-medium text-slate-500">
+                        Personal Seguridad Auxiliar
+                      </span>
+                      <p className="text-sm text-slate-900 dark:text-slate-50">
+                        {(() => {
+                          const personal = personalSeguridad?.find(p => p.id === novedad.personal_seguridad2_id);
+                          return personal
+                            ? `${personal.nombres} ${personal.apellido_paterno}`
+                            : "—";
+                        })()}
+                      </p>
+                    </div>
                   </div>
-                  <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                    <span className="text-xs font-medium text-slate-500">
-                      Personal Seguridad #2
+
+                  {/* Auditoría del despacho */}
+                  <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                    <span className="text-xs font-medium text-blue-600 dark:text-blue-400 flex items-center gap-1 mb-2">
+                      <Clock size={13} />
+                      Auditoría del Despacho
                     </span>
-                    <p className="text-sm text-slate-900 dark:text-slate-50">
-                      {(() => {
-                        const personal = personalSeguridad?.find(p => p.id === novedad.personal_seguridad2_id);
-                        return personal 
-                          ? `${personal.doc_tipo || ''} ${personal.doc_numero || 'N/A'} - ${personal.nombres} ${personal.apellido_paterno}`
-                          : "—";
-                      })()}
-                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">Fecha Despacho</span>
+                        <p className="text-sm font-medium text-slate-900 dark:text-slate-50">
+                          {formatFecha(novedad.fecha_despacho)}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">Despachado por</span>
+                        <p className="text-sm font-medium text-slate-900 dark:text-slate-50">
+                          {novedad.usuarioDespacho?.username || novedad.usuarioDespacho?.email || "—"}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
