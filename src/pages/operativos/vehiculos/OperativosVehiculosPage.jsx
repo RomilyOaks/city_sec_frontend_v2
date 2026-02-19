@@ -23,6 +23,7 @@ import {
   listVehiculosByTurno,
   deleteVehiculoOperativo,
 } from "../../../services/operativosVehiculosService.js";
+import { listPersonalSelector } from "../../../services/personalService.js";
 import api from "../../../services/api.js";
 import { canPerformAction } from "../../../rbac/rbac.js";
 import { useAuthStore } from "../../../store/useAuthStore.js";
@@ -36,6 +37,39 @@ import EditarVehiculoForm from "./EditarVehiculoForm.jsx";
 const formatPersonalNombre = (personal) => {
   if (!personal) return "—";
   return `${personal.nombres || ""} ${personal.apellido_paterno || ""}`.trim() || "—";
+};
+
+/**
+ * Obtiene nombre de conductor/copiloto desde múltiples posibles campos del response.
+ * Acepta personalList para búsqueda por FK ID cuando no viene objeto anidado.
+ */
+const getConductorNombre = (v, tipo = "conductor", personalList = []) => {
+  // 1. Objeto anidado en el operativo vehiculo
+  const fromOperativo =
+    v[tipo] ||
+    v[`${tipo}_personal`] ||
+    v[`personal_${tipo}`];
+  if (fromOperativo) return formatPersonalNombre(fromOperativo);
+
+  // 2. Objeto anidado en el vehículo
+  const fromVehiculo =
+    v.vehiculo?.[tipo] ||
+    v.vehiculo?.[`${tipo}_asignado`] ||
+    v.vehiculo?.[`personal_${tipo}`];
+  if (fromVehiculo) return formatPersonalNombre(fromVehiculo);
+
+  // 3. Buscar por FK ID en la lista de personal
+  const idField =
+    tipo === "conductor"
+      ? v.conductor_id ?? v.vehiculo?.conductor_asignado_id
+      : v.copiloto_id ?? v.vehiculo?.copiloto_asignado_id;
+
+  if (idField && personalList.length > 0) {
+    const found = personalList.find((p) => p.id == idField);
+    if (found) return formatPersonalNombre(found);
+  }
+
+  return "—";
 };
 
 /**
@@ -59,6 +93,7 @@ export default function OperativosVehiculosPage() {
   const [vehiculos, setVehiculos] = useState([]);
   const [turno, setTurno] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [personalList, setPersonalList] = useState([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
@@ -119,6 +154,13 @@ export default function OperativosVehiculosPage() {
       fetchVehiculos();
     }
   }, [turnoId, fetchTurno, fetchVehiculos]);
+
+  // Cargar lista de personal para resolver IDs de conductor/copiloto
+  useEffect(() => {
+    listPersonalSelector()
+      .then((data) => setPersonalList(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }, []);
 
   const handleBack = () => {
     navigate("/operativos/turnos");
@@ -368,10 +410,10 @@ export default function OperativosVehiculosPage() {
                           : "—"}
                       </td>
                       <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
-                        {formatPersonalNombre(v.conductor)}
+                        {getConductorNombre(v, "conductor", personalList)}
                       </td>
                       <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
-                        {formatPersonalNombre(v.copiloto)}
+                        {getConductorNombre(v, "copiloto", personalList)}
                       </td>
                       <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
                         {v.kilometraje_inicio?.toLocaleString() || "—"}

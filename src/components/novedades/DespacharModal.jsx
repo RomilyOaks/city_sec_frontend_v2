@@ -404,9 +404,26 @@ export default function DespacharModal({
 
       // Si se seleccionó vehículo, crear registros en operativos
       if (formData.vehiculo_id) {
+        // Obtener datos del vehículo seleccionado para pre-poblar campos
+        const vehiculoSeleccionado =
+          vehiculosDisponibles.find((v) => v.id == formData.vehiculo_id) ||
+          vehiculos.find((v) => v.id == formData.vehiculo_id);
+
+        const vehiculoExtraData = {};
+        if (vehiculoSeleccionado?.conductor_asignado_id) {
+          vehiculoExtraData.conductor_id = vehiculoSeleccionado.conductor_asignado_id;
+        }
+        if (vehiculoSeleccionado?.radio_tetra_id || novedad?.radio_tetra_id) {
+          vehiculoExtraData.radio_tetra_id =
+            vehiculoSeleccionado?.radio_tetra_id ?? novedad.radio_tetra_id;
+        }
+        const kmInicio = vehiculoSeleccionado?.kilometraje_actual ?? 0;
+
         const vehiculoOperativo = await findOrCreateVehiculoEnTurno(
           operativoActualizado.id,
-          Number(formData.vehiculo_id)
+          Number(formData.vehiculo_id),
+          kmInicio,
+          vehiculoExtraData
         );
 
         const cuadranteAsignado = await findOrCreateCuadranteEnVehiculo(

@@ -160,23 +160,25 @@ export async function getVehiculosDisponiblesParaDespacho() {
  * @param {number} turnoId - ID del turno operativo
  * @param {number} vehiculo_id - ID del vehículo
  * @param {number} [kilometraje_inicio] - Kilometraje inicial (opcional)
+ * @param {Object} [extraData] - Campos adicionales: conductor_id, radio_tetra_id, etc.
  * @returns {Promise<Object>} Vehículo operativo creado
  */
-export async function createVehiculoEnTurno(turnoId, vehiculo_id, kilometraje_inicio = 0) {
+export async function createVehiculoEnTurno(turnoId, vehiculo_id, kilometraje_inicio = 0, extraData = {}) {
   try {
     const payload = {
       vehiculo_id,
       estado_operativo_id: 1, // OPERATIVO ACTIVO
       kilometraje_inicio: kilometraje_inicio || 0,
       hora_inicio: new Date().toISOString(),
-      nivel_combustible_inicio: "LLENO"
+      nivel_combustible_inicio: "LLENO",
+      ...extraData,
     };
 
     const vehiculoOperativo = await createVehiculoOperativo(turnoId, payload);
-    
+
     // Asegurarse de retornar el objeto con el ID correcto
     const resultado = vehiculoOperativo?.data || vehiculoOperativo;
-    
+
     return resultado;
   } catch (error) {
     console.error("Error creando vehículo en turno:", error);
@@ -212,9 +214,10 @@ export async function findVehiculoOperativoId(operativo_turno_id, vehiculo_id) {
  * @param {number} operativo_turno_id - ID del turno operativo
  * @param {number} vehiculo_id - ID del vehículo
  * @param {number} [kilometraje_inicio] - Kilometraje inicial (opcional)
+ * @param {Object} [extraData] - Campos adicionales: conductor_id, radio_tetra_id, etc.
  * @returns {Promise<Object>} Vehículo operativo encontrado o creado
  */
-export async function findOrCreateVehiculoEnTurno(operativo_turno_id, vehiculo_id, kilometraje_inicio = 0) {
+export async function findOrCreateVehiculoEnTurno(operativo_turno_id, vehiculo_id, kilometraje_inicio = 0, extraData = {}) {
   try {
     // Primero buscar si ya existe
     const existenteId = await findVehiculoOperativoId(operativo_turno_id, vehiculo_id);
@@ -224,8 +227,8 @@ export async function findOrCreateVehiculoEnTurno(operativo_turno_id, vehiculo_i
       return vehiculos.find(v => v.id === existenteId);
     }
 
-    // Si no existe, crearlo
-    return await createVehiculoEnTurno(operativo_turno_id, vehiculo_id, kilometraje_inicio);
+    // Si no existe, crearlo con todos los campos
+    return await createVehiculoEnTurno(operativo_turno_id, vehiculo_id, kilometraje_inicio, extraData);
   } catch (error) {
     console.error("Error en findOrCreateVehiculoEnTurno:", error);
     throw error;

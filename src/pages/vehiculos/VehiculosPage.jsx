@@ -243,7 +243,7 @@ export default function VehiculosPage() {
       const [tiposRes, unidadesRes, conductoresRes] = await Promise.all([
         listTiposVehiculo(),
         listUnidades(),
-        listConductores({ disponible: true }),
+        listConductores(), // Todos los conductores para lookup en grid
       ]);
       setTiposVehiculo(Array.isArray(tiposRes) ? tiposRes : []);
       setUnidades(Array.isArray(unidadesRes) ? unidadesRes : []);
@@ -321,6 +321,15 @@ export default function VehiculosPage() {
   useEffect(() => {
     fetchVehiculos({ nextPage: page });
   }, [page, filterEstado, filterTipo]);
+
+  // Debounce: buscar al tipear (300ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1);
+      fetchVehiculos({ nextPage: 1 });
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   // Cargar conteos de cuadrantes cuando se cargan los vehículos
   useEffect(() => {
@@ -677,6 +686,22 @@ export default function VehiculosPage() {
     // Fallback a buscar en catálogo local
     const unidad = unidades.find((u) => u.id === vehiculo?.unidad_oficina_id);
     return unidad?.nombre || "—";
+  };
+
+  const getConductorNombre = (vehiculo) => {
+    // Intentar con relación anidada del backend
+    const rel = vehiculo?.conductorAsignado || vehiculo?.conductor_asignado || vehiculo?.conductor;
+    if (rel) {
+      return `${rel.apellido_paterno || ""} ${rel.apellido_materno || ""} ${rel.nombres || ""}`.trim() || "—";
+    }
+    // Fallback: buscar por ID en el catálogo local
+    if (vehiculo?.conductor_asignado_id) {
+      const found = conductores.find((c) => c.id === vehiculo.conductor_asignado_id);
+      if (found) {
+        return `${found.apellido_paterno || ""} ${found.apellido_materno || ""} ${found.nombres || ""}`.trim() || "—";
+      }
+    }
+    return "—";
   };
 
   /**
@@ -1234,7 +1259,7 @@ export default function VehiculosPage() {
                   Marca / Modelo
                 </th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">
-                  Unidad
+                  Conductor
                 </th>
                 <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">
                   Estado
@@ -1284,7 +1309,7 @@ export default function VehiculosPage() {
                       {v.marca} {v.modelo_vehiculo}
                     </td>
                     <td className="px-4 py-3 text-slate-700 dark:text-slate-200">
-                      {getUnidadNombre(v)}
+                      {getConductorNombre(v)}
                     </td>
                     <td className="px-4 py-3">
                       <span
