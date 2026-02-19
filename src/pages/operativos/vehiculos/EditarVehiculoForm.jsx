@@ -10,6 +10,7 @@ import toast from "react-hot-toast";
 import { Save, X } from "lucide-react";
 
 import { updateVehiculoOperativo } from "../../../services/operativosVehiculosService.js";
+import { updateVehiculo } from "../../../services/vehiculosService.js";
 import { listPersonal } from "../../../services/personalService.js";
 import { listEstadosOperativosActivos } from "../../../services/estadosOperativoService.js";
 import { listTiposCopilotoActivos } from "../../../services/tiposCopilotoService.js";
@@ -332,6 +333,17 @@ export default function EditarVehiculoForm({
       if (formData.observaciones) payload.observaciones = formData.observaciones;
 
       await updateVehiculoOperativo(turnoId, vehiculo.id, payload);
+
+      // Actualizar kilometraje_actual en el vehículo para mantenerlo vigente
+      if (formData.kilometraje_fin && vehiculo.vehiculo_id) {
+        try {
+          await updateVehiculo(vehiculo.vehiculo_id, {
+            kilometraje_actual: parseFloat(formData.kilometraje_fin),
+          });
+        } catch (kmErr) {
+          console.warn("No se pudo actualizar kilometraje_actual del vehículo:", kmErr);
+        }
+      }
 
       toast.success("Vehículo actualizado correctamente");
       onSuccess();
