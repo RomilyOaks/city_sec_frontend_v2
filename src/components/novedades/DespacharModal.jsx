@@ -832,6 +832,19 @@ export default function DespacharModal({
             {/* ===================== TAB 1: UBICACIÓN (READ-ONLY) ===================== */}
             {activeTab === 1 && (
               <div className="space-y-4">
+                {/* Bloqueo de edición si la novedad fue despachada por otro usuario */}
+                {(() => {
+                  const dispatchUserId = novedad?.usuarioDespacho?.id ?? novedad?.usuario_despacho_id;
+                  return dispatchUserId && dispatchUserId !== user?.id ? (
+                    <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg text-sm text-amber-800 dark:text-amber-200">
+                      <AlertCircle size={16} className="shrink-0" />
+                      <span>
+                        Solo <strong>{novedad.usuarioDespacho?.username || "el usuario que despachó"}</strong> puede ajustar la ubicación.
+                      </span>
+                    </div>
+                  ) : null;
+                })()}
+
                 {/* Mapa prominente con modo editable */}
                 <div className="relative">
                   {savingCoordinates && (
@@ -844,15 +857,21 @@ export default function DespacharModal({
                       </div>
                     </div>
                   )}
-                  <UbicacionMiniMapa
-                    latitud={editedCoordinates?.latitud ?? novedad?.latitud}
-                    longitud={editedCoordinates?.longitud ?? novedad?.longitud}
-                    height="350px"
-                    zoom={16}
-                    showCoordinates={false}
-                    editable={true}
-                    onCoordinatesChange={handleCoordinatesChange}
-                  />
+                  {(() => {
+                    const dispatchUserId = novedad?.usuarioDespacho?.id ?? novedad?.usuario_despacho_id;
+                    const canEditUbicacion = !dispatchUserId || dispatchUserId === user?.id;
+                    return (
+                      <UbicacionMiniMapa
+                        latitud={editedCoordinates?.latitud ?? novedad?.latitud}
+                        longitud={editedCoordinates?.longitud ?? novedad?.longitud}
+                        height="350px"
+                        zoom={16}
+                        showCoordinates={false}
+                        editable={canEditUbicacion}
+                        onCoordinatesChange={canEditUbicacion ? handleCoordinatesChange : undefined}
+                      />
+                    );
+                  })()}
                 </div>
 
                 {/* Coordenadas con estilo amber */}
