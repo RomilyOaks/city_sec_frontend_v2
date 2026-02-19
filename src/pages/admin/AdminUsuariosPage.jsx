@@ -1220,6 +1220,10 @@ export default function AdminUsuariosPage() {
               autoComplete="off"
               onSubmit={(e) => { e.preventDefault(); handleResetPassword(); }}
             >
+              {/* Input oculto de username para accesibilidad (evita advertencia DOM del navegador) */}
+              <input type="text" name="username" autoComplete="username"
+                value={resetPwUser?.username || ""} readOnly aria-hidden="true"
+                style={{ display: "none" }} />
             <div className="mt-4 space-y-4">
               <div>
                 <div className="flex items-center justify-between">
