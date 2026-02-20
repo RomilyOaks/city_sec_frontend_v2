@@ -493,7 +493,7 @@ export async function crearOperativoPersonalCompleto(payload) {
     const hours = String(horaActual.getHours()).padStart(2, "0");
     const minutes = String(horaActual.getMinutes()).padStart(2, "0");
     const seconds = String(horaActual.getSeconds()).padStart(2, "0");
-    const horaIngreso = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+    const horaIngreso = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 
     // ============================================================================
     // PASO 1: Asignar personal al turno → Obtener operativos_personal.id
@@ -640,7 +640,6 @@ export async function crearOperativoPersonalCompleto(payload) {
     };
   } catch (error) {
     console.error("Error creando operativo personal completo:", error);
-    console.error("🔍 DEBUG - Error response data:", error.response?.data);
 
     // Manejo específico de errores
     if (error.response?.status === 404) {
