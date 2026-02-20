@@ -221,7 +221,7 @@ export default function DespacharModal({
     } finally {
       setLoadingOperativos(false);
     }
-  }, [novedad?.sector_id, turnoActivo?.turno, user?.personal_seguridad_id, getLocalDate]);
+  }, [novedad?.sector_id, turnoActivo, user?.personal_seguridad_id]);
 
   const initializeForm = useCallback(() => {
     setFormData({
@@ -446,10 +446,10 @@ export default function DespacharModal({
           );
         } catch (error) {
           if (error.message === "Novedad ya fue reportada para este cuadrante") {
-            toast.error("Novedad ya fue reportada para este cuadrante");
-            return;
+            // Ya existía el registro — continuar el despacho normalmente
+          } else {
+            throw error;
           }
-          throw error;
         }
       }
 
@@ -588,8 +588,15 @@ export default function DespacharModal({
                     </span>
                   )}
                 </div>
+                {(novedad?.novedadTipoNovedad?.nombre || novedad?.novedadSubtipoNovedad?.nombre) && (
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 mt-0.5">
+                    {novedad.novedadTipoNovedad?.nombre}
+                    {novedad.novedadTipoNovedad?.nombre && novedad.novedadSubtipoNovedad?.nombre ? " — " : ""}
+                    {novedad.novedadSubtipoNovedad?.nombre}
+                  </p>
+                )}
                 {(novedad?.localizacion || novedad?.referencia_ubicacion) && (
-                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5 truncate max-w-md" title={
+                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5 max-w-xl line-clamp-2" title={
                     novedad.localizacion
                       ? novedad.referencia_ubicacion
                         ? `${novedad.localizacion} (${novedad.referencia_ubicacion})`
@@ -731,65 +738,7 @@ export default function DespacharModal({
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                    <label className="text-xs text-slate-500 dark:text-slate-400">
-                      Código
-                    </label>
-                    <p className="font-semibold text-slate-900 dark:text-slate-50">
-                      {novedad?.novedad_code || "—"}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                    <label className="text-xs text-slate-500 dark:text-slate-400">
-                      Estado Actual
-                    </label>
-                    <p className="font-semibold text-slate-900 dark:text-slate-50">
-                      {novedad?.novedadEstado?.nombre || "Pendiente De Registro"}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                    <label className="text-xs text-slate-500 dark:text-slate-400">
-                      Tipo de Novedad
-                    </label>
-                    <p className="font-semibold text-slate-900 dark:text-slate-50">
-                      {novedad?.novedadTipoNovedad?.nombre || "—"}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                    <label className="text-xs text-slate-500 dark:text-slate-400">
-                      Subtipo
-                    </label>
-                    <p className="font-semibold text-slate-900 dark:text-slate-50">
-                      {novedad?.novedadSubtipoNovedad?.nombre || "—"}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                    <label className="text-xs text-slate-500 dark:text-slate-400">
-                      Prioridad
-                    </label>
-                    <span
-                      className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                        novedad?.prioridad_actual === "ALTA"
-                          ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
-                          : novedad?.prioridad_actual === "MEDIA"
-                          ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
-                          : "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300"
-                      }`}
-                    >
-                      {novedad?.prioridad_actual || "—"}
-                    </span>
-                  </div>
-                  <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                    <label className="text-xs text-slate-500 dark:text-slate-400">
-                      Fecha Registro
-                    </label>
-                    <p className="font-semibold text-slate-900 dark:text-slate-50">
-                      {formatFecha(novedad?.fecha_hora_registro || novedad?.created_at)}
-                    </p>
-                  </div>
-                </div>
-
+                {/* Descripción primero */}
                 <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                   <label className="text-xs text-slate-500 dark:text-slate-400">
                     Descripción
@@ -810,22 +759,52 @@ export default function DespacharModal({
                   </div>
                 )}
 
-                {/* Info del comunicante/reportante */}
-                {(novedad?.comunicante_nombre || novedad?.comunicante_telefono || novedad?.reportante_nombre || novedad?.reportante_telefono) && (
-                  <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <label className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                      Comunicante / Reportante
+                {/* Fecha Registro + Comunicante en la misma fila */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                    <label className="text-xs text-slate-500 dark:text-slate-400">
+                      Fecha Registro
                     </label>
-                    <p className="text-blue-900 dark:text-blue-100">
-                      {novedad.comunicante_nombre || novedad.reportante_nombre || "—"}
-                      {(novedad.comunicante_telefono || novedad.reportante_telefono) && (
-                        <span className="ml-2 text-blue-600 dark:text-blue-300">
-                          Tel: {novedad.comunicante_telefono || novedad.reportante_telefono}
-                        </span>
-                      )}
+                    <p className="font-semibold text-slate-900 dark:text-slate-50">
+                      {formatFecha(novedad?.fecha_hora_registro || novedad?.created_at)}
                     </p>
                   </div>
-                )}
+                  {(novedad?.comunicante_nombre || novedad?.comunicante_telefono || novedad?.reportante_nombre || novedad?.reportante_telefono) && (
+                    <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <label className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                        Comunicante / Reportante
+                      </label>
+                      <p className="text-blue-900 dark:text-blue-100">
+                        {novedad.comunicante_nombre || novedad.reportante_nombre || "—"}
+                        {(novedad.comunicante_telefono || novedad.reportante_telefono) && (
+                          <span className="ml-2 text-blue-600 dark:text-blue-300">
+                            Tel: {novedad.comunicante_telefono || novedad.reportante_telefono}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Código y Estado al final */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                    <label className="text-xs text-slate-500 dark:text-slate-400">
+                      Código
+                    </label>
+                    <p className="font-semibold text-slate-900 dark:text-slate-50">
+                      {novedad?.novedad_code || "—"}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                    <label className="text-xs text-slate-500 dark:text-slate-400">
+                      Estado Actual
+                    </label>
+                    <p className="font-semibold text-slate-900 dark:text-slate-50">
+                      {novedad?.novedadEstado?.nombre || "Pendiente De Registro"}
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -959,7 +938,7 @@ export default function DespacharModal({
                           <optgroup label="🟢 Vehículos Disponibles">
                             {vehiculosDisponibles.map((v) => (
                               <option key={v.id} value={v.id}>
-                                {v.placa} - {v.marca} {v.modelo_vehiculo || v.modelo}
+                                {v.tipoVehiculo?.nombre ? `${v.tipoVehiculo.nombre} - ` : ''}{v.placa} - {v.marca} {v.modelo_vehiculo || v.modelo}
                               </option>
                             ))}
                           </optgroup>
@@ -969,7 +948,7 @@ export default function DespacharModal({
                           <optgroup label="📋 Todos los Vehículos">
                             {vehiculos.map((v) => (
                               <option key={v.id} value={v.id}>
-                                {v.placa} - {v.marca} {v.modelo_vehiculo || v.modelo}
+                                {v.tipoVehiculo?.nombre ? `${v.tipoVehiculo.nombre} - ` : ''}{v.placa} - {v.marca} {v.modelo_vehiculo || v.modelo}
                               </option>
                             ))}
                           </optgroup>
