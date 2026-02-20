@@ -36,6 +36,9 @@ import RadioTetraFilters from "../../components/catalogos/RadioTetraFilters.jsx"
 
 // Importar servicios
 import { radioTetraService } from "../../services/radiosTetraService.js";
+import { useAuthStore } from "../../store/useAuthStore";
+import { canPerformAction, getUserRoleSlugs, ROLE_SLUGS } from "../../rbac/rbac.js";
+import { extractValidationErrors } from "../../utils/errorUtils";
 
 /**
  * Página principal de mantenimiento de Radios TETRA
@@ -43,6 +46,15 @@ import { radioTetraService } from "../../services/radiosTetraService.js";
  * @returns {JSX.Element}
  */
 export default function RadiosTetraPage() {
+  const user = useAuthStore((s) => s.user);
+  const canCreate = canPerformAction(user, "catalogos.radios_tetra.create");
+  const canEdit = canPerformAction(user, "catalogos.radios_tetra.update");
+  const canDelete = canPerformAction(user, "catalogos.radios_tetra.delete");
+  const canAsignar = canPerformAction(user, "catalogos.radios_tetra.asignar");
+  const canCambiarEstado = getUserRoleSlugs(user).some((r) =>
+    [ROLE_SLUGS.SUPER_ADMIN, ROLE_SLUGS.ADMIN, ROLE_SLUGS.SUPERVISOR].includes(r)
+  );
+
   // Estados principales
   const [radios, setRadios] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -142,7 +154,7 @@ export default function RadiosTetraPage() {
       await cargarRadios();
     } catch (error) {
       console.error("Error eliminando radio:", error);
-      toast.error("Error al eliminar el radio");
+      toast.error(extractValidationErrors(error) || "Error al eliminar el radio");
     }
   };
 
@@ -160,7 +172,7 @@ export default function RadiosTetraPage() {
       await cargarRadios();
     } catch (error) {
       console.error("Error desasignando radio:", error);
-      toast.error("Error al desasignar el radio");
+      toast.error(extractValidationErrors(error) || "Error al desasignar el radio");
     }
   };
 
@@ -175,7 +187,7 @@ export default function RadiosTetraPage() {
       await cargarRadios();
     } catch (error) {
       console.error("Error cambiando estado:", error);
-      toast.error("Error al cambiar el estado del radio");
+      toast.error(extractValidationErrors(error) || "Error al cambiar el estado del radio");
     }
   };
 
@@ -226,13 +238,15 @@ export default function RadiosTetraPage() {
             Actualizar
           </button>
 
-          <button
-            onClick={handleCrear}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
-          >
-            <Plus size={16} />
-            Nuevo Radio
-          </button>
+          {canCreate && (
+            <button
+              onClick={handleCrear}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
+            >
+              <Plus size={16} />
+              Nuevo Radio
+            </button>
+          )}
         </div>
       </div>
 
@@ -256,6 +270,10 @@ export default function RadiosTetraPage() {
         onDesasignar={handleDesasignar}
         onCambiarEstado={handleCambiarEstado}
         onCambioPagina={handleCambioPagina}
+        canEdit={canEdit}
+        canDelete={canDelete}
+        canAsignar={canAsignar}
+        canCambiarEstado={canCambiarEstado}
       />
 
       {/* Modal de creación */}

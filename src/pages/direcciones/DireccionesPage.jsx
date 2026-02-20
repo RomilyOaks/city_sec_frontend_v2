@@ -649,6 +649,7 @@ export default function DireccionesPage() {
           onCoordinatesUpdated={() => {
             loadDirecciones();
           }}
+          editable={canUpdate}
         />
       )}
     </div>
@@ -658,7 +659,7 @@ export default function DireccionesPage() {
 /**
  * DireccionMapaModal - Modal para ver y ajustar ubicación de una dirección
  */
-function DireccionMapaModal({ isOpen, direccion, onClose, onCoordinatesUpdated }) {
+function DireccionMapaModal({ isOpen, direccion, onClose, onCoordinatesUpdated, editable = false }) {
   const [saving, setSaving] = useState(false);
 
   useBodyScrollLock(isOpen);
@@ -730,7 +731,7 @@ function DireccionMapaModal({ isOpen, direccion, onClose, onCoordinatesUpdated }
             height="400px"
             markerColor="red"
             showCoordinates={true}
-            editable={true}
+            editable={editable}
             onCoordinatesChange={handleCoordinatesChange}
           />
         </div>

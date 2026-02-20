@@ -174,6 +174,25 @@ export const ACTION_PERMISSIONS = {
   operativos_vehiculos_create: ["operativos.vehiculos.create"],
   operativos_vehiculos_update: ["operativos.vehiculos.update"],
   operativos_vehiculos_delete: ["operativos.vehiculos.delete"],
+
+  // Catálogos - Unidades/Oficinas
+  "catalogos.unidades.create": ["catalogos.unidades.create"],
+  "catalogos.unidades.update": ["catalogos.unidades.update"],
+  "catalogos.unidades.delete": ["catalogos.unidades.delete"],
+
+  // Catálogos - Radios TETRA
+  "catalogos.radios_tetra.create": ["catalogos.radios_tetra.create"],
+  "catalogos.radios_tetra.update": ["catalogos.radios_tetra.update"],
+  "catalogos.radios_tetra.delete": ["catalogos.radios_tetra.delete"],
+  "catalogos.radios_tetra.asignar": ["catalogos.radios_tetra.asignar"],
+
+  // Catálogos - Tipos/Subtipos de Novedad
+  "catalogos.tipos_novedad.create": ["catalogos.tipos_novedad.create"],
+  "catalogos.tipos_novedad.update": ["catalogos.tipos_novedad.update"],
+  "catalogos.tipos_novedad.delete": ["catalogos.tipos_novedad.delete"],
+  "catalogos.subtipos_novedad.create": ["catalogos.subtipos_novedad.create"],
+  "catalogos.subtipos_novedad.update": ["catalogos.subtipos_novedad.update"],
+  "catalogos.subtipos_novedad.delete": ["catalogos.subtipos_novedad.delete"],
 };
 
 export function getUserRoleSlugs(user) {

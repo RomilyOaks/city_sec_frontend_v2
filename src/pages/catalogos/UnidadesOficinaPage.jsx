@@ -26,6 +26,8 @@ import {
 } from "../../services/unidadesOficinaService";
 import UnidadOficinaFormModal from "../../components/catalogos/UnidadOficinaFormModal";
 import UnidadOficinaViewModal from "../../components/catalogos/UnidadOficinaViewModal";
+import { useAuthStore } from "../../store/useAuthStore";
+import { canPerformAction } from "../../rbac/rbac.js";
 
 const TIPOS_UNIDAD = [
   {
@@ -69,6 +71,11 @@ const TIPOS_UNIDAD = [
 ];
 
 export default function UnidadesOficinaPage() {
+  const user = useAuthStore((s) => s.user);
+  const canCreate = canPerformAction(user, "catalogos.unidades.create");
+  const canEdit = canPerformAction(user, "catalogos.unidades.update");
+  const canDelete = canPerformAction(user, "catalogos.unidades.delete");
+
   const [unidades, setUnidades] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -203,13 +210,15 @@ export default function UnidadesOficinaPage() {
             Gestión de unidades de emergencia y oficinas de atención
           </p>
         </div>
-        <button
-          onClick={handleCreate}
-          className="inline-flex items-center gap-2 rounded-lg bg-primary-700 px-4 py-2 text-sm font-medium text-white hover:bg-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-600/50 dark:bg-primary-600 dark:hover:bg-primary-700"
-        >
-          <Plus size={18} />
-          Nueva Unidad/Oficina
-        </button>
+        {canCreate && (
+          <button
+            onClick={handleCreate}
+            className="inline-flex items-center gap-2 rounded-lg bg-primary-700 px-4 py-2 text-sm font-medium text-white hover:bg-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-600/50 dark:bg-primary-600 dark:hover:bg-primary-700"
+          >
+            <Plus size={18} />
+            Nueva Unidad/Oficina
+          </button>
+        )}
       </div>
 
       {/* Filters */}
@@ -317,7 +326,7 @@ export default function UnidadesOficinaPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[760px]">
               <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
@@ -325,9 +334,6 @@ export default function UnidadesOficinaPage() {
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                     Tipo
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    Código
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                     Teléfono
@@ -341,7 +347,7 @@ export default function UnidadesOficinaPage() {
                   <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                     Estado
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  <th className="pl-4 pr-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-normal whitespace-nowrap">
                     Acciones
                   </th>
                 </tr>
@@ -366,9 +372,6 @@ export default function UnidadesOficinaPage() {
                       >
                         {getTipoUnidadLabel(unidad.tipo_unidad)}
                       </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300 font-mono">
-                      {unidad.codigo || "-"}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-300">
                       <div className="flex items-center gap-1">
@@ -414,8 +417,8 @@ export default function UnidadesOficinaPage() {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-sm text-right">
-                      <div className="flex items-center justify-end gap-2">
+                    <td className="pl-4 pr-6 py-3 text-sm">
+                      <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleView(unidad)}
                           className="text-slate-600 hover:text-primary-700 dark:text-slate-400 dark:hover:text-primary-500"
@@ -423,20 +426,24 @@ export default function UnidadesOficinaPage() {
                         >
                           <Eye size={18} />
                         </button>
-                        <button
-                          onClick={() => handleEdit(unidad)}
-                          className="text-slate-600 hover:text-blue-700 dark:text-slate-400 dark:hover:text-blue-500"
-                          title="Editar"
-                        >
-                          <Edit2 size={18} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(unidad.id)}
-                          className="text-slate-600 hover:text-red-700 dark:text-slate-400 dark:hover:text-red-500"
-                          title="Eliminar"
-                        >
-                          <Trash2 size={18} />
-                        </button>
+                        {canEdit && (
+                          <button
+                            onClick={() => handleEdit(unidad)}
+                            className="text-slate-600 hover:text-blue-700 dark:text-slate-400 dark:hover:text-blue-500"
+                            title="Editar"
+                          >
+                            <Edit2 size={18} />
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button
+                            onClick={() => handleDelete(unidad.id)}
+                            className="text-slate-600 hover:text-red-700 dark:text-slate-400 dark:hover:text-red-500"
+                            title="Eliminar"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
