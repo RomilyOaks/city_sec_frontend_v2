@@ -2408,28 +2408,15 @@ export default function NovedadesPage() {
                               >
                                 <Eye size={14} />
                               </button>
-                              <button
-                                onClick={() => {
-                                  if (n.estado_novedad_id === 1) {
-                                    openSeguimientoModal(n);
-                                  } else {
-                                    openViewingModalFromTruck(n);
-                                  }
-                                }}
-                                disabled={esDespachadoPorOtro(n)}
-                                className={`p-1.5 rounded-lg ${
-                                  esDespachadoPorOtro(n)
-                                    ? "text-slate-300 dark:text-slate-600 cursor-not-allowed"
-                                    : "text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                                }`}
-                                title={
-                                  esDespachadoPorOtro(n)
-                                    ? `Solo puede modificar el usuario que despachó (${n.usuarioDespacho?.username || "otro usuario"})`
-                                    : "Despachar novedad"
-                                }
-                              >
-                                <Truck size={14} />
-                              </button>
+                              {canEdit && n.estado_novedad_id === 1 && !n.deleted_at && (
+                                <button
+                                  onClick={() => openSeguimientoModal(n)}
+                                  className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                  title="Despachar novedad"
+                                >
+                                  <Truck size={14} />
+                                </button>
+                              )}
                               {canEdit && !n.deleted_at && !esDespachadoPorOtro(n) && (
                                 <button
                                   onClick={() => openAtencionModal(n)}

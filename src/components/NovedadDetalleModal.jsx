@@ -8,6 +8,7 @@
  */
 
 import { useEffect, useState, useCallback } from "react";
+import { useAuthStore } from "../store/useAuthStore";
 import {
   X,
   FileText,
@@ -129,6 +130,8 @@ export default function NovedadDetalleModal({
   vehiculos = [],
   personalSeguridad = [],
 }) {
+  const user = useAuthStore((s) => s.user);
+
   const [novedad, setNovedad] = useState(initialNovedad);
   const [loading, setLoading] = useState(!initialNovedad);
   const [activeTab, setActiveTab] = useState(0);
@@ -470,10 +473,24 @@ export default function NovedadDetalleModal({
                       height="350px"
                       zoom={16}
                       showCoordinates={false}
-                      editable={true}
+                      editable={
+                        !novedad?.usuarioDespacho?.id ||
+                        novedad?.usuarioDespacho?.id === user?.id
+                      }
                       onCoordinatesChange={handleCoordinatesChange}
                     />
                   </div>
+
+                  {/* Aviso solo-lectura cuando fue despachado por otro usuario */}
+                  {novedad?.usuarioDespacho?.id && novedad?.usuarioDespacho?.id !== user?.id && (
+                    <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-700/50 dark:bg-amber-900/20 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+                      <MapPin size={13} className="shrink-0" />
+                      Ubicación de solo lectura — despachado por{" "}
+                      <span className="font-semibold">
+                        {novedad.usuarioDespacho?.username || "otro usuario"}
+                      </span>
+                    </div>
+                  )}
 
                   {/* Cards debajo del mapa */}
                   <div className="grid grid-cols-2 gap-4">
