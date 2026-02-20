@@ -107,7 +107,7 @@ export default function AppRouter() {
         <Route
           path="personal"
           element={
-            <ProtectedRoute allowedRoles={ROUTE_ACCESS.personal}>
+            <ProtectedRoute routeKey="personal">
               <PersonalPage />
             </ProtectedRoute>
           }

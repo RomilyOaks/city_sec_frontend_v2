@@ -8,17 +8,25 @@ import api from "./api";
 
 /**
  * Intenta autenticar con `username_or_email` y `password`.
- * Normaliza distintos formatos de respuesta y devuelve { token, usuario }.
+ * Normaliza distintos formatos de respuesta y devuelve { token, usuario, requirePasswordChange, userId }.
  * @param {{username_or_email:string, password:string}} params
- * @returns {Promise<{token:string|null, usuario:Object|null}>}
+ * @returns {Promise<{token:string|null, usuario:Object|null, requirePasswordChange:boolean, userId:number|null}>}
  */
 export async function login({ username_or_email, password }) {
   const res = await api.post("/auth/login", { username_or_email, password });
 
-  // Log de diagnóstico — ver estructura real de la respuesta del backend
-  console.log("[login] res.data completo:", JSON.stringify(res?.data, null, 2));
-
   const payload = res?.data?.data || res?.data || {};
+
+  // Flujo de cambio de contraseña obligatorio (primera vez o reset admin)
+  if (res?.data?.requirePasswordChange || payload?.requirePasswordChange) {
+    return {
+      token: null,
+      usuario: null,
+      requirePasswordChange: true,
+      userId: res?.data?.userId ?? payload?.userId ?? null,
+    };
+  }
+
   const token =
     payload?.token ||
     payload?.access_token ||
@@ -50,8 +58,9 @@ export async function login({ username_or_email, password }) {
     console.warn("[login] Token no encontrado. Estructura recibida:", res?.data);
   }
 
-  return { token, usuario };
+  return { token, usuario, requirePasswordChange: false, userId: null };
 }
+
 /**
  * Obtiene el usuario autenticado (endpoint /auth/me).
  * @returns {Promise<Object>} Payload con información del usuario.
@@ -86,12 +95,28 @@ export async function register({
   });
   return res?.data;
 }
+
 /**
  * Cambia la contraseña del usuario autenticado.
  * @param {{currentPassword:string,newPassword:string}} params
  * @returns {Promise<any>} Respuesta del endpoint
- */ export async function changePassword({ currentPassword, newPassword }) {
+ */
+export async function changePassword({ currentPassword, newPassword }) {
   const res = await api.post("/auth/change-password", {
+    currentPassword,
+    newPassword,
+  });
+  return res?.data;
+}
+
+/**
+ * Cambia la contraseña de forma obligatoria (flujo sin token, tras reset admin).
+ * @param {{userId:number, currentPassword:string, newPassword:string}} params
+ * @returns {Promise<any>} Respuesta del endpoint
+ */
+export async function setRequiredPassword({ userId, currentPassword, newPassword }) {
+  const res = await api.post("/auth/change-password-required", {
+    userId,
     currentPassword,
     newPassword,
   });
