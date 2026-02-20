@@ -35,6 +35,10 @@ export default function RadioTetraList({
   onDesasignar,
   onCambiarEstado,
   onCambioPagina,
+  canEdit = false,
+  canDelete = false,
+  canAsignar = false,
+  canCambiarEstado = false,
 }) {
   // Manejar cambio de página
   const handleCambioPagina = (pagina) => {
@@ -45,28 +49,29 @@ export default function RadioTetraList({
 
   // Renderizar estado del radio
   const renderEstado = (radio) => {
-    return (
-      <button
-        onClick={() => onCambiarEstado(radio)}
-        className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full ${
-          radio.estado
-            ? "bg-green-100 text-green-800 hover:bg-green-200"
-            : "bg-red-100 text-red-800 hover:bg-red-200"
-        }`}
-      >
-        {radio.estado ? (
-          <>
-            <ToggleRight size={12} />
-            Activo
-          </>
-        ) : (
-          <>
-            <ToggleLeft size={12} />
-            Inactivo
-          </>
-        )}
-      </button>
+    const baseClass = `inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full ${
+      radio.estado
+        ? "bg-green-100 text-green-800"
+        : "bg-red-100 text-red-800"
+    }`;
+    const content = radio.estado ? (
+      <><ToggleRight size={12} />Activo</>
+    ) : (
+      <><ToggleLeft size={12} />Inactivo</>
     );
+
+    if (canCambiarEstado) {
+      return (
+        <button
+          onClick={() => onCambiarEstado(radio)}
+          className={`${baseClass} hover:opacity-80 cursor-pointer`}
+          title="Cambiar estado"
+        >
+          {content}
+        </button>
+      );
+    }
+    return <span className={baseClass}>{content}</span>;
   };
 
   // Renderizar asignación
@@ -82,16 +87,20 @@ export default function RadioTetraList({
               {radio.personalAsignado?.doc_tipo}-{radio.personalAsignado?.doc_numero}
             </div>
           </div>
-          <button
-            onClick={() => onDesasignar(radio)}
-            className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-            title="Desasignar personal"
-          >
-            <UserMinus size={16} />
-          </button>
+          {canAsignar && (
+            <button
+              onClick={() => onDesasignar(radio)}
+              className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+              title="Desasignar personal"
+            >
+              <UserMinus size={16} />
+            </button>
+          )}
         </div>
       );
     }
+
+    if (!canAsignar) return null;
 
     return (
       <button
@@ -108,20 +117,24 @@ export default function RadioTetraList({
   const renderAcciones = (radio) => {
     return (
       <div className="flex items-center gap-2">
-        <button
-          onClick={() => onEditar(radio)}
-          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-          title="Editar radio"
-        >
-          <Edit2 size={16} />
-        </button>
-        <button
-          onClick={() => onEliminar(radio)}
-          className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-          title="Eliminar radio"
-        >
-          <Trash2 size={16} />
-        </button>
+        {canEdit && (
+          <button
+            onClick={() => onEditar(radio)}
+            className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+            title="Editar radio"
+          >
+            <Edit2 size={16} />
+          </button>
+        )}
+        {canDelete && (
+          <button
+            onClick={() => onEliminar(radio)}
+            className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+            title="Eliminar radio"
+          >
+            <Trash2 size={16} />
+          </button>
+        )}
       </div>
     );
   };
