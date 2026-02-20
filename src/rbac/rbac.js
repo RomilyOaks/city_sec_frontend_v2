@@ -132,6 +132,7 @@ export const ACTION_PERMISSIONS = {
   novedades_create: ["novedades.incidentes.create"],
   novedades_update: ["novedades.incidentes.update"],
   novedades_delete: ["novedades.incidentes.delete"],
+  novedades_atender: ["novedades.incidentes.atender"],
 
   // Calles
   calles_create: ["calles.calles.create"],
