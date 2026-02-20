@@ -341,6 +341,8 @@ export default function NovedadesPage() {
   const canCreate = canPerformAction(user, "novedades_create");
   const canEdit = canPerformAction(user, "novedades_update");
   const canDelete = canPerformAction(user, "novedades_delete");
+  // Atender (Shield): permiso exclusivo de supervisor/super_admin
+  const canAtender = canPerformAction(user, "novedades_atender");
 
   // Devuelve true si la novedad fue despachada por otro usuario distinto al logueado
   const esDespachadoPorOtro = (n) => {
@@ -2417,7 +2419,7 @@ export default function NovedadesPage() {
                                   <Truck size={14} />
                                 </button>
                               )}
-                              {canEdit && !n.deleted_at && !esDespachadoPorOtro(n) && (
+                              {canAtender && !n.deleted_at && !esDespachadoPorOtro(n) && (
                                 <button
                                   onClick={() => openAtencionModal(n)}
                                   className="p-1.5 rounded-lg text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
