@@ -85,7 +85,7 @@ export const ROUTE_PERMISSIONS = {
   admin_roles: ["usuarios.roles.read"],
   personal: ["personal.personal.read"],
   vehiculos: ["vehiculos.vehiculos.read"],
-  novedades: ["novedades.incidentes.read"],
+  novedades: ["novedades.incidentes.read", "novedades.novedades.read", "catalogos.tipos_novedad.read", "catalogos.subtipos_novedad.read"],
   calles: ["calles.calles.read"],
   calles_tipos_via: ["calles.tipos.via.read"],
   calles_sectores_cuadrantes: ["calles.sectores.read", "calles.cuadrantes.read"],
@@ -203,7 +203,9 @@ export function getUserRoleSlugs(user) {
 }
 
 export function getUserPermisos(user) {
-  return user?.permisos || [];
+  const permisos = user?.permisos || [];
+  // Extraer los slug de los objetos de permisos
+  return permisos.map(p => p?.slug || p).filter(Boolean);
 }
 
 export function isSuperAdmin(user) {

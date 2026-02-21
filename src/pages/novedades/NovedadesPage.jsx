@@ -539,14 +539,14 @@ export default function NovedadesPage() {
       return;
     }
 
-    setLoading(true);
     try {
       const payload = {
         page: nextPage,
         limit: 15,
-        tipo_novedad_id: filterTipo || undefined,
-        estado_novedad_id: filterEstado || undefined,
-        prioridad_actual: filterPrioridad || undefined,
+        estado_novedad_id: filterEstado,
+        tipo_novedad_id: filterTipo,
+        prioridad_actual: filterPrioridad,
+        // sector_id: filterSector, // TODO: Agregar variable filterSector al estado si se necesita
         origen_llamada: filterOrigenLlamada || undefined,
         search: search || undefined,
         sort: "prioridad_actual,novedad_code",
@@ -567,9 +567,17 @@ export default function NovedadesPage() {
     } catch (err) {
       const msg = err?.response?.data?.message || "Error al cargar novedades";
       if (!permissionErrorShown) {
-        toast.error(msg);
+        setPermissionErrorShown(true);
         if (err?.response?.status === 403) {
-          setPermissionErrorShown(true);
+          const requiredRoles = err?.response?.data?.requiredRoles;
+          const userRoleSlugs = err?.response?.data?.userRoleSlugs;
+          
+          toast.error(
+            `Acceso denegado: Se requieren roles ${requiredRoles?.join(', ')} para acceder a las novedades. Tu rol actual: ${userRoleSlugs?.join(', ')}`,
+            { autoClose: 8000 }
+          );
+        } else {
+          toast.error(msg);
         }
       }
     } finally {
@@ -2008,37 +2016,6 @@ export default function NovedadesPage() {
     } catch (err) {
       console.error("Error cargando detalles de novedad:", err);
       toast.error("Error al cargar detalles de la novedad");
-    }
-  };
-
-  /**
-   * openViewingModalFromTruck
-   * - Abre el modal de visualización desde el botón Truck
-   * - Siempre carga datos actualizados desde el backend
-   */
-  const openViewingModalFromTruck = async (novedad) => {
-    setViewingFromTruck(true); // Abierto desde Truck - DEBE SER ANTES
-    setViewingNovedad(novedad); // Mostrar datos básicos inmediatamente
-    
-    // Cargar catálogos si no están disponibles
-    if (
-      unidadesOficina.length === 0 ||
-      vehiculos.length === 0 ||
-      personalSeguridad.length === 0
-    ) {
-      await fetchCatalogosAtencion();
-    }
-    
-    try {
-      const [novedadCompleta] = await Promise.all([
-        getNovedadById(novedad.id),
-        getHistorialEstados(novedad.id),
-      ]);
-      if (novedadCompleta) {
-        setViewingNovedad(novedadCompleta);
-      }
-    } catch (err) {
-      console.error("Error cargando detalles de novedad:", err);
     }
   };
 

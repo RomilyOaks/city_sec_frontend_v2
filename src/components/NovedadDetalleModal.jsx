@@ -9,6 +9,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useAuthStore } from "../store/useAuthStore";
+import { canPerformAction } from "../rbac/rbac.js";
 import {
   X,
   FileText,
@@ -131,6 +132,7 @@ export default function NovedadDetalleModal({
   personalSeguridad = [],
 }) {
   const user = useAuthStore((s) => s.user);
+  const canEditLocation = canPerformAction(user, "novedades_update");
 
   const [novedad, setNovedad] = useState(initialNovedad);
   const [loading, setLoading] = useState(!initialNovedad);
@@ -474,8 +476,9 @@ export default function NovedadDetalleModal({
                       zoom={16}
                       showCoordinates={false}
                       editable={
-                        !novedad?.usuarioDespacho?.id ||
-                        novedad?.usuarioDespacho?.id === user?.id
+                        canEditLocation &&
+                        (!novedad?.usuarioDespacho?.id ||
+                        novedad?.usuarioDespacho?.id === user?.id)
                       }
                       onCoordinatesChange={handleCoordinatesChange}
                     />
@@ -489,6 +492,14 @@ export default function NovedadDetalleModal({
                       <span className="font-semibold">
                         {novedad.usuarioDespacho?.username || "otro usuario"}
                       </span>
+                    </div>
+                  )}
+
+                  {/* Aviso para usuarios de consulta sin permisos de edición */}
+                  {!canEditLocation && (
+                    <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-700/50 dark:bg-slate-800/20 px-3 py-2 text-xs text-slate-600 dark:text-slate-400">
+                      <MapPin size={13} className="shrink-0" />
+                      Ubicación de solo lectura — tu rol de consulta no permite editar ubicaciones
                     </div>
                   )}
 

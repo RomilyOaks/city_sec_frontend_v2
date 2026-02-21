@@ -43,7 +43,7 @@ import {
 import ThemeToggle from "../components/common/ThemeToggle.jsx";
 import ChangePasswordModal from "../components/ChangePasswordModal.jsx";
 import { useAuthStore } from "../store/useAuthStore.js";
-import { canAccessRoute } from "../rbac/rbac.js";
+import { canAccessRoute, ROUTE_PERMISSIONS } from "../rbac/rbac.js";
 import { APP_VERSION } from "../config/version.js";
 
 /**

@@ -24,10 +24,10 @@ const api = axios.create({
 });
 /**
  * Request interceptor
- * - Injects Authorization header from the auth store when a token is present
- * @param {import('axios').AxiosRequestConfig} config
- * @returns {import('axios').AxiosRequestConfig}
- */ api.interceptors.request.use((config) => {
+ * - Injects auth token into all outgoing requests
+ * @param {import('axios').InternalAxiosRequestConfig} config
+ */
+api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().token;
   if (token) {
     config.headers = config.headers || {};
@@ -46,6 +46,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error?.response?.status;
+    
     if (status === 401) {
       useAuthStore.getState().logout();
     }

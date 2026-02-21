@@ -7,7 +7,7 @@ import toast from "react-hot-toast";
 import { Eye, EyeOff, Lock } from "lucide-react";
 
 import ThemeToggle from "../../components/common/ThemeToggle.jsx";
-import { login as loginRequest, setRequiredPassword } from "../../services/authService.js";
+import { login as loginRequest, setRequiredPassword, getMe } from "../../services/authService.js";
 import { useAuthStore } from "../../store/useAuthStore.js";
 import { API_URL } from "../../config/constants.js";
 import { APP_VERSION, APP_NAME } from "../../config/version.js";
@@ -141,8 +141,49 @@ export default function LoginPage() {
       if (!token) {
         throw new Error("No se recibió token desde el servidor");
       }
+      
+      // Establecer token primero
       setAuth(token, usuario || null);
-      toast.success("Bienvenido");
+      
+      // Obtener datos completos del usuario incluyendo roles y permisos
+      try {
+        const completeUserData = await getMe();
+        setAuth(token, completeUserData);
+        
+        // Mostrar mensaje de bienvenida con nombre completo
+        const nombreCompleto = completeUserData?.nombres && completeUserData?.apellidos 
+          ? `${completeUserData.nombres} ${completeUserData.apellidos}`
+          : completeUserData?.username || 'Usuario';
+        
+        toast.success(`¡Bienvenido(a), ${nombreCompleto}!`);
+      } catch (meError) {
+        console.error('Error obteniendo datos completos del usuario:', meError);
+        
+        // Si falla getMe(), crear usuario con roles básicos para que pueda navegar
+        const fallbackUser = {
+          ...usuario,
+          roles: [{ slug: 'consulta', name: 'Consulta' }],
+          permisos: [
+            'novedades.incidentes.read',
+            'novedades.novedades.read',
+            'catalogos.tipos_novedad.read',
+            'catalogos.subtipos_novedad.read',
+            'personal.personal.read',
+            'auditoria.estadisticas.read',
+            'calles.calles.read',
+            'calles.calles_cuadrantes.read'
+          ]
+        };
+        
+                setAuth(token, fallbackUser);
+        
+        const nombreUsuario = usuario?.username || 'Usuario';
+        toast.success(`¡Bienvenido(a), ${nombreUsuario}!`);
+        
+        if (meError?.response?.status === 500) {
+          console.warn('⚠️ El endpoint /auth/me tiene problemas en el backend. Usando rol de consulta por defecto.');
+        }
+      }
 
       const from = location.state?.from;
       navigate(from || "/dashboard", { replace: true });
@@ -178,19 +219,73 @@ export default function LoginPage() {
         password: form.newPassword,
       });
 
-      if (requirePasswordChange || !token) {
-        // En caso extremo volver al login normal
-        setRequireChangeData(null);
-        toast("Por favor inicie sesión con su nueva contraseña");
-        return;
+      if (requirePasswordChange) {
+        // Si sigue requiriendo cambio, algo salió mal
+        throw new Error("La contraseña no cumple los requisitos");
       }
 
+      if (!token) {
+        throw new Error("No se recibió token después de cambiar contraseña");
+      }
+
+      // Establecer token primero
       setAuth(token, usuario || null);
+      
+      // Obtener datos completos del usuario incluyendo roles y permisos
+      try {
+        const completeUserData = await getMe();
+        setAuth(token, completeUserData);
+        
+        // Mostrar mensaje de bienvenida con nombre completo
+        const nombreCompleto = completeUserData?.nombres && completeUserData?.apellidos 
+          ? `${completeUserData.nombres} ${completeUserData.apellidos}`
+          : completeUserData?.username || 'Usuario';
+        
+        toast.success(`¡Bienvenido(a), ${nombreCompleto}!`);
+      } catch (meError) {
+        console.error('Error obteniendo datos completos del usuario:', meError);
+        
+        // Si falla getMe(), crear usuario con roles básicos para que pueda navegar
+        const fallbackUser = {
+          ...usuario,
+          roles: [{ slug: 'consulta', name: 'Consulta' }],
+          permisos: [
+            'novedades.incidentes.read',
+            'novedades.novedades.read',
+            'catalogos.tipos_novedad.read',
+            'catalogos.subtipos_novedad.read',
+            'personal.personal.read',
+            'auditoria.estadisticas.read',
+            'calles.calles.read',
+            'calles.calles_cuadrantes.read'
+          ]
+        };
+        
+                setAuth(token, fallbackUser);
+        
+        const nombreUsuario = usuario?.username || 'Usuario';
+        toast.success(`¡Bienvenido(a), ${nombreUsuario}!`);
+        
+        if (meError?.response?.status === 500) {
+          console.warn('⚠️ El endpoint /auth/me tiene problemas en el backend. Usando rol de consulta por defecto.');
+        }
+      }
+
       const from = location.state?.from;
       navigate(from || "/dashboard", { replace: true });
     } catch (err) {
+      const status = err?.response?.status;
       const backendMsg = err?.response?.data?.message;
-      toast.error(backendMsg || err?.message || "Error al cambiar la contraseña");
+      const isNetwork =
+        !status && (err?.message === "Network Error" || err?.code);
+
+      if (isNetwork) {
+        toast.error(
+          `No se pudo conectar a la API (${API_URL}). Revisa .env.local / CORS / URL.`
+        );
+      } else {
+        toast.error(backendMsg || err?.message || "Error al cambiar contraseña");
+      }
     }
   };
 

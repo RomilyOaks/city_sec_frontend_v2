@@ -23,33 +23,35 @@ import api from "./api";
  * @param {string} [options.search]
  * @returns {Promise<{novedades:Array,pagination:Object|null}>}
  */
-export async function listNovedades({
-  page = 1,
-  limit = 20,
-  estado_novedad_id,
-  tipo_novedad_id,
-  prioridad_actual,
-  origen_llamada,
-  sector_id,
-  fecha_inicio,
-  fecha_fin,
-  search,
-  sort,
-  order,
-} = {}) {
+export async function listNovedades(options = {}) {
+  const {
+    page = 1,
+    limit = 20,
+    estado_novedad_id,
+    tipo_novedad_id,
+    prioridad_actual,
+    sector_id,
+    origen_llamada,
+    search,
+    sort = "novedad_code",
+    order = "desc",
+    fecha_inicio,
+    fecha_fin,
+  } = options;
+
   const params = new URLSearchParams();
   params.append("page", page);
   params.append("limit", limit);
   if (estado_novedad_id) params.append("estado_novedad_id", estado_novedad_id);
   if (tipo_novedad_id) params.append("tipo_novedad_id", tipo_novedad_id);
   if (prioridad_actual) params.append("prioridad_actual", prioridad_actual);
-  if (origen_llamada) params.append("origen_llamada", origen_llamada);
   if (sector_id) params.append("sector_id", sector_id);
-  if (fecha_inicio) params.append("fecha_inicio", fecha_inicio);
-  if (fecha_fin) params.append("fecha_fin", fecha_fin);
+  if (origen_llamada) params.append("origen_llamada", origen_llamada);
   if (search) params.append("search", search);
   if (sort) params.append("sort", sort);
   if (order) params.append("order", order);
+  if (fecha_inicio) params.append("fecha_inicio", fecha_inicio);
+  if (fecha_fin) params.append("fecha_fin", fecha_fin);
 
   const res = await api.get(`/novedades?${params.toString()}`);
   const payload = res?.data || {};
