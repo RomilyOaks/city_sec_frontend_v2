@@ -22,6 +22,7 @@ import {
   User,
   Mail,
   Clock,
+  Search,
 } from "lucide-react";
 import {
   listRoles,
@@ -52,6 +53,7 @@ export default function RolesPermisosPage() {
   const [hasChanges, setHasChanges] = useState(false);
   const [showUsuariosModal, setShowUsuariosModal] = useState(false);
   const [usuariosRol, setUsuariosRol] = useState(null);
+  const [searchPermisos, setSearchPermisos] = useState("");
 
   // Evita setState en componentes desmontados (protección para operaciones asíncronas)
   const isMountedRef = useRef(true);
@@ -73,7 +75,7 @@ export default function RolesPermisosPage() {
     {
       queryKey: ["permisos-agrupados"],
       queryFn: getPermisosAgrupados,
-    }
+    },
   );
 
   // Query: Permisos del rol seleccionado
@@ -180,7 +182,7 @@ export default function RolesPermisosPage() {
 
     const idsGrupo = grupo.permisos.map((p) => p.id);
     const todosSeleccionados = idsGrupo.every((id) =>
-      permisosSeleccionados.includes(id)
+      permisosSeleccionados.includes(id),
     );
 
     setPermisosSeleccionados((prev) => {
@@ -329,7 +331,7 @@ export default function RolesPermisosPage() {
                   >
                     <div className="flex items-center gap-3">
                       <div
-                        className="w-3 h-3 rounded-full"
+                        className="w-3 h-3 rounded-full shrink-0"
                         style={{ backgroundColor: getRolColor(rol) }}
                       />
                       <div>
@@ -345,6 +347,15 @@ export default function RolesPermisosPage() {
                           Sistema
                         </span>
                       )}
+                      {rol.nivel_jerarquia !== undefined &&
+                        rol.nivel_jerarquia !== null && (
+                          <span
+                            className="px-1.5 py-0.5 text-xs font-mono font-semibold bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 rounded"
+                            title="Nivel de jerarquía"
+                          >
+                            N{rol.nivel_jerarquia}
+                          </span>
+                        )}
                     </div>
                     <div className="flex items-center gap-1">
                       <button
@@ -437,86 +448,118 @@ export default function RolesPermisosPage() {
                   <Loader2 className="h-8 w-8 animate-spin mx-auto text-gray-400" />
                 </div>
               ) : (
-                <div className="space-y-4 max-h-[600px] overflow-y-auto">
-                  {Object.entries(permisosAgrupados).map(([key, grupo]) => {
-                    const { modulo, recurso, permisos } = grupo;
-                    const idsGrupo = permisos.map((p) => p.id);
-                    const seleccionadosGrupo = idsGrupo.filter((id) =>
-                      permisosSeleccionados.includes(id)
-                    );
-                    const todosSeleccionados =
-                      seleccionadosGrupo.length === idsGrupo.length;
-                    const algunosSeleccionados =
-                      seleccionadosGrupo.length > 0 && !todosSeleccionados;
-
-                    return (
-                      <div
-                        key={key}
-                        className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
+                <>
+                  {/* Filtro de búsqueda de módulos */}
+                  <div className="relative mb-4">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <input
+                      type="text"
+                      value={searchPermisos}
+                      onChange={(e) => setSearchPermisos(e.target.value)}
+                      placeholder="Buscar módulo o recurso..."
+                      className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    />
+                    {searchPermisos && (
+                      <button
+                        onClick={() => setSearchPermisos("")}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                       >
-                        {/* Header del grupo */}
-                        <div
-                          onClick={() => toggleModulo(key)}
-                          className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-                                todosSeleccionados
-                                  ? "bg-indigo-600 border-indigo-600"
-                                  : algunosSeleccionados
-                                  ? "bg-indigo-300 border-indigo-300"
-                                  : "border-gray-300 dark:border-gray-600"
-                              }`}
-                            >
-                              {(todosSeleccionados || algunosSeleccionados) && (
-                                <Check className="h-3 w-3 text-white" />
-                              )}
-                            </div>
-                            <span className="font-medium text-gray-900 dark:text-white capitalize">
-                              {modulo}
-                            </span>
-                            <span className="text-xs px-2 py-0.5 bg-gray-200 dark:bg-gray-600 rounded text-gray-600 dark:text-gray-300">
-                              {recurso}
-                            </span>
-                            <span className="text-xs text-gray-500 dark:text-gray-400">
-                              ({seleccionadosGrupo.length}/{idsGrupo.length})
-                            </span>
-                          </div>
-                        </div>
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                  <div className="space-y-4 max-h-[560px] overflow-y-auto">
+                    {Object.entries(permisosAgrupados)
+                      .filter(([key, grupo]) => {
+                        if (!searchPermisos) return true;
+                        const q = searchPermisos.toLowerCase();
+                        return (
+                          grupo.modulo.toLowerCase().includes(q) ||
+                          grupo.recurso.toLowerCase().includes(q) ||
+                          key.toLowerCase().includes(q)
+                        );
+                      })
+                      .map(([key, grupo]) => {
+                        const { modulo, recurso, permisos } = grupo;
+                        const idsGrupo = permisos.map((p) => p.id);
+                        const seleccionadosGrupo = idsGrupo.filter((id) =>
+                          permisosSeleccionados.includes(id),
+                        );
+                        const todosSeleccionados =
+                          seleccionadosGrupo.length === idsGrupo.length;
+                        const algunosSeleccionados =
+                          seleccionadosGrupo.length > 0 && !todosSeleccionados;
 
-                        {/* Permisos del grupo */}
-                        <div className="p-3 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                          {permisos.map((permiso) => {
-                            const isSelected = permisosSeleccionados.includes(
-                              permiso.id
-                            );
-                            return (
-                              <label
-                                key={permiso.id}
-                                className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${
-                                  isSelected
-                                    ? "bg-indigo-50 dark:bg-indigo-900/20"
-                                    : "hover:bg-gray-50 dark:hover:bg-gray-700/30"
-                                }`}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={isSelected}
-                                  onChange={() => togglePermiso(permiso.id)}
-                                  className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
-                                />
-                                <span className="text-sm text-gray-700 dark:text-gray-300">
-                                  {permiso.accion}
+                        return (
+                          <div
+                            key={key}
+                            className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
+                          >
+                            {/* Header del grupo */}
+                            <div
+                              onClick={() => toggleModulo(key)}
+                              className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div
+                                  className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                                    todosSeleccionados
+                                      ? "bg-indigo-600 border-indigo-600"
+                                      : algunosSeleccionados
+                                        ? "bg-indigo-300 border-indigo-300"
+                                        : "border-gray-300 dark:border-gray-600"
+                                  }`}
+                                >
+                                  {(todosSeleccionados ||
+                                    algunosSeleccionados) && (
+                                    <Check className="h-3 w-3 text-white" />
+                                  )}
+                                </div>
+                                <span className="font-medium text-gray-900 dark:text-white capitalize">
+                                  {modulo}
                                 </span>
-                              </label>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                                <span className="text-xs px-2 py-0.5 bg-gray-200 dark:bg-gray-600 rounded text-gray-600 dark:text-gray-300">
+                                  {recurso}
+                                </span>
+                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                  ({seleccionadosGrupo.length}/{idsGrupo.length}
+                                  )
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Permisos del grupo */}
+                            <div className="p-3 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                              {permisos.map((permiso) => {
+                                const isSelected =
+                                  permisosSeleccionados.includes(permiso.id);
+                                return (
+                                  <label
+                                    key={permiso.id}
+                                    className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${
+                                      isSelected
+                                        ? "bg-indigo-50 dark:bg-indigo-900/20"
+                                        : "hover:bg-gray-50 dark:hover:bg-gray-700/30"
+                                    }`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={isSelected}
+                                      onChange={() => togglePermiso(permiso.id)}
+                                      className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                                    />
+                                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                                      {permiso.accion}
+                                    </span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </>
               )}
             </div>
           </div>
