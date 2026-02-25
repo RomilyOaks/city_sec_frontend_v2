@@ -24,7 +24,6 @@ import AppShell from "../layouts/AppShell.jsx";
 import PersonalPage from "../pages/personal/PersonalPage.jsx";
 import VehiculosPage from "../pages/vehiculos/VehiculosPage.jsx";
 import NovedadesPage from "../pages/novedades/NovedadesPage.jsx";
-import { ROUTE_ACCESS } from "../rbac/rbac.js";
 import AdminUsuariosPage from "../pages/admin/AdminUsuariosPage.jsx";
 import RolesPermisosPage from "../pages/admin/RolesPermisosPage.jsx";
 
@@ -89,7 +88,7 @@ export default function AppRouter() {
         <Route
           path="admin/usuarios"
           element={
-            <ProtectedRoute allowedRoles={ROUTE_ACCESS.admin_usuarios}>
+            <ProtectedRoute routeKey="admin_usuarios">
               <AdminUsuariosPage />
             </ProtectedRoute>
           }
@@ -97,7 +96,7 @@ export default function AppRouter() {
         <Route
           path="admin/roles"
           element={
-            <ProtectedRoute allowedRoles={ROUTE_ACCESS.admin_roles}>
+            <ProtectedRoute routeKey="admin_roles">
               <RolesPermisosPage />
             </ProtectedRoute>
           }
@@ -115,7 +114,7 @@ export default function AppRouter() {
         <Route
           path="vehiculos"
           element={
-            <ProtectedRoute allowedRoles={ROUTE_ACCESS.vehiculos}>
+            <ProtectedRoute routeKey="vehiculos">
               <VehiculosPage />
             </ProtectedRoute>
           }
@@ -123,7 +122,7 @@ export default function AppRouter() {
         <Route
           path="novedades"
           element={
-            <ProtectedRoute allowedRoles={ROUTE_ACCESS.novedades}>
+            <ProtectedRoute routeKey="novedades">
               <NovedadesPage />
             </ProtectedRoute>
           }
@@ -135,7 +134,7 @@ export default function AppRouter() {
         <Route
           path="operativos/turnos"
           element={
-            <ProtectedRoute allowedRoles={ROUTE_ACCESS.operativos_turnos}>
+            <ProtectedRoute routeKey="operativos_turnos">
               <OperativosTurnoPage />
             </ProtectedRoute>
           }
@@ -143,7 +142,7 @@ export default function AppRouter() {
         <Route
           path="operativos/turnos/:turnoId/vehiculos"
           element={
-            <ProtectedRoute allowedRoles={ROUTE_ACCESS.operativos_turnos}>
+            <ProtectedRoute routeKey="operativos_turnos">
               <OperativosVehiculosPage />
             </ProtectedRoute>
           }
@@ -151,7 +150,7 @@ export default function AppRouter() {
         <Route
           path="operativos/turnos/:turnoId/vehiculos/:vehiculoId/cuadrantes"
           element={
-            <ProtectedRoute allowedRoles={ROUTE_ACCESS.operativos_turnos}>
+            <ProtectedRoute routeKey="operativos_turnos">
               <CuadrantesPorVehiculo />
             </ProtectedRoute>
           }
@@ -159,7 +158,7 @@ export default function AppRouter() {
         <Route
           path="operativos/turnos/:turnoId/vehiculos/:vehiculoId/cuadrantes/:cuadranteId/novedades"
           element={
-            <ProtectedRoute allowedRoles={ROUTE_ACCESS.operativos_turnos}>
+            <ProtectedRoute routeKey="operativos_turnos">
               <NovedadesPorCuadrante />
             </ProtectedRoute>
           }
@@ -167,7 +166,7 @@ export default function AppRouter() {
         <Route
           path="operativos/reportes"
           element={
-            <ProtectedRoute allowedRoles={ROUTE_ACCESS.operativos_turnos}>
+            <ProtectedRoute routeKey="operativos_turnos">
               <ReportesOperativosPage />
             </ProtectedRoute>
           }
@@ -179,7 +178,7 @@ export default function AppRouter() {
         <Route
           path="calles"
           element={
-            <ProtectedRoute allowedRoles={ROUTE_ACCESS.calles}>
+            <ProtectedRoute routeKey="calles">
               <CallesPage />
             </ProtectedRoute>
           }
@@ -187,7 +186,7 @@ export default function AppRouter() {
         <Route
           path="calles/tipos-via"
           element={
-            <ProtectedRoute allowedRoles={ROUTE_ACCESS.calles_tipos_via}>
+            <ProtectedRoute routeKey="calles_tipos_via">
               <TiposViaPage />
             </ProtectedRoute>
           }
@@ -195,7 +194,7 @@ export default function AppRouter() {
         <Route
           path="calles/sectores-cuadrantes"
           element={
-            <ProtectedRoute allowedRoles={ROUTE_ACCESS.calles_sectores_cuadrantes}>
+            <ProtectedRoute routeKey="calles_sectores_cuadrantes">
               <SectoresCuadrantesPage />
             </ProtectedRoute>
           }
@@ -203,7 +202,7 @@ export default function AppRouter() {
         <Route
           path="calles/calles-cuadrantes"
           element={
-            <ProtectedRoute allowedRoles={ROUTE_ACCESS.calles_calles_cuadrantes}>
+            <ProtectedRoute routeKey="calles_calles_cuadrantes">
               <CallesCuadrantesPage />
             </ProtectedRoute>
           }
@@ -211,7 +210,7 @@ export default function AppRouter() {
         <Route
           path="calles/direcciones"
           element={
-            <ProtectedRoute allowedRoles={ROUTE_ACCESS.calles_direcciones}>
+            <ProtectedRoute routeKey="calles_direcciones">
               <DireccionesPage />
             </ProtectedRoute>
           }
@@ -219,7 +218,7 @@ export default function AppRouter() {
         <Route
           path="calles/direcciones-eliminadas"
           element={
-            <ProtectedRoute allowedRoles={ROUTE_ACCESS.calles_direcciones}>
+            <ProtectedRoute routeKey="calles_direcciones">
               <DireccionesEliminadasPage />
             </ProtectedRoute>
           }
