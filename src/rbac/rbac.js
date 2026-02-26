@@ -20,6 +20,7 @@ export const ROUTE_ACCESS = {
   dashboard: Object.values(ROLE_SLUGS),
   admin_usuarios: [ROLE_SLUGS.SUPER_ADMIN, ROLE_SLUGS.ADMIN],
   admin_roles: [ROLE_SLUGS.SUPER_ADMIN, ROLE_SLUGS.ADMIN],
+  admin_permisos: [ROLE_SLUGS.SUPER_ADMIN, ROLE_SLUGS.ADMIN],
   personal: [ROLE_SLUGS.SUPER_ADMIN, ROLE_SLUGS.ADMIN],
   vehiculos: [
     ROLE_SLUGS.SUPER_ADMIN,
@@ -83,6 +84,7 @@ export const ROUTE_ACCESS = {
 export const ROUTE_PERMISSIONS = {
   admin_usuarios: ["usuarios.usuarios.read"],
   admin_roles: ["usuarios.roles.read"],
+  admin_permisos: ["usuarios.permisos.read"],
   personal: ["personal.personal.read"],
   vehiculos: ["vehiculos.vehiculos.read"],
   novedades: ["novedades.incidentes.read", "novedades.novedades.read", "catalogos.tipos_novedad.read", "catalogos.subtipos_novedad.read"],

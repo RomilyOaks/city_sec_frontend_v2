@@ -1,7 +1,7 @@
 /**
  * File: c:\Project\city_sec_frontend_v2\src\services\permisosService.js
- * @version 2.0.0
- * @description Helpers para consultar y manipular permisos: listado, agrupación y asignaciones por rol.
+ * @version 3.0.0
+ * @description CRUD completo de permisos con endpoints del backend
  */
 
 import api from "./api";
@@ -11,16 +11,78 @@ import api from "./api";
  */
 export async function listPermisos({
   page = 1,
-  limit = 100,
+  limit = 50,
   search = "",
+  modulo = "",
+  recurso = "",
+  activos = "true",
 } = {}) {
   const params = new URLSearchParams();
   params.append("page", page);
   params.append("limit", limit);
   if (search) params.append("search", search);
+  if (modulo) params.append("modulo", modulo);
+  if (recurso) params.append("recurso", recurso);
+  if (activos) params.append("activos", activos);
 
   const res = await api.get(`/permisos?${params.toString()}`);
   return res?.data?.data || res?.data || { permisos: [], pagination: null };
+}
+
+/**
+ * Obtener permiso por ID
+ */
+export async function getPermisoById(id) {
+  const res = await api.get(`/permisos/${id}`);
+  return res?.data?.data || res?.data;
+}
+
+/**
+ * Obtener permiso por slug
+ */
+export async function getPermisoBySlug(slug) {
+  const res = await api.get(`/permisos/slug/${slug}`);
+  return res?.data?.data || res?.data;
+}
+
+/**
+ * Listar permisos por módulo
+ */
+export async function getPermisosByModulo(modulo) {
+  const res = await api.get(`/permisos/modulo/${modulo}`);
+  return res?.data?.data || res?.data || { permisos: [], total: 0 };
+}
+
+/**
+ * Crear nuevo permiso
+ */
+export async function createPermiso(data) {
+  const res = await api.post("/permisos", data);
+  return res?.data;
+}
+
+/**
+ * Actualizar permiso (solo descripción)
+ */
+export async function updatePermiso(id, data) {
+  const res = await api.put(`/permisos/${id}`, data);
+  return res?.data;
+}
+
+/**
+ * Cambiar estado de permiso
+ */
+export async function cambiarEstadoPermiso(id, estado) {
+  const res = await api.patch(`/permisos/${id}/estado`, { estado });
+  return res?.data;
+}
+
+/**
+ * Eliminar permiso (permanente)
+ */
+export async function deletePermiso(id) {
+  const res = await api.delete(`/permisos/${id}`);
+  return res?.data;
 }
 
 /**

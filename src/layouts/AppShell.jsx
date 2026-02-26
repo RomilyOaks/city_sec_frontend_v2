@@ -303,16 +303,21 @@ export default function AppShell() {
                 CONTROL DE ACCESOS - MENÚ DESPLEGABLE
                 Solo visible si el usuario tiene acceso a alguna sub-ruta
                 ============================================ */}
-            {(canAccess("admin_usuarios") || canAccess("admin_roles")) && (
+            {(canAccess("admin_usuarios") || canAccess("admin_roles") || canAccess("admin_permisos")) && (
               <SidebarDropdown icon={Lock} label="Control de Accesos">
-                {canAccess("admin_usuarios") && (
-                  <SidebarLink to="/admin/usuarios" icon={User}>
-                    Usuarios
+                {canAccess("admin_permisos") && (
+                  <SidebarLink to="/admin/permisos" icon={Shield}>
+                    Permisos
                   </SidebarLink>
                 )}
                 {canAccess("admin_roles") && (
                   <SidebarLink to="/admin/roles" icon={Shield}>
                     Roles y Permisos
+                  </SidebarLink>
+                )}
+                {canAccess("admin_usuarios") && (
+                  <SidebarLink to="/admin/usuarios" icon={User}>
+                    Usuarios
                   </SidebarLink>
                 )}
               </SidebarDropdown>
