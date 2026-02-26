@@ -57,6 +57,7 @@ export default function AsignarCuadranteForm({
     hora_ingreso: formatDateTime(new Date()),
     hora_salida: "",
     observaciones: "",
+    incidentes_reportados: "",
   });
   
   const [cuadrantesDisponibles, setCuadrantesDisponibles] = useState([]);
@@ -181,6 +182,7 @@ export default function AsignarCuadranteForm({
         hora_ingreso: toUTCDateTime(formData.hora_ingreso),
         hora_salida: toUTCDateTime(formData.hora_salida),
         observaciones: formData.observaciones && formData.observaciones.trim() !== "" ? formData.observaciones : null,
+        incidentes_reportados: formData.incidentes_reportados && formData.incidentes_reportados.trim() !== "" ? formData.incidentes_reportados : null,
       };
       
       // Llamada real al API
@@ -374,6 +376,38 @@ export default function AsignarCuadranteForm({
             <p className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
               <AlertTriangle size={12} />
               {errors.observaciones}
+            </p>
+          )}
+        </div>
+
+        {/* Incidentes Reportados */}
+        <div>
+          <label 
+            htmlFor="incidentes_reportados"
+            className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2"
+          >
+            Incidentes Reportados
+            <span className="ml-2 text-xs text-slate-500 dark:text-slate-400">
+              (Sin límite de caracteres)
+            </span>
+          </label>
+          <textarea
+            id="incidentes_reportados"
+            name="incidentes_reportados"
+            value={formData.incidentes_reportados}
+            onChange={handleInputChange}
+            rows={4}
+            placeholder="Describir incidentes ocurridos durante el turno..."
+            className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none ${
+              errors.incidentes_reportados
+                ? "border-red-300 dark:border-red-600"
+                : "border-slate-300 dark:border-slate-700"
+            }`}
+          />
+          {errors.incidentes_reportados && (
+            <p className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
+              <AlertTriangle size={12} />
+              {errors.incidentes_reportados}
             </p>
           )}
         </div>

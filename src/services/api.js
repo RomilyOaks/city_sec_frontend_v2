@@ -43,10 +43,11 @@ api.interceptors.request.use((config) => {
  * @param {any} error
  */
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    return response;
+  },
   (error) => {
     const status = error?.response?.status;
-    
     if (status === 401) {
       useAuthStore.getState().logout();
     }

@@ -64,11 +64,13 @@ export default function EditarCuadranteForm({
   // Inicializar formulario con datos del cuadrante
   useEffect(() => {
     if (cuadrante) {
-      setFormData({
+      const initialData = {
         hora_salida: formatDateTimeForInput(cuadrante.hora_salida),
         observaciones: cuadrante.observaciones || "",
         incidentes_reportados: cuadrante.incidentes_reportados || "",
-      });
+      };
+      
+      setFormData(initialData);
     }
   }, [cuadrante]);
 
@@ -94,6 +96,7 @@ export default function EditarCuadranteForm({
       ...prev,
       [name]: value,
     }));
+    
     // Limpiar error del campo
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: null }));

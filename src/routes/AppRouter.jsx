@@ -26,6 +26,7 @@ import VehiculosPage from "../pages/vehiculos/VehiculosPage.jsx";
 import NovedadesPage from "../pages/novedades/NovedadesPage.jsx";
 import AdminUsuariosPage from "../pages/admin/AdminUsuariosPage.jsx";
 import RolesPermisosPage from "../pages/admin/RolesPermisosPage.jsx";
+import PermisosPage from "../pages/admin/PermisosPage.jsx";
 
 // ============================================
 // IMPORTAR PÁGINAS DEL MÓDULO CALLES
@@ -85,6 +86,14 @@ export default function AppRouter() {
         <Route path="dashboard" element={<DashboardPage />} />
 
         {/* Administración */}
+        <Route
+          path="admin/permisos"
+          element={
+            <ProtectedRoute routeKey="admin_permisos">
+              <PermisosPage />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="admin/usuarios"
           element={
