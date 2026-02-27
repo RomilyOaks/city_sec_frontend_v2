@@ -752,71 +752,108 @@ export default function NovedadDetalleModal({
                         No hay cambios de estado registrados.
                       </p>
                     ) : (
-                      <div className="space-y-3 max-h-60 overflow-y-auto">
-                        {(Array.isArray(historial) ? historial : [])
-                          .sort((a, b) => {
-                            // Ordenar por fecha_cambio descendente (más reciente primero)
-                            const fechaA = new Date(a.fecha_cambio || a.created_at);
-                            const fechaB = new Date(b.fecha_cambio || b.created_at);
-                            return fechaB - fechaA;
-                          })
-                          .map((h) => (
-                          <div
-                            key={h.id}
-                            className="flex items-start gap-3 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50"
-                          >
+                      <>
+                        <div className="space-y-3 max-h-60 overflow-y-auto">
+                          {(Array.isArray(historial) ? historial : [])
+                            .sort((a, b) => {
+                              // Ordenar por fecha_cambio descendente (más reciente primero)
+                              const fechaA = new Date(a.fecha_cambio || a.created_at);
+                              const fechaB = new Date(b.fecha_cambio || b.created_at);
+                              return fechaB - fechaA;
+                            })
+                            .map((h) => (
                             <div
-                              className="flex-shrink-0 w-2 h-2 mt-2 rounded-full"
-                              style={{
-                                backgroundColor:
-                                  h.estadoNuevo?.color_hex || "#6b7280",
-                              }}
-                            ></div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                {h.estadoAnterior && (
-                                  <>
-                                    <span
-                                      className="text-xs px-2 py-0.5 rounded"
-                                      style={{
-                                        backgroundColor: `${h.estadoAnterior?.color_hex}20`,
-                                        color: h.estadoAnterior?.color_hex,
-                                      }}
-                                    >
-                                      {h.estadoAnterior?.nombre}
-                                    </span>
-                                    <span className="text-slate-400">→</span>
-                                  </>
-                                )}
-                                <span
-                                  className="text-xs px-2 py-0.5 rounded font-medium"
-                                  style={{
-                                    backgroundColor: `${h.estadoNuevo?.color_hex}30`,
-                                    color: h.estadoNuevo?.color_hex,
-                                  }}
-                                >
-                                  {h.estadoNuevo?.nombre}
-                                </span>
-                              </div>
-                              <p className="text-xs text-slate-500 mt-1">
-                                {formatFecha(h.fecha_cambio || h.created_at)}
-                                {h.historialEstadoNovedadUsuario &&
-                                  ` • ${
-                                    h.historialEstadoNovedadUsuario.nombres ||
-                                    h.historialEstadoNovedadUsuario.username
-                                  }`}
-                                {h.tiempo_en_estado_min !== null && h.tiempo_en_estado_min !== undefined &&
-                                  ` • ${h.tiempo_en_estado_min} min en estado anterior`}
-                              </p>
-                              {h.observaciones && (
-                                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 italic">
-                                  "{h.observaciones}"
+                              key={h.id}
+                              className="flex items-start gap-3 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50"
+                            >
+                              <div
+                                className="flex-shrink-0 w-2 h-2 mt-2 rounded-full"
+                                style={{
+                                  backgroundColor:
+                                    h.estadoNuevo?.color_hex || "#6b7280",
+                                }}
+                              ></div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  {h.estadoAnterior && (
+                                    <>
+                                      <span
+                                        className="text-xs px-2 py-0.5 rounded"
+                                        style={{
+                                          backgroundColor: `${h.estadoAnterior?.color_hex}20`,
+                                          color: h.estadoAnterior?.color_hex,
+                                        }}
+                                      >
+                                        {h.estadoAnterior?.nombre}
+                                      </span>
+                                      <span className="text-slate-400">→</span>
+                                    </>
+                                  )}
+                                  <span
+                                    className="text-xs px-2 py-0.5 rounded font-medium"
+                                    style={{
+                                      backgroundColor: `${h.estadoNuevo?.color_hex}30`,
+                                      color: h.estadoNuevo?.color_hex,
+                                    }}
+                                  >
+                                    {h.estadoNuevo?.nombre}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-slate-500 mt-1">
+                                  {formatFecha(h.fecha_cambio || h.created_at)}
+                                  {h.historialEstadoNovedadUsuario &&
+                                    ` • ${
+                                      h.historialEstadoNovedadUsuario.nombres ||
+                                      h.historialEstadoNovedadUsuario.username
+                                    }`}
+                                  {h.tiempo_en_estado_min !== null && h.tiempo_en_estado_min !== undefined &&
+                                    ` • ${h.tiempo_en_estado_min} min en estado anterior`}
                                 </p>
-                              )}
+                                {h.observaciones && (
+                                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 italic">
+                                    "{h.observaciones}"
+                                  </p>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
+                          ))}
+                        </div>
+                        
+                        {/* Tiempo Total desde creación hasta último estado */}
+                        {(() => {
+                          const historialOrdenado = (Array.isArray(historial) ? historial : [])
+                            .sort((a, b) => {
+                              const fechaA = new Date(a.fecha_cambio || a.created_at);
+                              const fechaB = new Date(b.fecha_cambio || b.created_at);
+                              return fechaB - fechaA;
+                            });
+                          
+                          if (historialOrdenado.length > 0 && novedad?.created_at) {
+                            const ultimoEstado = historialOrdenado[0];
+                            const fechaCreacion = new Date(novedad.created_at);
+                            const fechaUltimoEstado = new Date(ultimoEstado.fecha_cambio || ultimoEstado.created_at);
+                            const tiempoTotalMin = Math.floor((fechaUltimoEstado - fechaCreacion) / 60000);
+                            
+                            return (
+                              <div className="mt-4 pt-3 border-t border-slate-300 dark:border-slate-600">
+                                <div className="flex items-center justify-between p-3 rounded-lg bg-primary-50 dark:bg-primary-900/20">
+                                  <span className="text-sm font-medium text-primary-700 dark:text-primary-300">
+                                    Tiempo Total
+                                  </span>
+                                  <span className="text-sm font-bold text-primary-900 dark:text-primary-100">
+                                    {tiempoTotalMin} min
+                                  </span>
+                                </div>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 text-center">
+                                  Desde creación hasta último cambio de estado
+                                </p>
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </>
+                    
                     )}
                   </div>
                 </div>
