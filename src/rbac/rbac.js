@@ -177,6 +177,18 @@ export const ACTION_PERMISSIONS = {
   operativos_vehiculos_update: ["operativos.vehiculos.update"],
   operativos_vehiculos_delete: ["operativos.vehiculos.delete"],
 
+  // Operativos Vehículos - Cuadrantes
+  "operativos.vehiculos.cuadrantes.read": ["operativos.vehiculos.cuadrantes.read"],
+  "operativos.vehiculos.cuadrantes.create": ["operativos.vehiculos.cuadrantes.create"],
+  "operativos.vehiculos.cuadrantes.update": ["operativos.vehiculos.cuadrantes.update"],
+  "operativos.vehiculos.cuadrantes.delete": ["operativos.vehiculos.cuadrantes.delete"],
+
+  // Operativos Vehículos - Novedades
+  "operativos.vehiculos.novedades.read": ["operativos.vehiculos.novedades.read"],
+  "operativos.vehiculos.novedades.create": ["operativos.vehiculos.novedades.create"],
+  "operativos.vehiculos.novedades.update": ["operativos.vehiculos.novedades.update"],
+  "operativos.vehiculos.novedades.delete": ["operativos.vehiculos.novedades.delete"],
+
   // Catálogos - Unidades/Oficinas
   "catalogos.unidades.create": ["catalogos.unidades.create"],
   "catalogos.unidades.update": ["catalogos.unidades.update"],
