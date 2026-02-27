@@ -64,7 +64,7 @@ export default function CuadrantesPorVehiculo() {
   const canRead = canPerformAction(user, "operativos.vehiculos.cuadrantes.read");
   const canCreate = canPerformAction(user, "operativos.vehiculos.cuadrantes.create");
   const canEdit = canPerformAction(user, "operativos.vehiculos.cuadrantes.update");
-  const canDelete = canPerformAction(user, "operativos.vehiculos.delete");
+  const canDelete = canPerformAction(user, "operativos.vehiculos.cuadrantes.delete");
   const canReadNovedades = canPerformAction(user, "operativos.vehiculos.novedades.read");
 
   const [cuadrantes, setCuadrantes] = useState([]);
