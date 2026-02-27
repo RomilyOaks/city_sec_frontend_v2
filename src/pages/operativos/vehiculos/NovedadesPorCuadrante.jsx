@@ -153,6 +153,7 @@ export default function NovedadesPorCuadrante() {
     resultado: "",
     acciones_tomadas: "",
     observaciones: "",
+    personas_afectadas: 0,
   });
   const [savingEdit, setSavingEdit] = useState(false);
 
@@ -258,6 +259,7 @@ export default function NovedadesPorCuadrante() {
       resultado: novedad.resultado || "PENDIENTE",
       acciones_tomadas: "", // Siempre vacío - las anteriores ya están en historial
       observaciones: novedad.observaciones || "",
+      personas_afectadas: novedad.novedad?.personas_afectadas || 0,
     });
     setShowEditModal(true);
 
@@ -283,6 +285,7 @@ export default function NovedadesPorCuadrante() {
       resultado: "",
       acciones_tomadas: "",
       observaciones: "",
+      personas_afectadas: 0,
     });
     setEstadosNovedad([]);
   }, []);
@@ -356,6 +359,7 @@ export default function NovedadesPorCuadrante() {
         acciones_tomadas: "", // Limpiar para nuevas acciones
         observaciones: editData.observaciones?.trim() || "",
         estado_novedad_id: nuevoEstadoId, // Siempre incluir el estado mapeado
+        personas_afectadas: editData.personas_afectadas || 0,
       };
 
       await operativosNovedadesService.updateNovedad(
@@ -754,7 +758,7 @@ export default function NovedadesPorCuadrante() {
                       >
                         <Eye size={14} />
                       </button>
-                      {canUpdate && (
+                      {canUpdate && novedad.resultado !== "RESUELTO" && (
                         <button
                           onClick={() => handleEditNovedad(novedad)}
                           className="p-1.5 text-primary-600 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-900/20 rounded-lg"
@@ -923,6 +927,21 @@ export default function NovedadesPorCuadrante() {
                 <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">
                   Las acciones se guardarán en el historial y este campo quedará vacío para nuevas acciones.
                 </p>
+              </div>
+
+              {/* Número de Personas Afectadas */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Nro. de Personas Afectadas
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={editData.personas_afectadas}
+                  onChange={(e) => setEditData({ ...editData, personas_afectadas: parseInt(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                  placeholder="0"
+                />
               </div>
 
               {/* Observaciones */}
