@@ -359,17 +359,12 @@ export default function CuadrantesPorVehiculo() {
   };
 
   const handleViewMap = (cuadrante) => {
-    console.log('🗺️ [DEBUG] handleViewMap - Cuadrante completo:', cuadrante);
     const cuadranteData = cuadrante.datosCuadrante || cuadrante.cuadrante;
-    console.log('🗺️ [DEBUG] handleViewMap - Datos del cuadrante extraídos:', cuadranteData);
-    console.log('🗺️ [DEBUG] handleViewMap - ID del cuadrante:', cuadranteData?.id);
     
     if (cuadranteData?.id) {
-      console.log('🗺️ [DEBUG] handleViewMap - Abriendo modal con ID:', cuadranteData.id);
       setSelectedCuadranteForMap(cuadranteData.id);
       setShowMapModal(true);
     } else {
-      console.error('❌ [DEBUG] handleViewMap - No se encontró ID del cuadrante');
       toast.error("No se pudo obtener la información del cuadrante");
     }
   };
