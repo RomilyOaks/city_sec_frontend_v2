@@ -20,6 +20,7 @@ import {
   AlertTriangle,
   FileText,
   Clock,
+  Map,
 } from "lucide-react";
 
 import api from "../../../services/api.js";
@@ -27,6 +28,7 @@ import { canPerformAction } from "../../../rbac/rbac.js";
 import { useAuthStore } from "../../../store/useAuthStore.js";
 import AsignarCuadranteForm from "./AsignarCuadranteForm.jsx";
 import EditarCuadranteForm from "./EditarCuadranteForm.jsx";
+import CuadranteMapaModal from "../../../components/calles/CuadranteMapaModal.jsx";
 
 /**
  * Formatea fecha/hora a formato legible
@@ -62,7 +64,7 @@ export default function CuadrantesPorVehiculo() {
   const canRead = canPerformAction(user, "operativos.vehiculos.cuadrantes.read");
   const canCreate = canPerformAction(user, "operativos.vehiculos.cuadrantes.create");
   const canEdit = canPerformAction(user, "operativos.vehiculos.cuadrantes.update");
-  const canDelete = canPerformAction(user, "operativos.vehiculos.cuadrantes.delete");
+  const canDelete = canPerformAction(user, "operativos.vehiculos.delete");
   const canReadNovedades = canPerformAction(user, "operativos.vehiculos.novedades.read");
 
   const [cuadrantes, setCuadrantes] = useState([]);
@@ -75,6 +77,9 @@ export default function CuadrantesPorVehiculo() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [selectedCuadrante, setSelectedCuadrante] = useState(null);
+  const [showMapModal, setShowMapModal] = useState(false);
+  const [selectedCuadranteForMap, setSelectedCuadranteForMap] = useState(null);
+  const [novedadesCounts, setNovedadesCounts] = useState({});
 
   // Obtener sector_id desde query params
   useEffect(() => {
@@ -146,6 +151,8 @@ export default function CuadrantesPorVehiculo() {
       if (cuadrantesActivos.length > 0) {
         setCuadrantes(cuadrantesActivos);
         setUsingDemoData(false);
+        // Cargar contador de novedades para cada cuadrante
+        await fetchNovedadesCounts(cuadrantesActivos);
       } else {
         const demoData = [
           {
@@ -351,7 +358,45 @@ export default function CuadrantesPorVehiculo() {
     navigate(`/operativos/turnos/${turnoId}/vehiculos/${vehiculoId}/cuadrantes/${cuadrante.id}/novedades`);
   };
 
+  const handleViewMap = (cuadrante) => {
+    console.log('🗺️ [DEBUG] handleViewMap - Cuadrante completo:', cuadrante);
+    const cuadranteData = cuadrante.datosCuadrante || cuadrante.cuadrante;
+    console.log('🗺️ [DEBUG] handleViewMap - Datos del cuadrante extraídos:', cuadranteData);
+    console.log('🗺️ [DEBUG] handleViewMap - ID del cuadrante:', cuadranteData?.id);
+    
+    if (cuadranteData?.id) {
+      console.log('🗺️ [DEBUG] handleViewMap - Abriendo modal con ID:', cuadranteData.id);
+      setSelectedCuadranteForMap(cuadranteData.id);
+      setShowMapModal(true);
+    } else {
+      console.error('❌ [DEBUG] handleViewMap - No se encontró ID del cuadrante');
+      toast.error("No se pudo obtener la información del cuadrante");
+    }
+  };
+
+  const fetchNovedadesCounts = async (cuadrantesList) => {
+    const counts = {};
+    for (const cuadrante of cuadrantesList) {
+      try {
+        const response = await api.get(`/operativos/${turnoId}/vehiculos/${vehiculoId}/cuadrantes/${cuadrante.id}/novedades`);
+        const novedades = response.data?.data || response.data || [];
+        counts[cuadrante.id] = Array.isArray(novedades) ? novedades.length : 0;
+      } catch {
+        counts[cuadrante.id] = 0;
+      }
+    }
+    setNovedadesCounts(counts);
+  };
+
   const handleDeleteCuadrante = async (cuadrante) => {
+    // Validar que no tenga novedades asignadas
+    const novedadesCount = novedadesCounts[cuadrante.id] || 0;
+    
+    if (novedadesCount > 0) {
+      toast.error(`No se puede eliminar. El cuadrante tiene ${novedadesCount} ${novedadesCount === 1 ? 'novedad asignada' : 'novedades asignadas'}`);
+      return;
+    }
+    
     const cuadranteInfo = cuadrante.datosCuadrante || cuadrante.cuadrante || {};
     const confirmed = window.confirm(
       `¿Está seguro de eliminar el cuadrante ${cuadranteInfo.cuadrante_code || cuadranteInfo.codigo || ''} - ${cuadranteInfo.nombre || ''}?`
@@ -615,10 +660,7 @@ export default function CuadrantesPorVehiculo() {
                       Tiempo
                     </th>
                     <th className="px-6 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">
-                      Incidentes
-                    </th>
-                    <th className="px-6 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">
-                      Observaciones
+                      Novedades
                     </th>
                     <th className="px-6 py-3 text-right font-semibold text-slate-700 dark:text-slate-200">
                       Acciones
@@ -656,22 +698,26 @@ export default function CuadrantesPorVehiculo() {
                         {formatTiempo(cuadrante.tiempo_minutos)}
                       </td>
                       <td className="px-6 py-4">
-                        {cuadrante.incidentes_reportados ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-full text-xs">
+                        {novedadesCounts[cuadrante.id] > 0 ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full text-xs font-medium">
                             <AlertTriangle size={12} />
-                            Con incidentes
+                            {novedadesCounts[cuadrante.id]} {novedadesCounts[cuadrante.id] === 1 ? 'novedad' : 'novedades'}
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-xs">
-                            Sin incidentes
+                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full text-xs">
+                            0 novedades
                           </span>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-slate-700 dark:text-slate-300 max-w-xs truncate">
-                        {cuadrante.observaciones || "-"}
-                      </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => handleViewMap(cuadrante)}
+                            className="p-2 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                            title="Ver Mapa del Cuadrante"
+                          >
+                            <Map size={14} />
+                          </button>
                           {canReadNovedades && (
                             <button
                               onClick={() => handleViewNovedades(cuadrante)}
@@ -715,6 +761,16 @@ export default function CuadrantesPorVehiculo() {
           </div>
         </>
         )}
+
+        {/* Modal de Mapa */}
+        <CuadranteMapaModal
+          isOpen={showMapModal}
+          cuadranteId={selectedCuadranteForMap}
+          onClose={() => {
+            setShowMapModal(false);
+            setSelectedCuadranteForMap(null);
+          }}
+        />
       </div>
     </div>
   );
