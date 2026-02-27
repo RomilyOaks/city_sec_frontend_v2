@@ -297,7 +297,23 @@ export default function NovedadesPorCuadrante() {
       const tieneAcciones = editData.acciones_tomadas?.trim();
       const novedadPrincipalId = selectedNovedadEdit.novedad_id || selectedNovedadEdit.novedad?.id;
       const estadoActualId = selectedNovedadEdit.novedad?.estado_novedad_id || selectedNovedadEdit.estado_novedad_id;
-      const nuevoEstadoId = editData.estado_novedad_id ? Number(editData.estado_novedad_id) : null;
+      
+      // Mapear Resultado Operativo a estado_novedad_id
+      let nuevoEstadoId = null;
+      switch (editData.resultado) {
+        case "RESUELTO":
+          nuevoEstadoId = 6; // RESUELTA
+          break;
+        case "ESCALADO":
+          nuevoEstadoId = 5; // EN ATENCION
+          break;
+        case "CANCELADO":
+          nuevoEstadoId = 8; // CANCELADA
+          break;
+        default:
+          nuevoEstadoId = estadoActualId; // Mantener estado actual si es PENDIENTE u otro
+      }
+      
       const cambioEstado = nuevoEstadoId && nuevoEstadoId !== estadoActualId;
 
       // 1. Si hay cambio de estado o acciones tomadas, crear historial
@@ -339,12 +355,8 @@ export default function NovedadesPorCuadrante() {
         resultado: editData.resultado,
         acciones_tomadas: "", // Limpiar para nuevas acciones
         observaciones: editData.observaciones?.trim() || "",
+        estado_novedad_id: nuevoEstadoId, // Siempre incluir el estado mapeado
       };
-
-      // Incluir estado_novedad_id si cambió
-      if (cambioEstado) {
-        payload.estado_novedad_id = nuevoEstadoId;
-      }
 
       await operativosNovedadesService.updateNovedad(
         turnoId,
@@ -746,7 +758,7 @@ export default function NovedadesPorCuadrante() {
                         <button
                           onClick={() => handleEditNovedad(novedad)}
                           className="p-1.5 text-primary-600 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-900/20 rounded-lg"
-                          title="Editar novedad"
+                          title="Actualizar Novedad"
                         >
                           <Pencil size={14} />
                         </button>
@@ -863,7 +875,8 @@ export default function NovedadesPorCuadrante() {
                   <select
                     value={editData.estado_novedad_id || ""}
                     onChange={(e) => setEditData({ ...editData, estado_novedad_id: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                    disabled
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed"
                   >
                     {estadosNovedad.map((estado) => (
                       <option key={estado.id} value={estado.id}>
@@ -873,7 +886,7 @@ export default function NovedadesPorCuadrante() {
                   </select>
                 )}
                 <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  Solo se muestran estados válidos según el flujo
+                  El estado se actualiza automáticamente según el Resultado Operativo
                 </p>
               </div>
 
