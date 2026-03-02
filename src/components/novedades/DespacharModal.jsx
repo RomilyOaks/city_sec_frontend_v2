@@ -445,7 +445,7 @@ export default function DespacharModal({
             }
           );
         } catch (error) {
-          if (error.message === "Novedad ya fue reportada para este cuadrante") {
+          if (error.message === "Esta novedad ya fue reportada para este cuadrante") {
             // Ya existía el registro — continuar el despacho normalmente
           } else {
             throw error;

@@ -269,18 +269,21 @@ export async function findOrCreateCuadranteEnVehiculo(operativo_turno_id, operat
  */
 export async function findOrCreateNovedadEnCuadrante(operativo_turno_id, operativo_vehiculo_id, operativo_vehiculo_cuadrante_id, novedadData) {
   try {
-    // Primero buscar si ya existe una novedad para este cuadrante
+    // Primero buscar si ya existe LA MISMA novedad (mismo novedad_id) para este cuadrante
     const response = await api.get(`/operativos/${operativo_turno_id}/vehiculos/${operativo_vehiculo_id}/cuadrantes/${operativo_vehiculo_cuadrante_id}/novedades`);
     const novedadesExistentes = response.data?.data || response.data || [];
 
-    if (novedadesExistentes.length > 0) {
-      throw new Error("Novedad ya fue reportada para este cuadrante");
+    // Verificar si la novedad específica ya existe (mismo novedad_id)
+    const novedadYaExiste = novedadesExistentes.find(n => n.novedad_id === novedadData.novedad_id);
+    
+    if (novedadYaExiste) {
+      throw new Error("Esta novedad ya fue reportada para este cuadrante");
     }
 
     // Si no existe, crearla
     return await asignarNovedadAVehiculo(operativo_turno_id, operativo_vehiculo_id, null, operativo_vehiculo_cuadrante_id, novedadData);
   } catch (error) {
-    if (error.message === "Novedad ya fue reportada para este cuadrante") {
+    if (error.message === "Esta novedad ya fue reportada para este cuadrante") {
       throw error;
     }
     console.error("Error en findOrCreateNovedadEnCuadrante:", error);
