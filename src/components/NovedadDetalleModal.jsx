@@ -412,7 +412,7 @@ export default function NovedadDetalleModal({
                     </div>
                   </div>
 
-                  {/* Fila 2: Descripción + Observaciones (ancho completo) */}
+                  {/* Fila 2: Descripción (ancho completo) */}
                   <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
                     <span className="text-xs font-medium text-slate-500">
                       Descripción
@@ -420,16 +420,6 @@ export default function NovedadDetalleModal({
                     <p className="text-sm text-slate-900 dark:text-slate-50 mt-1">
                       {novedad.descripcion || "—"}
                     </p>
-                    {novedad.observaciones && (
-                      <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700">
-                        <span className="text-xs font-medium text-slate-500">
-                          Observaciones
-                        </span>
-                        <p className="text-sm text-slate-700 dark:text-slate-300 mt-1">
-                          {novedad.observaciones}
-                        </p>
-                      </div>
-                    )}
                   </div>
 
                   {/* Fila 3: Fecha/Hora Ocurrencia | Estado */}
@@ -589,26 +579,98 @@ export default function NovedadDetalleModal({
                       </div>
                     </div>
                   )}
-                  <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                    <span className="text-xs font-medium text-slate-500">
-                      Personas Afectadas
-                    </span>
-                    <p className="text-sm text-slate-900 dark:text-slate-50">
-                      {novedad.num_personas_afectadas || "0"}
-                    </p>
+                  {/* Personas Afectadas y Pérdidas Materiales */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                      <span className="text-xs font-medium text-slate-500">
+                        Personas Afectadas
+                      </span>
+                      <p className="text-sm text-slate-900 dark:text-slate-50">
+                        {novedad.num_personas_afectadas || "0"}
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                      <span className="text-xs font-medium text-slate-500">
+                        Pérdidas Materiales Estimadas
+                      </span>
+                      <p className="text-sm text-slate-900 dark:text-slate-50">
+                        {novedad.perdidas_materiales_estimadas ? `S/ ${parseFloat(novedad.perdidas_materiales_estimadas).toFixed(2)}` : "S/ 0.00"}
+                      </p>
+                    </div>
                   </div>
 
-                  {/* Observaciones (descripcion ya aparece en Datos Básicos) */}
+                  {/* Observaciones */}
                   {novedad.observaciones && (
                     <div>
                       <h4 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">
                         Observaciones
                       </h4>
-                      <p className="text-sm text-slate-700 dark:text-slate-300 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                      <p className="text-sm text-slate-700 dark:text-slate-300 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 whitespace-pre-wrap">
                         {novedad.observaciones}
                       </p>
                     </div>
                   )}
+
+                  {/* Datos de Auditoría */}
+                  <div className="border-t border-slate-200 dark:border-slate-700 pt-4 mt-4">
+                    <h4 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3">
+                      Datos de Auditoría
+                    </h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                        <span className="text-xs font-medium text-slate-500">
+                          Creado por
+                        </span>
+                        <p className="text-sm text-slate-900 dark:text-slate-50">
+                          {novedad.creador?.username || novedad.creador?.nombres || "—"}
+                        </p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                        <span className="text-xs font-medium text-slate-500">
+                          Fecha de Creación
+                        </span>
+                        <p className="text-sm text-slate-900 dark:text-slate-50">
+                          {formatFecha(novedad.created_at)}
+                        </p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                        <span className="text-xs font-medium text-slate-500">
+                          Actualizado por
+                        </span>
+                        <p className="text-sm text-slate-900 dark:text-slate-50">
+                          {novedad.actualizador?.username || novedad.actualizador?.nombres || "—"}
+                        </p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                        <span className="text-xs font-medium text-slate-500">
+                          Fecha de Actualización
+                        </span>
+                        <p className="text-sm text-slate-900 dark:text-slate-50">
+                          {formatFecha(novedad.updated_at)}
+                        </p>
+                      </div>
+                      {novedad.usuarioDespacho && (
+                        <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                          <span className="text-xs font-medium text-slate-500">
+                            Despachado por
+                          </span>
+                          <p className="text-sm text-slate-900 dark:text-slate-50">
+                            {novedad.usuarioDespacho?.username || novedad.usuarioDespacho?.nombres || "—"}
+                          </p>
+                        </div>
+                      )}
+                      {novedad.fecha_despacho && (
+                        <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                          <span className="text-xs font-medium text-slate-500">
+                            Fecha de Despacho
+                          </span>
+                          <p className="text-sm text-slate-900 dark:text-slate-50">
+                            {formatFecha(novedad.fecha_despacho)}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -740,9 +802,6 @@ export default function NovedadDetalleModal({
                   </div>
 
                   <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
-                    <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
-                      Historial de Estados
-                    </h4>
                     {loadingHistorial ? (
                       <p className="text-sm text-slate-500">
                         Cargando historial...
@@ -753,6 +812,43 @@ export default function NovedadDetalleModal({
                       </p>
                     ) : (
                       <>
+                        {/* Tiempo Total desde creación hasta último estado */}
+                        {(() => {
+                          const historialOrdenado = (Array.isArray(historial) ? historial : [])
+                            .sort((a, b) => {
+                              const fechaA = new Date(a.fecha_cambio || a.created_at);
+                              const fechaB = new Date(b.fecha_cambio || b.created_at);
+                              return fechaB - fechaA;
+                            });
+                          
+                          if (historialOrdenado.length > 0 && novedad?.created_at) {
+                            const ultimoEstado = historialOrdenado[0];
+                            const fechaCreacion = new Date(novedad.created_at);
+                            const fechaUltimoEstado = new Date(ultimoEstado.fecha_cambio || ultimoEstado.created_at);
+                            const tiempoTotalMin = Math.floor((fechaUltimoEstado - fechaCreacion) / 60000);
+                            
+                            return (
+                              <div className="mb-4">
+                                <div className="flex items-center justify-between p-3 rounded-lg bg-primary-50 dark:bg-primary-900/20">
+                                  <span className="text-sm font-medium text-primary-700 dark:text-primary-300">
+                                    Tiempo Total
+                                  </span>
+                                  <span className="text-sm font-bold text-primary-900 dark:text-primary-100">
+                                    {tiempoTotalMin} min
+                                  </span>
+                                </div>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 text-center">
+                                  Desde creación hasta último cambio de estado
+                                </p>
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
+
+                        <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
+                          Historial de Estados
+                        </h4>
                         <div className="space-y-3 max-h-60 overflow-y-auto">
                           {(Array.isArray(historial) ? historial : [])
                             .sort((a, b) => {
@@ -818,40 +914,6 @@ export default function NovedadDetalleModal({
                             </div>
                           ))}
                         </div>
-                        
-                        {/* Tiempo Total desde creación hasta último estado */}
-                        {(() => {
-                          const historialOrdenado = (Array.isArray(historial) ? historial : [])
-                            .sort((a, b) => {
-                              const fechaA = new Date(a.fecha_cambio || a.created_at);
-                              const fechaB = new Date(b.fecha_cambio || b.created_at);
-                              return fechaB - fechaA;
-                            });
-                          
-                          if (historialOrdenado.length > 0 && novedad?.created_at) {
-                            const ultimoEstado = historialOrdenado[0];
-                            const fechaCreacion = new Date(novedad.created_at);
-                            const fechaUltimoEstado = new Date(ultimoEstado.fecha_cambio || ultimoEstado.created_at);
-                            const tiempoTotalMin = Math.floor((fechaUltimoEstado - fechaCreacion) / 60000);
-                            
-                            return (
-                              <div className="mt-4 pt-3 border-t border-slate-300 dark:border-slate-600">
-                                <div className="flex items-center justify-between p-3 rounded-lg bg-primary-50 dark:bg-primary-900/20">
-                                  <span className="text-sm font-medium text-primary-700 dark:text-primary-300">
-                                    Tiempo Total
-                                  </span>
-                                  <span className="text-sm font-bold text-primary-900 dark:text-primary-100">
-                                    {tiempoTotalMin} min
-                                  </span>
-                                </div>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 text-center">
-                                  Desde creación hasta último cambio de estado
-                                </p>
-                              </div>
-                            );
-                          }
-                          return null;
-                        })()}
                       </>
                     
                     )}
