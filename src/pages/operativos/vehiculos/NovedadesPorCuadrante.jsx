@@ -259,7 +259,8 @@ export default function NovedadesPorCuadrante() {
       resultado: novedad.resultado || "PENDIENTE",
       acciones_tomadas: "", // Siempre vacío - las anteriores ya están en historial
       observaciones: novedad.observaciones || "",
-      personas_afectadas: novedad.novedad?.personas_afectadas || 0,
+      num_personas_afectadas: novedad.novedad?.num_personas_afectadas || 0,
+      perdidas_materiales_estimadas: novedad.novedad?.perdidas_materiales_estimadas || 0,
     });
     setShowEditModal(true);
 
@@ -285,7 +286,8 @@ export default function NovedadesPorCuadrante() {
       resultado: "",
       acciones_tomadas: "",
       observaciones: "",
-      personas_afectadas: 0,
+      num_personas_afectadas: 0,
+      perdidas_materiales_estimadas: 0,
     });
     setEstadosNovedad([]);
   }, []);
@@ -353,17 +355,27 @@ export default function NovedadesPorCuadrante() {
         }
       }
 
+      // Construir observaciones actualizadas: agregar acciones_tomadas al final de observaciones existentes
+      let observacionesActualizadas = editData.observaciones?.trim() || "";
+      if (tieneAcciones) {
+        const timestamp = new Date().toLocaleString("es-PE", {
+          dateStyle: "short",
+          timeStyle: "short",
+        });
+        const vehiculoInfo = vehiculo?.placa || `Vehículo ${vehiculoId}`;
+        const nuevaAccion = `\n[${timestamp} - ${vehiculoInfo}] ${editData.acciones_tomadas.trim()}`;
+        observacionesActualizadas = observacionesActualizadas ? observacionesActualizadas + nuevaAccion : nuevaAccion.trim();
+      }
+
       // 2. Actualizar el registro operativo (operativos_vehiculos_cuadrantes_novedades)
       const payload = {
         resultado: editData.resultado,
         acciones_tomadas: "", // Limpiar para nuevas acciones
-        observaciones: editData.observaciones?.trim() || "",
+        observaciones: observacionesActualizadas,
         estado_novedad_id: nuevoEstadoId, // Siempre incluir el estado mapeado
-        personas_afectadas: editData.personas_afectadas || 0,
+        num_personas_afectadas: editData.num_personas_afectadas || 0,
+        perdidas_materiales_estimadas: editData.perdidas_materiales_estimadas || 0,
       };
-
-      console.log("🔍 Payload enviado al backend:", payload);
-      console.log("🔍 novedad_id para actualizar tabla Novedades:", selectedNovedadEdit.novedad_id);
 
       await operativosNovedadesService.updateNovedad(
         turnoId,
@@ -932,19 +944,35 @@ export default function NovedadesPorCuadrante() {
                 </p>
               </div>
 
-              {/* Número de Personas Afectadas */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Nro. de Personas Afectadas
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={editData.personas_afectadas}
-                  onChange={(e) => setEditData({ ...editData, personas_afectadas: parseInt(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                  placeholder="0"
-                />
+              {/* Número de Personas Afectadas y Pérdidas Materiales */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Nro. de Personas Afectadas
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={editData.num_personas_afectadas}
+                    onChange={(e) => setEditData({ ...editData, num_personas_afectadas: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Pérdidas Materiales Estimadas (S/)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={editData.perdidas_materiales_estimadas}
+                    onChange={(e) => setEditData({ ...editData, perdidas_materiales_estimadas: parseFloat(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                    placeholder="0.00"
+                  />
+                </div>
               </div>
 
               {/* Observaciones */}
