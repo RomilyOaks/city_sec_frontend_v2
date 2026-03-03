@@ -362,6 +362,9 @@ export default function NovedadesPorCuadrante() {
         personas_afectadas: editData.personas_afectadas || 0,
       };
 
+      console.log("🔍 Payload enviado al backend:", payload);
+      console.log("🔍 novedad_id para actualizar tabla Novedades:", selectedNovedadEdit.novedad_id);
+
       await operativosNovedadesService.updateNovedad(
         turnoId,
         vehiculoId,
