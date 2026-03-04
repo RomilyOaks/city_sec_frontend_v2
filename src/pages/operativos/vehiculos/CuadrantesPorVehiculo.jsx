@@ -694,10 +694,15 @@ export default function CuadrantesPorVehiculo() {
                       </td>
                       <td className="px-6 py-4">
                         {novedadesCounts[cuadrante.id] > 0 ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full text-xs font-medium">
+                          <button
+                            onClick={() => canReadNovedades && handleViewNovedades(cuadrante)}
+                            disabled={!canReadNovedades}
+                            className={`inline-flex items-center gap-1 px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full text-xs font-medium ${canReadNovedades ? 'cursor-pointer hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors' : 'cursor-not-allowed opacity-50'}`}
+                            title={canReadNovedades ? "Ver/Gestionar Novedades" : "Sin permisos para ver novedades"}
+                          >
                             <AlertTriangle size={12} />
                             {novedadesCounts[cuadrante.id]} {novedadesCounts[cuadrante.id] === 1 ? 'novedad' : 'novedades'}
-                          </span>
+                          </button>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full text-xs">
                             0 novedades
