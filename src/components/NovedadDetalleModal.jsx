@@ -35,6 +35,7 @@ import {
 } from "../services/novedadesService";
 import { geocodificarDireccion } from "../services/direccionesService";
 import UbicacionMiniMapa from "./UbicacionMiniMapa";
+import { formatUsuarioCompleto } from "../utils/usuarioUtils";
 
 const ORIGEN_LLAMADA_OPTIONS = [
   { value: "TELEFONO_107", label: "Llamada Telefónica (107)", icon: Phone },
@@ -622,7 +623,7 @@ export default function NovedadDetalleModal({
                           Creado por
                         </span>
                         <p className="text-sm text-slate-900 dark:text-slate-50">
-                          {novedad.creador?.username || novedad.creador?.nombres || "—"}
+                          {formatUsuarioCompleto(novedad.creadorNovedad)}
                         </p>
                       </div>
                       <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
@@ -638,7 +639,7 @@ export default function NovedadDetalleModal({
                           Actualizado por
                         </span>
                         <p className="text-sm text-slate-900 dark:text-slate-50">
-                          {novedad.actualizador?.username || novedad.actualizador?.nombres || "—"}
+                          {formatUsuarioCompleto(novedad.actualizadorNovedad)}
                         </p>
                       </div>
                       <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
@@ -649,26 +650,6 @@ export default function NovedadDetalleModal({
                           {formatFecha(novedad.updated_at)}
                         </p>
                       </div>
-                      {novedad.usuarioDespacho && (
-                        <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                          <span className="text-xs font-medium text-slate-500">
-                            Despachado por
-                          </span>
-                          <p className="text-sm text-slate-900 dark:text-slate-50">
-                            {novedad.usuarioDespacho?.username || novedad.usuarioDespacho?.nombres || "—"}
-                          </p>
-                        </div>
-                      )}
-                      {novedad.fecha_despacho && (
-                        <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                          <span className="text-xs font-medium text-slate-500">
-                            Fecha de Despacho
-                          </span>
-                          <p className="text-sm text-slate-900 dark:text-slate-50">
-                            {formatFecha(novedad.fecha_despacho)}
-                          </p>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -906,7 +887,7 @@ export default function NovedadDetalleModal({
                                     ` • ${h.tiempo_en_estado_min} min en estado anterior`}
                                 </p>
                                 {h.observaciones && (
-                                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 italic">
+                                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 italic whitespace-pre-wrap">
                                     "{h.observaciones}"
                                   </p>
                                 )}
