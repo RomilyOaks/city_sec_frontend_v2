@@ -1803,9 +1803,7 @@ export default function NovedadesPage() {
       if (!workingFormData.reportante_nombre) {
         errors.push("Nombre del reportante es requerido");
       }
-      if (!workingFormData.reportante_doc_identidad) {
-        errors.push("Documento de identidad es requerido");
-      }
+      // Documento de identidad NO es obligatorio - puede haber casos con solo nombre
     }
 
     if (errors.length > 0) {
@@ -2676,7 +2674,8 @@ export default function NovedadesPage() {
                               : registroFormData.reportante_doc_identidad,
                           })
                         }
-                        className="rounded border-slate-300 dark:border-slate-600"
+                        disabled={registroFormData.origen_llamada === "RADIO_TETRA"}
+                        className="rounded border-slate-300 dark:border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
                       />
                       <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                         Reportante Anónimo
@@ -2700,13 +2699,17 @@ export default function NovedadesPage() {
                             })
                           }
                           placeholder="Nombres y apellidos"
-                          className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 uppercase"
+                          readOnly={registroFormData.origen_llamada === "RADIO_TETRA"}
+                          className={`w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 uppercase ${
+                            registroFormData.origen_llamada === "RADIO_TETRA"
+                              ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
+                              : "bg-white dark:bg-slate-900"
+                          }`}
                         />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                          Tipo de Documento{" "}
-                          <span className="text-red-500">*</span>
+                          Tipo de Documento
                         </label>
                         <select
                           value={registroFormData.reportante_tipo_doc}
@@ -2716,7 +2719,12 @@ export default function NovedadesPage() {
                               reportante_tipo_doc: e.target.value,
                             })
                           }
-                          className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                          disabled={registroFormData.origen_llamada === "RADIO_TETRA"}
+                          className={`w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 ${
+                            registroFormData.origen_llamada === "RADIO_TETRA"
+                              ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
+                              : "bg-white dark:bg-slate-900"
+                          }`}
                         >
                           {TIPO_DOCUMENTO_OPTIONS.map((opt) => (
                             <option key={opt.value} value={opt.value}>
@@ -2727,8 +2735,7 @@ export default function NovedadesPage() {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                          Documento de Identidad{" "}
-                          <span className="text-red-500">*</span>
+                          Documento de Identidad
                         </label>
                         <input
                           type="text"
@@ -2740,7 +2747,12 @@ export default function NovedadesPage() {
                             })
                           }
                           placeholder="Ej: 12345678"
-                          className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
+                          readOnly={registroFormData.origen_llamada === "RADIO_TETRA"}
+                          className={`w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 ${
+                            registroFormData.origen_llamada === "RADIO_TETRA"
+                              ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
+                              : "bg-white dark:bg-slate-900"
+                          }`}
                         />
                       </div>
                     </div>
