@@ -350,6 +350,27 @@ export default function NovedadesPage() {
     return !!uid && uid !== user?.id;
   };
 
+  // Verificar si el usuario tiene rol supervisor
+  const isSupervisor = () => {
+    const roles = user?.roles || user?.Roles || [];
+    return roles.some(r => (r?.slug || r?.Slug) === "supervisor");
+  };
+
+  // Determinar si se puede mostrar el botón atender según el estado de la novedad
+  const canShowAtenderButton = (novedad) => {
+    const estadoId = novedad?.estado_novedad_id;
+    
+    // Supervisor siempre puede atender en cualquier estado
+    if (isSupervisor()) return true;
+    
+    // Para otros usuarios, verificar permiso y estado
+    if (!canAtender) return false;
+    
+    // Estados permitidos: 2=DESPACHADA, 3=EN RUTA, 4=EN LUGAR, 5=EN ATENCION
+    const estadosPermitidos = [2, 3, 4, 5];
+    return estadosPermitidos.includes(estadoId);
+  };
+
   const [permissionErrorShown, setPermissionErrorShown] = useState(false);
   const [novedades, setNovedades] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -1198,51 +1219,68 @@ export default function NovedadesPage() {
    * @returns {Promise<void>}
    */
   const openAtencionModal = async (novedad) => {
-    setSelectedNovedad(novedad);
-    setAtencionData({
-      unidad_oficina_id: novedad.unidad_oficina_id || "",
-      vehiculo_id: novedad.vehiculo_id || "",
-      personal_cargo_id: novedad.personal_cargo_id || "",
-      personal_seguridad2_id: novedad.personal_seguridad2_id || "",
-      personal_seguridad3_id: novedad.personal_seguridad3_id || "",
-      personal_seguridad4_id: novedad.personal_seguridad4_id || "",
-      fecha_despacho: novedad.fecha_despacho
-        ? new Date(novedad.fecha_despacho).toISOString().slice(0, 16)
-        : new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-            .toISOString()
-            .slice(0, 16),
-      turno: novedad.turno || "",
-      tiempo_respuesta_minutos: novedad.tiempo_respuesta_minutos || "",
-      observaciones: novedad.observaciones || "",
-      estado_novedad_id: novedad.estado_novedad_id || 2,
-      requiere_seguimiento: novedad.requiere_seguimiento || false,
-      fecha_llegada: novedad.fecha_llegada
-        ? new Date(novedad.fecha_llegada).toISOString().slice(0, 16)
-        : "",
-      fecha_cierre: novedad.fecha_cierre
-        ? new Date(novedad.fecha_cierre).toISOString().slice(0, 16)
-        : "",
-      km_inicial: novedad.km_inicial || "",
-      km_final: novedad.km_final || "",
-      fecha_proxima_revision: novedad.fecha_proxima_revision
-        ? new Date(novedad.fecha_proxima_revision).toISOString().slice(0, 10)
-        : "",
-      perdidas_materiales_estimadas:
-        novedad.perdidas_materiales_estimadas || "",
-    });
-    setAtencionTab(0);
-    setHistorialEstados([]);
-    setShowAtencionModal(true);
-    // Cargar catálogos si no están cargados
-    if (
-      unidadesOficina.length === 0 ||
-      vehiculos.length === 0 ||
-      personalSeguridad.length === 0
-    ) {
-      await fetchCatalogosAtencion();
+    try {
+      // Obtener datos completos de la novedad para tener usuarioDespacho
+      const novedadCompleta = await getNovedadById(novedad.id);
+      
+      // Validar que solo el usuario que despachó puede atender (excepto supervisor)
+      const uid = novedadCompleta?.usuarioDespacho?.id ?? novedadCompleta?.usuario_despacho_id;
+      if (uid && uid !== user?.id && !isSupervisor()) {
+        toast.error("Solo se permite Atender a las novedades despachadas por el mismo usuario", {
+          autoClose: 3000
+        });
+        return;
+      }
+      
+      setSelectedNovedad(novedadCompleta);
+      setAtencionData({
+        unidad_oficina_id: novedadCompleta.unidad_oficina_id || "",
+        vehiculo_id: novedadCompleta.vehiculo_id || "",
+        personal_cargo_id: novedadCompleta.personal_cargo_id || "",
+        personal_seguridad2_id: novedadCompleta.personal_seguridad2_id || "",
+        personal_seguridad3_id: novedadCompleta.personal_seguridad3_id || "",
+        personal_seguridad4_id: novedadCompleta.personal_seguridad4_id || "",
+        fecha_despacho: novedadCompleta.fecha_despacho
+          ? new Date(novedadCompleta.fecha_despacho).toISOString().slice(0, 16)
+          : new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+              .toISOString()
+              .slice(0, 16),
+        turno: novedadCompleta.turno || "",
+        tiempo_respuesta_minutos: novedadCompleta.tiempo_respuesta_minutos || "",
+        observaciones: novedadCompleta.observaciones || "",
+        estado_novedad_id: novedadCompleta.estado_novedad_id || 2,
+        requiere_seguimiento: novedadCompleta.requiere_seguimiento || false,
+        fecha_llegada: novedadCompleta.fecha_llegada
+          ? new Date(novedadCompleta.fecha_llegada).toISOString().slice(0, 16)
+          : "",
+        fecha_cierre: novedadCompleta.fecha_cierre
+          ? new Date(novedadCompleta.fecha_cierre).toISOString().slice(0, 16)
+          : "",
+        km_inicial: novedadCompleta.km_inicial || "",
+        km_final: novedadCompleta.km_final || "",
+        fecha_proxima_revision: novedadCompleta.fecha_proxima_revision
+          ? new Date(novedadCompleta.fecha_proxima_revision).toISOString().slice(0, 10)
+          : "",
+        perdidas_materiales_estimadas:
+          novedadCompleta.perdidas_materiales_estimadas || "",
+      });
+      setAtencionTab(0);
+      setHistorialEstados([]);
+      setShowAtencionModal(true);
+      // Cargar catálogos si no están cargados
+      if (
+        unidadesOficina.length === 0 ||
+        vehiculos.length === 0 ||
+        personalSeguridad.length === 0
+      ) {
+        await fetchCatalogosAtencion();
+      }
+      // Cargar historial de estados
+      fetchHistorialEstados(novedadCompleta.id);
+    } catch (error) {
+      console.error("Error al cargar novedad completa:", error);
+      toast.error("Error al cargar los datos de la novedad");
     }
-    // Cargar historial de estados
-    fetchHistorialEstados(novedad.id);
   };
 
   /**
@@ -2394,7 +2432,7 @@ export default function NovedadesPage() {
                                   <Truck size={14} />
                                 </button>
                               )}
-                              {canAtender && !n.deleted_at && !esDespachadoPorOtro(n) && (
+                              {canShowAtenderButton(n) && !n.deleted_at && !esDespachadoPorOtro(n) && (
                                 <button
                                   onClick={() => openAtencionModal(n)}
                                   className="p-1.5 rounded-lg text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
@@ -4370,151 +4408,7 @@ export default function NovedadesPage() {
               {/* Tab 0: Recursos Asignados */}
               {atencionTab === 0 && (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-                        Unidad/Oficina
-                      </label>
-                      <select
-                        value={atencionData.unidad_oficina_id}
-                        onChange={(e) =>
-                          setAtencionData({
-                            ...atencionData,
-                            unidad_oficina_id: e.target.value,
-                          })
-                        }
-                        className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
-                      >
-                        <option value="">Seleccione unidad...</option>
-                        {unidadesOficina.map((u) => (
-                          <option key={u.id} value={u.id}>
-                            {u.nombre}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-                        Vehículo
-                      </label>
-                      <select
-                        value={atencionData.vehiculo_id}
-                        onChange={(e) =>
-                          setAtencionData({
-                            ...atencionData,
-                            vehiculo_id: e.target.value,
-                          })
-                        }
-                        className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
-                      >
-                        <option value="">Seleccione vehículo...</option>
-                        {vehiculos.map((v) => (
-                          <option key={v.id} value={v.id}>
-                            {v.placa} - {v.marca} {v.modelo}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-                        Personal a Cargo (Principal)
-                      </label>
-                      <select
-                        value={atencionData.personal_cargo_id}
-                        onChange={(e) =>
-                          setAtencionData({
-                            ...atencionData,
-                            personal_cargo_id: e.target.value,
-                          })
-                        }
-                        className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
-                      >
-                        <option value="">Seleccione personal...</option>
-                        {personalSeguridad.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.doc_identidad || p.codigo} - {p.nombres}{" "}
-                            {p.apellido_paterno}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-                        Personal Seguridad #2
-                      </label>
-                      <select
-                        value={atencionData.personal_seguridad2_id}
-                        onChange={(e) =>
-                          setAtencionData({
-                            ...atencionData,
-                            personal_seguridad2_id: e.target.value,
-                          })
-                        }
-                        className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
-                      >
-                        <option value="">Seleccione personal...</option>
-                        {personalSeguridad.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.doc_identidad || p.codigo} - {p.nombres}{" "}
-                            {p.apellido_paterno}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-                        Personal Seguridad #3
-                      </label>
-                      <select
-                        value={atencionData.personal_seguridad3_id}
-                        onChange={(e) =>
-                          setAtencionData({
-                            ...atencionData,
-                            personal_seguridad3_id: e.target.value,
-                          })
-                        }
-                        className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
-                      >
-                        <option value="">Seleccione personal...</option>
-                        {personalSeguridad.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.doc_identidad || p.codigo} - {p.nombres}{" "}
-                            {p.apellido_paterno}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-                        Personal Seguridad #4
-                      </label>
-                      <select
-                        value={atencionData.personal_seguridad4_id}
-                        onChange={(e) =>
-                          setAtencionData({
-                            ...atencionData,
-                            personal_seguridad4_id: e.target.value,
-                          })
-                        }
-                        className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
-                      >
-                        <option value="">Seleccione personal...</option>
-                        {personalSeguridad.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.doc_identidad || p.codigo} - {p.nombres}{" "}
-                            {p.apellido_paterno}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
+                  {/* Primera fila: Estado de Novedad y Requiere Seguimiento */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
@@ -4531,14 +4425,123 @@ export default function NovedadesPage() {
                         className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
                       >
                         <option value="">Seleccione estado...</option>
-                        {estados.map((e) => (
-                          <option key={e.id} value={e.id}>
-                            {e.nombre}
+                        {estados
+                          .filter((e) => {
+                            // Supervisor puede ver todos los estados
+                            if (isSupervisor()) return true;
+                            // Otros usuarios solo ven estados mayores al actual
+                            return e.id > selectedNovedad.estado_novedad_id;
+                          })
+                          .map((e) => (
+                            <option key={e.id} value={e.id}>
+                              {e.nombre}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                    <div className="flex items-end">
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 w-full">
+                        <input
+                          type="checkbox"
+                          id="requiere_seguimiento"
+                          checked={atencionData.requiere_seguimiento}
+                          onChange={(e) =>
+                            setAtencionData({
+                              ...atencionData,
+                              requiere_seguimiento: e.target.checked,
+                            })
+                          }
+                          className="w-5 h-5 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                        />
+                        <label
+                          htmlFor="requiere_seguimiento"
+                          className="text-sm font-medium text-amber-800 dark:text-amber-200"
+                        >
+                          ¿Requiere Seguimiento?
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Segunda fila: Vehículo para operativo y Auditoría del Despacho */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                        Vehículo para operativo
+                      </label>
+                      <select
+                        value={atencionData.vehiculo_id}
+                        onChange={(e) =>
+                          setAtencionData({
+                            ...atencionData,
+                            vehiculo_id: e.target.value,
+                          })
+                        }
+                        className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+                      >
+                        <option value="">Seleccione vehículo...</option>
+                        {vehiculos.map((v) => (
+                          <option key={v.id} value={v.id}>
+                            {v.tipoVehiculo?.nombre ? `${v.tipoVehiculo.nombre} - ` : ''}{v.placa} - {v.marca} {v.modelo}
                           </option>
                         ))}
                       </select>
                     </div>
+                    
+                    {/* Auditoría del Despacho */}
+                    <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                      <span className="text-xs font-medium text-blue-600 dark:text-blue-400 flex items-center gap-1 mb-2">
+                        <Clock size={13} />
+                        Auditoría del Despacho
+                      </span>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <span className="text-xs text-slate-500 dark:text-slate-400">Fecha Despacho</span>
+                          <p className="text-sm font-medium text-slate-900 dark:text-slate-50">
+                            {selectedNovedad?.fecha_despacho ? new Date(selectedNovedad.fecha_despacho).toLocaleString('es-PE', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            }) : '—'}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-xs text-slate-500 dark:text-slate-400">Despachado por</span>
+                          <p className="text-sm font-medium text-slate-900 dark:text-slate-50">
+                            {selectedNovedad?.usuarioDespacho?.username || selectedNovedad?.usuarioDespacho?.email || '—'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
+
+                  {/* Personal para operativo a pie */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                      Personal para operativo a pie
+                    </label>
+                    <select
+                      value={atencionData.personal_cargo_id}
+                      onChange={(e) =>
+                        setAtencionData({
+                          ...atencionData,
+                          personal_cargo_id: e.target.value,
+                        })
+                      }
+                      className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+                    >
+                      <option value="">Seleccione personal...</option>
+                      {personalSeguridad.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.doc_identidad || p.codigo} - {p.nombres}{" "}
+                          {p.apellido_paterno}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
@@ -4554,7 +4557,12 @@ export default function NovedadesPage() {
                             fecha_despacho: e.target.value,
                           })
                         }
-                        className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+                        readOnly={!isSupervisor()}
+                        className={`mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-slate-900 dark:text-slate-50 ${
+                          !isSupervisor()
+                            ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
+                            : "bg-white dark:bg-slate-950/40"
+                        }`}
                       />
                     </div>
                     <div>
@@ -4569,7 +4577,12 @@ export default function NovedadesPage() {
                             turno: e.target.value,
                           })
                         }
-                        className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+                        disabled={!isSupervisor()}
+                        className={`mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-slate-900 dark:text-slate-50 ${
+                          !isSupervisor()
+                            ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
+                            : "bg-white dark:bg-slate-950/40"
+                        }`}
                       >
                         <option value="">Seleccione turno...</option>
                         <option value="MAÑANA">Mañana</option>
@@ -4590,7 +4603,12 @@ export default function NovedadesPage() {
                             tiempo_respuesta_minutos: e.target.value,
                           })
                         }
-                        className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+                        readOnly={!isSupervisor()}
+                        className={`mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-slate-900 dark:text-slate-50 ${
+                          !isSupervisor()
+                            ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
+                            : "bg-white dark:bg-slate-950/40"
+                        }`}
                         placeholder="Minutos"
                       />
                     </div>
@@ -4614,26 +4632,104 @@ export default function NovedadesPage() {
                     />
                   </div>
 
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-                    <input
-                      type="checkbox"
-                      id="requiere_seguimiento"
-                      checked={atencionData.requiere_seguimiento}
+                  {/* Personal Seguridad Adicional (Opcional) */}
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-medium text-slate-700 dark:text-slate-200">Personal Adicional (Opcional)</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">
+                          Personal Seguridad #2
+                        </label>
+                        <select
+                          value={atencionData.personal_seguridad2_id}
+                          onChange={(e) =>
+                            setAtencionData({
+                              ...atencionData,
+                              personal_seguridad2_id: e.target.value,
+                            })
+                          }
+                          className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 text-sm"
+                        >
+                          <option value="">Seleccione personal...</option>
+                          {personalSeguridad.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.doc_identidad || p.codigo} - {p.nombres}{" "}
+                              {p.apellido_paterno}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">
+                          Personal Seguridad #3
+                        </label>
+                        <select
+                          value={atencionData.personal_seguridad3_id}
+                          onChange={(e) =>
+                            setAtencionData({
+                              ...atencionData,
+                              personal_seguridad3_id: e.target.value,
+                            })
+                          }
+                          className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 text-sm"
+                        >
+                          <option value="">Seleccione personal...</option>
+                          {personalSeguridad.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.doc_identidad || p.codigo} - {p.nombres}{" "}
+                              {p.apellido_paterno}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">
+                          Personal Seguridad #4
+                        </label>
+                        <select
+                          value={atencionData.personal_seguridad4_id}
+                          onChange={(e) =>
+                            setAtencionData({
+                              ...atencionData,
+                              personal_seguridad4_id: e.target.value,
+                            })
+                          }
+                          className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 text-sm"
+                        >
+                          <option value="">Seleccione personal...</option>
+                          {personalSeguridad.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.doc_identidad || p.codigo} - {p.nombres}{" "}
+                              {p.apellido_paterno}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Unidad/Oficina al final */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                      Unidad/Oficina
+                    </label>
+                    <select
+                      value={atencionData.unidad_oficina_id}
                       onChange={(e) =>
                         setAtencionData({
                           ...atencionData,
-                          requiere_seguimiento: e.target.checked,
+                          unidad_oficina_id: e.target.value,
                         })
                       }
-                      className="w-5 h-5 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
-                    />
-                    <label
-                      htmlFor="requiere_seguimiento"
-                      className="text-sm font-medium text-amber-800 dark:text-amber-200"
+                      className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
                     >
-                      ¿Requiere Seguimiento? (Habilita campos adicionales en
-                      pestaña Seguimiento)
-                    </label>
+                      <option value="">Seleccione unidad...</option>
+                      {unidadesOficina.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.nombre}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               )}
