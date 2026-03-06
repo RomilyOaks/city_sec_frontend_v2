@@ -185,7 +185,7 @@ export default function VehiculoCuadrantesModal({ vehiculo, onClose }) {
                 {vehiculo.placa} - {vehiculo.nombre}
               </h3>
               <p className="text-sm text-slate-600 dark:text-slate-400">
-                {vehiculo.marca} {vehiculo.modelo_vehiculo} • {vehiculo.tipo?.nombre || 'Tipo no especificado'}
+                {vehiculo.marca} {vehiculo.modelo_vehiculo} • {vehiculo.tipoVehiculo?.nombre || 'Tipo no especificado'}
               </p>
             </div>
             <div className="text-right">

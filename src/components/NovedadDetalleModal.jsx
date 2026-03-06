@@ -807,7 +807,7 @@ export default function NovedadDetalleModal({
                           <span className="text-xs text-slate-500 dark:text-slate-400">Cerrado por</span>
                           <p className="text-sm font-medium text-slate-900 dark:text-slate-50 mt-0.5">
                             {novedad.usuarioCierre?.nombres
-                              ? `${novedad.usuarioCierre.nombres} ${novedad.usuarioCierre.apellido_paterno || ""}`.trim()
+                              ? `${novedad.usuarioCierre.nombres} ${novedad.usuarioCierre.apellidos || novedad.usuarioCierre.apellido_paterno || ""}`.trim()
                               : novedad.usuarioCierre?.username || novedad.usuarioCierre?.email || "—"}
                           </p>
                         </div>

@@ -74,6 +74,7 @@ import {
   getHistorialEstados,
   getNovedadById,
   listRadiosTetra,
+  crearHistorialNovedad,
 } from "../../services/novedadesService.js";
 import {
   searchDirecciones,
@@ -1422,6 +1423,13 @@ export default function NovedadesPage() {
       return;
     }
 
+    // Validar Fecha de Cierre obligatoria cuando estado = CERRADA (id=7)
+    if (isSupervisor() && Number(atencionData.estado_novedad_id) >= 7 && !atencionData.fecha_cierre) {
+      toast.error("Debe ingresar la Fecha de Cierre al cerrar la novedad");
+      setAtencionTab(1);
+      return;
+    }
+
     setSaving(true);
     try {
       await asignarRecursos(selectedNovedad.id, {
@@ -1468,6 +1476,35 @@ export default function NovedadesPage() {
             ? Number(atencionData.perdidas_materiales_estimadas)
             : undefined,
       });
+
+      // Registrar en historial de estados
+      try {
+        const nuevoEstadoId = atencionData.estado_novedad_id
+          ? Number(atencionData.estado_novedad_id)
+          : null;
+        const cambioEstado = nuevoEstadoId && nuevoEstadoId !== Number(selectedNovedad.estado_novedad_id);
+        const vehiculoSel = vehiculos.find((v) => v.id === Number(atencionData.vehiculo_id));
+        const vehiculoDesc = vehiculoSel
+          ? [vehiculoSel.tipoVehiculo?.nombre, vehiculoSel.placa].filter(Boolean).join(' - ')
+          : null;
+        const personalSel = personalSeguridad.find((p) => p.id === Number(atencionData.personal_cargo_id));
+        const personalDesc = personalSel
+          ? `${personalSel.nombres} ${personalSel.apellido_paterno}`.trim()
+          : null;
+        const partes = [];
+        if (vehiculoDesc) partes.push(`Vehículo: ${vehiculoDesc}`);
+        if (personalDesc) partes.push(`Personal: ${personalDesc}`);
+        if (atencionData.observaciones) partes.push(`Obs: ${atencionData.observaciones}`);
+        const obsHistorial = partes.length > 0 ? partes.join(' | ') : 'Atención registrada';
+        await crearHistorialNovedad(
+          selectedNovedad.id,
+          obsHistorial,
+          cambioEstado ? nuevoEstadoId : null
+        );
+      } catch {
+        // No bloquear si falla el historial
+      }
+
       toast.success("Atención registrada exitosamente");
       setShowAtencionModal(false);
       setSelectedNovedad(null);
@@ -4491,66 +4528,7 @@ export default function NovedadesPage() {
                     </div>
                   </div>
 
-                  {/* Fila 2: Estado de Novedad + Requiere Seguimiento */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-                        Estado de Novedad *
-                      </label>
-                      <select
-                        value={atencionData.estado_novedad_id}
-                        onChange={(e) =>
-                          setAtencionData({
-                            ...atencionData,
-                            estado_novedad_id: e.target.value,
-                          })
-                        }
-                        className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
-                      >
-                        <option value="">Seleccione estado...</option>
-                        {estados
-                          .filter((e) => {
-                            if (isSupervisor()) return true;
-                            return e.id > selectedNovedad.estado_novedad_id;
-                          })
-                          .map((e) => (
-                            <option key={e.id} value={e.id}>
-                              {e.nombre}
-                            </option>
-                          ))}
-                      </select>
-                    </div>
-                    <div className="flex items-end">
-                      <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 w-full">
-                        <input
-                          type="checkbox"
-                          id="requiere_seguimiento"
-                          checked={atencionData.requiere_seguimiento}
-                          onChange={(e) => {
-                            setAtencionData({
-                              ...atencionData,
-                              requiere_seguimiento: e.target.checked,
-                            });
-                            if (e.target.checked) {
-                              toast("Completar datos en pestaña Seguimiento", {
-                                icon: "📋",
-                                duration: 3000,
-                              });
-                            }
-                          }}
-                          className="w-5 h-5 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
-                        />
-                        <label
-                          htmlFor="requiere_seguimiento"
-                          className="text-sm font-medium text-amber-800 dark:text-amber-200"
-                        >
-                          ¿Requiere Seguimiento?
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Fila 3: Auditoría del Despacho — fila completa con Turno y Tiempo Respuesta */}
+                  {/* Fila 2: Auditoría del Despacho — fila completa con Turno y Tiempo Respuesta */}
                   <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
                     <span className="text-xs font-medium text-blue-600 dark:text-blue-400 flex items-center gap-1 mb-3">
                       <Clock size={13} />
@@ -4749,7 +4727,7 @@ export default function NovedadesPage() {
               {/* Tab 1: Seguimiento */}
               {atencionTab === 1 && (() => {
                 const requiereSeg = atencionData.requiere_seguimiento;
-                const estadoId = Number(selectedNovedad.estado_novedad_id);
+                const estadoId = Number(atencionData.estado_novedad_id || selectedNovedad.estado_novedad_id);
                 const isCerrada = estadoId >= 7;
                 const fechaLlegadaVacia = !atencionData.fecha_llegada;
 
@@ -4805,7 +4783,7 @@ export default function NovedadesPage() {
                     <h4 className="font-medium text-slate-900 dark:text-slate-50 mb-3">Datos de Seguimiento</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">Fecha Llegada</label>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">Fecha de Llegada</label>
                         <input
                           type="datetime-local"
                           value={atencionData.fecha_llegada}
@@ -4816,7 +4794,8 @@ export default function NovedadesPage() {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-                          Fecha Cierre
+                          Fecha de Cierre
+                          {isCerrada && isSupervisor() && <span className="text-xs text-red-500 ml-1">*</span>}
                           {!isSupervisor() && <span className="text-xs text-slate-400 ml-1">(Solo supervisor)</span>}
                         </label>
                         <input
@@ -4895,6 +4874,65 @@ export default function NovedadesPage() {
 
                 return (
                   <div className="space-y-4">
+                    {/* Fila 1: Estado de Novedad + Requiere Seguimiento */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                          Estado de Novedad *
+                        </label>
+                        <select
+                          value={atencionData.estado_novedad_id}
+                          onChange={(e) =>
+                            setAtencionData({
+                              ...atencionData,
+                              estado_novedad_id: e.target.value,
+                            })
+                          }
+                          className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+                        >
+                          <option value="">Seleccione estado...</option>
+                          {estados
+                            .filter((e) => {
+                              if (isSupervisor()) return true;
+                              return e.id > selectedNovedad.estado_novedad_id;
+                            })
+                            .map((e) => (
+                              <option key={e.id} value={e.id}>
+                                {e.nombre}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                      <div className="flex items-end">
+                        <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 w-full">
+                          <input
+                            type="checkbox"
+                            id="requiere_seguimiento"
+                            checked={atencionData.requiere_seguimiento}
+                            onChange={(e) => {
+                              setAtencionData({
+                                ...atencionData,
+                                requiere_seguimiento: e.target.checked,
+                              });
+                              if (e.target.checked) {
+                                toast("Completar datos en pestaña Seguimiento", {
+                                  icon: "📋",
+                                  duration: 3000,
+                                });
+                              }
+                            }}
+                            className="w-5 h-5 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                          />
+                          <label
+                            htmlFor="requiere_seguimiento"
+                            className="text-sm font-medium text-amber-800 dark:text-amber-200"
+                          >
+                            ¿Requiere Seguimiento?
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
                     {requiereSeg && datosSeguimientoBlock}
                     {historialBlock}
                   </div>

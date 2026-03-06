@@ -136,9 +136,8 @@ export async function buildReporteData(params) {
             // Datos del vehículo
             codigo_vehiculo: veh.vehiculo?.codigo_vehiculo || veh.vehiculo?.codigo || "-",
             placa: veh.vehiculo?.placa || "-",
-            // Acceder a veh.vehiculo.tipo.nombre según la estructura del backend
-            tipo_vehiculo: veh.vehiculo?.tipo?.nombre || veh.vehiculo?.tipo_vehiculo?.nombre || "-",
-            tipo_vehiculo_id: veh.vehiculo?.tipo_id || veh.vehiculo?.tipo?.id || veh.vehiculo?.tipo_vehiculo_id,
+            tipo_vehiculo: veh.vehiculo?.tipoVehiculo?.nombre || "-",
+            tipo_vehiculo_id: veh.vehiculo?.tipoVehiculo?.id || veh.vehiculo?.tipo_vehiculo_id,
             // Unidad/Oficina
             unidad_oficina: veh.vehiculo?.unidad?.nombre || "-",
             // SOAT
