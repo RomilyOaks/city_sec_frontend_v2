@@ -355,7 +355,10 @@ export default function NovedadesPage() {
   const isSupervisor = () => {
     const roles = user?.roles || user?.Roles || [];
     const elevated = ["supervisor", "admin", "super_admin"];
-    return roles.some(r => elevated.includes((r?.slug || r?.Slug || "").toLowerCase()));
+    return roles.some(r => {
+      const s = (r?.slug || r?.Slug || r?.nombre || r?.name || "").toLowerCase();
+      return elevated.includes(s);
+    });
   };
 
   // Determinar si se puede mostrar el botón atender según el estado de la novedad
@@ -4806,8 +4809,8 @@ export default function NovedadesPage() {
                           type="datetime-local"
                           value={atencionData.fecha_cierre}
                           onChange={(e) => setAtencionData({ ...atencionData, fecha_cierre: e.target.value })}
-                          disabled={!isSupervisor()}
-                          className={isSupervisor() ? clsEditable : clsReadonly}
+                          disabled={!isSupervisor() || !isCerrada}
+                          className={isSupervisor() && isCerrada ? clsEditable : clsReadonly}
                         />
                       </div>
                     </div>
