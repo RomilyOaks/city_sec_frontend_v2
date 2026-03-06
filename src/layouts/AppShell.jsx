@@ -315,6 +315,11 @@ export default function AppShell() {
                     Roles y Permisos
                   </SidebarLink>
                 )}
+                {canAccess("admin_roles") && (
+                  <SidebarLink to="/admin/rol-estados-novedad" icon={Shield}>
+                    Estados Novedad por Rol
+                  </SidebarLink>
+                )}
                 {canAccess("admin_usuarios") && (
                   <SidebarLink to="/admin/usuarios" icon={User}>
                     Usuarios
