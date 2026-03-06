@@ -1425,6 +1425,9 @@ export default function NovedadesPage() {
 
     // Validar Fecha de Cierre obligatoria cuando estado = CERRADA (id=7)
     if (isSupervisor() && Number(atencionData.estado_novedad_id) >= 7 && !atencionData.fecha_cierre) {
+      if (!atencionData.requiere_seguimiento) {
+        setAtencionData((prev) => ({ ...prev, requiere_seguimiento: true }));
+      }
       toast.error("Debe ingresar la Fecha de Cierre al cerrar la novedad");
       setAtencionTab(1);
       return;
