@@ -107,7 +107,7 @@ export default function VerVehiculoModal({ isOpen, onClose, vehiculo }) {
                     Tipo de Vehículo
                   </label>
                   <p className="text-base text-slate-900 dark:text-slate-50">
-                    {vehiculo.vehiculo?.tipo?.nombre || "—"}
+                    {vehiculo.vehiculo?.tipoVehiculo?.nombre || "—"}
                   </p>
                 </div>
                 <div>

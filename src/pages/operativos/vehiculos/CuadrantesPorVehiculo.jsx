@@ -533,7 +533,7 @@ export default function CuadrantesPorVehiculo() {
               <div>
                 <span className="text-sm text-slate-500 dark:text-slate-400">Tipo:</span>
                 <p className="font-medium text-slate-900 dark:text-slate-50">
-                  {vehiculo.tipo_vehiculo?.nombre || vehiculo.tipo || "-"}
+                  {vehiculo.tipoVehiculo?.nombre || "-"}
                 </p>
               </div>
               <div>

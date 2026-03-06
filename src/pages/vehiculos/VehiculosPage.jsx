@@ -664,8 +664,8 @@ export default function VehiculosPage() {
    */
   const getTipoNombre = (vehiculo) => {
     // Primero intentar con datos incluidos del backend
+    if (vehiculo?.tipoVehiculo?.nombre) return vehiculo.tipoVehiculo.nombre;
     if (vehiculo?.VehiculoTipo?.nombre) return vehiculo.VehiculoTipo.nombre;
-    if (vehiculo?.tipo?.nombre) return vehiculo.tipo.nombre;
     // Fallback a buscar en catálogo local
     const tipo = tiposVehiculo.find((t) => t.id === vehiculo?.tipo_id);
     return tipo?.nombre || tipo?.tipo || "—";
