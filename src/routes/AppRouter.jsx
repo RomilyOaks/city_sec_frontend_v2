@@ -27,6 +27,7 @@ import NovedadesPage from "../pages/novedades/NovedadesPage.jsx";
 import AdminUsuariosPage from "../pages/admin/AdminUsuariosPage.jsx";
 import RolesPermisosPage from "../pages/admin/RolesPermisosPage.jsx";
 import PermisosPage from "../pages/admin/PermisosPage.jsx";
+import RolEstadosNovedadPage from "../pages/admin/RolEstadosNovedadPage.jsx";
 
 // ============================================
 // IMPORTAR PÁGINAS DEL MÓDULO CALLES
@@ -107,6 +108,14 @@ export default function AppRouter() {
           element={
             <ProtectedRoute routeKey="admin_roles">
               <RolesPermisosPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/rol-estados-novedad"
+          element={
+            <ProtectedRoute routeKey="admin_roles">
+              <RolEstadosNovedadPage />
             </ProtectedRoute>
           }
         />
