@@ -761,6 +761,7 @@ export default function NovedadDetalleModal({
               {/* Tab 4: Seguimiento */}
               {activeTab === 4 && (
                 <div className="space-y-4">
+                  {/* Turno + Tiempo Respuesta */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
                       <span className="text-xs font-medium text-slate-500">
@@ -775,12 +776,44 @@ export default function NovedadDetalleModal({
                         Tiempo Respuesta
                       </span>
                       <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {novedad.tiempo_respuesta_minutos
-                          ? `${novedad.tiempo_respuesta_minutos} min`
+                        {(novedad.tiempo_respuesta_minutos ?? novedad.tiempo_respuesta_min)
+                          ? `${novedad.tiempo_respuesta_minutos ?? novedad.tiempo_respuesta_min} min`
                           : "—"}
                       </p>
                     </div>
                   </div>
+
+                  {/* Datos de Seguimiento — solo si requiere_seguimiento */}
+                  {(novedad.requiere_seguimiento === true || novedad.requiere_seguimiento === 1) && (
+                    <div className="p-3 rounded-lg border border-primary-200 dark:border-primary-700 bg-primary-50/50 dark:bg-primary-900/10">
+                      <span className="text-xs font-medium text-primary-600 dark:text-primary-400 flex items-center gap-1 mb-3">
+                        <Clock size={13} />
+                        Datos de Seguimiento
+                      </span>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <span className="text-xs text-slate-500 dark:text-slate-400">Fecha Llegada</span>
+                          <p className="text-sm font-medium text-slate-900 dark:text-slate-50 mt-0.5">
+                            {formatFecha(novedad.fecha_llegada)}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-xs text-slate-500 dark:text-slate-400">Fecha Cierre</span>
+                          <p className="text-sm font-medium text-slate-900 dark:text-slate-50 mt-0.5">
+                            {formatFecha(novedad.fecha_cierre)}
+                          </p>
+                        </div>
+                        <div className="col-span-2">
+                          <span className="text-xs text-slate-500 dark:text-slate-400">Cerrado por</span>
+                          <p className="text-sm font-medium text-slate-900 dark:text-slate-50 mt-0.5">
+                            {novedad.usuarioCierre?.nombres
+                              ? `${novedad.usuarioCierre.nombres} ${novedad.usuarioCierre.apellido_paterno || ""}`.trim()
+                              : novedad.usuarioCierre?.username || novedad.usuarioCierre?.email || "—"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
                     {loadingHistorial ? (

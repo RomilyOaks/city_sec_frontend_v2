@@ -50,7 +50,6 @@ export default function CuadranteVehiculoFormModal({
   });
 
   // Estados de UI
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [vehiculos, setVehiculos] = useState([]);
   const [vehiculosAsignadosCuadrante, setVehiculosAsignadosCuadrante] = useState([]);
@@ -367,12 +366,11 @@ export default function CuadranteVehiculoFormModal({
         estado: formData.estado
       };
 
-      let response;
       if (mode === "create") {
-        response = await cuadranteVehiculoAsignadoService.createAsignacion(dataToSubmit);
+        await cuadranteVehiculoAsignadoService.createAsignacion(dataToSubmit);
         toast.success("Asignación creada exitosamente");
       } else {
-        response = await cuadranteVehiculoAsignadoService.updateAsignacion(asignacion.id, dataToSubmit);
+        await cuadranteVehiculoAsignadoService.updateAsignacion(asignacion.id, dataToSubmit);
         toast.success("Asignación actualizada exitosamente");
       }
 

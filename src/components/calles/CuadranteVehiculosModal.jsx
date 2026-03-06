@@ -243,7 +243,7 @@ export default function CuadranteVehiculosModal({ isOpen, onClose, cuadrante }) 
       await cuadranteVehiculoAsignadoService.deleteAsignacion(asignacion.id);
       toast.success("Asignación eliminada exitosamente");
       await cargarAsignaciones();
-    } catch (error) {
+    } catch {
       toast.error("Error al eliminar la asignación");
     }
   };
@@ -261,7 +261,7 @@ export default function CuadranteVehiculosModal({ isOpen, onClose, cuadrante }) 
       await cuadranteVehiculoAsignadoService.reactivarAsignacion(asignacion.id);
       toast.success("Asignación reactivada exitosamente");
       await cargarAsignaciones();
-    } catch (error) {
+    } catch {
       toast.error("Error al reactivar la asignación");
     }
   };
@@ -282,18 +282,6 @@ export default function CuadranteVehiculosModal({ isOpen, onClose, cuadrante }) 
       toast.error("Error al cargar los detalles de la asignación");
     } finally {
       setViewLoading(false);
-    }
-  };
-
-  // Manejar cambio de estado
-  const handleCambiarEstado = async (asignacion) => {
-    try {
-      const nuevoEstado = !asignacion.estado;
-      await cuadranteVehiculoAsignadoService.toggleEstado(asignacion.id, nuevoEstado);
-      toast.success(`Asignación ${nuevoEstado ? 'activada' : 'desactivada'} exitosamente`);
-      await cargarAsignaciones();
-    } catch (error) {
-      toast.error("Error al cambiar el estado");
     }
   };
 

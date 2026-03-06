@@ -26,13 +26,15 @@ export default function CalleCuadranteViewModal({
   // Bloquear scroll del body cuando el modal está abierto
   useBodyScrollLock(isOpen);
 
-  if (!isOpen || !calleCuadrante) return null;
+  const handleClose = () => {
+    onClose();
+  };
 
   // Manejo de tecla ESC para cerrar
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === "Escape") {
-        handleClose();
+        onClose();
       }
     };
 
@@ -43,11 +45,9 @@ export default function CalleCuadranteViewModal({
     return () => {
       document.removeEventListener("keydown", handleEscape);
     };
-  }, [isOpen]);
+  }, [isOpen, onClose]);
 
-  const handleClose = () => {
-    onClose();
-  };
+  if (!isOpen || !calleCuadrante) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

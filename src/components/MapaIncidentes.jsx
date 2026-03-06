@@ -319,6 +319,7 @@ export default function MapaIncidentes({
 
   // Cargar recursos al montar el componente
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchRecursos();
   }, []);
 
