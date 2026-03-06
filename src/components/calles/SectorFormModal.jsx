@@ -123,7 +123,7 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
       } else {
         return false; // No encontrado
       }
-    } catch (err) {
+    } catch {
       return false; // Error
     }
   }
@@ -141,7 +141,7 @@ export default function SectorFormModal({ isOpen, onClose, sector, onSuccess }) 
       const ubigeosList = Array.isArray(res) ? res : [];
       setUbigeos(ubigeosList);
       setShowUbigeoDropdown(ubigeosList.length > 0);
-    } catch (err) {
+    } catch {
       setUbigeos([]);
       setShowUbigeoDropdown(false);
     }

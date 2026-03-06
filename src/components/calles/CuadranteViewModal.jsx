@@ -22,11 +22,15 @@ export default function CuadranteViewModal({ isOpen, onClose, cuadrante }) {
   // Bloquear scroll del body cuando el modal está abierto
   useBodyScrollLock(isOpen);
 
+  const handleClose = () => {
+    onClose();
+  };
+
   // Manejo de tecla ESC para cerrar
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === "Escape") {
-        handleClose();
+        onClose();
       }
     };
 
@@ -37,11 +41,7 @@ export default function CuadranteViewModal({ isOpen, onClose, cuadrante }) {
     return () => {
       document.removeEventListener("keydown", handleEscape);
     };
-  }, [isOpen]);
-
-  const handleClose = () => {
-    onClose();
-  };
+  }, [isOpen, onClose]);
 
   if (!isOpen || !cuadrante) return null;
 

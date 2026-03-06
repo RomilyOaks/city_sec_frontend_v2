@@ -855,6 +855,18 @@ export default function NovedadesPage() {
     registroFormData,
   ]);
 
+  // Bloquear scroll del body cuando el modal de atención está abierto
+  useEffect(() => {
+    if (showAtencionModal) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [showAtencionModal]);
+
   // 🆕 useEffect hooks para Panel REGISTRO DE LA NOVEDAD
 
   // Debounced search de dirección
@@ -4310,60 +4322,81 @@ export default function NovedadesPage() {
 
       {/* Modal de Atención/Seguimiento */}
       {showAtencionModal && selectedNovedad && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          style={{ overflow: 'hidden' }}
+          onWheel={(e) => e.stopPropagation()}
+        >
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700">
+            <div className="flex items-start justify-between p-4 border-b border-slate-200 dark:border-slate-700">
               <div className="flex items-center gap-3">
-                <svg
-                  className="w-8 h-8"
-                  viewBox="0 0 32 32"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <defs>
-                    <linearGradient
-                      id="shieldGradAtencion"
-                      x1="0%"
-                      y1="0%"
-                      x2="0%"
-                      y2="100%"
-                    >
-                      <stop
-                        offset="0%"
-                        style={{ stopColor: "#4F7942", stopOpacity: 1 }}
-                      />
-                      <stop
-                        offset="100%"
-                        style={{ stopColor: "#2D4A22", stopOpacity: 1 }}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <path
-                    d="M16 2 L28 6 L28 14 C28 22 22 28 16 30 C10 28 4 22 4 14 L4 6 Z"
-                    fill="url(#shieldGradAtencion)"
-                    stroke="#1a2e14"
-                    strokeWidth="1"
-                  />
-                  <text
-                    x="16"
-                    y="20"
-                    fontFamily="Arial, sans-serif"
-                    fontSize="14"
-                    fontWeight="bold"
-                    fill="#FFFFFF"
-                    textAnchor="middle"
-                  >
-                    C
-                  </text>
-                </svg>
+                <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                  <svg className="w-6 h-6" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                      <linearGradient id="shieldGradAtencion" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" style={{ stopColor: "#4F7942", stopOpacity: 1 }} />
+                        <stop offset="100%" style={{ stopColor: "#2D4A22", stopOpacity: 1 }} />
+                      </linearGradient>
+                    </defs>
+                    <path d="M16 2 L28 6 L28 14 C28 22 22 28 16 30 C10 28 4 22 4 14 L4 6 Z" fill="url(#shieldGradAtencion)" stroke="#1a2e14" strokeWidth="1" />
+                    <text x="16" y="20" fontFamily="Arial, sans-serif" fontSize="14" fontWeight="bold" fill="#FFFFFF" textAnchor="middle">C</text>
+                  </svg>
+                </div>
                 <div>
                   <h2 className="text-xl font-bold text-slate-900 dark:text-slate-50">
                     Atención de Novedad
                   </h2>
-                  <p className="text-sm text-slate-500 mt-1">
-                    {selectedNovedad.novedad_code} -{" "}
-                    {selectedNovedad.novedadTipoNovedad?.nombre}
-                  </p>
+                  <div className="flex items-center gap-2 flex-wrap mt-1">
+                    <span className="font-mono text-xs text-slate-500 dark:text-slate-400">
+                      #{selectedNovedad.novedad_code}
+                    </span>
+                    {selectedNovedad.prioridad_actual && (
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                        selectedNovedad.prioridad_actual === 'ALTA'
+                          ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                          : selectedNovedad.prioridad_actual === 'MEDIA'
+                          ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
+                          : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                      }`}>
+                        {selectedNovedad.prioridad_actual}
+                      </span>
+                    )}
+                    {selectedNovedad.novedadEstado && (
+                      <span
+                        className="px-2 py-0.5 rounded-full text-xs font-medium"
+                        style={selectedNovedad.novedadEstado.color_hex ? {
+                          backgroundColor: `${selectedNovedad.novedadEstado.color_hex}25`,
+                          color: selectedNovedad.novedadEstado.color_hex,
+                        } : {}}
+                      >
+                        {selectedNovedad.novedadEstado.nombre}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50 mt-0.5">
+                    {selectedNovedad.novedadTipoNovedad?.nombre || 'Novedad'}
+                    {selectedNovedad.novedadSubtipoNovedad?.nombre && (
+                      <span className="font-normal text-sm text-slate-500 dark:text-slate-400">
+                        {' / '}{selectedNovedad.novedadSubtipoNovedad.nombre}
+                      </span>
+                    )}
+                  </h3>
+                  {(selectedNovedad.localizacion || selectedNovedad.referencia_ubicacion) && (
+                    <p className="text-xs font-semibold text-amber-700 dark:text-amber-300 mt-0.5 truncate max-w-lg"
+                      title={selectedNovedad.localizacion
+                        ? selectedNovedad.referencia_ubicacion
+                          ? `${selectedNovedad.localizacion} (${selectedNovedad.referencia_ubicacion})`
+                          : selectedNovedad.localizacion
+                        : selectedNovedad.referencia_ubicacion}>
+                      <MapPin size={11} className="inline mr-1" />
+                      {selectedNovedad.localizacion
+                        ? selectedNovedad.referencia_ubicacion
+                          ? `${selectedNovedad.localizacion} (${selectedNovedad.referencia_ubicacion})`
+                          : selectedNovedad.localizacion
+                        : selectedNovedad.referencia_ubicacion}
+                    </p>
+                  )}
                 </div>
               </div>
               <button
@@ -4371,7 +4404,7 @@ export default function NovedadesPage() {
                   setShowAtencionModal(false);
                   setSelectedNovedad(null);
                 }}
-                className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex-shrink-0"
               >
                 <X size={20} className="text-slate-500" />
               </button>
@@ -4408,62 +4441,8 @@ export default function NovedadesPage() {
               {/* Tab 0: Recursos Asignados */}
               {atencionTab === 0 && (
                 <div className="space-y-4">
-                  {/* Primera fila: Estado de Novedad y Requiere Seguimiento */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-                        Estado de Novedad *
-                      </label>
-                      <select
-                        value={atencionData.estado_novedad_id}
-                        onChange={(e) =>
-                          setAtencionData({
-                            ...atencionData,
-                            estado_novedad_id: e.target.value,
-                          })
-                        }
-                        className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
-                      >
-                        <option value="">Seleccione estado...</option>
-                        {estados
-                          .filter((e) => {
-                            // Supervisor puede ver todos los estados
-                            if (isSupervisor()) return true;
-                            // Otros usuarios solo ven estados mayores al actual
-                            return e.id > selectedNovedad.estado_novedad_id;
-                          })
-                          .map((e) => (
-                            <option key={e.id} value={e.id}>
-                              {e.nombre}
-                            </option>
-                          ))}
-                      </select>
-                    </div>
-                    <div className="flex items-end">
-                      <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 w-full">
-                        <input
-                          type="checkbox"
-                          id="requiere_seguimiento"
-                          checked={atencionData.requiere_seguimiento}
-                          onChange={(e) =>
-                            setAtencionData({
-                              ...atencionData,
-                              requiere_seguimiento: e.target.checked,
-                            })
-                          }
-                          className="w-5 h-5 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
-                        />
-                        <label
-                          htmlFor="requiere_seguimiento"
-                          className="text-sm font-medium text-amber-800 dark:text-amber-200"
-                        >
-                          ¿Requiere Seguimiento?
-                        </label>
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Segunda fila: Vehículo para operativo y Auditoría del Despacho */}
+                  {/* Fila 1: Vehículo + Personal a pie */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
@@ -4482,138 +4461,171 @@ export default function NovedadesPage() {
                         <option value="">Seleccione vehículo...</option>
                         {vehiculos.map((v) => (
                           <option key={v.id} value={v.id}>
-                            {v.tipoVehiculo?.nombre ? `${v.tipoVehiculo.nombre} - ` : ''}{v.placa} - {v.marca} {v.modelo}
+                            {[v.tipoVehiculo?.nombre, v.placa, v.marca, v.modelo_vehiculo || v.modelo].filter(Boolean).join(' - ')}
                           </option>
                         ))}
                       </select>
                     </div>
-                    
-                    {/* Auditoría del Despacho */}
-                    <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                      <span className="text-xs font-medium text-blue-600 dark:text-blue-400 flex items-center gap-1 mb-2">
-                        <Clock size={13} />
-                        Auditoría del Despacho
-                      </span>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <span className="text-xs text-slate-500 dark:text-slate-400">Fecha Despacho</span>
-                          <p className="text-sm font-medium text-slate-900 dark:text-slate-50">
-                            {selectedNovedad?.fecha_despacho ? new Date(selectedNovedad.fecha_despacho).toLocaleString('es-PE', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            }) : '—'}
-                          </p>
-                        </div>
-                        <div>
-                          <span className="text-xs text-slate-500 dark:text-slate-400">Despachado por</span>
-                          <p className="text-sm font-medium text-slate-900 dark:text-slate-50">
-                            {selectedNovedad?.usuarioDespacho?.username || selectedNovedad?.usuarioDespacho?.email || '—'}
-                          </p>
-                        </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                        Personal para operativo a pie
+                      </label>
+                      <select
+                        value={atencionData.personal_cargo_id}
+                        onChange={(e) =>
+                          setAtencionData({
+                            ...atencionData,
+                            personal_cargo_id: e.target.value,
+                          })
+                        }
+                        className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+                      >
+                        <option value="">Seleccione personal...</option>
+                        {personalSeguridad.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {[p.doc_tipo, p.doc_numero].filter(Boolean).join(' ') || p.codigo} - {p.nombres}{" "}
+                            {p.apellido_paterno}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Fila 2: Estado de Novedad + Requiere Seguimiento */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                        Estado de Novedad *
+                      </label>
+                      <select
+                        value={atencionData.estado_novedad_id}
+                        onChange={(e) =>
+                          setAtencionData({
+                            ...atencionData,
+                            estado_novedad_id: e.target.value,
+                          })
+                        }
+                        className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+                      >
+                        <option value="">Seleccione estado...</option>
+                        {estados
+                          .filter((e) => {
+                            if (isSupervisor()) return true;
+                            return e.id > selectedNovedad.estado_novedad_id;
+                          })
+                          .map((e) => (
+                            <option key={e.id} value={e.id}>
+                              {e.nombre}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                    <div className="flex items-end">
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 w-full">
+                        <input
+                          type="checkbox"
+                          id="requiere_seguimiento"
+                          checked={atencionData.requiere_seguimiento}
+                          onChange={(e) => {
+                            setAtencionData({
+                              ...atencionData,
+                              requiere_seguimiento: e.target.checked,
+                            });
+                            if (e.target.checked) {
+                              toast("Completar datos en pestaña Seguimiento", {
+                                icon: "📋",
+                                duration: 3000,
+                              });
+                            }
+                          }}
+                          className="w-5 h-5 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                        />
+                        <label
+                          htmlFor="requiere_seguimiento"
+                          className="text-sm font-medium text-amber-800 dark:text-amber-200"
+                        >
+                          ¿Requiere Seguimiento?
+                        </label>
                       </div>
                     </div>
                   </div>
 
-                  {/* Personal para operativo a pie */}
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-                      Personal para operativo a pie
-                    </label>
-                    <select
-                      value={atencionData.personal_cargo_id}
-                      onChange={(e) =>
-                        setAtencionData({
-                          ...atencionData,
-                          personal_cargo_id: e.target.value,
-                        })
-                      }
-                      className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
-                    >
-                      <option value="">Seleccione personal...</option>
-                      {personalSeguridad.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.doc_identidad || p.codigo} - {p.nombres}{" "}
-                          {p.apellido_paterno}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-                        Fecha/Hora Despacho
-                      </label>
-                      <input
-                        type="datetime-local"
-                        value={atencionData.fecha_despacho}
-                        onChange={(e) =>
-                          setAtencionData({
-                            ...atencionData,
-                            fecha_despacho: e.target.value,
-                          })
-                        }
-                        readOnly={!isSupervisor()}
-                        className={`mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-slate-900 dark:text-slate-50 ${
-                          !isSupervisor()
-                            ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
-                            : "bg-white dark:bg-slate-950/40"
-                        }`}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-                        Turno
-                      </label>
-                      <select
-                        value={atencionData.turno}
-                        onChange={(e) =>
-                          setAtencionData({
-                            ...atencionData,
-                            turno: e.target.value,
-                          })
-                        }
-                        disabled={!isSupervisor()}
-                        className={`mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-slate-900 dark:text-slate-50 ${
-                          !isSupervisor()
-                            ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
-                            : "bg-white dark:bg-slate-950/40"
-                        }`}
-                      >
-                        <option value="">Seleccione turno...</option>
-                        <option value="MAÑANA">Mañana</option>
-                        <option value="TARDE">Tarde</option>
-                        <option value="NOCHE">Noche</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-                        Tiempo Respuesta (min)
-                      </label>
-                      <input
-                        type="number"
-                        value={atencionData.tiempo_respuesta_minutos}
-                        onChange={(e) =>
-                          setAtencionData({
-                            ...atencionData,
-                            tiempo_respuesta_minutos: e.target.value,
-                          })
-                        }
-                        readOnly={!isSupervisor()}
-                        className={`mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-slate-900 dark:text-slate-50 ${
-                          !isSupervisor()
-                            ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
-                            : "bg-white dark:bg-slate-950/40"
-                        }`}
-                        placeholder="Minutos"
-                      />
+                  {/* Fila 3: Auditoría del Despacho — fila completa con Turno y Tiempo Respuesta */}
+                  <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                    <span className="text-xs font-medium text-blue-600 dark:text-blue-400 flex items-center gap-1 mb-3">
+                      <Clock size={13} />
+                      Auditoría del Despacho
+                    </span>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">Fecha Despacho</span>
+                        <p className="text-sm font-medium text-slate-900 dark:text-slate-50 mt-0.5">
+                          {selectedNovedad?.fecha_despacho ? new Date(selectedNovedad.fecha_despacho).toLocaleString('es-PE', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          }) : '—'}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">Despachado por</span>
+                        <p className="text-sm font-medium text-slate-900 dark:text-slate-50 mt-0.5">
+                          {selectedNovedad?.usuarioDespacho?.username || selectedNovedad?.usuarioDespacho?.email || '—'}
+                        </p>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-500 dark:text-slate-400 mb-0.5">
+                          Turno
+                        </label>
+                        <select
+                          value={atencionData.turno}
+                          onChange={(e) =>
+                            setAtencionData({
+                              ...atencionData,
+                              turno: e.target.value,
+                            })
+                          }
+                          disabled={!isSupervisor()}
+                          className={`w-full rounded-lg border px-2 py-1.5 text-sm text-slate-900 dark:text-slate-50 ${
+                            !isSupervisor()
+                              ? 'border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 cursor-not-allowed'
+                              : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800'
+                          }`}
+                        >
+                          <option value="">— Turno —</option>
+                          <option value="MAÑANA">Mañana</option>
+                          <option value="TARDE">Tarde</option>
+                          <option value="NOCHE">Noche</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-500 dark:text-slate-400 mb-0.5">
+                          Tiempo Respuesta (min)
+                        </label>
+                        <input
+                          type="number"
+                          value={atencionData.tiempo_respuesta_minutos}
+                          onChange={(e) =>
+                            setAtencionData({
+                              ...atencionData,
+                              tiempo_respuesta_minutos: e.target.value,
+                            })
+                          }
+                          readOnly={!isSupervisor()}
+                          className={`w-full rounded-lg border px-2 py-1.5 text-sm text-slate-900 dark:text-slate-50 ${
+                            !isSupervisor()
+                              ? 'border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 cursor-not-allowed'
+                              : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800'
+                          }`}
+                          placeholder="min"
+                        />
+                      </div>
                     </div>
                   </div>
 
+                  {/* Fila 4: Observaciones */}
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
                       Observaciones
@@ -4632,8 +4644,8 @@ export default function NovedadesPage() {
                     />
                   </div>
 
-                  {/* Personal Seguridad Adicional (Opcional) */}
-                  <div className="space-y-4">
+                  {/* Fila 5: Personal Seguridad Adicional (Opcional) */}
+                  <div className="space-y-2">
                     <h4 className="text-sm font-medium text-slate-700 dark:text-slate-200">Personal Adicional (Opcional)</h4>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
@@ -4648,12 +4660,12 @@ export default function NovedadesPage() {
                               personal_seguridad2_id: e.target.value,
                             })
                           }
-                          className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 text-sm"
+                          className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 text-sm"
                         >
                           <option value="">Seleccione personal...</option>
                           {personalSeguridad.map((p) => (
                             <option key={p.id} value={p.id}>
-                              {p.doc_identidad || p.codigo} - {p.nombres}{" "}
+                              {[p.doc_tipo, p.doc_numero].filter(Boolean).join(' ')||p.codigo} - {p.nombres}{" "}
                               {p.apellido_paterno}
                             </option>
                           ))}
@@ -4671,12 +4683,12 @@ export default function NovedadesPage() {
                               personal_seguridad3_id: e.target.value,
                             })
                           }
-                          className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 text-sm"
+                          className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 text-sm"
                         >
                           <option value="">Seleccione personal...</option>
                           {personalSeguridad.map((p) => (
                             <option key={p.id} value={p.id}>
-                              {p.doc_identidad || p.codigo} - {p.nombres}{" "}
+                              {[p.doc_tipo, p.doc_numero].filter(Boolean).join(' ')||p.codigo} - {p.nombres}{" "}
                               {p.apellido_paterno}
                             </option>
                           ))}
@@ -4694,12 +4706,12 @@ export default function NovedadesPage() {
                               personal_seguridad4_id: e.target.value,
                             })
                           }
-                          className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 text-sm"
+                          className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 text-sm"
                         >
                           <option value="">Seleccione personal...</option>
                           {personalSeguridad.map((p) => (
                             <option key={p.id} value={p.id}>
-                              {p.doc_identidad || p.codigo} - {p.nombres}{" "}
+                              {[p.doc_tipo, p.doc_numero].filter(Boolean).join(' ')||p.codigo} - {p.nombres}{" "}
                               {p.apellido_paterno}
                             </option>
                           ))}
@@ -4708,7 +4720,7 @@ export default function NovedadesPage() {
                     </div>
                   </div>
 
-                  {/* Unidad/Oficina al final */}
+                  {/* Fila 6: Unidad/Oficina */}
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
                       Unidad/Oficina
@@ -4735,220 +4747,84 @@ export default function NovedadesPage() {
               )}
 
               {/* Tab 1: Seguimiento */}
-              {atencionTab === 1 && (
-                <div className="space-y-4">
-                  <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                    <h4 className="font-medium text-slate-900 dark:text-slate-50 mb-3">
-                      Información de la Novedad
-                    </h4>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-slate-500">Estado actual:</span>
-                        <span className="ml-2 font-medium text-slate-900 dark:text-slate-50">
-                          {selectedNovedad.novedadEstado?.nombre || "—"}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-slate-500">Prioridad:</span>
-                        <span className="ml-2 font-medium text-slate-900 dark:text-slate-50">
-                          {selectedNovedad.prioridad_actual || "MEDIA"}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-slate-500">
-                          Fecha ocurrencia:
-                        </span>
-                        <span className="ml-2 font-medium text-slate-900 dark:text-slate-50">
-                          {formatFecha(selectedNovedad.fecha_hora_ocurrencia)}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-slate-500">Ubicación:</span>
-                        <span className="ml-2 font-medium text-slate-900 dark:text-slate-50">
-                          {selectedNovedad.localizacion || "—"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+              {atencionTab === 1 && (() => {
+                const requiereSeg = atencionData.requiere_seguimiento;
+                const estadoId = Number(selectedNovedad.estado_novedad_id);
+                const isCerrada = estadoId >= 7;
+                const fechaLlegadaVacia = !atencionData.fecha_llegada;
 
+                const clsEditable = "mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50";
+                const clsReadonly = "mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 px-3 py-2 text-slate-500 cursor-not-allowed";
+
+                const historialBlock = (
                   <div className="p-4 rounded-lg border border-slate-200 dark:border-slate-700">
-                    <h4 className="font-medium text-slate-900 dark:text-slate-50 mb-3">
-                      Historial de Estados
-                    </h4>
+                    <h4 className="font-medium text-slate-900 dark:text-slate-50 mb-3">Historial de Estados</h4>
                     {loadingHistorial ? (
-                      <p className="text-sm text-slate-500">
-                        Cargando historial...
-                      </p>
+                      <p className="text-sm text-slate-500">Cargando historial...</p>
                     ) : historialEstados.length === 0 ? (
-                      <p className="text-sm text-slate-500">
-                        No hay cambios de estado registrados.
-                      </p>
+                      <p className="text-sm text-slate-500">No hay cambios de estado registrados.</p>
                     ) : (
                       <div className="space-y-3 max-h-48 overflow-y-auto">
                         {[...historialEstados]
-                          .sort((a, b) => {
-                            // Ordenar por fecha_cambio descendente (más reciente primero)
-                            const fechaA = new Date(a.fecha_cambio || a.created_at);
-                            const fechaB = new Date(b.fecha_cambio || b.created_at);
-                            return fechaB - fechaA;
-                          })
+                          .sort((a, b) => new Date(b.fecha_cambio || b.created_at) - new Date(a.fecha_cambio || a.created_at))
                           .map((h) => (
-                          <div
-                            key={h.id}
-                            className="flex items-start gap-3 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50"
-                          >
-                            <div
-                              className="flex-shrink-0 w-2 h-2 mt-2 rounded-full"
-                              style={{
-                                backgroundColor:
-                                  h.estadoNuevo?.color_hex || "#6b7280",
-                              }}
-                            ></div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                {h.estadoAnterior && (
-                                  <>
-                                    <span
-                                      className="text-xs px-2 py-0.5 rounded"
-                                      style={{
-                                        backgroundColor: `${h.estadoAnterior?.color_hex}20`,
-                                        color: h.estadoAnterior?.color_hex,
-                                      }}
-                                    >
-                                      {h.estadoAnterior?.nombre}
-                                    </span>
-                                    <span className="text-slate-400">→</span>
-                                  </>
-                                )}
-                                <span
-                                  className="text-xs px-2 py-0.5 rounded font-medium"
-                                  style={{
-                                    backgroundColor: `${h.estadoNuevo?.color_hex}30`,
-                                    color: h.estadoNuevo?.color_hex,
-                                  }}
-                                >
-                                  {h.estadoNuevo?.nombre}
-                                </span>
-                              </div>
-                              <p className="text-xs text-slate-500 mt-1">
-                                {formatFecha(h.fecha_cambio || h.created_at)}
-                                {h.historialEstadoNovedadUsuario &&
-                                  ` • ${
-                                    h.historialEstadoNovedadUsuario.nombres ||
-                                    h.historialEstadoNovedadUsuario.username
-                                  }`}
-                                {h.tiempo_en_estado_min &&
-                                  ` • ${h.tiempo_en_estado_min} min en estado anterior`}
-                              </p>
-                              {h.observaciones && (
-                                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 italic">
-                                  "{h.observaciones}"
+                            <div key={h.id} className="flex items-start gap-3 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                              <div className="flex-shrink-0 w-2 h-2 mt-2 rounded-full" style={{ backgroundColor: h.estadoNuevo?.color_hex || "#6b7280" }}></div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  {h.estadoAnterior && (
+                                    <>
+                                      <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: `${h.estadoAnterior?.color_hex}20`, color: h.estadoAnterior?.color_hex }}>
+                                        {h.estadoAnterior?.nombre}
+                                      </span>
+                                      <span className="text-slate-400">→</span>
+                                    </>
+                                  )}
+                                  <span className="text-xs px-2 py-0.5 rounded font-medium" style={{ backgroundColor: `${h.estadoNuevo?.color_hex}30`, color: h.estadoNuevo?.color_hex }}>
+                                    {h.estadoNuevo?.nombre}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-slate-500 mt-1">
+                                  {formatFecha(h.fecha_cambio || h.created_at)}
+                                  {h.historialEstadoNovedadUsuario && ` • ${h.historialEstadoNovedadUsuario.nombres || h.historialEstadoNovedadUsuario.username}`}
+                                  {h.tiempo_en_estado_min && ` • ${h.tiempo_en_estado_min} min en estado anterior`}
                                 </p>
-                              )}
+                                {h.observaciones && (
+                                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 italic">"{h.observaciones}"</p>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
                       </div>
                     )}
                   </div>
+                );
 
-                  <div className="p-4 rounded-lg border border-slate-200 dark:border-slate-700">
-                    <h4 className="font-medium text-slate-900 dark:text-slate-50 mb-3">
-                      Recursos Asignados Actuales
-                    </h4>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-slate-500">Unidad:</span>
-                        <span className="ml-2 font-medium text-slate-900 dark:text-slate-50">
-                          {selectedNovedad.novedadUnidadOficina?.nombre ||
-                            selectedNovedad.unidad_oficina_id ||
-                            "—"}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-slate-500">Vehículo:</span>
-                        <span className="ml-2 font-medium text-slate-900 dark:text-slate-50">
-                          {selectedNovedad.novedadVehiculo?.placa ||
-                            selectedNovedad.vehiculo_id ||
-                            "—"}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-slate-500">Fecha despacho:</span>
-                        <span className="ml-2 font-medium text-slate-900 dark:text-slate-50">
-                          {selectedNovedad.fecha_despacho
-                            ? formatFecha(selectedNovedad.fecha_despacho)
-                            : "—"}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-slate-500">Turno:</span>
-                        <span className="ml-2 font-medium text-slate-900 dark:text-slate-50">
-                          {selectedNovedad.turno || "—"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Campos de Seguimiento */}
-                  <div
-                    className={`p-4 rounded-lg border ${
-                      atencionData.requiere_seguimiento
-                        ? "border-primary-300 dark:border-primary-700 bg-primary-50/50 dark:bg-primary-900/10"
-                        : "border-slate-200 dark:border-slate-700 bg-slate-100/50 dark:bg-slate-800/30"
-                    }`}
-                  >
-                    <h4 className="font-medium text-slate-900 dark:text-slate-50 mb-3">
-                      Datos de Seguimiento
-                      {!atencionData.requiere_seguimiento && (
-                        <span className="text-xs text-slate-500 ml-2">
-                          (Solo lectura - Active "Requiere Seguimiento" para
-                          editar)
-                        </span>
-                      )}
-                    </h4>
-
+                const datosSeguimientoBlock = (
+                  <div className="p-4 rounded-lg border border-primary-300 dark:border-primary-700 bg-primary-50/50 dark:bg-primary-900/10">
+                    <h4 className="font-medium text-slate-900 dark:text-slate-50 mb-3">Datos de Seguimiento</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-                          Fecha Llegada
-                        </label>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">Fecha Llegada</label>
                         <input
                           type="datetime-local"
                           value={atencionData.fecha_llegada}
-                          onChange={(e) =>
-                            setAtencionData({
-                              ...atencionData,
-                              fecha_llegada: e.target.value,
-                            })
-                          }
-                          disabled={!atencionData.requiere_seguimiento}
-                          className={`mt-1 w-full rounded-lg border px-3 py-2 ${
-                            atencionData.requiere_seguimiento
-                              ? "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50"
-                              : "border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-500 cursor-not-allowed"
-                          }`}
+                          onChange={(e) => setAtencionData({ ...atencionData, fecha_llegada: e.target.value })}
+                          disabled={!fechaLlegadaVacia}
+                          className={fechaLlegadaVacia ? clsEditable : clsReadonly}
                         />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
                           Fecha Cierre
+                          {!isSupervisor() && <span className="text-xs text-slate-400 ml-1">(Solo supervisor)</span>}
                         </label>
                         <input
                           type="datetime-local"
                           value={atencionData.fecha_cierre}
-                          onChange={(e) =>
-                            setAtencionData({
-                              ...atencionData,
-                              fecha_cierre: e.target.value,
-                            })
-                          }
-                          disabled={!atencionData.requiere_seguimiento}
-                          className={`mt-1 w-full rounded-lg border px-3 py-2 ${
-                            atencionData.requiere_seguimiento
-                              ? "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50"
-                              : "border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-500 cursor-not-allowed"
-                          }`}
+                          onChange={(e) => setAtencionData({ ...atencionData, fecha_cierre: e.target.value })}
+                          disabled={!isSupervisor()}
+                          className={isSupervisor() ? clsEditable : clsReadonly}
                         />
                       </div>
                     </div>
@@ -4957,45 +4833,29 @@ export default function NovedadesPage() {
                       <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
                           Km Inicial
+                          {!isSupervisor() && <span className="text-xs text-slate-400 ml-1">(Solo supervisor)</span>}
                         </label>
                         <input
                           type="number"
                           value={atencionData.km_inicial}
-                          onChange={(e) =>
-                            setAtencionData({
-                              ...atencionData,
-                              km_inicial: e.target.value,
-                            })
-                          }
-                          disabled={!atencionData.requiere_seguimiento}
+                          onChange={(e) => setAtencionData({ ...atencionData, km_inicial: e.target.value })}
+                          disabled={!isSupervisor()}
                           placeholder="0"
-                          className={`mt-1 w-full rounded-lg border px-3 py-2 ${
-                            atencionData.requiere_seguimiento
-                              ? "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50"
-                              : "border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-500 cursor-not-allowed"
-                          }`}
+                          className={isSupervisor() ? clsEditable : clsReadonly}
                         />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
                           Km Final
+                          {!isSupervisor() && <span className="text-xs text-slate-400 ml-1">(Solo supervisor)</span>}
                         </label>
                         <input
                           type="number"
                           value={atencionData.km_final}
-                          onChange={(e) =>
-                            setAtencionData({
-                              ...atencionData,
-                              km_final: e.target.value,
-                            })
-                          }
-                          disabled={!atencionData.requiere_seguimiento}
+                          onChange={(e) => setAtencionData({ ...atencionData, km_final: e.target.value })}
+                          disabled={!isSupervisor()}
                           placeholder="0"
-                          className={`mt-1 w-full rounded-lg border px-3 py-2 ${
-                            atencionData.requiere_seguimiento
-                              ? "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50"
-                              : "border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-500 cursor-not-allowed"
-                          }`}
+                          className={isSupervisor() ? clsEditable : clsReadonly}
                         />
                       </div>
                     </div>
@@ -5004,51 +4864,42 @@ export default function NovedadesPage() {
                       <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
                           Fecha Próxima Revisión
+                          {isCerrada && <span className="text-xs text-slate-400 ml-1">(Solo lectura)</span>}
                         </label>
                         <input
                           type="date"
                           value={atencionData.fecha_proxima_revision}
-                          onChange={(e) =>
-                            setAtencionData({
-                              ...atencionData,
-                              fecha_proxima_revision: e.target.value,
-                            })
-                          }
-                          disabled={!atencionData.requiere_seguimiento}
-                          className={`mt-1 w-full rounded-lg border px-3 py-2 ${
-                            atencionData.requiere_seguimiento
-                              ? "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50"
-                              : "border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-500 cursor-not-allowed"
-                          }`}
+                          onChange={(e) => setAtencionData({ ...atencionData, fecha_proxima_revision: e.target.value })}
+                          disabled={isCerrada}
+                          className={!isCerrada ? clsEditable : clsReadonly}
                         />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
                           Pérdidas Materiales Estimadas (S/.)
+                          {isCerrada && <span className="text-xs text-slate-400 ml-1">(Solo lectura)</span>}
                         </label>
                         <input
                           type="number"
                           step="0.01"
                           value={atencionData.perdidas_materiales_estimadas}
-                          onChange={(e) =>
-                            setAtencionData({
-                              ...atencionData,
-                              perdidas_materiales_estimadas: e.target.value,
-                            })
-                          }
-                          disabled={!atencionData.requiere_seguimiento}
+                          onChange={(e) => setAtencionData({ ...atencionData, perdidas_materiales_estimadas: e.target.value })}
+                          disabled={isCerrada}
                           placeholder="0.00"
-                          className={`mt-1 w-full rounded-lg border px-3 py-2 ${
-                            atencionData.requiere_seguimiento
-                              ? "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50"
-                              : "border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-500 cursor-not-allowed"
-                          }`}
+                          className={!isCerrada ? clsEditable : clsReadonly}
                         />
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
+                );
+
+                return (
+                  <div className="space-y-4">
+                    {requiereSeg && datosSeguimientoBlock}
+                    {historialBlock}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Footer */}
