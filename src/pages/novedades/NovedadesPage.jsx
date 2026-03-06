@@ -351,10 +351,11 @@ export default function NovedadesPage() {
     return !!uid && uid !== user?.id;
   };
 
-  // Verificar si el usuario tiene rol supervisor
+  // Verificar si el usuario tiene rol supervisor o superior (admin, super_admin)
   const isSupervisor = () => {
     const roles = user?.roles || user?.Roles || [];
-    return roles.some(r => (r?.slug || r?.Slug) === "supervisor");
+    const elevated = ["supervisor", "admin", "super_admin"];
+    return roles.some(r => elevated.includes((r?.slug || r?.Slug || "").toLowerCase()));
   };
 
   // Determinar si se puede mostrar el botón atender según el estado de la novedad
