@@ -66,7 +66,17 @@ export default function RolEstadosNovedadPage() {
 
   // ── Refs para foco y hotkeys ──────────────────────────────────
   const rolSelectRef = useRef(null);
+  const estadoSelectRef = useRef(null);
+  const descripcionRef = useRef(null);
+  const observacionesRef = useRef(null);
   const submitBtnRef = useRef(null);
+
+  const focusNext = (nextRef) => (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      nextRef.current?.focus();
+    }
+  };
 
   // ── Cargar catálogos ──────────────────────────────────────────
   const fetchCatalogos = useCallback(async () => {
@@ -480,6 +490,7 @@ export default function RolEstadosNovedadPage() {
                   ref={rolSelectRef}
                   value={formData.rol_id}
                   onChange={(e) => setFormData({ ...formData, rol_id: e.target.value, estado_novedad_id: "" })}
+                  onKeyDown={focusNext(editingItem ? descripcionRef : estadoSelectRef)}
                   disabled={!!editingItem}
                   className={editingItem ? clsReadonly : (formErrors.rol_id ? clsInputError : clsInput)}
                 >
@@ -512,8 +523,10 @@ export default function RolEstadosNovedadPage() {
                     </p>
                   ) : (
                     <select
+                      ref={estadoSelectRef}
                       value={formData.estado_novedad_id}
                       onChange={(e) => setFormData({ ...formData, estado_novedad_id: e.target.value })}
+                      onKeyDown={focusNext(descripcionRef)}
                       disabled={!!editingItem}
                       className={editingItem ? clsReadonly : (formErrors.estado_novedad_id ? clsInputError : clsInput)}
                     >
@@ -540,6 +553,7 @@ export default function RolEstadosNovedadPage() {
                   Descripción <span className="text-slate-400 text-xs">(opcional)</span>
                 </label>
                 <textarea
+                  ref={descripcionRef}
                   rows={2}
                   value={formData.descripcion}
                   onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
@@ -554,6 +568,7 @@ export default function RolEstadosNovedadPage() {
                   Observaciones <span className="text-slate-400 text-xs">(opcional)</span>
                 </label>
                 <textarea
+                  ref={observacionesRef}
                   rows={2}
                   value={formData.observaciones}
                   onChange={(e) => setFormData({ ...formData, observaciones: e.target.value })}
