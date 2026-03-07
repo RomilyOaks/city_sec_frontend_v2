@@ -42,12 +42,12 @@ import {
   listVehiculos,
   listPersonalSeguridad,
   crearHistorialNovedad,
-  getEstadosSiguientes,
 } from "../../../services/novedadesService.js";
 
 // RBAC
 import { canPerformAction } from "../../../rbac/rbac.js";
 import { useAuthStore } from "../../../store/useAuthStore.js";
+import { useEstadosPorRol } from "../../../hooks/useEstadosPorRol.js";
 import useBodyScrollLock from "../../../hooks/useBodyScrollLock";
 
 // Componentes
@@ -112,9 +112,8 @@ export default function NovedadesPersonalModal({
   const [vehiculos, setVehiculos] = useState([]);
   const [personalSeguridad, setPersonalSeguridad] = useState([]);
 
-  // Estados para el dropdown de estado_novedad_id
-  const [estadosNovedad, setEstadosNovedad] = useState([]);
-  const [loadingEstados, setLoadingEstados] = useState(false);
+  // Estados habilitados para el rol del usuario (desde rol_estados_novedad)
+  const { estadosRol, loadingEstadosRol } = useEstadosPorRol();
 
   const [editData, setEditData] = useState({
     estado_novedad_id: "",
@@ -210,7 +209,6 @@ export default function NovedadesPersonalModal({
       setShowViewModal(false);
       setSelectedNovedad(null);
       setViewingNovedad(null);
-      setEstadosNovedad([]);
       setFormData({
         novedad_id: "",
         prioridad: "MEDIA",
@@ -362,18 +360,6 @@ export default function NovedadesPersonalModal({
       observaciones: novedad.observaciones || "",
     });
     setShowEditModal(true);
-
-    // Cargar estados siguientes válidos
-    setLoadingEstados(true);
-    try {
-      const { estados } = await getEstadosSiguientes(estadoActualId);
-      setEstadosNovedad(estados);
-    } catch (error) {
-      console.error("Error cargando estados:", error);
-      setEstadosNovedad([]);
-    } finally {
-      setLoadingEstados(false);
-    }
   };
 
   const handleUpdateNovedad = async (e) => {
@@ -399,7 +385,7 @@ export default function NovedadesPersonalModal({
         // Construir texto de observaciones para el historial
         let observacionesHistorial = "";
         if (cambioEstado) {
-          const estadoNuevo = estadosNovedad.find((e) => e.id === nuevoEstadoId);
+          const estadoNuevo = estadosRol.find((e) => e.id === nuevoEstadoId);
           observacionesHistorial = `[${timestamp} - ${nombrePersonal}] Cambio de estado a: ${estadoNuevo?.nombre || "Nuevo estado"}`;
         }
         if (tieneAcciones) {
@@ -442,7 +428,6 @@ export default function NovedadesPersonalModal({
       );
       setShowEditModal(false);
       setSelectedNovedad(null);
-      setEstadosNovedad([]);
       fetchNovedades();
     } catch (error) {
       console.error("Error actualizando novedad:", error);
@@ -847,7 +832,7 @@ export default function NovedadesPersonalModal({
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Estado de la Novedad
                 </label>
-                {loadingEstados ? (
+                {loadingEstadosRol ? (
                   <div className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 text-slate-500">
                     Cargando estados...
                   </div>
@@ -857,7 +842,7 @@ export default function NovedadesPersonalModal({
                     onChange={(e) => setEditData({ ...editData, estado_novedad_id: e.target.value })}
                     className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                   >
-                    {estadosNovedad.map((estado) => (
+                    {estadosRol.map((estado) => (
                       <option key={estado.id} value={estado.id}>
                         {estado.nombre}
                       </option>
@@ -865,7 +850,7 @@ export default function NovedadesPersonalModal({
                   </select>
                 )}
                 <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  Solo se muestran estados válidos según el flujo
+                  Solo se muestran estados habilitados para tu rol
                 </p>
               </div>
 

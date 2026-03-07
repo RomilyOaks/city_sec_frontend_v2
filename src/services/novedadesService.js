@@ -32,6 +32,8 @@ export async function listNovedades(options = {}) {
     prioridad_actual,
     sector_id,
     origen_llamada,
+    created_by_username,
+    usuario_despacho_username,
     search,
     sort = "novedad_code",
     order = "desc",
@@ -47,6 +49,8 @@ export async function listNovedades(options = {}) {
   if (prioridad_actual) params.append("prioridad_actual", prioridad_actual);
   if (sector_id) params.append("sector_id", sector_id);
   if (origen_llamada) params.append("origen_llamada", origen_llamada);
+  if (created_by_username) params.append("created_by_username", created_by_username);
+  if (usuario_despacho_username) params.append("usuario_despacho_username", usuario_despacho_username);
   if (search) params.append("search", search);
   if (sort) params.append("sort", sort);
   if (order) params.append("order", order);
