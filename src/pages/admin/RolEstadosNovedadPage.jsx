@@ -5,7 +5,7 @@
  * Permite a super_admin y admin definir qué estados puede usar cada rol.
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import toast from "react-hot-toast";
 import {
   Plus,
@@ -64,6 +64,10 @@ export default function RolEstadosNovedadPage() {
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [formErrors, setFormErrors] = useState({});
 
+  // ── Refs para foco y hotkeys ──────────────────────────────────
+  const rolSelectRef = useRef(null);
+  const submitBtnRef = useRef(null);
+
   // ── Cargar catálogos ──────────────────────────────────────────
   const fetchCatalogos = useCallback(async () => {
     try {
@@ -99,6 +103,22 @@ export default function RolEstadosNovedadPage() {
   useEffect(() => { fetchCatalogos(); }, [fetchCatalogos]);
   useEffect(() => { fetchRegistros(page); }, [fetchRegistros, page]);
 
+  // ── Hotkeys ALT+N (abrir modal) / ALT+C (confirmar crear) ─────
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.altKey && e.key.toLowerCase() === "n") {
+        e.preventDefault();
+        if (!showModal && !showDeleteModal) handleOpenCreate();
+      }
+      if (e.altKey && e.key.toLowerCase() === "c") {
+        e.preventDefault();
+        if (showModal) submitBtnRef.current?.click();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showModal, showDeleteModal]);
+
   // ── Filtrado local por texto ──────────────────────────────────
   const registrosFiltrados = registros.filter((r) => {
     if (!searchText) return true;
@@ -109,12 +129,23 @@ export default function RolEstadosNovedadPage() {
     return rol.includes(txt) || est.includes(txt) || desc.includes(txt);
   });
 
+  // ── Estados ya asignados para el rol seleccionado ───────────
+  const estadosAsignados = useCallback((rolId) => {
+    if (!rolId) return new Set();
+    return new Set(
+      registros
+        .filter((r) => String(r.rol_id) === String(rolId))
+        .map((r) => r.estado_novedad_id)
+    );
+  }, [registros]);
+
   // ── Abrir modal Crear ─────────────────────────────────────────
   const handleOpenCreate = () => {
     setEditingItem(null);
     setFormData(EMPTY_FORM);
     setFormErrors({});
     setShowModal(true);
+    setTimeout(() => rolSelectRef.current?.focus(), 50);
   };
 
   // ── Abrir modal Editar ────────────────────────────────────────
@@ -205,6 +236,8 @@ export default function RolEstadosNovedadPage() {
     "mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-500";
   const clsInputError =
     "mt-1 w-full rounded-lg border border-red-400 dark:border-red-600 bg-white dark:bg-slate-950/40 px-3 py-2 text-sm text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-red-400";
+  const clsReadonly =
+    "mt-1 w-full rounded-lg border border-slate-400 dark:border-slate-500 bg-slate-100 dark:bg-slate-700 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 cursor-not-allowed";
 
   // ── Render ────────────────────────────────────────────────────
   return (
@@ -444,12 +477,11 @@ export default function RolEstadosNovedadPage() {
                   Rol <span className="text-red-500">*</span>
                 </label>
                 <select
+                  ref={rolSelectRef}
                   value={formData.rol_id}
-                  onChange={(e) => setFormData({ ...formData, rol_id: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, rol_id: e.target.value, estado_novedad_id: "" })}
                   disabled={!!editingItem}
-                  className={editingItem
-                    ? "mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 px-3 py-2 text-sm text-slate-500 cursor-not-allowed"
-                    : (formErrors.rol_id ? clsInputError : clsInput)}
+                  className={editingItem ? clsReadonly : (formErrors.rol_id ? clsInputError : clsInput)}
                 >
                   <option value="">Seleccione un rol...</option>
                   {roles.map((r) => (
@@ -469,19 +501,34 @@ export default function RolEstadosNovedadPage() {
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
                   Estado de Novedad <span className="text-red-500">*</span>
                 </label>
-                <select
-                  value={formData.estado_novedad_id}
-                  onChange={(e) => setFormData({ ...formData, estado_novedad_id: e.target.value })}
-                  disabled={!!editingItem}
-                  className={editingItem
-                    ? "mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 px-3 py-2 text-sm text-slate-500 cursor-not-allowed"
-                    : (formErrors.estado_novedad_id ? clsInputError : clsInput)}
-                >
-                  <option value="">Seleccione un estado...</option>
-                  {estados.map((e) => (
-                    <option key={e.id} value={e.id}>{e.nombre}</option>
-                  ))}
-                </select>
+                {!editingItem && !formData.rol_id ? (
+                  <p className="mt-1 text-xs text-slate-400 italic">Primero seleccione un rol para ver los estados disponibles.</p>
+                ) : (() => {
+                  const asignados = estadosAsignados(formData.rol_id);
+                  const disponibles = estados.filter((e) => !asignados.has(e.id));
+                  return !editingItem && disponibles.length === 0 ? (
+                    <p className="mt-1 text-xs text-amber-600 dark:text-amber-400 font-medium">
+                      Este rol ya tiene asignados todos los estados de novedad disponibles.
+                    </p>
+                  ) : (
+                    <select
+                      value={formData.estado_novedad_id}
+                      onChange={(e) => setFormData({ ...formData, estado_novedad_id: e.target.value })}
+                      disabled={!!editingItem}
+                      className={editingItem ? clsReadonly : (formErrors.estado_novedad_id ? clsInputError : clsInput)}
+                    >
+                      <option value="">Seleccione un estado...</option>
+                      {editingItem
+                        ? estados.map((e) => (
+                            <option key={e.id} value={e.id}>{e.nombre}</option>
+                          ))
+                        : disponibles.map((e) => (
+                            <option key={e.id} value={e.id}>{e.nombre}</option>
+                          ))
+                      }
+                    </select>
+                  );
+                })()}
                 {formErrors.estado_novedad_id && (
                   <p className="text-xs text-red-500 mt-1">{formErrors.estado_novedad_id}</p>
                 )}
@@ -525,9 +572,11 @@ export default function RolEstadosNovedadPage() {
                   Cancelar
                 </button>
                 <button
+                  ref={submitBtnRef}
                   type="submit"
                   disabled={saving}
                   className="px-4 py-2 rounded-lg bg-primary-600 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-60"
+                  title={!editingItem ? "Alt+C" : undefined}
                 >
                   {saving ? "Guardando..." : editingItem ? "Actualizar" : "Crear"}
                 </button>
