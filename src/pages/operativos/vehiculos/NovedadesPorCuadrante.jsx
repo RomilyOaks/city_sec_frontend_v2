@@ -34,10 +34,10 @@ import {
   listVehiculos,
   listPersonalSeguridad,
   crearHistorialNovedad,
-  getEstadosSiguientes,
 } from "../../../services/novedadesService.js";
 import { canPerformAction } from "../../../rbac/rbac.js";
 import { useAuthStore } from "../../../store/useAuthStore.js";
+import { useEstadosPorRol } from "../../../hooks/useEstadosPorRol.js";
 import RegistrarNovedadForm from "./RegistrarNovedadForm.jsx";
 import NovedadDetalleModal from "../../../components/NovedadDetalleModal.jsx";
 
@@ -117,7 +117,8 @@ export default function NovedadesPorCuadrante() {
   const { turnoId, vehiculoId, cuadranteId } = useParams();
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
-  
+  const { estadosRol } = useEstadosPorRol();
+
   // Permisos
   const canRead = canPerformAction(user, "operativos.vehiculos.novedades.read");
   const canCreate = canPerformAction(user, "operativos.vehiculos.novedades.create");
@@ -166,9 +167,7 @@ export default function NovedadesPorCuadrante() {
     { value: "CANCELADO", label: "Cancelado" },
   ];
 
-  // Estados para el dropdown de estado_novedad_id
-  const [estadosNovedad, setEstadosNovedad] = useState([]);
-  const [loadingEstados, setLoadingEstados] = useState(false);
+  // Estados para el dropdown de estado_novedad_id (se usa estadosRol del hook)
 
   // Cargar datos del cuadrante y novedades
   const fetchNovedades = useCallback(async () => {
@@ -264,18 +263,6 @@ export default function NovedadesPorCuadrante() {
       perdidas_materiales_estimadas: novedad.novedad?.perdidas_materiales_estimadas || 0,
     });
     setShowEditModal(true);
-
-    // Cargar estados siguientes válidos
-    setLoadingEstados(true);
-    try {
-      const { estados } = await getEstadosSiguientes(estadoActualId);
-      setEstadosNovedad(estados);
-    } catch (error) {
-      console.error("Error cargando estados:", error);
-      setEstadosNovedad([]);
-    } finally {
-      setLoadingEstados(false);
-    }
   }, []);
 
   // Cerrar modal de edición
@@ -290,7 +277,6 @@ export default function NovedadesPorCuadrante() {
       num_personas_afectadas: 0,
       perdidas_materiales_estimadas: 0,
     });
-    setEstadosNovedad([]);
   }, []);
 
   // Guardar edición de novedad
@@ -333,7 +319,7 @@ export default function NovedadesPorCuadrante() {
         // Construir texto de observaciones para el historial
         let observacionesHistorial = "";
         if (cambioEstado) {
-          const estadoNuevo = estadosNovedad.find(e => e.id === nuevoEstadoId);
+          const estadoNuevo = estadosRol.find(e => e.id === nuevoEstadoId);
           observacionesHistorial = `[${timestamp} - ${vehiculoInfo}] Cambio de estado a: ${estadoNuevo?.nombre || "Nuevo estado"}`;
         }
         if (tieneAcciones) {
@@ -882,29 +868,20 @@ export default function NovedadesPorCuadrante() {
             </div>
 
             <form onSubmit={handleUpdateNovedadEdit} className="p-6 space-y-4">
-              {/* Estado de la Novedad (estado_novedad_id) */}
+              {/* Estado actual de la Novedad - solo informativo */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Estado de la Novedad
+                  Estado Actual
                 </label>
-                {loadingEstados ? (
-                  <div className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 text-slate-500">
-                    Cargando estados...
-                  </div>
-                ) : (
-                  <select
-                    value={editData.estado_novedad_id || ""}
-                    onChange={(e) => setEditData({ ...editData, estado_novedad_id: e.target.value })}
-                    disabled
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-not-allowed"
-                  >
-                    {estadosNovedad.map((estado) => (
-                      <option key={estado.id} value={estado.id}>
-                        {estado.nombre}
-                      </option>
-                    ))}
-                  </select>
-                )}
+                <div className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex items-center gap-2">
+                  <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
+                    {selectedNovedadEdit?.estadoNovedadVehiculo?.nombre ||
+                      selectedNovedadEdit?.novedad?.novedadEstado?.nombre ||
+                      estadosRol.find((e) => e.id === editData.estado_novedad_id)?.nombre ||
+                      `Estado #${editData.estado_novedad_id}`}
+                  </span>
+                  <span className="text-xs text-slate-400">(solo lectura)</span>
+                </div>
                 <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                   El estado se actualiza automáticamente según el Resultado Operativo
                 </p>

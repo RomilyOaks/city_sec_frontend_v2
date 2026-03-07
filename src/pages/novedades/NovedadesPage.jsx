@@ -86,6 +86,7 @@ import { listCalles } from "../../services/callesService.js";
 import { getCuadrantesPorCalle } from "../../services/callesCuadrantesService.js";
 import { useAuthStore } from "../../store/useAuthStore.js";
 import { canPerformAction, canAccessRoute } from "../../rbac/rbac.js";
+import { useEstadosPorRol } from "../../hooks/useEstadosPorRol.js";
 import { getDefaultUbigeo } from "../../config/defaults.js";
 import { geocodificarDireccion, validarCoordenadasPeru, getDescripcionLocationType, getDescripcionFuente } from "../../services/geocodingService.js";
 
@@ -345,9 +346,12 @@ export default function NovedadesPage() {
   // Atender (Shield): permiso exclusivo de supervisor/super_admin
   const canAtender = canPerformAction(user, "novedades_atender");
 
+  // Estados habilitados para el rol del usuario (desde rol_estados_novedad)
+  const { estadosRol } = useEstadosPorRol();
+
   // Devuelve true si la novedad fue despachada por otro usuario distinto al logueado
   const esDespachadoPorOtro = (n) => {
-    const uid = n?.usuarioDespacho?.id ?? n?.usuario_despacho_id;
+    const uid = n?.usuarioDespachoNovedad?.id ?? n?.usuario_despacho;
     return !!uid && uid !== user?.id;
   };
 
@@ -387,6 +391,8 @@ export default function NovedadesPage() {
   const [filterEstado, setFilterEstado] = useState("1"); // Por defecto: Pendiente de registro
   const [filterPrioridad, setFilterPrioridad] = useState("");
   const [filterOrigenLlamada, setFilterOrigenLlamada] = useState("");
+  const [filterCreatedBy, setFilterCreatedBy] = useState("");
+  const [filterUsuarioDespacho, setFilterUsuarioDespacho] = useState("");
   const [filters, setFilters] = useState(() => getDefaultDateRange()); // Últimos 7 días por defecto
 
   // Catálogos
@@ -574,6 +580,8 @@ export default function NovedadesPage() {
         prioridad_actual: filterPrioridad,
         // sector_id: filterSector, // TODO: Agregar variable filterSector al estado si se necesita
         origen_llamada: filterOrigenLlamada || undefined,
+        created_by_username: filterCreatedBy || undefined,
+        usuario_despacho_username: filterUsuarioDespacho || undefined,
         search: search || undefined,
         sort: "prioridad_actual,novedad_code",
         order: "asc,desc", // Ordenar por prioridad ASC, luego novedad_code DESC (usando índice idx_novedad_prioridad)
@@ -1031,7 +1039,7 @@ export default function NovedadesPage() {
     setPage(1);
     fetchNovedades({ nextPage: 1 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterTipo, filterEstado, filterPrioridad, filterOrigenLlamada]);
+  }, [filterTipo, filterEstado, filterPrioridad, filterOrigenLlamada, filterCreatedBy, filterUsuarioDespacho]);
 
   const handleDelete = async (n) => {
     const confirmed = window.confirm(`¿Eliminar novedad "${n.novedad_code}"?`);
@@ -1239,7 +1247,6 @@ export default function NovedadesPage() {
     try {
       // Obtener datos completos de la novedad para tener usuarioDespacho
       const novedadCompleta = await getNovedadById(novedad.id);
-      
       // Validar que solo el usuario que despachó puede atender (excepto supervisor)
       const uid = novedadCompleta?.usuarioDespacho?.id ?? novedadCompleta?.usuario_despacho_id;
       if (uid && uid !== user?.id && !isSupervisor()) {
@@ -1537,6 +1544,8 @@ export default function NovedadesPage() {
     setFilterEstado(""); // Cambiar a "Todos" en lugar de "1"
     setFilterPrioridad("");
     setFilterOrigenLlamada("");
+    setFilterCreatedBy("");
+    setFilterUsuarioDespacho("");
     setFilters({
       fecha_inicio: "",
       fecha_fin: "",
@@ -2337,8 +2346,8 @@ export default function NovedadesPage() {
                 </div>
               </div>
               
-              {/* Segunda fila - Filtros de fecha + Origen Llamada */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-3 gap-3">
+              {/* Segunda fila - Fechas + Origen + Created_by + Usuario_despacho */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                 <div>
                   <input
                     type="date"
@@ -2369,6 +2378,22 @@ export default function NovedadesPage() {
                     </option>
                   ))}
                 </select>
+                <input
+                  type="text"
+                  value={filterCreatedBy}
+                  onChange={(e) => setFilterCreatedBy(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                  placeholder="Creado por (usuario)"
+                  className="text-xs px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
+                />
+                <input
+                  type="text"
+                  value={filterUsuarioDespacho}
+                  onChange={(e) => setFilterUsuarioDespacho(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                  placeholder="Despachado por (usuario)"
+                  className="text-xs px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
+                />
               </div>
             </div>
 
@@ -2381,11 +2406,11 @@ export default function NovedadesPage() {
                       <th className="px-3 py-2 text-left font-semibold text-slate-700 dark:text-slate-200 w-20">
                         Código
                       </th>
-                      <th className="px-3 py-2 text-left font-semibold text-slate-700 dark:text-slate-200 w-32">
-                        Fecha/Hora
-                      </th>
-                      <th className="px-3 py-2 text-left font-semibold text-slate-700 dark:text-slate-200 w-40">
+                      <th className="px-2 py-2 text-left font-semibold text-slate-700 dark:text-slate-200 w-8">
                         Origen
+                      </th>
+                      <th className="px-3 py-2 text-left font-semibold text-slate-700 dark:text-slate-200 w-28">
+                        Fecha/Hora
                       </th>
                       <th className="px-3 py-2 text-left font-semibold text-slate-700 dark:text-slate-200 w-48">
                         Tipo
@@ -2396,10 +2421,13 @@ export default function NovedadesPage() {
                       <th className="px-3 py-2 text-left font-semibold text-slate-700 dark:text-slate-200 w-20">
                         Prioridad
                       </th>
-                      <th className="px-3 py-2 text-right font-semibold text-slate-700 dark:text-slate-200 w-32">
+                      <th className="px-3 py-2 text-left font-semibold text-slate-700 dark:text-slate-200 w-24">
+                        Despacho
+                      </th>
+                      <th className="px-3 py-2 text-right font-semibold text-slate-700 dark:text-slate-200 w-24">
                         Acciones
                       </th>
-                      <th className="px-3 py-2 text-left font-semibold text-slate-700 dark:text-slate-200 w-32">
+                      <th className="px-3 py-2 text-left font-semibold text-slate-700 dark:text-slate-200 w-28">
                         Estado
                       </th>
                     </tr>
@@ -2408,7 +2436,7 @@ export default function NovedadesPage() {
                     {loading ? (
                       <tr>
                         <td
-                          colSpan={7}
+                          colSpan={9}
                           className="px-4 py-8 text-center text-slate-500"
                         >
                           Cargando...
@@ -2417,7 +2445,7 @@ export default function NovedadesPage() {
                     ) : novedades.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={7}
+                          colSpan={9}
                           className="px-4 py-8 text-center text-slate-500"
                         >
                           No hay registros
@@ -2434,15 +2462,15 @@ export default function NovedadesPage() {
                           <td className="px-3 py-2 text-slate-900 dark:text-slate-50 font-mono font-medium whitespace-nowrap">
                             {n.novedad_code || "—"}
                           </td>
-                          <td className="px-3 py-2 text-slate-700 dark:text-slate-200 whitespace-nowrap">
-                            {formatFecha(n.fecha_hora_ocurrencia)}
-                          </td>
-                          <td className="px-3 py-2 text-slate-700 dark:text-slate-200">
+                          <td className="px-2 py-2 text-slate-700 dark:text-slate-200">
                             <OrigenLlamadaCell 
                               origen={n.origen_llamada} 
                               showLabel={false}
                               size="sm"
                             />
+                          </td>
+                          <td className="px-3 py-2 text-slate-700 dark:text-slate-200 whitespace-nowrap">
+                            {formatFecha(n.fecha_hora_ocurrencia)}
                           </td>
                           <td className="px-3 py-2 text-slate-700 dark:text-slate-200">
                             <div className="flex flex-col">
@@ -2469,6 +2497,11 @@ export default function NovedadesPage() {
                             >
                               {n.prioridad_actual || "MEDIA"}
                             </span>
+                          </td>
+                          <td className="px-3 py-2 text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                            {n.usuarioDespachoNovedad?.username
+                              ? <span className="font-mono text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">{n.usuarioDespachoNovedad.username}</span>
+                              : <span className="text-slate-400">—</span>}
                           </td>
                           <td className="px-3 py-2 text-right">
                             <div className="flex items-center justify-end gap-1">
@@ -4898,16 +4931,19 @@ export default function NovedadesPage() {
                           className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
                         >
                           <option value="">Seleccione estado...</option>
-                          {estados
-                            .filter((e) => {
-                              if (isSupervisor()) return true;
-                              return e.id > selectedNovedad.estado_novedad_id;
-                            })
-                            .map((e) => (
-                              <option key={e.id} value={e.id}>
-                                {e.nombre}
-                              </option>
-                            ))}
+                          {estadosRol.length > 0
+                            ? estadosRol.map((e) => (
+                                <option key={e.id} value={e.id}>
+                                  {e.nombre}
+                                </option>
+                              ))
+                            : isSupervisor()
+                              ? estados.map((e) => (
+                                  <option key={e.id} value={e.id}>
+                                    {e.nombre}
+                                  </option>
+                                ))
+                              : null}
                         </select>
                       </div>
                       <div className="flex items-end">
