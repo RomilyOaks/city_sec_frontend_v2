@@ -853,17 +853,23 @@ export default function NovedadDetalleModal({
                     })()}
                   </div>
                   
-                  {/* Fechas de Inicio y Fin */}
+                  {/* Fechas: Registrado | Despachado | Hora Llegada */}
                   <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-3 gap-4">
                       <div>
-                        <span className="text-xs font-medium text-slate-500">Inicio</span>
+                        <span className="text-xs font-medium text-slate-500">Registrado</span>
+                        <p className="text-sm text-slate-900 dark:text-slate-50">
+                          {novedad.created_at ? formatFecha(novedad.created_at) : "—"}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-xs font-medium text-slate-500">Despachado</span>
                         <p className="text-sm text-slate-900 dark:text-slate-50">
                           {novedad.fecha_despacho ? formatFecha(novedad.fecha_despacho) : "—"}
                         </p>
                       </div>
                       <div>
-                        <span className="text-xs font-medium text-slate-500">Fin</span>
+                        <span className="text-xs font-medium text-slate-500">Hora Llegada</span>
                         <p className="text-sm text-slate-900 dark:text-slate-50">
                           {novedad.fecha_llegada ? formatFecha(novedad.fecha_llegada) : "—"}
                         </p>
