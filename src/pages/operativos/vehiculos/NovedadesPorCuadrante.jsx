@@ -91,23 +91,6 @@ const getEstadoColor = (estado) => {
   }
 };
 
-/**
- * Obtiene color según resultado
- */
-const getResultColor = (resultado) => {
-  switch (resultado) {
-    case "PENDIENTE":
-      return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300";
-    case "RESUELTO":
-      return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300";
-    case "ESCALADO":
-      return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300";
-    case "CANCELADO":
-      return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300";
-    default:
-      return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300";
-  }
-};
 
 /**
  * NovedadesPorCuadrante - Página para mostrar novedades de un cuadrante
@@ -759,11 +742,8 @@ export default function NovedadesPorCuadrante() {
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1 min-w-0">
                       <h3 className="text-base font-semibold text-slate-900 dark:text-slate-50 truncate">
-                        {novedad.novedad?.nombre || novedad.novedad?.novedad_code || "Novedad"}
+                        #{novedad.novedad?.novedad_code || novedad.novedad?.id || "---"}
                       </h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        {novedad.novedad?.novedad_code}
-                      </p>
                     </div>
                     <div className="flex items-center gap-0.5 flex-shrink-0">
                       <button
@@ -794,23 +774,33 @@ export default function NovedadesPorCuadrante() {
                     </div>
                   </div>
 
-                  {/* Badges */}
-                  <div className="flex flex-wrap gap-1.5 mb-3">
+                  {/* Badges - Prioridad y Estado */}
+                  <div className="flex flex-wrap gap-1.5 mb-2">
                     <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getPrioridadColor(novedad.prioridad)}`}>
                       {novedad.prioridad}
                     </span>
                     <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getEstadoColor(novedad.estado)}`}>
                       {novedad.estado === 0 ? "Inactivo" : novedad.estado === 1 ? "Activo" : "Atendido"}
                     </span>
-                    <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getResultColor(novedad.resultado)}`}>
-                      {novedad.resultado}
-                    </span>
                   </div>
                   
-                  {/* Descripción */}
-                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-3 line-clamp-2">
-                    {novedad.novedad?.descripcion || novedad.observaciones || "Sin descripción"}
-                  </p>
+                  {/* Tipo + Subtipo */}
+                  <div className="mb-2">
+                    <p className="text-sm text-slate-700 dark:text-slate-300 break-words">
+                      {novedad.novedad?.novedadTipoNovedad?.nombre || "Tipo"} - {novedad.novedad?.novedadSubtipoNovedad?.nombre || "Subtipo"}
+                    </p>
+                  </div>
+                  
+                  {/* Dirección */}
+                  <div className="mb-3">
+                    <p className="text-sm text-slate-600 dark:text-slate-400 break-words">
+                      {novedad.novedad?.localizacion
+                        ? novedad.novedad?.referencia_ubicacion
+                          ? `${novedad.novedad.localizacion} (${novedad.novedad.referencia_ubicacion})`
+                          : novedad.novedad.localizacion
+                        : novedad.novedad?.referencia_ubicacion || "Sin dirección"}
+                    </p>
+                  </div>
                   
                   {/* Fechas */}
                   <div className="space-y-1 text-xs text-slate-500 dark:text-slate-400">
@@ -825,15 +815,6 @@ export default function NovedadesPorCuadrante() {
                       </div>
                     )}
                   </div>
-                  
-                  {/* Observaciones (truncadas) */}
-                  {novedad.observaciones && (
-                    <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
-                      <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">
-                        <span className="font-medium">Obs:</span> {novedad.observaciones}
-                      </p>
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
