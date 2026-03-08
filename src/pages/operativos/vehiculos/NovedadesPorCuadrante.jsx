@@ -40,7 +40,23 @@ import { useAuthStore } from "../../../store/useAuthStore.js";
 import { useEstadosPorRol } from "../../../hooks/useEstadosPorRol.js";
 import RegistrarNovedadForm from "./RegistrarNovedadForm.jsx";
 import NovedadDetalleModal from "../../../components/NovedadDetalleModal.jsx";
-import { formatForDisplay, safeConvertToTimezone, getNowLocal } from "../../../utils/dateHelper";
+import { formatForDisplay, safeConvertToTimezone } from "../../../utils/dateHelper";
+
+/**
+ * Obtiene la fecha/hora actual local en formato "YYYY-MM-DD HH:mm:ss" (sin Z).
+ * El backend interpreta este formato como hora local Peru sin conversión timezone.
+ * Igual que la usada en DespacharModal para consistencia.
+ */
+const getLocalDatetime = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  const seconds = String(now.getSeconds()).padStart(2, "0");
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+};
 
 /**
  * Formatea fecha/hora a formato legible (usando dateHelper)
@@ -292,14 +308,15 @@ export default function NovedadesPorCuadrante() {
 
         try {
           // Si hay cambio de estado, enviarlo al historial con fecha local
-          const fechaLocal = getNowLocal();
+          // Usar getLocalDatetime() igual que en DespacharModal para consistencia
+          const fechaLocal = getLocalDatetime();
           
           // 🐛 DEBUGGING: Mostrar fecha que estamos enviando
           console.log("🐛 DEBUG NovedadesPorCuadrante - Creando historial:");
-          console.log("🐛 Fecha local generada por getNowLocal():", fechaLocal);
+          console.log("🐛 Fecha local generada por getLocalDatetime():", fechaLocal);
           console.log("🐛 Fecha actual UTC (para comparación):", new Date().toISOString());
           console.log("🐛 ⚠️ ENVIANDO fecha_cambio:", fechaLocal);
-          console.log("🐛 ⚠️ BACKEND DEBE GUARDAR exactamente esta fecha SIN conversión UTC");
+          console.log("🐛 ⚠️ USANDO MISMA FUNCIÓN QUE DESPACHO (getLocalDatetime)");
           
           await crearHistorialNovedad(
             novedadPrincipalId,
