@@ -33,7 +33,6 @@ import {
   deleteNovedadPersonal,
   formatPersonalNombre,
   getPrioridadConfig,
-  getResultadoConfig,
   PRIORIDADES_NOVEDAD,
   RESULTADOS_NOVEDAD,
 } from "../../../services/operativosPersonalService.js";
@@ -469,19 +468,7 @@ export default function NovedadesPersonalModal({
   // HELPERS
   // ============================================================================
 
-  const getResultadoIcon = (resultado) => {
-    switch (resultado) {
-      case "RESUELTO":
-        return <CheckCircle size={16} className="text-emerald-600" />;
-      case "ESCALADO":
-        return <ArrowUpCircle size={16} className="text-purple-600" />;
-      case "CANCELADO":
-        return <XCircle size={16} className="text-slate-600" />;
-      default:
-        return <Clock size={16} className="text-amber-600" />;
-    }
-  };
-
+  
   // ============================================================================
   // RENDER
   // ============================================================================
@@ -727,82 +714,103 @@ export default function NovedadesPersonalModal({
             <div className="flex flex-wrap gap-4">
               {novedades.map((novedad) => {
                 const prioridadConfig = getPrioridadConfig(novedad.prioridad);
-                const resultadoConfig = getResultadoConfig(novedad.resultado);
 
                 return (
                   <div
                     key={novedad.id}
                     className="p-4 rounded-xl border bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] overflow-hidden"
                   >
-                    {/* Header: Badges + Acciones */}
-                    <div className="flex items-start justify-between gap-2 mb-3">
-                      {/* Badges con wrap */}
-                      <div className="flex flex-wrap items-center gap-1.5 min-w-0">
-                        {getResultadoIcon(novedad.resultado)}
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${prioridadConfig.color}`}>
-                          {prioridadConfig.label}
-                        </span>
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${resultadoConfig.color}`}>
-                          {resultadoConfig.label}
-                        </span>
+                    {/* Header del card */}
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-50 truncate">
+                          #{novedad.novedad?.novedad_code || novedad.novedad?.id || "---"}
+                        </h3>
                       </div>
-
-                      {/* Botones de acción - siempre visibles */}
                       <div className="flex items-center gap-0.5 flex-shrink-0">
                         <button
                           onClick={() => handleViewNovedad(novedad)}
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-700"
+                          className="p-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-200 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-700 rounded-lg"
                           title="Ver detalle"
                         >
-                          <Eye size={16} />
+                          <Eye size={14} />
                         </button>
                         {canUpdate && (
                           <button
                             onClick={() => handleOpenEdit(novedad)}
-                            className="p-1.5 rounded-lg text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20"
+                            className="p-1.5 text-primary-600 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-900/20 rounded-lg"
                             title="Editar/Resolver"
                           >
-                            <Edit size={16} />
+                            <Edit size={14} />
                           </button>
                         )}
                         {canDelete && (
                           <button
                             onClick={() => handleEliminarNovedad(novedad)}
-                            className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                            className="p-1.5 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded-lg"
                             title="Eliminar"
                           >
-                            <Trash2 size={16} />
+                            <Trash2 size={14} />
                           </button>
                         )}
                       </div>
                     </div>
 
-                    {/* Fecha reportado */}
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
-                      Reportado: {new Date(novedad.reportado).toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" })}
-                      {novedad.atendido && (
-                        <span className="ml-2 text-emerald-600">
-                          • Atendido: {new Date(novedad.atendido).toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" })}
-                        </span>
-                      )}
-                    </p>
-
-                    {/* Descripción de la novedad del sistema */}
-                    <p className="text-sm text-slate-900 dark:text-white mb-2 line-clamp-2">
-                      <span className="font-medium text-slate-600 dark:text-slate-400">
-                        [{novedad.novedad?.novedadTipoNovedad?.nombre || "Novedad"}]
-                      </span>{" "}
-                      {novedad.novedad?.descripcion || "Sin descripción"}
-                    </p>
-
-                    {/* Observaciones (mostrar con scroll si es muy largo) */}
-                    {novedad.observaciones && (
-                      <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700">
-                        <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-3">
-                          <strong>Obs:</strong> {novedad.observaciones}
-                        </p>
+                    {/* Badges - Prioridad y Estado */}
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${prioridadConfig.color}`}>
+                        {prioridadConfig.label}
+                      </span>
+                      <span 
+                        className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                          novedad.estadoNovedadPersonal?.color_hex 
+                            ? "" 
+                            : "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300"
+                        }`}
+                        style={
+                          novedad.estadoNovedadPersonal?.color_hex 
+                            ? {
+                                backgroundColor: `${novedad.estadoNovedadPersonal.color_hex}20`,
+                                color: novedad.estadoNovedadPersonal.color_hex
+                              }
+                            : {}
+                        }
+                      >
+                        {novedad.estadoNovedadPersonal?.nombre || "Sin estado"}
+                      </span>
+                    </div>
+                    
+                    {/* Tipo + Subtipo */}
+                    <div className="mb-2">
+                      <p className="text-sm text-slate-700 dark:text-slate-300 break-words">
+                        {novedad.novedad?.novedadTipoNovedad?.nombre || "Tipo"} - {novedad.novedad?.novedadSubtipoNovedad?.nombre || "Subtipo"}
+                      </p>
+                    </div>
+                    
+                    {/* Dirección */}
+                    <div className="mb-3">
+                      <p className="text-sm text-slate-600 dark:text-slate-400 break-words">
+                        {novedad.novedad?.localizacion
+                          ? novedad.novedad?.referencia_ubicacion
+                            ? `${novedad.novedad.localizacion} (${novedad.novedad.referencia_ubicacion})`
+                            : novedad.novedad.localizacion
+                          : novedad.novedad?.referencia_ubicacion || "Sin dirección"}
+                      </p>
+                    </div>
+                    
+                    {/* Fechas */}
+                    <div className="space-y-1 text-xs text-slate-500 dark:text-slate-400">
+                      <div className="flex items-center gap-1.5">
+                        <Clock size={12} />
+                        <span>Reportado: {new Date(novedad.reportado).toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" })}</span>
                       </div>
-                    )}
+                      {novedad.atendido && (
+                        <div className="flex items-center gap-1.5">
+                          <CheckCircle size={12} className="text-green-500" />
+                          <span>Atendido: {new Date(novedad.atendido).toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" })}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               })}
