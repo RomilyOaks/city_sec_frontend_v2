@@ -40,8 +40,9 @@ export const formatDateTimeToString = (dateObj) => {
                    window.location.hostname !== 'localhost';
   
   if (isRailway) {
-    // En Railway, enviar en formato UTC para evitar conversión incorrecta
-    return dateObj.toISOString().slice(0, 19).replace('T', ' ');
+    // CORRECCIÓN: En Railway, ajustar a hora Perú (UTC-5)
+    const peruTime = new Date(dateObj.getTime() - (5 * 60 * 60 * 1000));
+    return peruTime.toISOString().slice(0, 19).replace('T', ' ');
   } else {
     // En localhost, usar formato local (funciona correctamente)
     return dateObj.toLocaleString("en-CA", {
@@ -74,11 +75,28 @@ export const getNowLocal = () => {
                    window.location.hostname !== 'localhost';
   
   if (isRailway) {
-    // En Railway, usar toISOString() para evitar conversión incorrecta
-    return now.toISOString().slice(0, 19).replace('T', ' ');
+    // 🐛 CORRECCIÓN: En Railway, ajustar a hora Perú (UTC-5)
+    // Railway usa UTC por defecto, pero necesitamos hora de Perú
+    const peruTime = new Date(now.getTime() - (5 * 60 * 60 * 1000));
+    
+    // Ajustar por si hay diferencia de horario de verano (no aplica en Perú)
+    const peruTimeString = peruTime.toISOString().slice(0, 19).replace('T', ' ');
+    
+    console.log("🐛 DEBUG getNowLocal - Railway:");
+    console.log("🐛 UTC time:", now.toISOString().slice(0, 19).replace('T', ' '));
+    console.log("🐛 Perú time (UTC-5):", peruTimeString);
+    console.log("🐛 ⚠️ USANDO HORA PERÚ para Railway");
+    
+    return peruTimeString;
   } else {
-    // En localhost, usar formato local
-    return formatDateTimeToString(now);
+    // En localhost, usar formato local (funciona correctamente)
+    const localTime = formatDateTimeToString(now);
+    
+    console.log("🐛 DEBUG getNowLocal - Localhost:");
+    console.log("🐛 Local time:", localTime);
+    console.log("🐛 ✅ USANDO HORA LOCAL para localhost");
+    
+    return localTime;
   }
 };
 
