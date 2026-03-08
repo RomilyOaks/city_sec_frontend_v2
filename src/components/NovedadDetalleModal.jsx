@@ -104,6 +104,7 @@ const estadoColor = (estado) => {
   return "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300";
 };
 
+
 /**
  * NovedadDetalleModal - Modal de detalle de novedad
  *
@@ -761,8 +762,9 @@ export default function NovedadDetalleModal({
               {/* Tab 4: Seguimiento */}
               {activeTab === 4 && (
                 <div className="space-y-4">
-                  {/* Turno + Tiempo Respuesta */}
-                  <div className="grid grid-cols-2 gap-4">
+                  {/* Turno | Tiempo Estimado | Tiempo Respuesta */}
+                  <div className="grid grid-cols-3 gap-4">
+                    {/* Turno */}
                     <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
                       <span className="text-xs font-medium text-slate-500">
                         Turno
@@ -771,26 +773,62 @@ export default function NovedadDetalleModal({
                         {novedad.turno || "—"}
                       </p>
                     </div>
+                    
+                    {/* Tiempo Estimado */}
                     <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
                       <span className="text-xs font-medium text-slate-500">
-                        Tiempo de Respuesta desde reportado
+                        Tiempo Estimado
                       </span>
                       <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
-                        {(novedad.tiempo_respuesta_minutos ?? novedad.tiempo_respuesta_min)
-                          ? `${novedad.tiempo_respuesta_minutos ?? novedad.tiempo_respuesta_min} min`
+                        {novedad.novedadSubtipoNovedad?.tiempo_respuesta_min 
+                          ? `${novedad.novedadSubtipoNovedad.tiempo_respuesta_min} min`
                           : "—"}
                       </p>
-                      {(novedad.fecha_hora_ocurrencia || novedad.fecha_hora_reporte) && (
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                          <span className="font-medium">Inicio:</span> {formatFecha(novedad.fecha_hora_ocurrencia || novedad.fecha_hora_reporte)}
-                        </p>
-                      )}
-                      {novedad.fecha_llegada && (
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                          <span className="font-medium">Fin:</span> {formatFecha(novedad.fecha_llegada)}
-                        </p>
-                      )}
                     </div>
+                    
+                    {/* Tiempo Respuesta desde Despachado */}
+                    <div className={`p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 ${
+                      (novedad.tiempo_respuesta_min_operativo && novedad.novedadSubtipoNovedad?.tiempo_respuesta_min &&
+                       novedad.tiempo_respuesta_min_operativo > novedad.novedadSubtipoNovedad.tiempo_respuesta_min)
+                        ? 'bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-700 dark:text-red-300'
+                        : ''
+                    }`}>
+                      <span className="text-xs font-medium text-slate-500">
+                        Tiempo Respuesta desde Despachado
+                      </span>
+                      <p className={`text-sm font-semibold ${
+                        (novedad.tiempo_respuesta_min_operativo && novedad.novedadSubtipoNovedad?.tiempo_respuesta_min &&
+                         novedad.tiempo_respuesta_min_operativo > novedad.novedadSubtipoNovedad.tiempo_respuesta_min)
+                          ? 'text-red-800 dark:text-red-300'
+                          : 'text-slate-900 dark:text-slate-50'
+                      }`}>
+                        {novedad.tiempo_respuesta_min_operativo 
+                          ? `${novedad.tiempo_respuesta_min_operativo} min`
+                          : "—"}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Tiempo de Respuesta desde reportado (mantenido para compatibilidad) */}
+                  <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                    <span className="text-xs font-medium text-slate-500">
+                      Tiempo de Respuesta desde reportado
+                    </span>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+                      {(novedad.tiempo_respuesta_minutos ?? novedad.tiempo_respuesta_min)
+                        ? `${novedad.tiempo_respuesta_minutos ?? novedad.tiempo_respuesta_min} min`
+                        : "—"}
+                    </p>
+                    {novedad.fecha_despacho && (
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          <span className="font-medium">Inicio:</span> {formatFecha(novedad.fecha_despacho)}
+                        </p>
+                      )}
+                    {novedad.fecha_llegada && (
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        <span className="font-medium">Fin:</span> {formatFecha(novedad.fecha_llegada)}
+                      </p>
+                    )}
                   </div>
 
                   {/* Datos de Seguimiento — solo si requiere_seguimiento */}
