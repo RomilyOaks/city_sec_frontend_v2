@@ -334,9 +334,10 @@ export const getHistorialEstados = async (novedadId) => {
  * @param {number} novedadId - ID de la novedad principal
  * @param {string} observaciones - Observaciones/acciones tomadas
  * @param {number|null} [estadoNuevoId] - ID del nuevo estado (opcional, si no se envía mantiene el actual)
+ * @param {string} [fechaCambio] - Fecha de cambio en formato local (YYYY-MM-DD HH:mm:ss)
  * @returns {Promise<Object>} - Resultado de la operación
  */
-export async function crearHistorialNovedad(novedadId, observaciones, estadoNuevoId = null) {
+export async function crearHistorialNovedad(novedadId, observaciones, estadoNuevoId = null, fechaCambio = null) {
   const payload = {
     observaciones: observaciones,
   };
@@ -344,6 +345,11 @@ export async function crearHistorialNovedad(novedadId, observaciones, estadoNuev
   // Solo incluir estado_nuevo_id si se quiere cambiar el estado
   if (estadoNuevoId) {
     payload.estado_nuevo_id = estadoNuevoId;
+  }
+
+  // Incluir fecha_cambio si se proporciona (usar hora local en lugar de UTC)
+  if (fechaCambio) {
+    payload.fecha_cambio = fechaCambio;
   }
 
   try {

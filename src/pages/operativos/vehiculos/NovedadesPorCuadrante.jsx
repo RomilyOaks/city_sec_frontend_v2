@@ -40,7 +40,7 @@ import { useAuthStore } from "../../../store/useAuthStore.js";
 import { useEstadosPorRol } from "../../../hooks/useEstadosPorRol.js";
 import RegistrarNovedadForm from "./RegistrarNovedadForm.jsx";
 import NovedadDetalleModal from "../../../components/NovedadDetalleModal.jsx";
-import { formatForDisplay, safeConvertToTimezone } from "../../../utils/dateHelper";
+import { formatForDisplay, safeConvertToTimezone, getNowLocal } from "../../../utils/dateHelper";
 
 /**
  * Formatea fecha/hora a formato legible (usando dateHelper)
@@ -291,11 +291,12 @@ export default function NovedadesPorCuadrante() {
         }
 
         try {
-          // Si hay cambio de estado, enviarlo al historial
+          // Si hay cambio de estado, enviarlo al historial con fecha local
           await crearHistorialNovedad(
             novedadPrincipalId,
             observacionesHistorial,
-            cambioEstado ? nuevoEstadoId : null
+            cambioEstado ? nuevoEstadoId : null,
+            getNowLocal() // Agregar fecha_cambio en formato local
           );
         } catch (historialError) {
           console.error("Error al grabar historial:", historialError);
