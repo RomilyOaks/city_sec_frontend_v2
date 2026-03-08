@@ -5,7 +5,7 @@
  * @module src/pages/operativos/vehiculos/NovedadesPorCuadrante.jsx
  */
 
-import { useEffect, useState, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
@@ -40,21 +40,14 @@ import { useAuthStore } from "../../../store/useAuthStore.js";
 import { useEstadosPorRol } from "../../../hooks/useEstadosPorRol.js";
 import RegistrarNovedadForm from "./RegistrarNovedadForm.jsx";
 import NovedadDetalleModal from "../../../components/NovedadDetalleModal.jsx";
+import { formatForDisplay, safeConvertToTimezone } from "../../../utils/dateHelper";
 
 /**
- * Formatea fecha/hora a formato legible
+ * Formatea fecha/hora a formato legible (usando dateHelper)
  */
 const formatDateTime = (dateString) => {
   if (!dateString) return "-";
-  const date = new Date(dateString);
-  return date.toLocaleString("es-PE", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "America/Lima",
-  });
+  return formatForDisplay(dateString);
 };
 
 /**
@@ -221,7 +214,7 @@ export default function NovedadesPorCuadrante() {
     setSelectedNovedadEdit(novedad);
 
     // Obtener el estado actual de la novedad principal
-    const estadoActualId = novedad.novedad?.estado_novedad_id || novedad.estado_novedad_id || 1;
+    const estadoActualId = novedad.novedad?.estado_novedad_id || 1;
 
     setEditData({
       estado_novedad_id: estadoActualId,
@@ -259,7 +252,7 @@ export default function NovedadesPorCuadrante() {
     try {
       const tieneAcciones = editData.acciones_tomadas?.trim();
       const novedadPrincipalId = selectedNovedadEdit.novedad_id || selectedNovedadEdit.novedad?.id;
-      const estadoActualId = selectedNovedadEdit.novedad?.estado_novedad_id || selectedNovedadEdit.estado_novedad_id;
+      const estadoActualId = selectedNovedadEdit.novedad?.estado_novedad_id;
       
       // Mapear Resultado Operativo a estado_novedad_id
       let nuevoEstadoId = null;
@@ -281,10 +274,7 @@ export default function NovedadesPorCuadrante() {
 
       // 1. Si hay cambio de estado o acciones tomadas, crear historial
       if (novedadPrincipalId && (tieneAcciones || cambioEstado)) {
-        const timestamp = new Date().toLocaleString("es-PE", {
-          dateStyle: "short",
-          timeStyle: "short",
-        });
+        const timestamp = formatForDisplay(new Date());
         const vehiculoInfo = vehiculo?.placa || `Vehículo ${vehiculoId}`;
 
         // Construir texto de observaciones para el historial
@@ -316,18 +306,16 @@ export default function NovedadesPorCuadrante() {
       // Construir observaciones actualizadas: agregar acciones_tomadas al final de observaciones existentes
       let observacionesActualizadas = editData.observaciones?.trim() || "";
       if (tieneAcciones) {
-        const timestamp = new Date().toLocaleString("es-PE", {
-          dateStyle: "short",
-          timeStyle: "short",
-        });
+        const timestamp = formatForDisplay(new Date());
         const vehiculoInfo = vehiculo?.placa || `Vehículo ${vehiculoId}`;
         const nuevaAccion = `\n[${timestamp} - ${vehiculoInfo}] ${editData.acciones_tomadas.trim()}`;
         observacionesActualizadas = observacionesActualizadas ? observacionesActualizadas + nuevaAccion : nuevaAccion.trim();
       }
 
       // 2. Actualizar el registro operativo (operativos_vehiculos_cuadrantes_novedades)
+      // Usar dateHelper seguro para manejo correcto de timezone
       const fechaLlegadaPayload = editData.fecha_llegada
-        ? new Date(editData.fecha_llegada).toISOString().replace("T", " ").slice(0, 19)
+        ? safeConvertToTimezone(editData.fecha_llegada)
         : undefined;
       const payload = {
         resultado: editData.resultado,
@@ -766,20 +754,20 @@ export default function NovedadesPorCuadrante() {
                     </span>
                     <span 
                       className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                        novedad.estadoNovedadVehiculo?.color_hex 
+                        novedad.novedad?.novedadEstado?.color_hex 
                           ? "" 
                           : "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300"
                       }`}
                       style={
-                        novedad.estadoNovedadVehiculo?.color_hex 
+                        novedad.novedad?.novedadEstado?.color_hex 
                           ? {
-                              backgroundColor: `${novedad.estadoNovedadVehiculo.color_hex}20`,
-                              color: novedad.estadoNovedadVehiculo.color_hex
+                              backgroundColor: `${novedad.novedad.novedadEstado.color_hex}20`,
+                              color: novedad.novedad.novedadEstado.color_hex
                             }
                           : {}
                       }
                     >
-                      {novedad.estadoNovedadVehiculo?.nombre || "Sin estado"}
+                      {novedad.novedad?.novedadEstado?.nombre || "Sin estado"}
                     </span>
                   </div>
                   
@@ -869,8 +857,7 @@ export default function NovedadesPorCuadrante() {
                 </label>
                 <div className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex items-center gap-2">
                   <span className="inline-flex px-2 py-1 rounded-full text-sm font-bold bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
-                    {selectedNovedadEdit?.estadoNovedadVehiculo?.nombre ||
-                      selectedNovedadEdit?.novedad?.novedadEstado?.nombre ||
+                    {selectedNovedadEdit?.novedad?.novedadEstado?.nombre ||
                       estadosRol.find((e) => e.id === editData.estado_novedad_id)?.nombre ||
                       `Estado #${editData.estado_novedad_id}`}
                   </span>
@@ -896,11 +883,7 @@ export default function NovedadesPorCuadrante() {
                     </label>
                     {yaRegistrada ? (
                       <div className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-600 dark:text-slate-300">
-                        {new Date(fechaLlegadaActual).toLocaleString("es-PE", {
-                          day: "2-digit", month: "2-digit", year: "numeric",
-                          hour: "2-digit", minute: "2-digit",
-                          timeZone: "America/Lima",
-                        })}
+                        {formatForDisplay(fechaLlegadaActual)}
                       </div>
                     ) : (
                       <input
