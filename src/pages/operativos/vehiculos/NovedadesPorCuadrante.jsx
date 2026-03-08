@@ -320,7 +320,7 @@ export default function NovedadesPorCuadrante() {
       
       const payload = {
         resultado: editData.resultado,
-        acciones_tomadas: "", // Limpiar para nuevas acciones
+        acciones_tomadas: editData.acciones_tomadas?.trim() || "", // Guardar acciones del formulario
         observaciones: observacionesActualizadas,
         estado_novedad_id: nuevoEstadoId, // Siempre incluir el estado mapeado
         num_personas_afectadas: editData.num_personas_afectadas || 0,
@@ -842,7 +842,7 @@ export default function NovedadesPorCuadrante() {
           <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-md flex flex-col max-h-[90vh]">
             <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-                Actualizar Novedad
+                Actualizar Novedad {selectedNovedadEdit?.novedad?.novedad_code ? `#${selectedNovedadEdit.novedad.novedad_code}` : ''}
               </h3>
               <p className="text-sm text-slate-500 dark:text-slate-400">
                 Cambiar estado o agregar información

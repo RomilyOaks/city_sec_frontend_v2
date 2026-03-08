@@ -417,7 +417,7 @@ export default function NovedadesPersonalModal({
         : undefined;
       const payload = {
         resultado: editData.resultado,
-        acciones_tomadas: "", // Limpiar para permitir nuevas acciones
+        acciones_tomadas: editData.acciones_tomadas?.trim() || "", // Guardar acciones del formulario
         observaciones: observacionesOperativo,
         num_personas_afectadas: editData.num_personas_afectadas || 0,
         perdidas_materiales_estimadas: editData.perdidas_materiales_estimadas || 0,
