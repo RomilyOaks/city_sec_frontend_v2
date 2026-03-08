@@ -791,24 +791,6 @@ export default function NovedadDetalleModal({
                         </p>
                       )}
                     </div>
-                    
-                    {/* DEBUGGING - Fechas */}
-                    <div className="p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700">
-                      <span className="text-xs font-medium text-yellow-600 dark:text-yellow-400">
-                        🔍 DEBUGGING - Fechas
-                      </span>
-                      <div className="text-xs text-yellow-700 dark:text-yellow-300 mt-1 space-y-1">
-                        <p><strong>Browser Timezone:</strong> {Intl.DateTimeFormat().resolvedOptions().timeZone}</p>
-                        <p><strong>Current Time:</strong> {new Date().toLocaleString()}</p>
-                        <p><strong>Current UTC:</strong> {new Date().toISOString()}</p>
-                        <p><strong>reportado:</strong> {novedad.fecha_hora_reporte} ({typeof novedad.fecha_hora_reporte})</p>
-                        <p><strong>ocurrencia:</strong> {novedad.fecha_hora_ocurrencia} ({typeof novedad.fecha_hora_ocurrencia})</p>
-                        <p><strong>llegada:</strong> {novedad.fecha_llegada} ({typeof novedad.fecha_llegada})</p>
-                        <p><strong>atendido:</strong> {novedad.atendido} ({typeof novedad.atendido})</p>
-                        <p><strong>tiempo_respuesta_minutos:</strong> {novedad.tiempo_respuesta_minutos}</p>
-                        <p><strong>tiempo_respuesta_min:</strong> {novedad.tiempo_respuesta_min}</p>
-                      </div>
-                    </div>
                   </div>
 
                   {/* Datos de Seguimiento — solo si requiere_seguimiento */}
