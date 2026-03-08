@@ -35,16 +35,42 @@ const DEFAULT_TIMEZONE = import.meta.env.VITE_APP_TIMEZONE || "America/Lima";
  * @returns {string} "YYYY-MM-DD HH:mm:ss" en hora local
  */
 export const formatDateTimeToString = (dateObj) => {
-  // Usar en-CA para formato YYYY-MM-DD y hora local sin conversión UTC
-  return dateObj.toLocaleString("en-CA", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false
-  }).replace(",", "").replace(/\//g, "-");
+  console.log("🔧 DEBUGGING - formatDateTimeToString:");
+  console.log("  Input dateObj:", dateObj);
+  console.log("  typeof dateObj:", typeof dateObj);
+  console.log("  dateObj.toString():", dateObj?.toString());
+  console.log("  dateObj.toISOString():", dateObj?.toISOString());
+  
+  // Detectar si estamos en Railway (producción)
+  const isRailway = window.location.hostname.includes('railway.app') || 
+                   window.location.hostname !== 'localhost';
+  
+  console.log("  → isRailway:", isRailway);
+  console.log("  → hostname:", window.location.hostname);
+  
+  let result;
+  
+  if (isRailway) {
+    // En Railway, enviar en formato UTC para evitar conversión incorrecta
+    result = dateObj.toISOString().slice(0, 19).replace('T', ' ');
+    console.log("  → Usando formato UTC para Railway:", result);
+  } else {
+    // En localhost, usar formato local (funciona correctamente)
+    result = dateObj.toLocaleString("en-CA", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false
+    }).replace(",", "").replace(/\//g, "-");
+    console.log("  → Usando formato local para localhost:", result);
+  }
+  
+  console.log("  → Browser timezone:", Intl.DateTimeFormat().resolvedOptions().timeZone);
+  
+  return result;
 };
 
 /**
@@ -58,7 +84,19 @@ export const formatDateTimeToString = (dateObj) => {
  * const ahora = getNowLocal();
  */
 export const getNowLocal = () => {
-  return formatDateTimeToString(new Date());
+  const now = new Date();
+  
+  // Detectar si estamos en Railway (producción)
+  const isRailway = window.location.hostname.includes('railway.app') || 
+                   window.location.hostname !== 'localhost';
+  
+  if (isRailway) {
+    // En Railway, usar toISOString() para evitar conversión incorrecta
+    return now.toISOString().slice(0, 19).replace('T', ' ');
+  } else {
+    // En localhost, usar formato local
+    return formatDateTimeToString(now);
+  }
 };
 
 /**
@@ -81,35 +119,55 @@ export const getNowLocal = () => {
  * convertToTimezone("2026-03-08 14:30:00") // "2026-03-08 14:30:00"
  */
 export const convertToTimezone = (date) => {
-  if (!date) return null;
+  console.log("🔧 DEBUGGING - convertToTimezone:");
+  console.log("  Input:", date);
+  console.log("  typeof:", typeof date);
+  
+  if (!date) {
+    console.log("  → No date, returning null");
+    return null;
+  }
   
   if (typeof date === "string") {
     // Validar que no sea "Invalid Date"
     if (date === "Invalid Date" || date === "null" || date === "undefined") {
+      console.log("  → Invalid string detected, returning getNowLocal()");
       return getNowLocal(); // Fallback a fecha actual
     }
     
     // Si es formato datetime-local (YYYY-MM-DDTHH:mm)
     if (date.includes("T") && !date.includes("Z") && !/[+-]\d{2}:\d{2}$/.test(date)) {
+      console.log("  → Processing datetime-local format");
+      
       // Parsear directamente sin conversión UTC
       const [datePart, timePart] = date.split("T");
       const [year, month, day] = datePart.split("-").map(Number);
       const [hour, minute] = timePart.split(":").map(Number);
       
+      console.log("  → Parsed components:", { year, month, day, hour, minute });
+      
       // Validar que los componentes sean válidos
       if (isNaN(year) || isNaN(month) || isNaN(day) || isNaN(hour) || isNaN(minute)) {
+        console.log("  → Invalid components, returning getNowLocal()");
         return getNowLocal(); // Fallback si hay componentes inválidos
       }
       
       // Crear fecha local sin conversión UTC
       const dateObj = new Date(year, month - 1, day, hour, minute, 0, 0);
       
+      console.log("  → Created Date object:", dateObj);
+      console.log("  → Date object toString():", dateObj.toString());
+      console.log("  → Date object toISOString():", dateObj.toISOString());
+      
       // Validar que la fecha creada sea válida
       if (isNaN(dateObj.getTime())) {
+        console.log("  → Invalid Date object, returning getNowLocal()");
         return getNowLocal(); // Fallback si la fecha es inválida
       }
       
-      return formatDateTimeToString(dateObj);
+      const result = formatDateTimeToString(dateObj);
+      console.log("  → formatDateTimeToString result:", result);
+      return result;
     }
     
     // Si ya está en formato correcto, normalizar
@@ -145,10 +203,24 @@ export const convertToTimezone = (date) => {
  */
 export const safeConvertToTimezone = (date) => {
   try {
+    console.log("🔧 DEBUGGING - safeConvertToTimezone:");
+    console.log("  Input date:", date);
+    console.log("  typeof date:", typeof date);
+    
     const result = convertToTimezone(date);
-    return result && result !== "Invalid Date" ? result : getNowLocal();
+    
+    console.log("  convertToTimezone result:", result);
+    console.log("  typeof result:", typeof result);
+    
+    const finalResult = result && result !== "Invalid Date" ? result : getNowLocal();
+    
+    console.log("  final result:", finalResult);
+    console.log("  getNowLocal fallback:", getNowLocal());
+    
+    return finalResult;
   } catch (error) {
     console.warn("Error al convertir fecha, usando fecha actual:", error);
+    console.log("  fallback getNowLocal():", getNowLocal());
     return getNowLocal();
   }
 };
