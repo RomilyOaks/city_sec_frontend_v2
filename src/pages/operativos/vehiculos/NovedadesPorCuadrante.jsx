@@ -75,21 +75,6 @@ const getPrioridadColor = (prioridad) => {
   }
 };
 
-/**
- * Obtiene color según estado
- */
-const getEstadoColor = (estado) => {
-  switch (estado) {
-    case 0:
-      return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300"; // Inactivo
-    case 1:
-      return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"; // Activo
-    case 2:
-      return "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300"; // Atendido
-    default:
-      return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300";
-  }
-};
 
 
 /**
@@ -779,8 +764,22 @@ export default function NovedadesPorCuadrante() {
                     <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getPrioridadColor(novedad.prioridad)}`}>
                       {novedad.prioridad}
                     </span>
-                    <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${getEstadoColor(novedad.estado)}`}>
-                      {novedad.estado === 0 ? "Inactivo" : novedad.estado === 1 ? "Activo" : "Atendido"}
+                    <span 
+                      className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                        novedad.estadoNovedadVehiculo?.color_hex 
+                          ? "" 
+                          : "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300"
+                      }`}
+                      style={
+                        novedad.estadoNovedadVehiculo?.color_hex 
+                          ? {
+                              backgroundColor: `${novedad.estadoNovedadVehiculo.color_hex}20`,
+                              color: novedad.estadoNovedadVehiculo.color_hex
+                            }
+                          : {}
+                      }
+                    >
+                      {novedad.estadoNovedadVehiculo?.nombre || "Sin estado"}
                     </span>
                   </div>
                   
