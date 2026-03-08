@@ -666,7 +666,11 @@ export default function CuadrantesPorVehiculo() {
                   {cuadrantes.map((cuadrante) => (
                     <tr
                       key={cuadrante.id}
-                      className="hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                      className="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer"
+                      onClick={(e) => {
+                        if (e.target.closest('button')) return;
+                        if (canReadNovedades) handleViewNovedades(cuadrante);
+                      }}
                     >
                       <td className="px-6 py-4 font-medium text-slate-900 dark:text-slate-50">
                         <span className="inline-flex items-center gap-1">

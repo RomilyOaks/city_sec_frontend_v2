@@ -480,7 +480,11 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
                     return (
                       <tr
                         key={p.id}
-                        className="hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                        className="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer"
+                        onClick={(e) => {
+                          if (e.target.closest('button')) return;
+                          if (canReadCuadrantes) handleCuadrantes(p);
+                        }}
                       >
                         {/* Personal principal */}
                         <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-50">

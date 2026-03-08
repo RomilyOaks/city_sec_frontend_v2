@@ -519,7 +519,11 @@ export default function CuadrantesPersonalModal({
                       enCurso
                         ? "bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800"
                         : "bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
-                    }`}
+                    } ${onOpenNovedades ? "cursor-pointer hover:ring-2 hover:ring-amber-400/50 transition-all" : ""}`}
+                    onClick={(e) => {
+                      if (e.target.closest('button')) return;
+                      if (onOpenNovedades) onOpenNovedades(cuadrante);
+                    }}
                   >
                     <div className="flex items-start justify-between">
                       {/* Info del cuadrante */}
