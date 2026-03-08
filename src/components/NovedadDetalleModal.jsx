@@ -658,19 +658,6 @@ export default function NovedadDetalleModal({
               {/* Tab 3: Recursos */}
               {activeTab === 3 && (
                 <div className="space-y-4">
-                  {/* Unidad/Oficina — ancho completo */}
-                  <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                    <span className="text-xs font-medium text-slate-500">
-                      Unidad/Oficina
-                    </span>
-                    <p className="text-sm text-slate-900 dark:text-slate-50">
-                      {(() => {
-                        const unidad = unidadesOficina?.find(u => u.id === novedad.unidad_oficina_id);
-                        return unidad?.nombre || "—";
-                      })()}
-                    </p>
-                  </div>
-
                   {/* Fila: Vehículo Asignado | Conductor */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
@@ -755,6 +742,19 @@ export default function NovedadDetalleModal({
                       </div>
                     </div>
                   </div>
+
+                  {/* Unidad/Oficina — al final, ancho completo */}
+                  <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                    <span className="text-xs font-medium text-slate-500">
+                      Unidad/Oficina
+                    </span>
+                    <p className="text-sm text-slate-900 dark:text-slate-50">
+                      {(() => {
+                        const unidad = unidadesOficina?.find(u => u.id === novedad.unidad_oficina_id);
+                        return unidad?.nombre || "—";
+                      })()}
+                    </p>
+                  </div>
                 </div>
               )}
 
@@ -773,13 +773,23 @@ export default function NovedadDetalleModal({
                     </div>
                     <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
                       <span className="text-xs font-medium text-slate-500">
-                        Tiempo Respuesta
+                        Tiempo de Respuesta desde reportado
                       </span>
-                      <p className="text-sm text-slate-900 dark:text-slate-50">
+                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
                         {(novedad.tiempo_respuesta_minutos ?? novedad.tiempo_respuesta_min)
                           ? `${novedad.tiempo_respuesta_minutos ?? novedad.tiempo_respuesta_min} min`
                           : "—"}
                       </p>
+                      {(novedad.fecha_hora_ocurrencia || novedad.fecha_hora_reporte) && (
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          <span className="font-medium">Inicio:</span> {formatFecha(novedad.fecha_hora_ocurrencia || novedad.fecha_hora_reporte)}
+                        </p>
+                      )}
+                      {novedad.fecha_llegada && (
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          <span className="font-medium">Fin:</span> {formatFecha(novedad.fecha_llegada)}
+                        </p>
+                      )}
                     </div>
                   </div>
 

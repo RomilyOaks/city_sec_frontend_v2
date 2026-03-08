@@ -156,6 +156,7 @@ export default function NovedadesPorCuadrante() {
     acciones_tomadas: "",
     observaciones: "",
     personas_afectadas: 0,
+    fecha_llegada: "",
   });
   const [savingEdit, setSavingEdit] = useState(false);
 
@@ -261,6 +262,7 @@ export default function NovedadesPorCuadrante() {
       observaciones: novedad.observaciones || "",
       num_personas_afectadas: novedad.novedad?.num_personas_afectadas || 0,
       perdidas_materiales_estimadas: novedad.novedad?.perdidas_materiales_estimadas || 0,
+      fecha_llegada: "",
     });
     setShowEditModal(true);
   }, []);
@@ -276,6 +278,7 @@ export default function NovedadesPorCuadrante() {
       observaciones: "",
       num_personas_afectadas: 0,
       perdidas_materiales_estimadas: 0,
+      fecha_llegada: "",
     });
   }, []);
 
@@ -355,6 +358,9 @@ export default function NovedadesPorCuadrante() {
       }
 
       // 2. Actualizar el registro operativo (operativos_vehiculos_cuadrantes_novedades)
+      const fechaLlegadaPayload = editData.fecha_llegada
+        ? new Date(editData.fecha_llegada).toISOString().replace("T", " ").slice(0, 19)
+        : undefined;
       const payload = {
         resultado: editData.resultado,
         acciones_tomadas: "", // Limpiar para nuevas acciones
@@ -362,6 +368,7 @@ export default function NovedadesPorCuadrante() {
         estado_novedad_id: nuevoEstadoId, // Siempre incluir el estado mapeado
         num_personas_afectadas: editData.num_personas_afectadas || 0,
         perdidas_materiales_estimadas: editData.perdidas_materiales_estimadas || 0,
+        ...(fechaLlegadaPayload ? { fecha_llegada: fechaLlegadaPayload } : {}),
       };
 
       await operativosNovedadesService.updateNovedad(
@@ -475,25 +482,31 @@ export default function NovedadesPorCuadrante() {
         event.preventDefault();
         event.stopPropagation();
 
-        // Prioridad 1: Cerrar modal de detalle de novedad
+        // Prioridad 1: Cerrar modal de edición inline
+        if (showEditModal) {
+          handleCloseEditModal();
+          return;
+        }
+
+        // Prioridad 2: Cerrar modal de detalle de novedad
         if (viewingNovedad) {
           handleCloseViewModal();
           return;
         }
 
-        // Prioridad 2: Cerrar modal de confirmación de eliminación
+        // Prioridad 3: Cerrar modal de confirmación de eliminación
         if (deletingNovedad) {
           cancelDeleteNovedad();
           return;
         }
 
-        // Prioridad 3: Cerrar formulario de registro/edición
+        // Prioridad 4: Cerrar formulario de registro/edición
         if (showCreateForm) {
           handleCloseForm();
           return;
         }
 
-        // Prioridad 4: Volver al panel anterior
+        // Prioridad 5: Volver al panel anterior (Cuadrantes del Vehículo)
         handleBack();
       }
     };
@@ -502,7 +515,7 @@ export default function NovedadesPorCuadrante() {
     return () => {
       document.removeEventListener("keydown", handleKeyDown, true);
     };
-  }, [canCreate, filteredNovedades.length, handleBack, showCreateForm, handleCloseForm, handleCreateNovedad, viewingNovedad, handleCloseViewModal, deletingNovedad, cancelDeleteNovedad]);
+  }, [canCreate, filteredNovedades.length, handleBack, showCreateForm, handleCloseForm, handleCreateNovedad, viewingNovedad, handleCloseViewModal, deletingNovedad, cancelDeleteNovedad, showEditModal, handleCloseEditModal]);
 
   // Estado de carga
   if (loading) {
@@ -856,9 +869,9 @@ export default function NovedadesPorCuadrante() {
 
       {/* Modal de edición inline - Igual que Patrullaje a Pie */}
       {showEditModal && selectedNovedadEdit && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-md">
-            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4" style={{ overflow: 'hidden' }}>
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-md flex flex-col max-h-[90vh]">
+            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
                 Actualizar Novedad
               </h3>
@@ -867,25 +880,60 @@ export default function NovedadesPorCuadrante() {
               </p>
             </div>
 
-            <form onSubmit={handleUpdateNovedadEdit} className="p-6 space-y-4">
+            <form onSubmit={handleUpdateNovedadEdit} className="flex flex-col flex-1 min-h-0">
+              <div className="overflow-y-auto flex-1 p-6 space-y-4">
               {/* Estado actual de la Novedad - solo informativo */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Estado Actual
                 </label>
                 <div className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex items-center gap-2">
-                  <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
+                  <span className="inline-flex px-2 py-1 rounded-full text-sm font-bold bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
                     {selectedNovedadEdit?.estadoNovedadVehiculo?.nombre ||
                       selectedNovedadEdit?.novedad?.novedadEstado?.nombre ||
                       estadosRol.find((e) => e.id === editData.estado_novedad_id)?.nombre ||
                       `Estado #${editData.estado_novedad_id}`}
                   </span>
-                  <span className="text-xs text-slate-400">(solo lectura)</span>
                 </div>
                 <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                   El estado se actualiza automáticamente según el Resultado Operativo
                 </p>
               </div>
+
+              {/* Hora de Llegada - obligatorio si está vacío */}
+              {(() => {
+                const fechaLlegadaActual = selectedNovedadEdit?.novedad?.fecha_llegada;
+                const yaRegistrada = !!fechaLlegadaActual;
+                return (
+                  <div>
+                    <label className={`block text-sm font-medium mb-1 ${
+                      !yaRegistrada
+                        ? "text-green-700 dark:text-green-400 font-bold"
+                        : "text-slate-700 dark:text-slate-300"
+                    }`}>
+                      Hora de Llegada
+                      {!yaRegistrada && <span className="ml-1 text-green-600 dark:text-green-400">★ Requerido</span>}
+                    </label>
+                    {yaRegistrada ? (
+                      <div className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-600 dark:text-slate-300">
+                        {new Date(fechaLlegadaActual).toLocaleString("es-PE", {
+                          day: "2-digit", month: "2-digit", year: "numeric",
+                          hour: "2-digit", minute: "2-digit",
+                          timeZone: "America/Lima",
+                        })}
+                      </div>
+                    ) : (
+                      <input
+                        type="datetime-local"
+                        value={editData.fecha_llegada || ""}
+                        onChange={(e) => setEditData({ ...editData, fecha_llegada: e.target.value })}
+                        required
+                        className="w-full px-3 py-2 rounded-lg border-2 border-green-500 dark:border-green-400 bg-green-50 dark:bg-green-900/30 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-green-400/40"
+                      />
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Resultado/Estado del operativo */}
               <div>
@@ -967,8 +1015,9 @@ export default function NovedadesPorCuadrante() {
                 />
               </div>
 
-              {/* Botones */}
-              <div className="flex justify-end gap-2 pt-2">
+              </div>
+              {/* Botones - fijos en la parte inferior */}
+              <div className="flex justify-end gap-2 px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
                 <button
                   type="button"
                   onClick={handleCloseEditModal}

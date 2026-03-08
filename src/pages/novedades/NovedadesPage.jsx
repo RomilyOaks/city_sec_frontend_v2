@@ -2403,11 +2403,11 @@ export default function NovedadesPage() {
                 <table className="w-full text-xs">
                   <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
                     <tr>
-                      <th className="px-3 py-2 text-left font-semibold text-slate-700 dark:text-slate-200 w-20">
-                        Código
-                      </th>
                       <th className="px-2 py-2 text-left font-semibold text-slate-700 dark:text-slate-200 w-8">
                         Origen
+                      </th>
+                      <th className="px-3 py-2 text-left font-semibold text-slate-700 dark:text-slate-200 w-20">
+                        Código
                       </th>
                       <th className="px-3 py-2 text-left font-semibold text-slate-700 dark:text-slate-200 w-28">
                         Fecha/Hora
@@ -2422,7 +2422,7 @@ export default function NovedadesPage() {
                         Prioridad
                       </th>
                       <th className="px-3 py-2 text-left font-semibold text-slate-700 dark:text-slate-200 w-24">
-                        Despacho
+                        {filterEstado === "1" ? "Creación" : "Despacho"}
                       </th>
                       <th className="px-3 py-2 text-right font-semibold text-slate-700 dark:text-slate-200 w-24">
                         Acciones
@@ -2459,15 +2459,15 @@ export default function NovedadesPage() {
                             n.deleted_at ? "opacity-50" : ""
                           }`}
                         >
-                          <td className="px-3 py-2 text-slate-900 dark:text-slate-50 font-mono font-medium whitespace-nowrap">
-                            {n.novedad_code || "—"}
-                          </td>
                           <td className="px-2 py-2 text-slate-700 dark:text-slate-200">
                             <OrigenLlamadaCell 
                               origen={n.origen_llamada} 
                               showLabel={false}
                               size="sm"
                             />
+                          </td>
+                          <td className="px-3 py-2 text-slate-900 dark:text-slate-50 font-mono font-medium whitespace-nowrap">
+                            {n.novedad_code || "—"}
                           </td>
                           <td className="px-3 py-2 text-slate-700 dark:text-slate-200 whitespace-nowrap">
                             {formatFecha(n.fecha_hora_ocurrencia)}
@@ -2499,9 +2499,13 @@ export default function NovedadesPage() {
                             </span>
                           </td>
                           <td className="px-3 py-2 text-slate-600 dark:text-slate-300 whitespace-nowrap">
-                            {n.usuarioDespachoNovedad?.username
-                              ? <span className="font-mono text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">{n.usuarioDespachoNovedad.username}</span>
-                              : <span className="text-slate-400">—</span>}
+                            {filterEstado === "1"
+                              ? (n.creadorNovedad?.username
+                                  ? <span className="font-mono text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">{n.creadorNovedad.username}</span>
+                                  : <span className="text-slate-400">—</span>)
+                              : (n.usuarioDespachoNovedad?.username
+                                  ? <span className="font-mono text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">{n.usuarioDespachoNovedad.username}</span>
+                                  : <span className="text-slate-400">—</span>)}
                           </td>
                           <td className="px-3 py-2 text-right">
                             <div className="flex items-center justify-end gap-1">
@@ -4823,14 +4827,28 @@ export default function NovedadesPage() {
                     <h4 className="font-medium text-slate-900 dark:text-slate-50 mb-3">Datos de Seguimiento</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">Fecha de Llegada</label>
-                        <input
-                          type="datetime-local"
-                          value={atencionData.fecha_llegada}
-                          onChange={(e) => setAtencionData({ ...atencionData, fecha_llegada: e.target.value })}
-                          disabled={!fechaLlegadaVacia}
-                          className={fechaLlegadaVacia ? clsEditable : clsReadonly}
-                        />
+                        {(() => {
+                          const esEnLugar = Number(atencionData.estado_novedad_id) === 4;
+                          const clsLlegada = fechaLlegadaVacia
+                            ? esEnLugar
+                              ? "mt-1 w-full rounded-lg border-2 border-green-500 dark:border-green-400 bg-green-50 dark:bg-green-900/30 px-3 py-2 text-slate-900 dark:text-slate-50 ring-2 ring-green-400/40"
+                              : clsEditable
+                            : clsReadonly;
+                          return (
+                            <>
+                              <label className={`block text-sm font-medium mb-0 ${esEnLugar ? "text-green-700 dark:text-green-400 font-bold" : "text-slate-700 dark:text-slate-200"}`}>
+                                Fecha de Llegada{esEnLugar && <span className="ml-1 text-green-600 dark:text-green-400">★ Requerido</span>}
+                              </label>
+                              <input
+                                type="datetime-local"
+                                value={atencionData.fecha_llegada}
+                                onChange={(e) => setAtencionData({ ...atencionData, fecha_llegada: e.target.value })}
+                                disabled={!fechaLlegadaVacia}
+                                className={clsLlegada}
+                              />
+                            </>
+                          );
+                        })()}
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
@@ -4931,19 +4949,17 @@ export default function NovedadesPage() {
                           className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
                         >
                           <option value="">Seleccione estado...</option>
-                          {estadosRol.length > 0
-                            ? estadosRol.map((e) => (
-                                <option key={e.id} value={e.id}>
-                                  {e.nombre}
-                                </option>
-                              ))
+                          {(estadosRol.length > 0
+                            ? estadosRol
                             : isSupervisor()
-                              ? estados.map((e) => (
-                                  <option key={e.id} value={e.id}>
-                                    {e.nombre}
-                                  </option>
-                                ))
-                              : null}
+                              ? estados
+                              : []
+                          ).filter((e) => e.id > Number(selectedNovedad?.estado_novedad_id || 0))
+                           .map((e) => (
+                            <option key={e.id} value={e.id}>
+                              {e.nombre}
+                            </option>
+                          ))}
                         </select>
                       </div>
                       <div className="flex items-end">

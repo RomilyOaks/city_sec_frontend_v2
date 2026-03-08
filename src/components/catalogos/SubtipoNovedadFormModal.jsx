@@ -21,6 +21,10 @@ export default function SubtipoNovedadFormModal({ subtipo, tipoId, onClose, onSu
     prioridad: "BAJA",
     color: "#6B7280",
     tipo_novedad_id: tipoId || "",
+    tiempo_respuesta_min: "",
+    requiere_ambulancia: false,
+    requiere_bomberos: false,
+    requiere_pnp: false,
   });
   const [tipos, setTipos] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -53,6 +57,10 @@ export default function SubtipoNovedadFormModal({ subtipo, tipoId, onClose, onSu
         prioridad: subtipo.prioridad || "BAJA",
         color: subtipo.color || "#6B7280",
         tipo_novedad_id: subtipo.tipo_novedad_id || tipoId || "",
+        tiempo_respuesta_min: subtipo.tiempo_respuesta_min ?? "",
+        requiere_ambulancia: !!subtipo.requiere_ambulancia,
+        requiere_bomberos: !!subtipo.requiere_bomberos,
+        requiere_pnp: !!subtipo.requiere_pnp,
       });
     } else if (tipoId) {
       setFormData(prev => ({ ...prev, tipo_novedad_id: tipoId }));
@@ -86,6 +94,10 @@ export default function SubtipoNovedadFormModal({ subtipo, tipoId, onClose, onSu
         prioridad: formData.prioridad,
         color: formData.color,
         tipo_novedad_id: Number(formData.tipo_novedad_id),
+        tiempo_respuesta_min: formData.tiempo_respuesta_min !== "" ? Number(formData.tiempo_respuesta_min) : null,
+        requiere_ambulancia: formData.requiere_ambulancia,
+        requiere_bomberos: formData.requiere_bomberos,
+        requiere_pnp: formData.requiere_pnp,
       };
 
       if (subtipo) {
@@ -106,10 +118,10 @@ export default function SubtipoNovedadFormModal({ subtipo, tipoId, onClose, onSu
   };
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
@@ -242,6 +254,64 @@ export default function SubtipoNovedadFormModal({ subtipo, tipoId, onClose, onSu
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                 Nivel de prioridad para este subtipo de novedad
               </p>
+            </div>
+
+            {/* Tiempo de Respuesta */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Tiempo de Respuesta (min)
+              </label>
+              <input
+                type="number"
+                name="tiempo_respuesta_min"
+                value={formData.tiempo_respuesta_min}
+                onChange={handleChange}
+                min="1"
+                placeholder="Ej: 15"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-600/25"
+              />
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Tiempo estimado de respuesta en minutos (opcional)
+              </p>
+            </div>
+
+            {/* Recursos requeridos */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
+                Recursos Requeridos
+              </label>
+              <div className="space-y-3">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="requiere_ambulancia"
+                    checked={formData.requiere_ambulancia}
+                    onChange={handleChange}
+                    className="w-4 h-4 rounded border-slate-300 text-primary-600 focus:ring-primary-600/25"
+                  />
+                  <span className="text-sm text-slate-700 dark:text-slate-300">Requiere Ambulancia</span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="requiere_bomberos"
+                    checked={formData.requiere_bomberos}
+                    onChange={handleChange}
+                    className="w-4 h-4 rounded border-slate-300 text-primary-600 focus:ring-primary-600/25"
+                  />
+                  <span className="text-sm text-slate-700 dark:text-slate-300">Requiere Bomberos</span>
+                </label>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="requiere_pnp"
+                    checked={formData.requiere_pnp}
+                    onChange={handleChange}
+                    className="w-4 h-4 rounded border-slate-300 text-primary-600 focus:ring-primary-600/25"
+                  />
+                  <span className="text-sm text-slate-700 dark:text-slate-300">Requiere PNP</span>
+                </label>
+              </div>
             </div>
 
             {/* Color */}

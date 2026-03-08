@@ -370,6 +370,9 @@ export default function OperativosVehiculosPage() {
                 <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
                   <tr>
                     <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">
+                      Tipo
+                    </th>
+                    <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">
                       Placa
                     </th>
                     <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">
@@ -399,8 +402,17 @@ export default function OperativosVehiculosPage() {
                   {vehiculos.map((v) => (
                     <tr
                       key={v.id}
-                      className="hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                      className="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer"
+                      onClick={(e) => {
+                        if (e.target.closest('button')) return;
+                        if (canReadCuadrantes) handleCuadrantes(v);
+                      }}
                     >
+                      <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                          {v.vehiculo?.tipoVehiculo?.nombre || v.vehiculo?.tipo_vehiculo?.nombre || "—"}
+                        </span>
+                      </td>
                       <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-50">
                         {v.vehiculo?.placa || "—"}
                       </td>

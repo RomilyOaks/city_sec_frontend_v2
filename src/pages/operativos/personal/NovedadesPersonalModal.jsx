@@ -113,13 +113,16 @@ export default function NovedadesPersonalModal({
   const [personalSeguridad, setPersonalSeguridad] = useState([]);
 
   // Estados habilitados para el rol del usuario (desde rol_estados_novedad)
-  const { estadosRol, loadingEstadosRol } = useEstadosPorRol();
+  const { estadosRol } = useEstadosPorRol();
 
   const [editData, setEditData] = useState({
     estado_novedad_id: "",
     resultado: "",
     acciones_tomadas: "",
     observaciones: "",
+    fecha_llegada: "",
+    num_personas_afectadas: 0,
+    perdidas_materiales_estimadas: 0,
   });
 
   // ============================================================================
@@ -358,6 +361,9 @@ export default function NovedadesPersonalModal({
       resultado: novedad.resultado || "PENDIENTE",
       acciones_tomadas: "", // Siempre vacío - las anteriores ya están en observaciones/historial
       observaciones: novedad.observaciones || "",
+      fecha_llegada: "",
+      num_personas_afectadas: novedad.novedad?.num_personas_afectadas || 0,
+      perdidas_materiales_estimadas: novedad.novedad?.perdidas_materiales_estimadas || 0,
     });
     setShowEditModal(true);
   };
@@ -408,10 +414,16 @@ export default function NovedadesPersonalModal({
       }
 
       // 2. Actualizar el registro operativo (operativos_personal_novedades)
+      const fechaLlegadaPayload = editData.fecha_llegada
+        ? new Date(editData.fecha_llegada).toISOString().replace("T", " ").slice(0, 19)
+        : undefined;
       const payload = {
         resultado: editData.resultado,
         acciones_tomadas: "", // Limpiar para permitir nuevas acciones
         observaciones: observacionesOperativo,
+        num_personas_afectadas: editData.num_personas_afectadas || 0,
+        perdidas_materiales_estimadas: editData.perdidas_materiales_estimadas || 0,
+        ...(fechaLlegadaPayload ? { fecha_llegada: fechaLlegadaPayload } : {}),
       };
 
       // Incluir estado_novedad_id si cambió
@@ -815,9 +827,9 @@ export default function NovedadesPersonalModal({
       {/* MODAL EDITAR/RESOLVER */}
       {/* ================================================================== */}
       {showEditModal && selectedNovedad && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-md">
-            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4" style={{ overflow: 'hidden' }}>
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-md flex flex-col max-h-[90vh]">
+            <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
                 Actualizar Novedad
               </h3>
@@ -826,33 +838,59 @@ export default function NovedadesPersonalModal({
               </p>
             </div>
 
-            <form onSubmit={handleUpdateNovedad} className="p-6 space-y-4">
-              {/* Estado de la Novedad (estado_novedad_id) */}
+            <form onSubmit={handleUpdateNovedad} className="flex flex-col flex-1 min-h-0">
+              <div className="overflow-y-auto flex-1 p-6 space-y-4">
+              {/* Estado actual de la Novedad - solo informativo */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Estado de la Novedad
+                  Estado Actual
                 </label>
-                {loadingEstadosRol ? (
-                  <div className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 text-slate-500">
-                    Cargando estados...
-                  </div>
-                ) : (
-                  <select
-                    value={editData.estado_novedad_id || ""}
-                    onChange={(e) => setEditData({ ...editData, estado_novedad_id: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                  >
-                    {estadosRol.map((estado) => (
-                      <option key={estado.id} value={estado.id}>
-                        {estado.nombre}
-                      </option>
-                    ))}
-                  </select>
-                )}
+                <div className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex items-center gap-2">
+                  <span className="inline-flex px-2 py-1 rounded-full text-sm font-bold bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
+                    {selectedNovedad?.novedad?.novedadEstado?.nombre ||
+                      estadosRol.find((e) => e.id === Number(editData.estado_novedad_id))?.nombre ||
+                      `Estado #${editData.estado_novedad_id}`}
+                  </span>
+                </div>
                 <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  Solo se muestran estados habilitados para tu rol
+                  El estado se actualiza automáticamente según el Resultado Operativo
                 </p>
               </div>
+
+              {/* Hora de Llegada - obligatorio si está vacío */}
+              {(() => {
+                const fechaLlegadaActual = selectedNovedad?.novedad?.fecha_llegada;
+                const yaRegistrada = !!fechaLlegadaActual;
+                return (
+                  <div>
+                    <label className={`block text-sm font-medium mb-1 ${
+                      !yaRegistrada
+                        ? "text-green-700 dark:text-green-400 font-bold"
+                        : "text-slate-700 dark:text-slate-300"
+                    }`}>
+                      Hora de Llegada
+                      {!yaRegistrada && <span className="ml-1 text-green-600 dark:text-green-400">★ Requerido</span>}
+                    </label>
+                    {yaRegistrada ? (
+                      <div className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-600 dark:text-slate-300">
+                        {new Date(fechaLlegadaActual).toLocaleString("es-PE", {
+                          day: "2-digit", month: "2-digit", year: "numeric",
+                          hour: "2-digit", minute: "2-digit",
+                          timeZone: "America/Lima",
+                        })}
+                      </div>
+                    ) : (
+                      <input
+                        type="datetime-local"
+                        value={editData.fecha_llegada || ""}
+                        onChange={(e) => setEditData({ ...editData, fecha_llegada: e.target.value })}
+                        required
+                        className="w-full px-3 py-2 rounded-lg border-2 border-green-500 dark:border-green-400 bg-green-50 dark:bg-green-900/30 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-green-400/40"
+                      />
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Resultado/Estado del operativo */}
               <div>
@@ -889,6 +927,37 @@ export default function NovedadesPersonalModal({
                 </p>
               </div>
 
+              {/* Número de Personas Afectadas y Pérdidas Materiales */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Nro. de Personas Afectadas
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={editData.num_personas_afectadas}
+                    onChange={(e) => setEditData({ ...editData, num_personas_afectadas: parseInt(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Pérdidas Materiales (S/)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={editData.perdidas_materiales_estimadas}
+                    onChange={(e) => setEditData({ ...editData, perdidas_materiales_estimadas: parseFloat(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+
               {/* Observaciones */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
@@ -902,9 +971,10 @@ export default function NovedadesPersonalModal({
                   placeholder="Observaciones adicionales..."
                 />
               </div>
+              </div>
 
-              {/* Botones */}
-              <div className="flex justify-end gap-2 pt-2">
+              {/* Botones - fijos en la parte inferior */}
+              <div className="flex justify-end gap-2 px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
                 <button
                   type="button"
                   onClick={() => {
