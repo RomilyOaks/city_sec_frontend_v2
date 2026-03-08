@@ -353,7 +353,26 @@ export async function crearHistorialNovedad(novedadId, observaciones, estadoNuev
   }
 
   try {
+    // 🐛 DEBUGGING: Mostrar qué enviamos al backend para fecha_cambio
+    console.log("🐛 DEBUG crearHistorialNovedad - Enviando al backend:");
+    console.log("🐛 Payload completo:", payload);
+    console.log("🐛 fecha_cambio enviado:", payload.fecha_cambio);
+    console.log("🐛 Tipo de fecha_cambio:", typeof payload.fecha_cambio);
+    
+    if (payload.fecha_cambio) {
+      console.log("🐛 Fecha local enviada:", payload.fecha_cambio);
+      console.log("🐛 Fecha actual UTC (para comparación):", new Date().toISOString());
+      console.log("🐛 ⚠️ BACKEND DEBE GUARDAR fecha_cambio exactamente como se recibe, NO convertir a UTC");
+      console.log("🐛 ⚠️ ESPERADO: Guardar '2026-03-08 13:25:00' (local)");
+      console.log("🐛 ⚠️ INCORRECTO: Guardar '2026-03-08T18:25:00.000Z' (UTC)");
+    }
+    
     const res = await api.post(`/novedades/${novedadId}/historial`, payload);
+    
+    // 🐛 DEBUGGING: Mostrar respuesta del backend
+    console.log("🐛 DEBUG crearHistorialNovedad - Respuesta backend:");
+    console.log("🐛 Respuesta:", res?.data);
+    
     return res?.data;
   } catch (error) {
     console.error("Error en crearHistorialNovedad:", error);

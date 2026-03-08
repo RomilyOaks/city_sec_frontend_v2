@@ -292,12 +292,23 @@ export default function NovedadesPorCuadrante() {
 
         try {
           // Si hay cambio de estado, enviarlo al historial con fecha local
+          const fechaLocal = getNowLocal();
+          
+          // 🐛 DEBUGGING: Mostrar fecha que estamos enviando
+          console.log("🐛 DEBUG NovedadesPorCuadrante - Creando historial:");
+          console.log("🐛 Fecha local generada por getNowLocal():", fechaLocal);
+          console.log("🐛 Fecha actual UTC (para comparación):", new Date().toISOString());
+          console.log("🐛 ⚠️ ENVIANDO fecha_cambio:", fechaLocal);
+          console.log("🐛 ⚠️ BACKEND DEBE GUARDAR exactamente esta fecha SIN conversión UTC");
+          
           await crearHistorialNovedad(
             novedadPrincipalId,
             observacionesHistorial,
             cambioEstado ? nuevoEstadoId : null,
-            getNowLocal() // Agregar fecha_cambio en formato local
+            fechaLocal // Agregar fecha_cambio en formato local
           );
+          
+          console.log("🐛 ✅ Historial creado exitosamente con fecha local");
         } catch (historialError) {
           console.error("Error al grabar historial:", historialError);
           toast.error("Error al guardar en historial, pero se actualizará el registro local");
