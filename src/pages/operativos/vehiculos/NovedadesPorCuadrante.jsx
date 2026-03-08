@@ -314,22 +314,9 @@ export default function NovedadesPorCuadrante() {
 
       // 2. Actualizar el registro operativo (operativos_vehiculos_cuadrantes_novedades)
       // Usar dateHelper seguro para manejo correcto de timezone
-      console.log("🔍 DEBUGGING - Fecha Llegada:");
-      console.log("  editData.fecha_llegada (raw):", editData.fecha_llegada);
-      console.log("  typeof editData.fecha_llegada:", typeof editData.fecha_llegada);
-      
       const fechaLlegadaPayload = editData.fecha_llegada
         ? safeConvertToTimezone(editData.fecha_llegada)
         : undefined;
-      
-      console.log("  fechaLlegadaPayload:", fechaLlegadaPayload);
-      console.log("  typeof fechaLlegadaPayload:", typeof fechaLlegadaPayload);
-      
-      // Debug timezone info
-      console.log("🌍 Timezone Info:");
-      console.log("  Browser timezone:", Intl.DateTimeFormat().resolvedOptions().timeZone);
-      console.log("  Current local time:", new Date().toLocaleString());
-      console.log("  Current UTC time:", new Date().toISOString());
       
       const payload = {
         resultado: editData.resultado,
@@ -340,8 +327,6 @@ export default function NovedadesPorCuadrante() {
         perdidas_materiales_estimadas: editData.perdidas_materiales_estimadas || 0,
         ...(fechaLlegadaPayload ? { fecha_llegada: fechaLlegadaPayload } : {}),
       };
-      
-      console.log("📤 Payload completo:", payload);
 
       await operativosNovedadesService.updateNovedad(
         turnoId,
