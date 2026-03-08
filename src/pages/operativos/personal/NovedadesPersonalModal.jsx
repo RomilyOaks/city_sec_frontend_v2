@@ -48,6 +48,7 @@ import { canPerformAction } from "../../../rbac/rbac.js";
 import { useAuthStore } from "../../../store/useAuthStore.js";
 import { useEstadosPorRol } from "../../../hooks/useEstadosPorRol.js";
 import useBodyScrollLock from "../../../hooks/useBodyScrollLock";
+import { formatForDisplay, getNowLocal, safeConvertToTimezone } from "../../../utils/dateHelper";
 
 // Componentes
 import NovedadDetalleModal from "../../../components/NovedadDetalleModal.jsx";
@@ -318,7 +319,7 @@ export default function NovedadesPersonalModal({
 
       const payload = {
         novedad_id: Number(formData.novedad_id),
-        reportado: new Date().toISOString(),
+        reportado: getNowLocal(),
         prioridad: prioridadFromNovedad,
         resultado: "PENDIENTE",
         observaciones: formData.observaciones?.trim() || undefined,
@@ -353,7 +354,7 @@ export default function NovedadesPersonalModal({
     setSelectedNovedad(novedad);
 
     // Obtener el estado actual de la novedad principal
-    const estadoActualId = novedad.novedad?.estado_novedad_id || novedad.estado_novedad_id || 1;
+    const estadoActualId = novedad.novedad?.estado_novedad_id || 1;
 
     setEditData({
       estado_novedad_id: estadoActualId,
@@ -375,16 +376,13 @@ export default function NovedadesPersonalModal({
       const observacionesOperativo = editData.observaciones?.trim() || "";
       const tieneAcciones = editData.acciones_tomadas?.trim();
       const novedadPrincipalId = selectedNovedad.novedad_id || selectedNovedad.novedad?.id;
-      const estadoActualId = selectedNovedad.novedad?.estado_novedad_id || selectedNovedad.estado_novedad_id;
+      const estadoActualId = selectedNovedad.novedad?.estado_novedad_id;
       const nuevoEstadoId = editData.estado_novedad_id ? Number(editData.estado_novedad_id) : null;
       const cambioEstado = nuevoEstadoId && nuevoEstadoId !== estadoActualId;
 
       // 1. Si hay cambio de estado o acciones tomadas, crear historial
       if (novedadPrincipalId && (tieneAcciones || cambioEstado)) {
-        const timestamp = new Date().toLocaleString("es-PE", {
-          dateStyle: "short",
-          timeStyle: "short",
-        });
+        const timestamp = formatForDisplay(new Date());
         const nombrePersonal = formatPersonalNombre(personal?.personal);
 
         // Construir texto de observaciones para el historial
@@ -413,8 +411,9 @@ export default function NovedadesPersonalModal({
       }
 
       // 2. Actualizar el registro operativo (operativos_personal_novedades)
+      // Usar dateHelper seguro para manejo correcto de timezone
       const fechaLlegadaPayload = editData.fecha_llegada
-        ? new Date(editData.fecha_llegada).toISOString().replace("T", " ").slice(0, 19)
+        ? safeConvertToTimezone(editData.fecha_llegada)
         : undefined;
       const payload = {
         resultado: editData.resultado,
@@ -763,20 +762,20 @@ export default function NovedadesPersonalModal({
                       </span>
                       <span 
                         className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                          novedad.estadoNovedadPersonal?.color_hex 
+                          novedad.novedad?.novedadEstado?.color_hex 
                             ? "" 
                             : "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300"
                         }`}
                         style={
-                          novedad.estadoNovedadPersonal?.color_hex 
+                          novedad.novedad?.novedadEstado?.color_hex 
                             ? {
-                                backgroundColor: `${novedad.estadoNovedadPersonal.color_hex}20`,
-                                color: novedad.estadoNovedadPersonal.color_hex
+                                backgroundColor: `${novedad.novedad.novedadEstado.color_hex}20`,
+                                color: novedad.novedad.novedadEstado.color_hex
                               }
                             : {}
                         }
                       >
-                        {novedad.estadoNovedadPersonal?.nombre || "Sin estado"}
+                        {novedad.novedad?.novedadEstado?.nombre || "Sin estado"}
                       </span>
                     </div>
                     
@@ -802,12 +801,12 @@ export default function NovedadesPersonalModal({
                     <div className="space-y-1 text-xs text-slate-500 dark:text-slate-400">
                       <div className="flex items-center gap-1.5">
                         <Clock size={12} />
-                        <span>Reportado: {new Date(novedad.reportado).toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" })}</span>
+                        <span>Reportado: {formatForDisplay(novedad.reportado)}</span>
                       </div>
                       {novedad.atendido && (
                         <div className="flex items-center gap-1.5">
                           <CheckCircle size={12} className="text-green-500" />
-                          <span>Atendido: {new Date(novedad.atendido).toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" })}</span>
+                          <span>Atendido: {formatForDisplay(novedad.atendido)}</span>
                         </div>
                       )}
                     </div>
@@ -881,11 +880,7 @@ export default function NovedadesPersonalModal({
                     </label>
                     {yaRegistrada ? (
                       <div className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-600 dark:text-slate-300">
-                        {new Date(fechaLlegadaActual).toLocaleString("es-PE", {
-                          day: "2-digit", month: "2-digit", year: "numeric",
-                          hour: "2-digit", minute: "2-digit",
-                          timeZone: "America/Lima",
-                        })}
+                        {formatForDisplay(fechaLlegadaActual)}
                       </div>
                     ) : (
                       <input
