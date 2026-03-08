@@ -797,38 +797,78 @@ export default function NovedadDetalleModal({
                         Tiempo Respuesta desde Despachado
                       </span>
                       <p className={`text-sm font-semibold ${
-                        (novedad.tiempo_respuesta_min_operativo && novedad.novedadSubtipoNovedad?.tiempo_respuesta_min &&
+                        (novedad.tiempo_respuesta_min_operativo !== null && novedad.tiempo_respuesta_min_operativo !== undefined && 
+                         novedad.novedadSubtipoNovedad?.tiempo_respuesta_min &&
                          novedad.tiempo_respuesta_min_operativo > novedad.novedadSubtipoNovedad.tiempo_respuesta_min)
                           ? 'text-red-800 dark:text-red-300'
                           : 'text-slate-900 dark:text-slate-50'
                       }`}>
-                        {novedad.tiempo_respuesta_min_operativo 
+                        {novedad.tiempo_respuesta_min_operativo !== null && novedad.tiempo_respuesta_min_operativo !== undefined
                           ? `${novedad.tiempo_respuesta_min_operativo} min`
                           : "—"}
                       </p>
                     </div>
                   </div>
                   
-                  {/* Tiempo de Respuesta desde reportado (mantenido para compatibilidad) */}
-                  <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                    <span className="text-xs font-medium text-slate-500">
-                      Tiempo de Respuesta desde reportado
-                    </span>
-                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
-                      {(novedad.tiempo_respuesta_minutos ?? novedad.tiempo_respuesta_min)
-                        ? `${novedad.tiempo_respuesta_minutos ?? novedad.tiempo_respuesta_min} min`
-                        : "—"}
-                    </p>
-                    {novedad.fecha_despacho && (
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                          <span className="font-medium">Inicio:</span> {formatFecha(novedad.fecha_despacho)}
-                        </p>
-                      )}
-                    {novedad.fecha_llegada && (
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        <span className="font-medium">Fin:</span> {formatFecha(novedad.fecha_llegada)}
+                  {/* Tiempo de Respuesta desde reportado con fechas en misma fila */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                      <span className="text-xs font-medium text-slate-500">
+                        Tiempo de Respuesta desde reportado
+                      </span>
+                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+                        {(novedad.tiempo_respuesta_minutos ?? novedad.tiempo_respuesta_min)
+                          ? `${novedad.tiempo_respuesta_minutos ?? novedad.tiempo_respuesta_min} min`
+                          : "—"}
                       </p>
-                    )}
+                    </div>
+                    
+                    {/* Tiempo Total */}
+                    {(() => {
+                      const historialOrdenado = (Array.isArray(historial) ? historial : [])
+                        .sort((a, b) => {
+                          const fechaA = new Date(a.fecha_cambio || a.created_at);
+                          const fechaB = new Date(b.fecha_cambio || b.created_at);
+                          return fechaB - fechaA;
+                        });
+                      
+                      if (historialOrdenado.length > 0 && novedad?.created_at) {
+                        const ultimoEstado = historialOrdenado[0];
+                        const fechaCreacion = new Date(novedad.created_at);
+                        const fechaUltimoEstado = new Date(ultimoEstado.fecha_cambio || ultimoEstado.created_at);
+                        const tiempoTotalMin = Math.floor((fechaUltimoEstado - fechaCreacion) / 60000);
+                        
+                        return (
+                          <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                            <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
+                              Tiempo Total
+                            </span>
+                            <p className="text-sm font-semibold text-blue-800 dark:text-blue-300">
+                              {tiempoTotalMin} min
+                            </p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+                  
+                  {/* Fechas de Inicio y Fin */}
+                  <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <span className="text-xs font-medium text-slate-500">Inicio</span>
+                        <p className="text-sm text-slate-900 dark:text-slate-50">
+                          {novedad.fecha_despacho ? formatFecha(novedad.fecha_despacho) : "—"}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-xs font-medium text-slate-500">Fin</span>
+                        <p className="text-sm text-slate-900 dark:text-slate-50">
+                          {novedad.fecha_llegada ? formatFecha(novedad.fecha_llegada) : "—"}
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Datos de Seguimiento — solo si requiere_seguimiento */}
@@ -874,40 +914,6 @@ export default function NovedadDetalleModal({
                       </p>
                     ) : (
                       <>
-                        {/* Tiempo Total desde creación hasta último estado */}
-                        {(() => {
-                          const historialOrdenado = (Array.isArray(historial) ? historial : [])
-                            .sort((a, b) => {
-                              const fechaA = new Date(a.fecha_cambio || a.created_at);
-                              const fechaB = new Date(b.fecha_cambio || b.created_at);
-                              return fechaB - fechaA;
-                            });
-                          
-                          if (historialOrdenado.length > 0 && novedad?.created_at) {
-                            const ultimoEstado = historialOrdenado[0];
-                            const fechaCreacion = new Date(novedad.created_at);
-                            const fechaUltimoEstado = new Date(ultimoEstado.fecha_cambio || ultimoEstado.created_at);
-                            const tiempoTotalMin = Math.floor((fechaUltimoEstado - fechaCreacion) / 60000);
-                            
-                            return (
-                              <div className="mb-4">
-                                <div className="flex items-center justify-between p-3 rounded-lg bg-primary-50 dark:bg-primary-900/20">
-                                  <span className="text-sm font-medium text-primary-700 dark:text-primary-300">
-                                    Tiempo Total
-                                  </span>
-                                  <span className="text-sm font-bold text-primary-900 dark:text-primary-100">
-                                    {tiempoTotalMin} min
-                                  </span>
-                                </div>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 text-center">
-                                  Desde creación hasta último cambio de estado
-                                </p>
-                              </div>
-                            );
-                          }
-                          return null;
-                        })()}
-
                         <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
                           Historial de Estados
                         </h4>
