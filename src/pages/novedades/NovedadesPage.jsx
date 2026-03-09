@@ -359,25 +359,52 @@ export default function NovedadesPage() {
   const isSupervisor = () => {
     const roles = user?.roles || user?.Roles || [];
     const elevated = ["supervisor", "admin", "super_admin"];
-    return roles.some(r => {
+    
+    console.log("🐛 DEBUG isSupervisor:");
+    console.log("🐛 Roles crudos:", roles);
+    console.log("🐛 Elevated roles:", elevated);
+    
+    const result = roles.some(r => {
       const s = (r?.slug || r?.Slug || r?.nombre || r?.name || "").toLowerCase();
+      console.log("🐛 Rol procesado:", s, "elevated.includes:", elevated.includes(s));
       return elevated.includes(s);
     });
+    
+    console.log("🐛 Resultado isSupervisor:", result);
+    return result;
   };
 
   // Determinar si se puede mostrar el botón atender según el estado de la novedad
   const canShowAtenderButton = (novedad) => {
     const estadoId = novedad?.estado_novedad_id;
     
+    // 🐛 DEBUG: Verificar roles del usuario
+    console.log("🐛 DEBUG canShowAtenderButton:");
+    console.log("🐛 Usuario:", user?.username, user?.nombres);
+    console.log("🐛 Roles del usuario:", user?.roles || user?.Roles);
+    console.log("🐛 isSupervisor():", isSupervisor());
+    console.log("🐛 Estado novedad ID:", estadoId);
+    console.log("🐛 canAtender:", canAtender);
+    
     // Supervisor siempre puede atender en cualquier estado
-    if (isSupervisor()) return true;
+    if (isSupervisor()) {
+      console.log("🐛 ✅ ES SUPERVISOR - puede atender cualquier estado");
+      return true;
+    }
     
     // Para otros usuarios, verificar permiso y estado
-    if (!canAtender) return false;
+    if (!canAtender) {
+      console.log("🐛 ❌ NO TIENE PERMISO canAtender");
+      return false;
+    }
     
     // Estados permitidos: 2=DESPACHADA, 3=EN RUTA, 4=EN LUGAR, 5=EN ATENCION
     const estadosPermitidos = [2, 3, 4, 5];
-    return estadosPermitidos.includes(estadoId);
+    const puedeAtender = estadosPermitidos.includes(estadoId);
+    console.log("🐛 📍 Estados permitidos:", estadosPermitidos);
+    console.log("🐛 📍 Puede atender por estado:", puedeAtender);
+    
+    return puedeAtender;
   };
 
   const [permissionErrorShown, setPermissionErrorShown] = useState(false);
