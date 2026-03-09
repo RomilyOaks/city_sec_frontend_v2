@@ -1185,7 +1185,7 @@ const getLocalDatetime = () => {
     }
     setSaving(true);
     try {
-      await createNovedad({
+      const resultado = await createNovedad({
         tipo_novedad_id: Number(formData.tipo_novedad_id),
         subtipo_novedad_id: Number(formData.subtipo_novedad_id),
         fecha_hora_ocurrencia: toBackendDatetime(formData.fecha_hora_ocurrencia),
@@ -1211,6 +1211,25 @@ const getLocalDatetime = () => {
         descripcion: formData.descripcion,
         observaciones: formData.observaciones || undefined,
       });
+
+      // Crear historial con descripción del tipo de novedad en lugar de "Novedad creada"
+      if (resultado?.data?.id) {
+        try {
+          const nombreTipo = getNombreTipoNovedad(formData.tipo_novedad_id);
+          const observacionesHistorial = `Novedad creada: ${nombreTipo}`;
+          
+          await crearHistorialNovedad(
+            resultado.data.id,
+            observacionesHistorial,
+            1, // Estado inicial: Pendiente De Registro
+            getLocalDatetime() // Fecha local correcta
+          );
+        } catch (historialError) {
+          console.error("Error al crear historial inicial:", historialError);
+          // No mostrar error al usuario, la novedad ya fue creada
+        }
+      }
+
       toast.success("Novedad creada exitosamente");
       setShowCreateForm(false);
       resetForm();
@@ -1221,6 +1240,12 @@ const getLocalDatetime = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  // Obtener nombre del tipo de novedad para el historial
+  const getNombreTipoNovedad = (tipoId) => {
+    const tipo = tipos.find(t => t.id === Number(tipoId));
+    return tipo?.nombre || `Tipo #${tipoId}`;
   };
 
   // Cargar catálogos para atención
@@ -2028,6 +2053,24 @@ const getLocalDatetime = () => {
       };
 
       const resultado = await createNovedad(novedadPayload);
+
+      // Crear historial con descripción del tipo de novedad en lugar de "Novedad creada"
+      if (resultado?.data?.id) {
+        try {
+          const nombreTipo = getNombreTipoNovedad(workingFormData.tipo_novedad_id);
+          const observacionesHistorial = `Novedad creada: ${nombreTipo}`;
+          
+          await crearHistorialNovedad(
+            resultado.data.id,
+            observacionesHistorial,
+            1, // Estado inicial: Pendiente De Registro
+            getLocalDatetime() // Fecha local correcta
+          );
+        } catch (historialError) {
+          console.error("Error al crear historial inicial:", historialError);
+          // No mostrar error al usuario, la novedad ya fue creada
+        }
+      }
 
       toast.success(
         `Novedad ${resultado?.data?.novedad_code || "creada"} exitosamente`
