@@ -147,6 +147,27 @@ export default function NovedadesPorCuadrante() {
 
   // Estados para el dropdown de estado_novedad_id (se usa estadosRol del hook)
 
+  // Hotkey ALT+G para grabar (solo cuando el modal de edición está abierto)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Solo activar si el modal de edición está abierto
+      if (!showEditModal || savingEdit) return;
+      
+      // ALT+G
+      if (e.altKey && e.key === 'g') {
+        e.preventDefault();
+        // Enviar el formulario
+        const form = document.querySelector('#edit-novedad-form');
+        if (form) {
+          form.dispatchEvent(new Event('submit', { cancelable: true }));
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [showEditModal, savingEdit]);
+
   // Cargar datos del cuadrante y novedades
   const fetchNovedades = useCallback(async () => {
     if (!canRead) {
@@ -348,6 +369,12 @@ export default function NovedadesPorCuadrante() {
         ...(fechaLlegadaPayload ? { fecha_llegada: fechaLlegadaPayload } : {}),
       };
 
+      // 🐛 DEBUG: Investigar fecha atendido incorrecta
+      console.log("🐛 DEBUG ANTES de actualizar novedad:");
+      console.log("🐛 selectedNovedadEdit.atendido:", selectedNovedadEdit?.atendido);
+      console.log("🐛 selectedNovedadEdit.novedad?.atendido:", selectedNovedadEdit?.novedad?.atendido);
+      console.log("🐛 Payload enviado:", payload);
+      
       await operativosNovedadesService.updateNovedad(
         turnoId,
         vehiculoId,
@@ -355,6 +382,12 @@ export default function NovedadesPorCuadrante() {
         selectedNovedadEdit.id,
         payload
       );
+
+      // 🐛 DEBUG: Después de actualizar, recargar para ver el nuevo valor
+      setTimeout(() => {
+        console.log("🐛 DEBUG DESPUÉS de actualizar novedad:");
+        // El valor se verá en el próximo fetchNovedades()
+      }, 1000);
 
       toast.success(
         cambioEstado || tieneAcciones
@@ -819,7 +852,11 @@ export default function NovedadesPorCuadrante() {
                     {novedad.atendido && (
                       <div className="flex items-center gap-1.5">
                         <CheckCircle size={12} className="text-green-500" />
-                        <span>Atendido: {formatDateTime(novedad.atendido)}</span>
+                        <span>Atendido: {(() => {
+                    console.log("🐛 DEBUG RENDER - novedad.atendido:", novedad.atendido);
+                    console.log("🐛 DEBUG RENDER - novedad completa:", novedad);
+                    return formatDateTime(novedad.atendido);
+                  })()}</span>
                       </div>
                     )}
                   </div>
@@ -869,7 +906,7 @@ export default function NovedadesPorCuadrante() {
               </p>
             </div>
 
-            <form onSubmit={handleUpdateNovedadEdit} className="flex flex-col flex-1 min-h-0">
+            <form id="edit-novedad-form" onSubmit={handleUpdateNovedadEdit} className="flex flex-col flex-1 min-h-0">
               <div className="overflow-y-auto flex-1 p-6 space-y-4">
               {/* Estado actual de la Novedad - solo informativo */}
               <div>
@@ -1014,7 +1051,7 @@ export default function NovedadesPorCuadrante() {
                   disabled={savingEdit}
                   className="px-4 py-2 rounded-lg bg-primary-700 text-white hover:bg-primary-800 disabled:opacity-50"
                 >
-                  {savingEdit ? "Guardando..." : "Actualizar"}
+                  {savingEdit ? "Guardando..." : "Grabar"} <span className="text-xs opacity-75">(ALT+G)</span>
                 </button>
               </div>
             </form>

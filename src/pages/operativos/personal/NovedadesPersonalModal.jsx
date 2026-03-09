@@ -1013,7 +1013,7 @@ export default function NovedadesPersonalModal({
                   disabled={saving}
                   className="px-4 py-2 rounded-lg bg-primary-700 text-white hover:bg-primary-800 disabled:opacity-50"
                 >
-                  {saving ? "Guardando..." : "Actualizar"}
+                  {saving ? "Guardando..." : "Grabar"} <span className="text-xs opacity-75">(ALT+G)</span>
                 </button>
               </div>
             </form>
