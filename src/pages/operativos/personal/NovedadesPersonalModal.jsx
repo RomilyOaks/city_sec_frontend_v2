@@ -418,19 +418,12 @@ export default function NovedadesPersonalModal({
           // Usar getLocalDatetime() igual que en vehículos para consistencia
           const fechaLocal = getLocalDatetime();
           
-          console.log("🐛 DEBUG NovedadesPersonalModal - Creando historial:");
-          console.log("🐛 Fecha local generada por getLocalDatetime():", fechaLocal);
-          console.log("🐛 ⚠️ ENVIANDO fecha_cambio:", fechaLocal);
-          console.log("🐛 ⚠️ USANDO MISMA FUNCIÓN QUE VEHÍCULOS Y DESPACHO");
-          
           await crearHistorialNovedad(
             novedadPrincipalId,
             observacionesHistorial,
             cambioEstado ? nuevoEstadoId : null,
             fechaLocal // Agregar fecha_cambio en formato local
           );
-          
-          console.log("🐛 ✅ Historial personal creado exitosamente con fecha local");
         } catch (historialError) {
           console.error("Error en crearHistorialNovedad:", historialError);
           toast.error("Error al guardar en historial, pero se actualizará el registro local");

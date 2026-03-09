@@ -311,21 +311,12 @@ export default function NovedadesPorCuadrante() {
           // Usar getLocalDatetime() igual que en DespacharModal para consistencia
           const fechaLocal = getLocalDatetime();
           
-          // 🐛 DEBUGGING: Mostrar fecha que estamos enviando
-          console.log("🐛 DEBUG NovedadesPorCuadrante - Creando historial:");
-          console.log("🐛 Fecha local generada por getLocalDatetime():", fechaLocal);
-          console.log("🐛 Fecha actual UTC (para comparación):", new Date().toISOString());
-          console.log("🐛 ⚠️ ENVIANDO fecha_cambio:", fechaLocal);
-          console.log("🐛 ⚠️ USANDO MISMA FUNCIÓN QUE DESPACHO (getLocalDatetime)");
-          
           await crearHistorialNovedad(
             novedadPrincipalId,
             observacionesHistorial,
             cambioEstado ? nuevoEstadoId : null,
             fechaLocal // Agregar fecha_cambio en formato local
           );
-          
-          console.log("🐛 ✅ Historial creado exitosamente con fecha local");
         } catch (historialError) {
           console.error("Error al grabar historial:", historialError);
           toast.error("Error al guardar en historial, pero se actualizará el registro local");
