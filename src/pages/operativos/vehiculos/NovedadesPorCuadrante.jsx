@@ -70,7 +70,15 @@ const getLocalDatetime = () => {
  */
 const formatDateTime = (dateString) => {
   if (!dateString) return "-";
-  return formatForDisplay(dateString);
+  
+  // 🐛 DEBUG: Investigar formateo de fecha atendido
+  console.log("🐛 🎨 formatDateTime() recibió:", dateString);
+  console.log("🐛 🎨 Tipo de dato:", typeof dateString);
+  
+  const resultado = formatForDisplay(dateString);
+  console.log("🐛 🎨 formatForDisplay() devolvió:", resultado);
+  
+  return resultado;
 };
 
 /**
@@ -902,9 +910,11 @@ export default function NovedadesPorCuadrante() {
                       <div className="flex items-center gap-1.5">
                         <CheckCircle size={12} className="text-green-500" />
                         <span>Atendido: {(() => {
-                    console.log("🐛 DEBUG RENDER - novedad.atendido:", novedad.atendido);
-                    console.log("🐛 DEBUG RENDER - novedad completa:", novedad);
-                    return formatDateTime(novedad.atendido);
+                    console.log("🐛 🎨 RENDER CARD - novedad.atendido crudo:", novedad.atendido);
+                    console.log("🐛 🎨 RENDER CARD - tipo de dato atendido:", typeof novedad.atendido);
+                    const formateado = formatDateTime(novedad.atendido);
+                    console.log("🐛 🎨 RENDER CARD - fecha formateada final:", formateado);
+                    return formateado;
                   })()}</span>
                       </div>
                     )}
