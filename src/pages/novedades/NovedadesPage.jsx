@@ -349,76 +349,57 @@ export default function NovedadesPage() {
   // Estados habilitados para el rol del usuario (desde rol_estados_novedad)
   const { estadosRol } = useEstadosPorRol();
 
-  // Devuelve true si la novedad fue despachada por otro usuario distinto al logueado
+  /**
+ * Obtiene la fecha/hora actual local en formato "YYYY-MM-DD HH:mm:ss" (sin Z).
+ * El backend interpreta este formato como hora local Peru sin conversión timezone.
+ * Igual que la usada en DespacharModal para consistencia.
+ */
+const getLocalDatetime = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  const seconds = String(now.getSeconds()).padStart(2, "0");
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+};
+
+// Devuelve true si la novedad fue despachada por otro usuario distinto al logueado
   // NOTA: Los supervisores pueden atender novedades despachadas por cualquier usuario
   const esDespachadoPorOtro = (n) => {
     // Si es supervisor, siempre puede atender (sin restricción de despachador)
     if (isSupervisor()) {
-      console.log("🐛 DEBUG esDespachadoPorOtro - ES SUPERVISOR, puede atender cualquier novedad");
       return false; // No está despachado por otro para fines de restricción
     }
     
     const uid = n?.usuarioDespachoNovedad?.id ?? n?.usuario_despacho;
-    const esPorOtro = !!uid && uid !== user?.id;
-    
-    console.log("🐛 DEBUG esDespachadoPorOtro - NO SUPERVISOR:");
-    console.log("🐛 Usuario despachó:", uid);
-    console.log("🐛 Usuario actual:", user?.id);
-    console.log("🐛 Es despachado por otro:", esPorOtro);
-    
-    return esPorOtro;
+    return !!uid && uid !== user?.id;
   };
 
   // Verificar si el usuario tiene rol supervisor o superior (admin, super_admin)
   const isSupervisor = () => {
     const roles = user?.roles || user?.Roles || [];
     const elevated = ["supervisor", "admin", "super_admin"];
-    
-    console.log("🐛 DEBUG isSupervisor:");
-    console.log("🐛 Roles crudos:", roles);
-    console.log("🐛 Elevated roles:", elevated);
-    
-    const result = roles.some(r => {
+    return roles.some(r => {
       const s = (r?.slug || r?.Slug || r?.nombre || r?.name || "").toLowerCase();
-      console.log("🐛 Rol procesado:", s, "elevated.includes:", elevated.includes(s));
       return elevated.includes(s);
     });
-    
-    console.log("🐛 Resultado isSupervisor:", result);
-    return result;
   };
 
   // Determinar si se puede mostrar el botón atender según el estado de la novedad
   const canShowAtenderButton = (novedad) => {
     const estadoId = novedad?.estado_novedad_id;
     
-    // 🐛 DEBUG: Verificar roles del usuario
-    console.log("🐛 DEBUG canShowAtenderButton:");
-    console.log("🐛 Usuario:", user?.username, user?.nombres);
-    console.log("🐛 Roles del usuario:", user?.roles || user?.Roles);
-    console.log("🐛 isSupervisor():", isSupervisor());
-    console.log("🐛 Estado novedad ID:", estadoId);
-    console.log("🐛 canAtender:", canAtender);
-    
     // Supervisor siempre puede atender en cualquier estado
-    if (isSupervisor()) {
-      console.log("🐛 ✅ ES SUPERVISOR - puede atender cualquier estado");
-      return true;
-    }
+    if (isSupervisor()) return true;
     
     // Para otros usuarios, verificar permiso y estado
-    if (!canAtender) {
-      console.log("🐛 ❌ NO TIENE PERMISO canAtender");
-      return false;
-    }
+    if (!canAtender) return false;
     
     // Estados permitidos: 2=DESPACHADA, 3=EN RUTA, 4=EN LUGAR, 5=EN ATENCION
     const estadosPermitidos = [2, 3, 4, 5];
-    const puedeAtender = estadosPermitidos.includes(estadoId);
-    console.log("🐛 📍 Estados permitidos:", estadosPermitidos);
-    console.log("🐛 📍 Puede atender por estado:", puedeAtender);
-    
-    return puedeAtender;
+    return estadosPermitidos.includes(estadoId);
   };
 
   const [permissionErrorShown, setPermissionErrorShown] = useState(false);
@@ -1487,14 +1468,6 @@ export default function NovedadesPage() {
 
     setSaving(true);
     try {
-      // 🐛 DEBUG: Mostrar datos que se enviarán al backend
-      console.log("🐛 DEBUG handleGuardarAtencion - Enviando al backend:");
-      console.log("🐛 Usuario:", user?.username, user?.nombres);
-      console.log("🐛 isSupervisor():", isSupervisor());
-      console.log("🐛 Novedad ID:", selectedNovedad.id);
-      console.log("🐛 Usuario que despachó:", selectedNovedad?.usuarioDespacho?.username, selectedNovedad?.usuario_despacho_id);
-      console.log("🐛 Estado a guardar:", atencionData.estado_novedad_id);
-      
       const payload = {
         unidad_oficina_id: atencionData.unidad_oficina_id
           ? Number(atencionData.unidad_oficina_id)
@@ -1544,9 +1517,6 @@ export default function NovedadesPage() {
         acciones_tomadas: atencionData.acciones_tomadas || undefined,
       };
       
-      console.log("🐛 Payload completo:", payload);
-      console.log("🐛 ⚠️ SUPERVISOR DEBE PODER MODIFICAR CUALQUIER ASIGNACIÓN");
-      
       await asignarRecursos(selectedNovedad.id, payload);
 
       // Registrar en historial de estados
@@ -1568,10 +1538,15 @@ export default function NovedadesPage() {
         if (personalDesc) partes.push(`Personal: ${personalDesc}`);
         if (atencionData.observaciones) partes.push(`Obs: ${atencionData.observaciones}`);
         const obsHistorial = partes.length > 0 ? partes.join(' | ') : 'Atención registrada';
+        
+        // Usar getLocalDatetime() igual que en operativos para consistencia
+        const fechaLocal = getLocalDatetime();
+        
         await crearHistorialNovedad(
           selectedNovedad.id,
           obsHistorial,
-          cambioEstado ? nuevoEstadoId : null
+          cambioEstado ? nuevoEstadoId : null,
+          fechaLocal // Agregar fecha_cambio en formato local
         );
       } catch {
         // No bloquear si falla el historial
