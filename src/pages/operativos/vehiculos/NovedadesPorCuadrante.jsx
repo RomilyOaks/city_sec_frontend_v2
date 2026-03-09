@@ -91,6 +91,8 @@ const getPrioridadColor = (prioridad) => {
  * @component
  */
 export default function NovedadesPorCuadrante() {
+  // 🐛 VERSION CHECK - Confirmar que estamos usando la versión actualizada
+  console.log("🐛 🔥 VERSION CHECK - NovedadesPorCuadrante v2.0 CON HOTKEY MEJORADO Y FIX ATENDIDO");
   const { turnoId, vehiculoId, cuadranteId } = useParams();
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
@@ -150,22 +152,33 @@ export default function NovedadesPorCuadrante() {
   // Hotkey ALT+G para grabar (solo cuando el modal de edición está abierto)
   useEffect(() => {
     const handleKeyDown = (e) => {
+      // Debug: Mostrar todas las teclas presionadas cuando modal está abierto
+      if (showEditModal && !savingEdit) {
+        console.log("🐛 HOTKEY DEBUG - Tecla presionada:", e.key, "ALT:", e.altKey);
+      }
+      
       // Solo activar si el modal de edición está abierto
       if (!showEditModal || savingEdit) return;
       
-      // ALT+G
-      if (e.altKey && e.key === 'g') {
+      // ALT+G (aceptar tanto 'g' como 'G')
+      if (e.altKey && (e.key === 'g' || e.key === 'G')) {
+        console.log("🐛 🎯 HOTKEY ALT+G DETECTADO - Enviando formulario");
         e.preventDefault();
+        e.stopPropagation();
+        
         // Enviar el formulario
         const form = document.querySelector('#edit-novedad-form');
         if (form) {
+          console.log("🐛 🎯 FORMULARIO ENCONTRADO - Enviando submit");
           form.dispatchEvent(new Event('submit', { cancelable: true }));
+        } else {
+          console.log("🐛 ❌ ERROR: Formulario no encontrado");
         }
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener('keydown', handleKeyDown, true);
+    return () => document.removeEventListener('keydown', handleKeyDown, true);
   }, [showEditModal, savingEdit]);
 
   // Cargar datos del cuadrante y novedades
@@ -375,9 +388,14 @@ export default function NovedadesPorCuadrante() {
       console.log("🐛 DEBUG ANTES de actualizar novedad:");
       console.log("🐛 selectedNovedadEdit.atendido:", selectedNovedadEdit?.atendido);
       console.log("🐛 selectedNovedadEdit.novedad?.atendido:", selectedNovedadEdit?.novedad?.atendido);
+      console.log("🐛 cambioEstado:", cambioEstado);
+      console.log("🐛 nuevoEstadoId:", nuevoEstadoId);
+      console.log("🐛 estadoActualId:", estadoActualId);
       console.log("🐛 Payload enviado:", payload);
       if (cambioEstado && nuevoEstadoId === 6) {
         console.log("🐛 ⚠️ ENVIANDO atendido con fecha local correcta:", getLocalDatetime());
+      } else {
+        console.log("🐛 ❌ NO se envía atendido - cambioEstado:", cambioEstado, "nuevoEstadoId:", nuevoEstadoId);
       }
       
       await operativosNovedadesService.updateNovedad(
