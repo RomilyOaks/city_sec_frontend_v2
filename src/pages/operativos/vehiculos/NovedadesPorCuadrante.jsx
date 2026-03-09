@@ -55,7 +55,14 @@ const getLocalDatetime = () => {
   const hours = String(now.getHours()).padStart(2, "0");
   const minutes = String(now.getMinutes()).padStart(2, "0");
   const seconds = String(now.getSeconds()).padStart(2, "0");
-  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  const result = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  
+  // 🐛 DEBUG: Verificar fecha generada
+  console.log("🐛 🕐 getLocalDatetime() generó:", result);
+  console.log("🐛 🕐 Date original:", now.toString());
+  console.log("🐛 🕐 ISO Date:", now.toISOString());
+  
+  return result;
 };
 
 /**
@@ -392,6 +399,17 @@ export default function NovedadesPorCuadrante() {
       console.log("🐛 nuevoEstadoId:", nuevoEstadoId);
       console.log("🐛 estadoActualId:", estadoActualId);
       console.log("🐛 Payload enviado:", payload);
+      
+      // 🔥 DEBUG ESPECÍFICO: Verificar campo atendido en el payload
+      if (payload.hasOwnProperty('atendido')) {
+        console.log("🐛 ✅ CAMPO ATENDIDO ENCONTRADO EN PAYLOAD:", payload.atendido);
+        console.log("🐛 🎯 TIPO DE DATOS:", typeof payload.atendido);
+        console.log("🐛 🎯 VALOR COMPLETO:", JSON.stringify(payload.atendido));
+      } else {
+        console.log("🐛 ❌ CAMPO ATENDIDO NO ENCONTRADO EN PAYLOAD");
+        console.log("🐛 🔍 KEYS DEL PAYLOAD:", Object.keys(payload));
+      }
+      
       if (nuevoEstadoId === 6) {
         console.log("🐛 ⚠️ ENVIANDO atendido con fecha local correcta:", getLocalDatetime());
         console.log("🐛 🎯 PAYLOAD COMPLETO CON ATENDIDO:", payload);
@@ -399,13 +417,20 @@ export default function NovedadesPorCuadrante() {
         console.log("🐛 ❌ NO se envía atendido - nuevoEstadoId:", nuevoEstadoId);
       }
       
-      await operativosNovedadesService.updateNovedad(
+      const response = await operativosNovedadesService.updateNovedad(
         turnoId,
         vehiculoId,
         cuadranteId,
         selectedNovedadEdit.id,
         payload
       );
+
+      // 🐛 DEBUG: Verificar respuesta del backend
+      console.log("🐛 🔍 RESPUESTA BACKEND:", response);
+      if (response?.data) {
+        console.log("🐛 🔍 BACKEND DATA.atendido:", response.data.atendido);
+        console.log("🐛 🔍 BACKEND DATA COMPLETA:", JSON.stringify(response.data, null, 2));
+      }
 
       // 🐛 DEBUG: Después de actualizar, recargar para ver el nuevo valor
       setTimeout(() => {
