@@ -450,7 +450,6 @@ export default function NovedadesPersonalModal({
         // 🐛 FIX CORRECCIÓN: Enviar atendido con fecha local correcta cuando cambia a RESUELTA
         if (nuevoEstadoId === 6) {
           payload.atendido = getLocalDatetime();
-          console.log("🐛 ⚠️ OPERATIVOS PERSONAL - ENVIANDO atendido con fecha local correcta:", getLocalDatetime());
         }
       }
 
