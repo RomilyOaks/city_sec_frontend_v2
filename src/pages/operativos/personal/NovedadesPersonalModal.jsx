@@ -24,6 +24,22 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 
+/**
+ * Obtiene la fecha/hora actual local en formato "YYYY-MM-DD HH:mm:ss" (sin Z).
+ * El backend interpreta este formato como hora local Peru sin conversión timezone.
+ * Igual que la usada en DespacharModal para consistencia.
+ */
+const getLocalDatetime = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  const seconds = String(now.getSeconds()).padStart(2, "0");
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+};
+
 // Servicios
 import {
   listNovedadesByCuadrante,
@@ -399,11 +415,22 @@ export default function NovedadesPersonalModal({
         }
 
         try {
+          // Usar getLocalDatetime() igual que en vehículos para consistencia
+          const fechaLocal = getLocalDatetime();
+          
+          console.log("🐛 DEBUG NovedadesPersonalModal - Creando historial:");
+          console.log("🐛 Fecha local generada por getLocalDatetime():", fechaLocal);
+          console.log("🐛 ⚠️ ENVIANDO fecha_cambio:", fechaLocal);
+          console.log("🐛 ⚠️ USANDO MISMA FUNCIÓN QUE VEHÍCULOS Y DESPACHO");
+          
           await crearHistorialNovedad(
             novedadPrincipalId,
             observacionesHistorial,
-            cambioEstado ? nuevoEstadoId : null
+            cambioEstado ? nuevoEstadoId : null,
+            fechaLocal // Agregar fecha_cambio en formato local
           );
+          
+          console.log("🐛 ✅ Historial personal creado exitosamente con fecha local");
         } catch (historialError) {
           console.error("Error en crearHistorialNovedad:", historialError);
           toast.error("Error al guardar en historial, pero se actualizará el registro local");
