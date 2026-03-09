@@ -367,6 +367,8 @@ export default function NovedadesPorCuadrante() {
         num_personas_afectadas: editData.num_personas_afectadas || 0,
         perdidas_materiales_estimadas: editData.perdidas_materiales_estimadas || 0,
         ...(fechaLlegadaPayload ? { fecha_llegada: fechaLlegadaPayload } : {}),
+        // 🐛 FIX CORRECCIÓN: Enviar atendido con fecha local correcta cuando cambia a RESUELTA
+        ...(cambioEstado && nuevoEstadoId === 6 ? { atendido: getLocalDatetime() } : {}),
       };
 
       // 🐛 DEBUG: Investigar fecha atendido incorrecta
@@ -374,6 +376,9 @@ export default function NovedadesPorCuadrante() {
       console.log("🐛 selectedNovedadEdit.atendido:", selectedNovedadEdit?.atendido);
       console.log("🐛 selectedNovedadEdit.novedad?.atendido:", selectedNovedadEdit?.novedad?.atendido);
       console.log("🐛 Payload enviado:", payload);
+      if (cambioEstado && nuevoEstadoId === 6) {
+        console.log("🐛 ⚠️ ENVIANDO atendido con fecha local correcta:", getLocalDatetime());
+      }
       
       await operativosNovedadesService.updateNovedad(
         turnoId,

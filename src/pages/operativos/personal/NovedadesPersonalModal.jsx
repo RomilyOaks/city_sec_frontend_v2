@@ -447,6 +447,11 @@ export default function NovedadesPersonalModal({
       // Incluir estado_novedad_id si cambió
       if (cambioEstado) {
         payload.estado_novedad_id = nuevoEstadoId;
+        // 🐛 FIX CORRECCIÓN: Enviar atendido con fecha local correcta cuando cambia a RESUELTA
+        if (nuevoEstadoId === 6) {
+          payload.atendido = getLocalDatetime();
+          console.log("🐛 ⚠️ OPERATIVOS PERSONAL - ENVIANDO atendido con fecha local correcta:", getLocalDatetime());
+        }
       }
 
       await updateNovedadPersonal(turnoId, personal.id, cuadrante.id, selectedNovedad.id, payload);
