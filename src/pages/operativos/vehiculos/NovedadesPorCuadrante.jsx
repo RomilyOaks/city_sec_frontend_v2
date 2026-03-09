@@ -151,34 +151,44 @@ export default function NovedadesPorCuadrante() {
 
   // Hotkey ALT+G para grabar (solo cuando el modal de edición está abierto)
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      // Debug: Mostrar todas las teclas presionadas cuando modal está abierto
-      if (showEditModal && !savingEdit) {
-        console.log("🐛 HOTKEY DEBUG - Tecla presionada:", e.key, "ALT:", e.altKey);
-      }
+    let isProcessing = false; // Flag para evitar múltiples envíos
+    
+    const handleKeyDown = (event) => {
+      // Debug: Mostrar todas las teclas presionadas
+      console.log("🐛 HOTKEY DEBUG - Tecla presionada:", event.key, "ALT:", event.altKey);
       
-      // Solo activar si el modal de edición está abierto
-      if (!showEditModal || savingEdit) return;
-      
-      // ALT+G (aceptar tanto 'g' como 'G')
-      if (e.altKey && (e.key === 'g' || e.key === 'G')) {
-        console.log("🐛 🎯 HOTKEY ALT+G DETECTADO - Enviando formulario");
-        e.preventDefault();
-        e.stopPropagation();
+      // Solo procesar cuando el modal está abierto y no está guardando
+      if (showEditModal && !savingEdit && event.altKey && event.key === 'g') {
+        event.preventDefault();
         
-        // Enviar el formulario
-        const form = document.querySelector('#edit-novedad-form');
+        // Evitar múltiples envíos simultáneos
+        if (isProcessing) {
+          console.log("🐛 ⏳ HOTKEY ALT+G - Ya procesando, ignorando...");
+          return;
+        }
+        
+        isProcessing = true;
+        console.log("🐛 🎯 HOTKEY ALT+G DETECTADO - Enviando formulario");
+        
+        // Buscar el formulario dentro del modal
+        const form = document.querySelector('#editNovedadForm');
         if (form) {
           console.log("🐛 🎯 FORMULARIO ENCONTRADO - Enviando submit");
-          form.dispatchEvent(new Event('submit', { cancelable: true }));
+          form.requestSubmit();
+          
+          // Resetear el flag después de un tiempo
+          setTimeout(() => {
+            isProcessing = false;
+          }, 1000);
         } else {
-          console.log("🐛 ❌ ERROR: Formulario no encontrado");
+          console.log("🐛 ❌ FORMULARIO NO ENCONTRADO");
+          isProcessing = false;
         }
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown, true);
-    return () => document.removeEventListener('keydown', handleKeyDown, true);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, [showEditModal, savingEdit]);
 
   // Cargar datos del cuadrante y novedades
@@ -384,13 +394,25 @@ export default function NovedadesPorCuadrante() {
         ...(nuevoEstadoId === 6 ? { atendido: getLocalDatetime() } : {}),
       };
 
-      await operativosNovedadesService.updateNovedad(
+      // 🔍 DEBUG: Mostrar payload para problema UTC-5
+      console.log("🔍 UTC DEBUG - Payload enviado:", payload);
+      if (nuevoEstadoId === 6) {
+        console.log("🔍 UTC DEBUG - Enviando atendido:", getLocalDatetime());
+      }
+
+      const response = await operativosNovedadesService.updateNovedad(
         turnoId,
         vehiculoId,
         cuadranteId,
         selectedNovedadEdit.id,
         payload
       );
+
+      // 🔍 DEBUG: Verificar respuesta del backend
+      console.log("🔍 UTC DEBUG - Respuesta backend:", response);
+      if (response?.data?.atendido) {
+        console.log("🔍 UTC DEBUG - Backend devolvió atendido:", response.data.atendido);
+      }
 
       toast.success(
         cambioEstado || tieneAcciones
