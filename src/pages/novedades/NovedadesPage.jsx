@@ -1487,7 +1487,15 @@ export default function NovedadesPage() {
 
     setSaving(true);
     try {
-      await asignarRecursos(selectedNovedad.id, {
+      // 🐛 DEBUG: Mostrar datos que se enviarán al backend
+      console.log("🐛 DEBUG handleGuardarAtencion - Enviando al backend:");
+      console.log("🐛 Usuario:", user?.username, user?.nombres);
+      console.log("🐛 isSupervisor():", isSupervisor());
+      console.log("🐛 Novedad ID:", selectedNovedad.id);
+      console.log("🐛 Usuario que despachó:", selectedNovedad?.usuarioDespacho?.username, selectedNovedad?.usuario_despacho_id);
+      console.log("🐛 Estado a guardar:", atencionData.estado_novedad_id);
+      
+      const payload = {
         unidad_oficina_id: atencionData.unidad_oficina_id
           ? Number(atencionData.unidad_oficina_id)
           : undefined,
@@ -1528,9 +1536,18 @@ export default function NovedadesPage() {
           atencionData.fecha_proxima_revision || undefined,
         perdidas_materiales_estimadas:
           atencionData.perdidas_materiales_estimadas
-            ? Number(atencionData.perdidas_materiales_estimadas)
-            : undefined,
-      });
+          ? Number(atencionData.perdidas_materiales_estimadas)
+          : undefined,
+        num_personas_afectadas: atencionData.num_personas_afectadas
+          ? Number(atencionData.num_personas_afectadas)
+          : undefined,
+        acciones_tomadas: atencionData.acciones_tomadas || undefined,
+      };
+      
+      console.log("🐛 Payload completo:", payload);
+      console.log("🐛 ⚠️ SUPERVISOR DEBE PODER MODIFICAR CUALQUIER ASIGNACIÓN");
+      
+      await asignarRecursos(selectedNovedad.id, payload);
 
       // Registrar en historial de estados
       try {
