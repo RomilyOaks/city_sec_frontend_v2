@@ -350,9 +350,23 @@ export default function NovedadesPage() {
   const { estadosRol } = useEstadosPorRol();
 
   // Devuelve true si la novedad fue despachada por otro usuario distinto al logueado
+  // NOTA: Los supervisores pueden atender novedades despachadas por cualquier usuario
   const esDespachadoPorOtro = (n) => {
+    // Si es supervisor, siempre puede atender (sin restricción de despachador)
+    if (isSupervisor()) {
+      console.log("🐛 DEBUG esDespachadoPorOtro - ES SUPERVISOR, puede atender cualquier novedad");
+      return false; // No está despachado por otro para fines de restricción
+    }
+    
     const uid = n?.usuarioDespachoNovedad?.id ?? n?.usuario_despacho;
-    return !!uid && uid !== user?.id;
+    const esPorOtro = !!uid && uid !== user?.id;
+    
+    console.log("🐛 DEBUG esDespachadoPorOtro - NO SUPERVISOR:");
+    console.log("🐛 Usuario despachó:", uid);
+    console.log("🐛 Usuario actual:", user?.id);
+    console.log("🐛 Es despachado por otro:", esPorOtro);
+    
+    return esPorOtro;
   };
 
   // Verificar si el usuario tiene rol supervisor o superior (admin, super_admin)
