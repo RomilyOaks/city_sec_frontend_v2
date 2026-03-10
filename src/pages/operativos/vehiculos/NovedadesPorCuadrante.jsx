@@ -337,6 +337,24 @@ export default function NovedadesPorCuadrante() {
       
       const cambioEstado = nuevoEstadoId && nuevoEstadoId !== estadoActualId;
 
+      // 1. Si hay cambio de estado, crear historial (solo cambios de estado, no acciones)
+      if (cambioEstado && novedadPrincipalId) {
+        try {
+          // Si hay cambio de estado, enviarlo al historial con fecha local
+          // Usar getLocalDatetime() igual que en DespacharModal para consistencia
+          const fechaLocal = getLocalDatetime();
+          
+          await crearHistorialNovedad(
+            novedadPrincipalId,
+            `Cambio de estado a: ${editData.resultado}`,
+            nuevoEstadoId,
+            fechaLocal // Agregar fecha_cambio en formato local
+          );
+        } catch (historialError) {
+          console.error("Error al grabar historial:", historialError);
+          toast.error("Error al guardar en historial, pero se actualizará el registro local");
+        }
+      }
       
       // Construir observaciones actualizadas: agregar acciones_tomadas al final de observaciones existentes
       let observacionesActualizadas = editData.observaciones?.trim() || "";
