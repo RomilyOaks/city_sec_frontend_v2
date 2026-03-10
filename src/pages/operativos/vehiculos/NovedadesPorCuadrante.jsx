@@ -84,6 +84,29 @@ const getPrioridadColor = (prioridad) => {
   }
 };
 
+/**
+ * Función helper para abreviar título de novedad
+ */
+const abreviarTituloNovedad = (tipoNombre, subtipoNombre) => {
+  if (!tipoNombre) return "Novedad";
+  
+  // Si no hay subtipo, devolver tipo completo
+  if (!subtipoNombre) return tipoNombre;
+  
+  // Buscar primer slash en el tipo
+  const primerSlashIndex = tipoNombre.indexOf('/');
+  
+  if (primerSlashIndex === -1) {
+    // Si no hay slash, devolver tipo completo + subtipo
+    return `${tipoNombre} / ${subtipoNombre}`;
+  }
+  
+  // Tomar desde el inicio hasta el primer slash (excluyendo el slash)
+  const tipoAbreviado = tipoNombre.substring(0, primerSlashIndex).trim();
+  
+  // Concatenar con subtipo completo
+  return `${tipoAbreviado} / ${subtipoNombre}`;
+};
 
 
 /**
@@ -863,7 +886,10 @@ export default function NovedadesPorCuadrante() {
                   {/* Tipo + Subtipo */}
                   <div className="mb-2">
                     <p className="text-sm text-slate-700 dark:text-slate-300 break-words">
-                      {novedad.novedad?.novedadTipoNovedad?.nombre || "Tipo"} - {novedad.novedad?.novedadSubtipoNovedad?.nombre || "Subtipo"}
+                      {abreviarTituloNovedad(
+                        novedad.novedad?.novedadTipoNovedad?.nombre,
+                        novedad.novedad?.novedadSubtipoNovedad?.nombre
+                      )}
                     </p>
                   </div>
                   
