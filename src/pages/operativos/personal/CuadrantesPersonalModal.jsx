@@ -508,111 +508,119 @@ export default function CuadrantesPersonalModal({
               )}
             </div>
           ) : (
-            <div className="flex flex-wrap gap-4">
-              {cuadrantes.map((cuadrante) => {
-                const enCurso = !cuadrante.hora_salida;
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-700">
+                    <th className="text-left py-3 px-4 font-medium text-slate-700 dark:text-slate-300">Cuadrante</th>
+                    <th className="text-left py-3 px-4 font-medium text-slate-700 dark:text-slate-300">Estado</th>
+                    <th className="text-left py-3 px-4 font-medium text-slate-700 dark:text-slate-300">Ingreso</th>
+                    <th className="text-left py-3 px-4 font-medium text-slate-700 dark:text-slate-300">Salida</th>
+                    <th className="text-left py-3 px-4 font-medium text-slate-700 dark:text-slate-300">Duración</th>
+                    <th className="text-left py-3 px-4 font-medium text-slate-700 dark:text-slate-300">Observaciones</th>
+                    <th className="text-center py-3 px-4 font-medium text-slate-700 dark:text-slate-300">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cuadrantes.map((cuadrante) => {
+                    const enCurso = !cuadrante.hora_salida;
 
-                return (
-                  <div
-                    key={cuadrante.id}
-                    className={`p-4 rounded-xl border w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] ${
-                      enCurso
-                        ? "bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800"
-                        : "bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
-                    } ${onOpenNovedades ? "cursor-pointer hover:ring-2 hover:ring-amber-400/50 transition-all" : ""}`}
-                    onClick={(e) => {
-                      if (e.target.closest('button')) return;
-                      if (onOpenNovedades) onOpenNovedades(cuadrante);
-                    }}
-                  >
-                    <div className="flex items-start justify-between">
-                      {/* Info del cuadrante */}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="font-mono font-semibold text-slate-900 dark:text-white">
-                            {cuadrante.datosCuadrante?.cuadrante_code || "—"}
-                          </span>
-                          <span className="text-slate-600 dark:text-slate-400">
-                            {cuadrante.datosCuadrante?.nombre || "Cuadrante"}
-                          </span>
+                    return (
+                      <tr
+                        key={cuadrante.id}
+                        className={`border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
+                          enCurso
+                            ? "bg-primary-50/30 dark:bg-primary-900/10"
+                            : ""
+                        }`}
+                      >
+                        <td className="py-3 px-4">
+                          <div>
+                            <span className="font-mono font-semibold text-slate-900 dark:text-white">
+                              {cuadrante.datosCuadrante?.cuadrante_code || "—"}
+                            </span>
+                            <span className="ml-2 text-slate-600 dark:text-slate-400">
+                              {cuadrante.datosCuadrante?.nombre || "Cuadrante"}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
                           {enCurso && (
-                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800 dark:bg-primary-900/50 dark:text-primary-300">
+                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800 dark:bg-primary-900/50 dark:text-primary-300">
                               En curso
                             </span>
                           )}
-                        </div>
-
-                        <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
-                          <span className="flex items-center gap-1">
-                            <Clock size={14} />
-                            Ingreso: {new Date(cuadrante.hora_ingreso).toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" })}
-                          </span>
-                          {cuadrante.hora_salida && (
-                            <span className="flex items-center gap-1">
-                              <LogOut size={14} />
-                              Salida: {new Date(cuadrante.hora_salida).toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" })}
-                            </span>
-                          )}
-                          <span className="font-medium">
-                            Duración: {formatDuracion(cuadrante.hora_ingreso, cuadrante.hora_salida)}
-                          </span>
-                        </div>
-
-                        {cuadrante.observaciones && (
-                          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                            {cuadrante.observaciones}
-                          </p>
-                        )}
-
-                        {cuadrante.incidentes_reportados && (
-                          <div className="mt-2 flex items-start gap-2 p-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
-                            <AlertTriangle size={14} className="text-amber-600 mt-0.5" />
-                            <p className="text-sm text-amber-800 dark:text-amber-300">
-                              {cuadrante.incidentes_reportados}
-                            </p>
+                        </td>
+                        <td className="py-3 px-4 text-sm text-slate-600 dark:text-slate-400">
+                          {new Date(cuadrante.hora_ingreso).toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" })}
+                        </td>
+                        <td className="py-3 px-4 text-sm text-slate-600 dark:text-slate-400">
+                          {cuadrante.hora_salida 
+                            ? new Date(cuadrante.hora_salida).toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" })
+                            : "—"
+                          }
+                        </td>
+                        <td className="py-3 px-4 text-sm font-medium text-slate-600 dark:text-slate-400">
+                          {formatDuracion(cuadrante.hora_ingreso, cuadrante.hora_salida)}
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="max-w-xs">
+                            {cuadrante.observaciones && (
+                              <p className="text-sm text-slate-500 dark:text-slate-400 truncate" title={cuadrante.observaciones}>
+                                {cuadrante.observaciones}
+                              </p>
+                            )}
+                            {cuadrante.incidentes_reportados && (
+                              <div className="mt-1 flex items-start gap-1 p-1 bg-amber-50 dark:bg-amber-900/20 rounded text-xs">
+                                <AlertTriangle size={12} className="text-amber-600 mt-0.5 flex-shrink-0" />
+                                <span className="text-amber-800 dark:text-amber-300 line-clamp-2">
+                                  {cuadrante.incidentes_reportados}
+                                </span>
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center justify-center gap-1">
+                            {/* Botón Novedades */}
+                            {onOpenNovedades && (
+                              <button
+                                onClick={() => onOpenNovedades(cuadrante)}
+                                className="p-1.5 rounded-lg text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                                title="Ver/Gestionar Novedades"
+                              >
+                                <AlertTriangle size={14} />
+                              </button>
+                            )}
 
-                      {/* Acciones */}
-                      <div className="flex items-center gap-1">
-                        {/* Botón Novedades */}
-                        {onOpenNovedades && (
-                          <button
-                            onClick={() => onOpenNovedades(cuadrante)}
-                            className="p-2 rounded-lg text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20"
-                            title="Ver/Gestionar Novedades"
-                          >
-                            <AlertTriangle size={16} />
-                          </button>
-                        )}
+                            {/* Botón Registrar Salida */}
+                            {canUpdate && enCurso && (
+                              <button
+                                onClick={() => handleOpenSalida(cuadrante)}
+                                className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                                title="Registrar Salida"
+                              >
+                                <LogOut size={14} />
+                              </button>
+                            )}
 
-                        {/* Botón Registrar Salida */}
-                        {canUpdate && enCurso && (
-                          <button
-                            onClick={() => handleOpenSalida(cuadrante)}
-                            className="p-2 rounded-lg text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20"
-                            title="Registrar Salida"
-                          >
-                            <LogOut size={16} />
-                          </button>
-                        )}
-
-                        {/* Botón Eliminar */}
-                        {canDelete && (
-                          <button
-                            onClick={() => handleEliminarCuadrante(cuadrante)}
-                            className="p-2 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                            title="Eliminar"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+                            {/* Botón Eliminar */}
+                            {canDelete && (
+                              <button
+                                onClick={() => handleEliminarCuadrante(cuadrante)}
+                                className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                title="Eliminar"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
