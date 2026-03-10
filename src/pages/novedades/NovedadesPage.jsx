@@ -1185,6 +1185,10 @@ const getLocalDatetime = () => {
     }
     setSaving(true);
     try {
+      // Obtener nombre del tipo para historial
+      const nombreTipo = getNombreTipoNovedad(formData.tipo_novedad_id);
+      const observacionesHistorial = `Novedad creada: ${nombreTipo}`;
+
       const resultado = await createNovedad({
         tipo_novedad_id: Number(formData.tipo_novedad_id),
         subtipo_novedad_id: Number(formData.subtipo_novedad_id),
@@ -1210,25 +1214,9 @@ const getLocalDatetime = () => {
         es_anonimo: formData.es_anonimo ? 1 : 0,
         descripcion: formData.descripcion,
         observaciones: formData.observaciones || undefined,
+        // 🎯 Enviar observaciones_historial en lugar de crear manualmente
+        observaciones_historial: observacionesHistorial,
       });
-
-      // Crear historial con descripción del tipo de novedad en lugar de "Novedad creada"
-      if (resultado?.data?.id) {
-        try {
-          const nombreTipo = getNombreTipoNovedad(formData.tipo_novedad_id);
-          const observacionesHistorial = `Novedad creada: ${nombreTipo}`;
-          
-          await crearHistorialNovedad(
-            resultado.data.id,
-            observacionesHistorial,
-            1, // Estado inicial: Pendiente De Registro
-            getLocalDatetime() // Fecha local correcta
-          );
-        } catch (historialError) {
-          console.error("Error al crear historial inicial:", historialError);
-          // No mostrar error al usuario, la novedad ya fue creada
-        }
-      }
 
       toast.success("Novedad creada exitosamente");
       setShowCreateForm(false);
@@ -2019,6 +2007,10 @@ const getLocalDatetime = () => {
       const latitudValue = workingFormData.latitud && workingFormData.latitud !== "" ? parseFloat(workingFormData.latitud) : null;
       const longitudValue = workingFormData.longitud && workingFormData.longitud !== "" ? parseFloat(workingFormData.longitud) : null;
 
+      // Obtener nombre del tipo para historial
+      const nombreTipo = getNombreTipoNovedad(workingFormData.tipo_novedad_id);
+      const observacionesHistorial = `Novedad creada: ${nombreTipo}`;
+
       const novedadPayload = {
         origen_llamada: workingFormData.origen_llamada,
         reportante_telefono: workingFormData.origen_llamada === "RADIO_TETRA" ? null : workingFormData.reportante_telefono,
@@ -2050,27 +2042,11 @@ const getLocalDatetime = () => {
         latitud: latitudValue,
         longitud: longitudValue,
         ubigeo_code: workingFormData.ubigeo_code || defaultUbigeo?.code || null,
+        // 🎯 Enviar observaciones_historial en lugar de crear manualmente
+        observaciones_historial: observacionesHistorial,
       };
 
       const resultado = await createNovedad(novedadPayload);
-
-      // Crear historial con descripción del tipo de novedad en lugar de "Novedad creada"
-      if (resultado?.data?.id) {
-        try {
-          const nombreTipo = getNombreTipoNovedad(workingFormData.tipo_novedad_id);
-          const observacionesHistorial = `Novedad creada: ${nombreTipo}`;
-          
-          await crearHistorialNovedad(
-            resultado.data.id,
-            observacionesHistorial,
-            1, // Estado inicial: Pendiente De Registro
-            getLocalDatetime() // Fecha local correcta
-          );
-        } catch (historialError) {
-          console.error("Error al crear historial inicial:", historialError);
-          // No mostrar error al usuario, la novedad ya fue creada
-        }
-      }
 
       toast.success(
         `Novedad ${resultado?.data?.novedad_code || "creada"} exitosamente`
