@@ -278,6 +278,7 @@ export default function NovedadesPorCuadrante() {
     // Obtener el estado actual de la novedad principal
     const estadoActualId = novedad.novedad?.estado_novedad_id || 1;
     const resultadoActual = novedad.resultado || "PENDIENTE";
+    const esResuelta = resultadoActual === "RESUELTO";
 
     setEditData({
       estado_novedad_id: estadoActualId,
@@ -318,6 +319,8 @@ export default function NovedadesPorCuadrante() {
       const tieneAcciones = editData.acciones_tomadas?.trim();
       const novedadPrincipalId = selectedNovedadEdit.novedad_id || selectedNovedadEdit.novedad?.id;
       const estadoActualId = selectedNovedadEdit.novedad?.estado_novedad_id;
+      const resultadoActual = selectedNovedadEdit.resultado || "PENDIENTE";
+      const esResuelta = resultadoActual === "RESUELTO";
       
       // Mapear Resultado Operativo a estado_novedad_id
       let nuevoEstadoId = null;
@@ -337,6 +340,36 @@ export default function NovedadesPorCuadrante() {
       
       const cambioEstado = nuevoEstadoId && nuevoEstadoId !== estadoActualId;
 
+      // 🎯 CASO ESPECIAL: Novedad RESUELTA - Solo guardar en historial
+      if (esResuelta) {
+        // Solo crear historial si hay nuevas observaciones
+        const nuevasObservaciones = editData.observaciones?.trim();
+        if (nuevasObservaciones && nuevasObservaciones !== (selectedNovedadEdit.observaciones || "")) {
+          try {
+            const fechaLocal = getLocalDatetime();
+            
+            await crearHistorialNovedad(
+              novedadPrincipalId,
+              nuevasObservaciones, // Usar observaciones como mensaje del historial
+              null, // No cambiar estado
+              fechaLocal
+            );
+            
+            toast.success("Información complementaria agregada al historial");
+          } catch (historialError) {
+            console.error("Error al grabar historial:", historialError);
+            toast.error("Error al guardar en historial");
+          }
+        } else {
+          toast.info("No hay cambios para guardar");
+        }
+        
+        handleCloseEditModal();
+        fetchNovedades();
+        return;
+      }
+
+      // 🎯 CASO NORMAL: Novedad no RESUELTA - Actualizar completo
       // 1. Si hay cambio de estado, crear historial (solo cambios de estado, no acciones)
       if (cambioEstado && novedadPrincipalId) {
         try {
@@ -943,6 +976,11 @@ export default function NovedadesPorCuadrante() {
                       </div>
                     ) : (
                       <div className="space-y-2">
+                        {selectedNovedadEdit?.resultado === "RESUELTA" && (
+                          <div className="text-xs text-amber-600 dark:text-amber-400 font-medium mb-2">
+                            (Solo lectura - Novedad resuelta)
+                          </div>
+                        )}
                         <div className="flex items-center gap-2">
                           <input
                             type="checkbox"
@@ -980,9 +1018,18 @@ export default function NovedadesPorCuadrante() {
                                 });
                               }
                             }}
-                            className="w-4 h-4 text-green-600 border-green-300 rounded focus:ring-green-500"
+                            disabled={selectedNovedadEdit?.resultado === "RESUELTO"}
+                            className={`w-4 h-4 rounded focus:ring-green-500 ${
+                              selectedNovedadEdit?.resultado === "RESUELTO"
+                                ? "text-amber-600 border-amber-300"
+                                : "text-green-600 border-green-300"
+                            }`}
                           />
-                          <label htmlFor="usar-fecha-actual" className="text-sm text-green-700 dark:text-green-400 font-medium cursor-pointer">
+                          <label htmlFor="usar-fecha-actual" className={`text-sm font-medium cursor-pointer ${
+                            selectedNovedadEdit?.resultado === "RESUELTO"
+                              ? "text-amber-700 dark:text-amber-400"
+                              : "text-green-700 dark:text-green-400"
+                          }`}>
                             Usar fecha-hora actual
                           </label>
                         </div>
@@ -990,8 +1037,13 @@ export default function NovedadesPorCuadrante() {
                           type="datetime-local"
                           value={editData.fecha_llegada || ""}
                           onChange={(e) => setEditData({ ...editData, fecha_llegada: e.target.value, usar_fecha_actual: false })}
+                          disabled={selectedNovedadEdit?.resultado === "RESUELTO"}
                           required
-                          className="w-full px-3 py-2 rounded-lg border-2 border-green-500 dark:border-green-400 bg-green-50 dark:bg-green-900/30 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-green-400/40"
+                          className={`w-full px-3 py-2 rounded-lg border-2 ${
+                            selectedNovedadEdit?.resultado === "RESUELTO"
+                              ? "border-amber-300 bg-amber-50 dark:border-amber-400 dark:bg-amber-900/20 text-amber-900 dark:text-amber-300"
+                              : "border-green-500 dark:border-green-400 bg-green-50 dark:bg-green-900/30 text-slate-900 dark:text-slate-50"
+                          } focus:outline-none focus:ring-2 focus:ring-green-400/40`}
                         />
                       </div>
                     )}
@@ -1003,11 +1055,21 @@ export default function NovedadesPorCuadrante() {
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Resultado Operativo
+                  {selectedNovedadEdit?.resultado === "RESUELTO" && (
+                    <span className="ml-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
+                      (Solo lectura - Novedad resuelta)
+                    </span>
+                  )}
                 </label>
                 <select
                   value={editData.resultado}
                   onChange={(e) => setEditData({ ...editData, resultado: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                  disabled={selectedNovedadEdit?.resultado === "RESUELTO"}
+                  className={`w-full px-3 py-2 rounded-lg border ${
+                    selectedNovedadEdit?.resultado === "RESUELTO"
+                      ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-600 dark:bg-amber-900/20 dark:text-amber-300"
+                      : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                  }`}
                 >
                   {RESULTADOS_NOVEDAD.map((r) => (
                     <option key={r.value} value={r.value}>
@@ -1021,16 +1083,33 @@ export default function NovedadesPorCuadrante() {
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Nuevas Acciones Tomadas
+                  {selectedNovedadEdit?.resultado === "RESUELTA" && (
+                    <span className="ml-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
+                      (Solo lectura - Novedad resuelta)
+                    </span>
+                  )}
                 </label>
                 <textarea
                   value={editData.acciones_tomadas}
                   onChange={(e) => setEditData({ ...editData, acciones_tomadas: e.target.value })}
                   rows={3}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white resize-none"
+                  disabled={selectedNovedadEdit?.resultado === "RESUELTO"}
+                  className={`w-full px-3 py-2 rounded-lg border resize-none ${
+                    selectedNovedadEdit?.resultado === "RESUELTO"
+                      ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-600 dark:bg-amber-900/20 dark:text-amber-300"
+                      : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                  }`}
                   placeholder="Descripción de acciones realizadas..."
                 />
-                <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">
-                  Las acciones se guardarán en el historial y este campo quedará vacío para nuevas acciones.
+                <p className={`mt-1 text-xs ${
+                  selectedNovedadEdit?.resultado === "RESUELTA"
+                    ? "text-amber-600 dark:text-amber-400"
+                    : "text-blue-600 dark:text-blue-400"
+                }`}>
+                  {selectedNovedadEdit?.resultado === "RESUELTA"
+                    ? "Las acciones ya están registradas en el historial."
+                    : "Las acciones se guardarán en el historial y este campo quedará vacío para nuevas acciones."
+                  }
                 </p>
               </div>
 
@@ -1039,19 +1118,34 @@ export default function NovedadesPorCuadrante() {
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                     Nro. de Personas Afectadas
+                    {selectedNovedadEdit?.resultado === "RESUELTO" && (
+                      <span className="ml-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
+                        (Solo lectura)
+                      </span>
+                    )}
                   </label>
                   <input
                     type="number"
                     min="0"
                     value={editData.num_personas_afectadas}
                     onChange={(e) => setEditData({ ...editData, num_personas_afectadas: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                    disabled={selectedNovedadEdit?.resultado === "RESUELTO"}
+                    className={`w-full px-3 py-2 rounded-lg border ${
+                      selectedNovedadEdit?.resultado === "RESUELTO"
+                        ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-600 dark:bg-amber-900/20 dark:text-amber-300"
+                        : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                    }`}
                     placeholder="0"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                     Pérdidas Materiales Estimadas (S/)
+                    {selectedNovedadEdit?.resultado === "RESUELTO" && (
+                      <span className="ml-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
+                        (Solo lectura)
+                      </span>
+                    )}
                   </label>
                   <input
                     type="number"
@@ -1059,7 +1153,12 @@ export default function NovedadesPorCuadrante() {
                     step="0.01"
                     value={editData.perdidas_materiales_estimadas}
                     onChange={(e) => setEditData({ ...editData, perdidas_materiales_estimadas: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                    disabled={selectedNovedadEdit?.resultado === "RESUELTO"}
+                    className={`w-full px-3 py-2 rounded-lg border ${
+                      selectedNovedadEdit?.resultado === "RESUELTO"
+                        ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-600 dark:bg-amber-900/20 dark:text-amber-300"
+                        : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                    }`}
                     placeholder="0.00"
                   />
                 </div>
