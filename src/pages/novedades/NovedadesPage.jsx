@@ -1240,6 +1240,12 @@ const getLocalDatetime = () => {
     return tipo?.nombre || `Tipo #${tipoId}`;
   };
 
+  // Obtener nombre del subtipo de novedad para el historial
+  const getNombreSubtipoNovedad = (subtipoId) => {
+    const subtipo = subtipos.find(s => s.id === Number(subtipoId));
+    return subtipo?.nombre || `Subtipo #${subtipoId}`;
+  };
+
   // Cargar catálogos para atención
   const fetchCatalogosAtencion = async () => {
     try {
