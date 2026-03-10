@@ -1185,9 +1185,13 @@ const getLocalDatetime = () => {
     }
     setSaving(true);
     try {
-      // Obtener nombre del tipo para historial
+      // Obtener nombre del tipo y subtipo para historial
       const nombreTipo = getNombreTipoNovedad(formData.tipo_novedad_id);
-      const observacionesHistorial = `Novedad creada: ${nombreTipo}`;
+      const nombreSubtipo = getNombreSubtipoNovedad(formData.subtipo_novedad_id);
+      const descripcionCorta = formData.descripcion.length > 100 
+        ? formData.descripcion.substring(0, 100) + "..." 
+        : formData.descripcion;
+      const observacionesHistorial = `Novedad creada: ${nombreTipo} / ${nombreSubtipo} - ${descripcionCorta}`;
 
       const resultado = await createNovedad({
         tipo_novedad_id: Number(formData.tipo_novedad_id),
@@ -2007,9 +2011,13 @@ const getLocalDatetime = () => {
       const latitudValue = workingFormData.latitud && workingFormData.latitud !== "" ? parseFloat(workingFormData.latitud) : null;
       const longitudValue = workingFormData.longitud && workingFormData.longitud !== "" ? parseFloat(workingFormData.longitud) : null;
 
-      // Obtener nombre del tipo para historial
+      // Obtener nombre del tipo y subtipo para historial
       const nombreTipo = getNombreTipoNovedad(workingFormData.tipo_novedad_id);
-      const observacionesHistorial = `Novedad creada: ${nombreTipo}`;
+      const nombreSubtipo = getNombreSubtipoNovedad(workingFormData.subtipo_novedad_id);
+      const descripcionCorta = workingFormData.descripcion.length > 100 
+        ? workingFormData.descripcion.substring(0, 100) + "..." 
+        : workingFormData.descripcion;
+      const observacionesHistorial = `Novedad creada: ${nombreTipo} / ${nombreSubtipo} - ${descripcionCorta}`;
 
       const novedadPayload = {
         origen_llamada: workingFormData.origen_llamada,
