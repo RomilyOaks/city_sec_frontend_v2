@@ -384,6 +384,14 @@ export default function NovedadesPersonalModal({
     setShowEditModal(true);
   };
 
+  // Función helper para detectar si una novedad está RESUELTA
+  const esNovedadResuelta = useCallback((novedad) => {
+    const resultadoActual = novedad?.resultado || "PENDIENTE";
+    const estadoActualId = novedad?.novedad?.estado_novedad_id;
+    // Detectar si está RESUELTA por resultado o por estado (ID 6 = RESUELTA)
+    return resultadoActual === "RESUELTO" || estadoActualId === 6;
+  }, []);
+
   const handleUpdateNovedad = async (e) => {
     e.preventDefault();
 
@@ -395,8 +403,7 @@ export default function NovedadesPersonalModal({
       const estadoActualId = selectedNovedad.novedad?.estado_novedad_id;
       const nuevoEstadoId = editData.estado_novedad_id ? Number(editData.estado_novedad_id) : null;
       const cambioEstado = nuevoEstadoId && nuevoEstadoId !== estadoActualId;
-      const resultadoActual = selectedNovedad.resultado || "PENDIENTE";
-      const esResuelta = resultadoActual === "RESUELTO";
+      const esResuelta = esNovedadResuelta(selectedNovedad);
 
       // 🎯 CASO ESPECIAL: Novedad RESUELTA - Solo guardar en historial
       if (esResuelta) {
@@ -944,7 +951,7 @@ export default function NovedadesPersonalModal({
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Resultado Operativo
-                  {selectedNovedad?.resultado === "RESUELTO" && (
+                  {esNovedadResuelta(selectedNovedad) && (
                     <span className="ml-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
                       (Solo lectura - Novedad resuelta)
                     </span>
@@ -953,9 +960,9 @@ export default function NovedadesPersonalModal({
                 <select
                   value={editData.resultado}
                   onChange={(e) => setEditData({ ...editData, resultado: e.target.value })}
-                  disabled={selectedNovedad?.resultado === "RESUELTO"}
+                  disabled={esNovedadResuelta(selectedNovedad)}
                   className={`w-full px-3 py-2 rounded-lg border ${
-                    selectedNovedad?.resultado === "RESUELTO"
+                    esNovedadResuelta(selectedNovedad)
                       ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-600 dark:bg-amber-900/20 dark:text-amber-300"
                       : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                   }`}
@@ -972,7 +979,7 @@ export default function NovedadesPersonalModal({
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Nuevas Acciones Tomadas
-                  {selectedNovedad?.resultado === "RESUELTO" && (
+                  {esNovedadResuelta(selectedNovedad) && (
                     <span className="ml-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
                       (Solo lectura - Novedad resuelta)
                     </span>
@@ -982,20 +989,20 @@ export default function NovedadesPersonalModal({
                   value={editData.acciones_tomadas}
                   onChange={(e) => setEditData({ ...editData, acciones_tomadas: e.target.value })}
                   rows={3}
-                  disabled={selectedNovedad?.resultado === "RESUELTO"}
+                  disabled={esNovedadResuelta(selectedNovedad)}
                   className={`w-full px-3 py-2 rounded-lg border resize-none ${
-                    selectedNovedad?.resultado === "RESUELTO"
+                    esNovedadResuelta(selectedNovedad)
                       ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-600 dark:bg-amber-900/20 dark:text-amber-300"
                       : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                   }`}
                   placeholder="Descripción de acciones realizadas..."
                 />
                 <p className={`mt-1 text-xs ${
-                  selectedNovedad?.resultado === "RESUELTO"
+                  esNovedadResuelta(selectedNovedad)
                     ? "text-amber-600 dark:text-amber-400"
                     : "text-blue-600 dark:text-blue-400"
                 }`}>
-                  {selectedNovedad?.resultado === "RESUELTO"
+                  {esNovedadResuelta(selectedNovedad)
                     ? "Las acciones ya están registradas en el historial."
                     : "Las acciones se guardarán en el historial y este campo quedará vacío para nuevas acciones."
                   }
@@ -1007,7 +1014,7 @@ export default function NovedadesPersonalModal({
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                     Nro. de Personas Afectadas
-                    {selectedNovedad?.resultado === "RESUELTO" && (
+                    {esNovedadResuelta(selectedNovedad) && (
                       <span className="ml-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
                         (Solo lectura)
                       </span>
@@ -1018,9 +1025,9 @@ export default function NovedadesPersonalModal({
                     min="0"
                     value={editData.num_personas_afectadas}
                     onChange={(e) => setEditData({ ...editData, num_personas_afectadas: parseInt(e.target.value) || 0 })}
-                    disabled={selectedNovedad?.resultado === "RESUELTO"}
+                    disabled={esNovedadResuelta(selectedNovedad)}
                     className={`w-full px-3 py-2 rounded-lg border ${
-                      selectedNovedad?.resultado === "RESUELTO"
+                      esNovedadResuelta(selectedNovedad)
                         ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-600 dark:bg-amber-900/20 dark:text-amber-300"
                         : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                     }`}
@@ -1030,7 +1037,7 @@ export default function NovedadesPersonalModal({
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                     Pérdidas Materiales Estimadas (S/)
-                    {selectedNovedad?.resultado === "RESUELTO" && (
+                    {esNovedadResuelta(selectedNovedad) && (
                       <span className="ml-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
                         (Solo lectura)
                       </span>
@@ -1042,9 +1049,9 @@ export default function NovedadesPersonalModal({
                     step="0.01"
                     value={editData.perdidas_materiales_estimadas}
                     onChange={(e) => setEditData({ ...editData, perdidas_materiales_estimadas: parseFloat(e.target.value) || 0 })}
-                    disabled={selectedNovedad?.resultado === "RESUELTO"}
+                    disabled={esNovedadResuelta(selectedNovedad)}
                     className={`w-full px-3 py-2 rounded-lg border ${
-                      selectedNovedad?.resultado === "RESUELTO"
+                      esNovedadResuelta(selectedNovedad)
                         ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-600 dark:bg-amber-900/20 dark:text-amber-300"
                         : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                     }`}
