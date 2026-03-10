@@ -70,6 +70,30 @@ import { formatForDisplay, getNowLocal, safeConvertToTimezone } from "../../../u
 import NovedadDetalleModal from "../../../components/NovedadDetalleModal.jsx";
 
 /**
+ * Función helper para abreviar título de novedad
+ */
+const abreviarTituloNovedad = (tipoNombre, subtipoNombre) => {
+  if (!tipoNombre) return "Novedad";
+  
+  // Si no hay subtipo, devolver tipo completo
+  if (!subtipoNombre) return tipoNombre;
+  
+  // Buscar primer slash en el tipo
+  const primerSlashIndex = tipoNombre.indexOf('/');
+  
+  if (primerSlashIndex === -1) {
+    // Si no hay slash, devolver tipo completo + subtipo
+    return `${tipoNombre} / ${subtipoNombre}`;
+  }
+  
+  // Tomar desde el inicio hasta el primer slash (excluyendo el slash)
+  const tipoAbreviado = tipoNombre.substring(0, primerSlashIndex).trim();
+  
+  // Concatenar con subtipo completo
+  return `${tipoAbreviado} / ${subtipoNombre}`;
+};
+
+/**
  * NovedadesPersonalModal
  * Modal para gestionar las novedades atendidas en un cuadrante
  *
@@ -834,7 +858,10 @@ export default function NovedadesPersonalModal({
                     {/* Tipo + Subtipo */}
                     <div className="mb-2">
                       <p className="text-sm text-slate-700 dark:text-slate-300 break-words">
-                        {novedad.novedad?.novedadTipoNovedad?.nombre || "Tipo"} - {novedad.novedad?.novedadSubtipoNovedad?.nombre || "Subtipo"}
+                        {abreviarTituloNovedad(
+                          novedad.novedad?.novedadTipoNovedad?.nombre,
+                          novedad.novedad?.novedadSubtipoNovedad?.nombre
+                        )}
                       </p>
                     </div>
                     
@@ -853,7 +880,7 @@ export default function NovedadesPersonalModal({
                     <div className="space-y-1 text-xs text-slate-500 dark:text-slate-400">
                       <div className="flex items-center gap-1.5">
                         <Clock size={12} />
-                        <span>Reportado: {formatForDisplay(novedad.reportado)}</span>
+                        <span>Despachado: {formatForDisplay(novedad.reportado)}</span>
                       </div>
                       {novedad.atendido && (
                         <div className="flex items-center gap-1.5">
