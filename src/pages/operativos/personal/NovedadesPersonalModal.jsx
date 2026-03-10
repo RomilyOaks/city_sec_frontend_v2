@@ -395,33 +395,54 @@ export default function NovedadesPersonalModal({
       const estadoActualId = selectedNovedad.novedad?.estado_novedad_id;
       const nuevoEstadoId = editData.estado_novedad_id ? Number(editData.estado_novedad_id) : null;
       const cambioEstado = nuevoEstadoId && nuevoEstadoId !== estadoActualId;
+      const resultadoActual = selectedNovedad.resultado || "PENDIENTE";
+      const esResuelta = resultadoActual === "RESUELTO";
 
-      // 1. Si hay cambio de estado o acciones tomadas, crear historial
-      if (novedadPrincipalId && (tieneAcciones || cambioEstado)) {
-        const timestamp = formatForDisplay(new Date());
-        const nombrePersonal = formatPersonalNombre(personal?.personal);
-
-        // Construir texto de observaciones para el historial
-        let observacionesHistorial = "";
-        if (cambioEstado) {
-          const estadoNuevo = estadosRol.find((e) => e.id === nuevoEstadoId);
-          observacionesHistorial = `[${timestamp} - ${nombrePersonal}] Cambio de estado a: ${estadoNuevo?.nombre || "Nuevo estado"}`;
+      // 🎯 CASO ESPECIAL: Novedad RESUELTA - Solo guardar en historial
+      if (esResuelta) {
+        // Solo crear historial si hay nuevas observaciones
+        const nuevasObservaciones = editData.observaciones?.trim();
+        if (nuevasObservaciones && nuevasObservaciones !== (selectedNovedad.observaciones || "")) {
+          try {
+            const fechaLocal = getLocalDatetime();
+            
+            await crearHistorialNovedad(
+              novedadPrincipalId,
+              nuevasObservaciones, // Usar observaciones como mensaje del historial
+              null, // No cambiar estado
+              fechaLocal
+            );
+            
+            toast.success("Información complementaria agregada al historial");
+          } catch (historialError) {
+            console.error("Error al grabar historial:", historialError);
+            toast.error("Error al guardar en historial");
+          }
+        } else {
+          toast.info("No hay cambios para guardar");
         }
-        if (tieneAcciones) {
-          const accionesTexto = `[${timestamp} - ${nombrePersonal}] Acciones: ${editData.acciones_tomadas.trim()}`;
-          observacionesHistorial = observacionesHistorial
-            ? `${observacionesHistorial}\n${accionesTexto}`
-            : accionesTexto;
-        }
+        
+        setShowEditModal(false);
+        setSelectedNovedad(null);
+        fetchNovedades();
+        return;
+      }
 
+      // 🎯 CASO NORMAL: Novedad no RESUELTA - Actualizar completo
+      // 1. Si hay cambio de estado, crear historial (solo cambios de estado, no acciones)
+      if (cambioEstado && novedadPrincipalId) {
         try {
+          const timestamp = formatForDisplay(new Date());
+          const nombrePersonal = formatPersonalNombre(personal?.personal);
+          const estadoNuevo = estadosRol.find((e) => e.id === nuevoEstadoId);
+          
           // Usar getLocalDatetime() igual que en vehículos para consistencia
           const fechaLocal = getLocalDatetime();
           
           await crearHistorialNovedad(
             novedadPrincipalId,
-            observacionesHistorial,
-            cambioEstado ? nuevoEstadoId : null,
+            `[${timestamp} - ${nombrePersonal}] Cambio de estado a: ${estadoNuevo?.nombre || "Nuevo estado"}`,
+            nuevoEstadoId,
             fechaLocal // Agregar fecha_cambio en formato local
           );
         } catch (historialError) {
@@ -923,11 +944,21 @@ export default function NovedadesPersonalModal({
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Resultado Operativo
+                  {selectedNovedad?.resultado === "RESUELTO" && (
+                    <span className="ml-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
+                      (Solo lectura - Novedad resuelta)
+                    </span>
+                  )}
                 </label>
                 <select
                   value={editData.resultado}
                   onChange={(e) => setEditData({ ...editData, resultado: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                  disabled={selectedNovedad?.resultado === "RESUELTO"}
+                  className={`w-full px-3 py-2 rounded-lg border ${
+                    selectedNovedad?.resultado === "RESUELTO"
+                      ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-600 dark:bg-amber-900/20 dark:text-amber-300"
+                      : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                  }`}
                 >
                   {RESULTADOS_NOVEDAD.map((r) => (
                     <option key={r.value} value={r.value}>
@@ -941,16 +972,33 @@ export default function NovedadesPersonalModal({
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Nuevas Acciones Tomadas
+                  {selectedNovedad?.resultado === "RESUELTO" && (
+                    <span className="ml-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
+                      (Solo lectura - Novedad resuelta)
+                    </span>
+                  )}
                 </label>
                 <textarea
                   value={editData.acciones_tomadas}
                   onChange={(e) => setEditData({ ...editData, acciones_tomadas: e.target.value })}
                   rows={3}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white resize-none"
+                  disabled={selectedNovedad?.resultado === "RESUELTO"}
+                  className={`w-full px-3 py-2 rounded-lg border resize-none ${
+                    selectedNovedad?.resultado === "RESUELTO"
+                      ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-600 dark:bg-amber-900/20 dark:text-amber-300"
+                      : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                  }`}
                   placeholder="Descripción de acciones realizadas..."
                 />
-                <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">
-                  Las acciones se guardarán en el historial y este campo quedará vacío para nuevas acciones.
+                <p className={`mt-1 text-xs ${
+                  selectedNovedad?.resultado === "RESUELTO"
+                    ? "text-amber-600 dark:text-amber-400"
+                    : "text-blue-600 dark:text-blue-400"
+                }`}>
+                  {selectedNovedad?.resultado === "RESUELTO"
+                    ? "Las acciones ya están registradas en el historial."
+                    : "Las acciones se guardarán en el historial y este campo quedará vacío para nuevas acciones."
+                  }
                 </p>
               </div>
 
@@ -959,19 +1007,34 @@ export default function NovedadesPersonalModal({
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                     Nro. de Personas Afectadas
+                    {selectedNovedad?.resultado === "RESUELTO" && (
+                      <span className="ml-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
+                        (Solo lectura)
+                      </span>
+                    )}
                   </label>
                   <input
                     type="number"
                     min="0"
                     value={editData.num_personas_afectadas}
                     onChange={(e) => setEditData({ ...editData, num_personas_afectadas: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                    disabled={selectedNovedad?.resultado === "RESUELTO"}
+                    className={`w-full px-3 py-2 rounded-lg border ${
+                      selectedNovedad?.resultado === "RESUELTO"
+                        ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-600 dark:bg-amber-900/20 dark:text-amber-300"
+                        : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                    }`}
                     placeholder="0"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Pérdidas Materiales (S/)
+                    Pérdidas Materiales Estimadas (S/)
+                    {selectedNovedad?.resultado === "RESUELTO" && (
+                      <span className="ml-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
+                        (Solo lectura)
+                      </span>
+                    )}
                   </label>
                   <input
                     type="number"
@@ -979,7 +1042,12 @@ export default function NovedadesPersonalModal({
                     step="0.01"
                     value={editData.perdidas_materiales_estimadas}
                     onChange={(e) => setEditData({ ...editData, perdidas_materiales_estimadas: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                    disabled={selectedNovedad?.resultado === "RESUELTO"}
+                    className={`w-full px-3 py-2 rounded-lg border ${
+                      selectedNovedad?.resultado === "RESUELTO"
+                        ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-600 dark:bg-amber-900/20 dark:text-amber-300"
+                        : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                    }`}
                     placeholder="0.00"
                   />
                 </div>
