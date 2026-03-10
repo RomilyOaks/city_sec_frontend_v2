@@ -894,11 +894,11 @@ export default function NovedadDetalleModal({
                       <div>
                         <span className="text-xs font-medium text-slate-500">Hora Llegada</span>
                         <p className={`text-sm font-medium ${
-                          novedad.fecha_llegada && novedad.reportado && novedad.novedadSubtipoNovedad?.tiempo_respuesta_min
+                          novedad.fecha_llegada && novedad.fecha_despacho && novedad.novedadSubtipoNovedad?.tiempo_respuesta_min
                             ? (() => {
                                 const llegada = new Date(novedad.fecha_llegada);
-                                const reportado = new Date(novedad.reportado);
-                                const tiempoReal = Math.round((llegada - reportado) / (1000 * 60));
+                                const despachado = new Date(novedad.fecha_despacho);
+                                const tiempoReal = Math.round((llegada - despachado) / (1000 * 60));
                                 const tiempoEstimado = novedad.novedadSubtipoNovedad.tiempo_respuesta_min;
                                 
                                 if (tiempoReal > tiempoEstimado) {

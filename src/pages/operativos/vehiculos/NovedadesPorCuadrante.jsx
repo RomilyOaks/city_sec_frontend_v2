@@ -129,11 +129,13 @@ export default function NovedadesPorCuadrante() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedNovedadEdit, setSelectedNovedadEdit] = useState(null);
   const [editData, setEditData] = useState({
+    estado_novedad_id: "",
     resultado: "",
     acciones_tomadas: "",
     observaciones: "",
     personas_afectadas: 0,
     fecha_llegada: "",
+    usar_fecha_actual: true, // Agregar usar_fecha_actual al estado inicial
   });
   const [savingEdit, setSavingEdit] = useState(false);
 
@@ -152,34 +154,43 @@ export default function NovedadesPorCuadrante() {
     let isProcessing = false; // Flag para evitar múltiples envíos
     
     const handleKeyDown = (event) => {
-      // Solo procesar cuando el modal está abierto y no está guardando
-      if (showEditModal && !savingEdit && event.altKey && event.key === 'g') {
-        event.preventDefault();
-        
-        // Evitar múltiples envíos simultáneos
-        if (isProcessing) {
-          return;
-        }
-        
-        isProcessing = true;
-        
-        // Buscar el formulario dentro del modal
+      // Capturar ALT+G en fase de captura para evitar conflictos
+      if (event.altKey && event.key === 'g') {
+        // Verificar que el modal esté visible y el formulario exista
         const form = document.querySelector('#edit-novedad-form');
-        if (form) {
-          form.requestSubmit();
+        if (showEditModal && !savingEdit && form) {
+          event.preventDefault();
+          event.stopPropagation();
+          
+          // Evitar múltiples envíos simultáneos
+          if (isProcessing) {
+            return;
+          }
+          
+          isProcessing = true;
+          
+          // Intentar submit del formulario o click en botón
+          try {
+            form.requestSubmit();
+          } catch (e) {
+            // Alternativa: buscar botón de submit
+            const submitButton = document.querySelector('#edit-novedad-form button[type="submit"]');
+            if (submitButton) {
+              submitButton.click();
+            }
+          }
           
           // Resetear el flag después de un tiempo
           setTimeout(() => {
             isProcessing = false;
           }, 1000);
-        } else {
-          isProcessing = false;
         }
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    // Usar fase de captura para mayor prioridad
+    document.addEventListener('keydown', handleKeyDown, true);
+    return () => document.removeEventListener('keydown', handleKeyDown, true);
   }, [showEditModal, savingEdit]);
 
   // Cargar datos del cuadrante y novedades
@@ -266,15 +277,17 @@ export default function NovedadesPorCuadrante() {
 
     // Obtener el estado actual de la novedad principal
     const estadoActualId = novedad.novedad?.estado_novedad_id || 1;
+    const resultadoActual = novedad.resultado || "PENDIENTE";
 
     setEditData({
       estado_novedad_id: estadoActualId,
-      resultado: novedad.resultado || "PENDIENTE",
+      resultado: resultadoActual === "PENDIENTE" ? "RESUELTO" : resultadoActual, // Poner RESUELTA por defecto si es PENDIENTE
       acciones_tomadas: "", // Siempre vacío - las anteriores ya están en historial
       observaciones: novedad.observaciones || "",
       num_personas_afectadas: novedad.novedad?.num_personas_afectadas || 0,
       perdidas_materiales_estimadas: novedad.novedad?.perdidas_materiales_estimadas || 0,
       fecha_llegada: "",
+      usar_fecha_actual: false,
     });
     setShowEditModal(true);
   }, []);
@@ -291,6 +304,7 @@ export default function NovedadesPorCuadrante() {
       num_personas_afectadas: 0,
       perdidas_materiales_estimadas: 0,
       fecha_llegada: "",
+      usar_fecha_actual: false,
     });
   }, []);
 
@@ -910,13 +924,58 @@ export default function NovedadesPorCuadrante() {
                         {formatForDisplay(fechaLlegadaActual)}
                       </div>
                     ) : (
-                      <input
-                        type="datetime-local"
-                        value={editData.fecha_llegada || ""}
-                        onChange={(e) => setEditData({ ...editData, fecha_llegada: e.target.value })}
-                        required
-                        className="w-full px-3 py-2 rounded-lg border-2 border-green-500 dark:border-green-400 bg-green-50 dark:bg-green-900/30 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-green-400/40"
-                      />
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id="usar-fecha-actual"
+                            checked={editData.usar_fecha_actual || false}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                // Capturar fecha-hora actual en formato local
+                                const now = new Date();
+                                const year = now.getFullYear();
+                                const month = String(now.getMonth() + 1).padStart(2, "0");
+                                const day = String(now.getDate()).padStart(2, "0");
+                                const hours = String(now.getHours()).padStart(2, "0");
+                                const minutes = String(now.getMinutes()).padStart(2, "0");
+                                const fechaActual = `${year}-${month}-${day}T${hours}:${minutes}`;
+                                
+                                setEditData({ 
+                                  ...editData, 
+                                  fecha_llegada: fechaActual,
+                                  usar_fecha_actual: true 
+                                });
+                                
+                                // Saltar foco a acciones_tomadas
+                                setTimeout(() => {
+                                  const accionesTextarea = document.querySelector('textarea[name="acciones_tomadas"]');
+                                  if (accionesTextarea) {
+                                    accionesTextarea.focus();
+                                  }
+                                }, 100);
+                              } else {
+                                setEditData({ 
+                                  ...editData, 
+                                  fecha_llegada: "",
+                                  usar_fecha_actual: false 
+                                });
+                              }
+                            }}
+                            className="w-4 h-4 text-green-600 border-green-300 rounded focus:ring-green-500"
+                          />
+                          <label htmlFor="usar-fecha-actual" className="text-sm text-green-700 dark:text-green-400 font-medium cursor-pointer">
+                            Usar fecha-hora actual
+                          </label>
+                        </div>
+                        <input
+                          type="datetime-local"
+                          value={editData.fecha_llegada || ""}
+                          onChange={(e) => setEditData({ ...editData, fecha_llegada: e.target.value, usar_fecha_actual: false })}
+                          required
+                          className="w-full px-3 py-2 rounded-lg border-2 border-green-500 dark:border-green-400 bg-green-50 dark:bg-green-900/30 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-green-400/40"
+                        />
+                      </div>
                     )}
                   </div>
                 );
