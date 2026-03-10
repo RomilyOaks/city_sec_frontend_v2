@@ -205,6 +205,28 @@ export default function NovedadDetalleModal({
     fetchData();
   }, [isOpen, novedadId, initialNovedad]);
 
+  // Función helper para abreviar título de novedad
+  const abreviarTituloNovedad = useCallback((tipoNombre, subtipoNombre) => {
+    if (!tipoNombre) return "Novedad";
+    
+    // Si no hay subtipo, devolver tipo completo
+    if (!subtipoNombre) return tipoNombre;
+    
+    // Buscar primer slash en el tipo
+    const primerSlashIndex = tipoNombre.indexOf('/');
+    
+    if (primerSlashIndex === -1) {
+      // Si no hay slash, devolver tipo completo + subtipo
+      return `${tipoNombre} / ${subtipoNombre}`;
+    }
+    
+    // Tomar desde el inicio hasta el primer slash (excluyendo el slash)
+    const tipoAbreviado = tipoNombre.substring(0, primerSlashIndex).trim();
+    
+    // Concatenar con subtipo completo
+    return `${tipoAbreviado} / ${subtipoNombre}`;
+  }, []);
+
   // Bloquear scroll del body cuando el modal está abierto
   useEffect(() => {
     if (isOpen) {
@@ -321,11 +343,9 @@ export default function NovedadDetalleModal({
                   </span>
                 </div>
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50 mt-1">
-                  {novedad.novedadTipoNovedad?.nombre || "Novedad"}
-                  {novedad.novedadSubtipoNovedad?.nombre && (
-                    <span className="font-normal text-sm text-slate-500 dark:text-slate-400">
-                      {" / "}{novedad.novedadSubtipoNovedad.nombre}
-                    </span>
+                  {abreviarTituloNovedad(
+                    novedad.novedadTipoNovedad?.nombre,
+                    novedad.novedadSubtipoNovedad?.nombre
                   )}
                 </h3>
                 {(novedad.localizacion || novedad.referencia_ubicacion) && (
