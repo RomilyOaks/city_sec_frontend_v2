@@ -91,9 +91,7 @@ const getPrioridadColor = (prioridad) => {
  * @component
  */
 export default function NovedadesPorCuadrante() {
-  // 🐛 VERSION CHECK - Confirmar que estamos usando la versión actualizada
-  console.log("🐛 🔥 VERSION CHECK - NovedadesPorCuadrante v2.0 CON HOTKEY MEJORADO Y FIX ATENDIDO");
-  const { turnoId, vehiculoId, cuadranteId } = useParams();
+    const { turnoId, vehiculoId, cuadranteId } = useParams();
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const { estadosRol } = useEstadosPorRol();
@@ -154,26 +152,20 @@ export default function NovedadesPorCuadrante() {
     let isProcessing = false; // Flag para evitar múltiples envíos
     
     const handleKeyDown = (event) => {
-      // Debug: Mostrar todas las teclas presionadas
-      console.log("🐛 HOTKEY DEBUG - Tecla presionada:", event.key, "ALT:", event.altKey);
-      
       // Solo procesar cuando el modal está abierto y no está guardando
       if (showEditModal && !savingEdit && event.altKey && event.key === 'g') {
         event.preventDefault();
         
         // Evitar múltiples envíos simultáneos
         if (isProcessing) {
-          console.log("🐛 ⏳ HOTKEY ALT+G - Ya procesando, ignorando...");
           return;
         }
         
         isProcessing = true;
-        console.log("🐛 🎯 HOTKEY ALT+G DETECTADO - Enviando formulario");
         
         // Buscar el formulario dentro del modal
-        const form = document.querySelector('#editNovedadForm');
+        const form = document.querySelector('#edit-novedad-form');
         if (form) {
-          console.log("🐛 🎯 FORMULARIO ENCONTRADO - Enviando submit");
           form.requestSubmit();
           
           // Resetear el flag después de un tiempo
@@ -181,7 +173,6 @@ export default function NovedadesPorCuadrante() {
             isProcessing = false;
           }, 1000);
         } else {
-          console.log("🐛 ❌ FORMULARIO NO ENCONTRADO");
           isProcessing = false;
         }
       }
@@ -332,41 +323,7 @@ export default function NovedadesPorCuadrante() {
       
       const cambioEstado = nuevoEstadoId && nuevoEstadoId !== estadoActualId;
 
-      // 1. Si hay cambio de estado o acciones tomadas, crear historial
-      if (novedadPrincipalId && (tieneAcciones || cambioEstado)) {
-        const timestamp = formatForDisplay(new Date());
-        const vehiculoInfo = vehiculo?.placa || `Vehículo ${vehiculoId}`;
-
-        // Construir texto de observaciones para el historial
-        let observacionesHistorial = "";
-        if (cambioEstado) {
-          const estadoNuevo = estadosRol.find(e => e.id === nuevoEstadoId);
-          observacionesHistorial = `[${timestamp} - ${vehiculoInfo}] Cambio de estado a: ${estadoNuevo?.nombre || "Nuevo estado"}`;
-        }
-        if (tieneAcciones) {
-          const accionesTexto = `[${timestamp} - ${vehiculoInfo}] Acciones: ${editData.acciones_tomadas.trim()}`;
-          observacionesHistorial = observacionesHistorial
-            ? `${observacionesHistorial}\n${accionesTexto}`
-            : accionesTexto;
-        }
-
-        try {
-          // Si hay cambio de estado, enviarlo al historial con fecha local
-          // Usar getLocalDatetime() igual que en DespacharModal para consistencia
-          const fechaLocal = getLocalDatetime();
-          
-          await crearHistorialNovedad(
-            novedadPrincipalId,
-            observacionesHistorial,
-            cambioEstado ? nuevoEstadoId : null,
-            fechaLocal // Agregar fecha_cambio en formato local
-          );
-        } catch (historialError) {
-          console.error("Error al grabar historial:", historialError);
-          toast.error("Error al guardar en historial, pero se actualizará el registro local");
-        }
-      }
-
+      
       // Construir observaciones actualizadas: agregar acciones_tomadas al final de observaciones existentes
       let observacionesActualizadas = editData.observaciones?.trim() || "";
       if (tieneAcciones) {
@@ -394,25 +351,13 @@ export default function NovedadesPorCuadrante() {
         ...(nuevoEstadoId === 6 ? { atendido: getLocalDatetime() } : {}),
       };
 
-      // 🔍 DEBUG: Mostrar payload para problema UTC-5
-      console.log("🔍 UTC DEBUG - Payload enviado:", payload);
-      if (nuevoEstadoId === 6) {
-        console.log("🔍 UTC DEBUG - Enviando atendido:", getLocalDatetime());
-      }
-
-      const response = await operativosNovedadesService.updateNovedad(
+      await operativosNovedadesService.updateNovedad(
         turnoId,
         vehiculoId,
         cuadranteId,
         selectedNovedadEdit.id,
         payload
       );
-
-      // 🔍 DEBUG: Verificar respuesta del backend
-      console.log("🔍 UTC DEBUG - Respuesta backend:", response);
-      if (response?.data?.atendido) {
-        console.log("🔍 UTC DEBUG - Backend devolvió atendido:", response.data.atendido);
-      }
 
       toast.success(
         cambioEstado || tieneAcciones
@@ -872,7 +817,7 @@ export default function NovedadesPorCuadrante() {
                   <div className="space-y-1 text-xs text-slate-500 dark:text-slate-400">
                     <div className="flex items-center gap-1.5">
                       <Clock size={12} />
-                      <span>Reportado: {formatDateTime(novedad.reportado)}</span>
+                      <span>Despachado: {formatDateTime(novedad.reportado)}</span>
                     </div>
                     {novedad.atendido && (
                       <div className="flex items-center gap-1.5">

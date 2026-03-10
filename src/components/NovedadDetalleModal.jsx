@@ -787,20 +787,43 @@ export default function NovedadDetalleModal({
                     </div>
                     
                     {/* Tiempo Respuesta desde Despachado */}
-                    <div className={`p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 ${
+                    <div className={`p-3 rounded-lg border-2 ${
                       (novedad.tiempo_respuesta_min_operativo && novedad.novedadSubtipoNovedad?.tiempo_respuesta_min &&
                        novedad.tiempo_respuesta_min_operativo > novedad.novedadSubtipoNovedad.tiempo_respuesta_min)
-                        ? 'bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-700 dark:text-red-300'
-                        : ''
+                        ? 'bg-red-100 border-red-500 text-red-900 dark:bg-red-900/30 dark:border-red-400 dark:text-red-200'
+                        : (novedad.tiempo_respuesta_min_operativo && novedad.novedadSubtipoNovedad?.tiempo_respuesta_min &&
+                           novedad.tiempo_respuesta_min_operativo < novedad.novedadSubtipoNovedad.tiempo_respuesta_min)
+                        ? 'bg-green-100 border-green-500 text-green-900 dark:bg-green-900/30 dark:border-green-400 dark:text-green-200'
+                        : (novedad.tiempo_respuesta_min_operativo && novedad.novedadSubtipoNovedad?.tiempo_respuesta_min &&
+                           novedad.tiempo_respuesta_min_operativo === novedad.novedadSubtipoNovedad.tiempo_respuesta_min)
+                        ? 'bg-amber-100 border-amber-500 text-amber-900 dark:bg-amber-900/30 dark:border-amber-400 dark:text-amber-200'
+                        : 'bg-slate-50 dark:bg-slate-800/50'
                     }`}>
-                      <span className="text-xs font-medium text-slate-500">
+                      <span className={`text-xs font-medium ${
+                        (novedad.tiempo_respuesta_min_operativo && novedad.novedadSubtipoNovedad?.tiempo_respuesta_min &&
+                         novedad.tiempo_respuesta_min_operativo > novedad.novedadSubtipoNovedad.tiempo_respuesta_min)
+                          ? 'text-red-700 dark:text-red-300'
+                          : (novedad.tiempo_respuesta_min_operativo && novedad.novedadSubtipoNovedad?.tiempo_respuesta_min &&
+                             novedad.tiempo_respuesta_min_operativo < novedad.novedadSubtipoNovedad.tiempo_respuesta_min)
+                          ? 'text-green-700 dark:text-green-300'
+                          : (novedad.tiempo_respuesta_min_operativo && novedad.novedadSubtipoNovedad?.tiempo_respuesta_min &&
+                             novedad.tiempo_respuesta_min_operativo === novedad.novedadSubtipoNovedad.tiempo_respuesta_min)
+                          ? 'text-amber-700 dark:text-amber-300'
+                          : 'text-slate-500'
+                      }`}>
                         Tiempo Respuesta desde Despachado
                       </span>
-                      <p className={`text-sm font-semibold ${
+                      <p className={`text-lg font-bold ${
                         (novedad.tiempo_respuesta_min_operativo !== null && novedad.tiempo_respuesta_min_operativo !== undefined && 
                          novedad.novedadSubtipoNovedad?.tiempo_respuesta_min &&
                          novedad.tiempo_respuesta_min_operativo > novedad.novedadSubtipoNovedad.tiempo_respuesta_min)
-                          ? 'text-red-800 dark:text-red-300'
+                          ? 'text-red-900 dark:text-red-100'
+                          : (novedad.tiempo_respuesta_min_operativo && novedad.novedadSubtipoNovedad?.tiempo_respuesta_min &&
+                             novedad.tiempo_respuesta_min_operativo < novedad.novedadSubtipoNovedad.tiempo_respuesta_min)
+                          ? 'text-green-900 dark:text-green-100'
+                          : (novedad.tiempo_respuesta_min_operativo && novedad.novedadSubtipoNovedad?.tiempo_respuesta_min &&
+                             novedad.tiempo_respuesta_min_operativo === novedad.novedadSubtipoNovedad.tiempo_respuesta_min)
+                          ? 'text-amber-900 dark:text-amber-100'
                           : 'text-slate-900 dark:text-slate-50'
                       }`}>
                         {novedad.tiempo_respuesta_min_operativo !== null && novedad.tiempo_respuesta_min_operativo !== undefined
@@ -870,7 +893,24 @@ export default function NovedadDetalleModal({
                       </div>
                       <div>
                         <span className="text-xs font-medium text-slate-500">Hora Llegada</span>
-                        <p className="text-sm text-slate-900 dark:text-slate-50">
+                        <p className={`text-sm font-medium ${
+                          novedad.fecha_llegada && novedad.reportado && novedad.novedadSubtipoNovedad?.tiempo_respuesta_min
+                            ? (() => {
+                                const llegada = new Date(novedad.fecha_llegada);
+                                const reportado = new Date(novedad.reportado);
+                                const tiempoReal = Math.round((llegada - reportado) / (1000 * 60));
+                                const tiempoEstimado = novedad.novedadSubtipoNovedad.tiempo_respuesta_min;
+                                
+                                if (tiempoReal > tiempoEstimado) {
+                                  return 'text-red-700 dark:text-red-300 font-bold';
+                                } else if (tiempoReal < tiempoEstimado) {
+                                  return 'text-green-700 dark:text-green-300 font-bold';
+                                } else {
+                                  return 'text-amber-700 dark:text-amber-300 font-bold';
+                                }
+                              })()
+                            : 'text-slate-900 dark:text-slate-50'
+                        }`}>
                           {novedad.fecha_llegada ? formatFecha(novedad.fecha_llegada) : "—"}
                         </p>
                       </div>
@@ -887,7 +927,24 @@ export default function NovedadDetalleModal({
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <span className="text-xs text-slate-500 dark:text-slate-400">Fecha Llegada</span>
-                          <p className="text-sm font-medium text-slate-900 dark:text-slate-50 mt-0.5">
+                          <p className={`text-sm font-medium mt-0.5 ${
+                            novedad.fecha_llegada && novedad.reportado && novedad.novedadSubtipoNovedad?.tiempo_respuesta_min
+                              ? (() => {
+                                  const llegada = new Date(novedad.fecha_llegada);
+                                  const reportado = new Date(novedad.reportado);
+                                  const tiempoReal = Math.round((llegada - reportado) / (1000 * 60));
+                                  const tiempoEstimado = novedad.novedadSubtipoNovedad.tiempo_respuesta_min;
+                                  
+                                  if (tiempoReal > tiempoEstimado) {
+                                    return 'text-red-700 dark:text-red-300 font-bold';
+                                  } else if (tiempoReal < tiempoEstimado) {
+                                    return 'text-green-700 dark:text-green-300 font-bold';
+                                  } else {
+                                    return 'text-amber-700 dark:text-amber-300 font-bold';
+                                  }
+                                })()
+                              : 'text-slate-900 dark:text-slate-50'
+                          }`}>
                             {formatFecha(novedad.fecha_llegada)}
                           </p>
                         </div>
