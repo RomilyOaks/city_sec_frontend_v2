@@ -36,23 +36,27 @@ const DEFAULT_TIMEZONE = import.meta.env.VITE_APP_TIMEZONE || "America/Lima";
  */
 export const formatDateTimeToString = (dateObj) => {
   // Detectar si estamos en Railway (producción)
-  const isRailway = window.location.hostname.includes('railway.app') || 
-                   window.location.hostname !== 'localhost';
-  
+  const isRailway =
+    window.location.hostname.includes("railway.app") ||
+    window.location.hostname !== "localhost";
+
   if (isRailway) {
     // En Railway, enviar en formato UTC para evitar conversión incorrecta
-    return dateObj.toISOString().slice(0, 19).replace('T', ' ');
+    return dateObj.toISOString().slice(0, 19).replace("T", " ");
   } else {
     // En localhost, usar formato local (funciona correctamente)
-    return dateObj.toLocaleString("en-CA", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false
-    }).replace(",", "").replace(/\//g, "-");
+    return dateObj
+      .toLocaleString("en-CA", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      })
+      .replace(",", "")
+      .replace(/\//g, "-");
   }
 };
 
@@ -68,14 +72,15 @@ export const formatDateTimeToString = (dateObj) => {
  */
 export const getNowLocal = () => {
   const now = new Date();
-  
+
   // Detectar si estamos en Railway (producción)
-  const isRailway = window.location.hostname.includes('railway.app') || 
-                   window.location.hostname !== 'localhost';
-  
+  const isRailway =
+    window.location.hostname.includes("railway.app") ||
+    window.location.hostname !== "localhost";
+
   if (isRailway) {
     // En Railway, usar toISOString() para evitar conversión incorrecta
-    return now.toISOString().slice(0, 19).replace('T', ' ');
+    return now.toISOString().slice(0, 19).replace("T", " ");
   } else {
     // En localhost, usar formato local
     return formatDateTimeToString(now);
@@ -94,55 +99,65 @@ export const getNowLocal = () => {
  * @example
  * // Desde input datetime-local
  * convertToTimezone("2026-03-08T14:30") // "2026-03-08 14:30:00"
- * 
+ *
  * // Desde Date object
  * convertToTimezone(new Date()) // "2026-03-08 11:30:00"
- * 
+ *
  * // Desde string normalizado
  * convertToTimezone("2026-03-08 14:30:00") // "2026-03-08 14:30:00"
  */
 export const convertToTimezone = (date) => {
   if (!date) return null;
-  
+
   if (typeof date === "string") {
     // Validar que no sea "Invalid Date"
     if (date === "Invalid Date" || date === "null" || date === "undefined") {
       return getNowLocal(); // Fallback a fecha actual
     }
-    
+
     // Si es formato datetime-local (YYYY-MM-DDTHH:mm)
-    if (date.includes("T") && !date.includes("Z") && !/[+-]\d{2}:\d{2}$/.test(date)) {
+    if (
+      date.includes("T") &&
+      !date.includes("Z") &&
+      !/[+-]\d{2}:\d{2}$/.test(date)
+    ) {
       // Parsear directamente sin conversión UTC
       const [datePart, timePart] = date.split("T");
       const [year, month, day] = datePart.split("-").map(Number);
       const [hour, minute] = timePart.split(":").map(Number);
-      
+
       // Validar que los componentes sean válidos
-      if (isNaN(year) || isNaN(month) || isNaN(day) || isNaN(hour) || isNaN(minute)) {
+      if (
+        isNaN(year) ||
+        isNaN(month) ||
+        isNaN(day) ||
+        isNaN(hour) ||
+        isNaN(minute)
+      ) {
         return getNowLocal(); // Fallback si hay componentes inválidos
       }
-      
+
       // Crear fecha local sin conversión UTC
       const dateObj = new Date(year, month - 1, day, hour, minute, 0, 0);
-      
+
       // Validar que la fecha creada sea válida
       if (isNaN(dateObj.getTime())) {
         return getNowLocal(); // Fallback si la fecha es inválida
       }
-      
+
       return formatDateTimeToString(dateObj);
     }
-    
+
     // Si ya está en formato correcto, normalizar
     if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(date)) {
       return date;
     }
-    
+
     // Si tiene formato YYYY-MM-DD HH:mm (sin segundos)
     if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(date)) {
       return date + ":00";
     }
-    
+
     // Para otros formatos, intentar crear Date y validar
     const dateObj = new Date(date);
     if (isNaN(dateObj.getTime())) {
@@ -150,7 +165,7 @@ export const convertToTimezone = (date) => {
     }
     return formatDateTimeToString(dateObj);
   }
-  
+
   // Es objeto Date
   if (isNaN(date.getTime())) {
     return getNowLocal(); // Fallback si la fecha es inválida
@@ -187,17 +202,17 @@ export const safeConvertToTimezone = (date) => {
  */
 export const formatForInput = (backendDate) => {
   if (!backendDate) return "";
-  
+
   // Si ya tiene el formato correcto
   if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(backendDate)) {
     return backendDate;
   }
-  
+
   // Convertir de "YYYY-MM-DD HH:mm:ss" a "YYYY-MM-DDTHH:mm"
   if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(backendDate)) {
     return backendDate.replace(" ", "T").slice(0, 16);
   }
-  
+
   // Para otros formatos, intentar convertir
   try {
     const dateObj = new Date(backendDate);
@@ -240,11 +255,46 @@ export const getDateLocal = () => {
  * formatForDisplay(new Date()) // "8/3/2026, 11:30 a. m."
  */
 export const formatForDisplay = (date, locale = "es-PE") => {
-  const dateObj = typeof date === "string" ? new Date(date) : date;
-  return dateObj.toLocaleString(locale, {
-    dateStyle: "short",
-    timeStyle: "short"
+  let dateObj;
+
+  if (typeof date === "string") {
+    // If backend format "YYYY-MM-DD HH:mm:ss", parse components to avoid
+    // inconsistent Date parsing and timezone offsets from `new Date(string)`.
+    const backendRegex = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/;
+    const m = date.match(backendRegex);
+    if (m) {
+      const [, y, mo, d, h, mi, s] = m.map((v) => v);
+      dateObj = new Date(
+        Number(y),
+        Number(mo) - 1,
+        Number(d),
+        Number(h),
+        Number(mi),
+        Number(s),
+      );
+    } else {
+      // Fallback to Date constructor for other formats
+      dateObj = new Date(date);
+    }
+  } else {
+    dateObj = date;
+  }
+
+  if (!dateObj || isNaN(dateObj.getTime())) return "";
+
+  // Build a localized date + time string but avoid minute rounding by
+  // formatting time with seconds and then stripping seconds textually.
+  const datePart = dateObj.toLocaleDateString(locale);
+  const timeWithSeconds = dateObj.toLocaleTimeString(locale, {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
   });
+
+  // Remove the seconds (e.g. "11:06:00 p. m." -> "11:06 p. m.") without rounding
+  const timeNoSeconds = timeWithSeconds.replace(/:\d{2}(?=[^\d]|$)/, "");
+
+  return `${datePart}, ${timeNoSeconds}`;
 };
 
 /**
@@ -257,7 +307,7 @@ export const formatForDisplay = (date, locale = "es-PE") => {
 export const getMinutesDifference = (startDate, endDate) => {
   const start = typeof startDate === "string" ? new Date(startDate) : startDate;
   const end = typeof endDate === "string" ? new Date(endDate) : endDate;
-  
+
   return Math.round((end - start) / (1000 * 60));
 };
 
@@ -273,23 +323,23 @@ export const getMinutesDifference = (startDate, endDate) => {
  */
 export const formatTimeDifference = (startDate, endDate) => {
   const minutes = getMinutesDifference(startDate, endDate);
-  
+
   if (minutes < 60) {
     return `${minutes} min`;
   }
-  
+
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
-  
+
   if (hours < 24) {
-    return remainingMinutes > 0 
+    return remainingMinutes > 0
       ? `${hours} horas ${remainingMinutes} min`
       : `${hours} horas`;
   }
-  
+
   const days = Math.floor(hours / 24);
   const remainingHours = hours % 24;
-  
+
   return remainingHours > 0
     ? `${days} días ${remainingHours} horas`
     : `${days} días`;
@@ -302,7 +352,7 @@ export const formatTimeDifference = (startDate, endDate) => {
  */
 export const getTimezoneDebugInfo = () => {
   const now = new Date();
-  
+
   return {
     navegador_utc: now.toISOString(),
     navegador_local: now.toString(),
@@ -311,7 +361,7 @@ export const getTimezoneDebugInfo = () => {
     fecha_formateada_local: getDateLocal(),
     fecha_completa_local: formatDateTimeToString(now),
     fecha_para_ui: formatForDisplay(now),
-    fecha_para_input: formatForInput(formatDateTimeToString(now))
+    fecha_para_input: formatForInput(formatDateTimeToString(now)),
   };
 };
 
@@ -328,5 +378,5 @@ export default {
   getMinutesDifference,
   formatTimeDifference,
   getTimezoneDebugInfo,
-  DEFAULT_TIMEZONE
+  DEFAULT_TIMEZONE,
 };
