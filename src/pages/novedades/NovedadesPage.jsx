@@ -88,16 +88,33 @@ import { useAuthStore } from "../../store/useAuthStore.js";
 import { canPerformAction, canAccessRoute } from "../../rbac/rbac.js";
 import { useEstadosPorRol } from "../../hooks/useEstadosPorRol.js";
 import { getDefaultUbigeo } from "../../config/defaults.js";
-import { geocodificarDireccion, validarCoordenadasPeru, getDescripcionLocationType, getDescripcionFuente } from "../../services/geocodingService.js";
+import {
+  geocodificarDireccion,
+  validarCoordenadasPeru,
+  getDescripcionLocationType,
+  getDescripcionFuente,
+} from "../../services/geocodingService.js";
 
 // Constantes
 const ORIGEN_LLAMADA_OPTIONS = [
   { value: "TELEFONO_107", label: "Llamada Telefónica (107)", icon: Phone },
   { value: "RADIO_TETRA", label: "Radio TETRA", icon: Radio },
   { value: "REDES_SOCIALES", label: "Redes Sociales", icon: Share2 },
-  { value: "BOTON_EMERGENCIA_ALERTA", label: "Botón Emergencia", icon: AlertTriangle },
-  { value: "BOTON_DENUNCIA_VECINO_ALERTA", label: "Botón Denuncia", icon: Home },
-  { value: "INTERVENCION_DIRECTA", label: "Intervención Directa", icon: Shield },
+  {
+    value: "BOTON_EMERGENCIA_ALERTA",
+    label: "Botón Emergencia",
+    icon: AlertTriangle,
+  },
+  {
+    value: "BOTON_DENUNCIA_VECINO_ALERTA",
+    label: "Botón Denuncia",
+    icon: Home,
+  },
+  {
+    value: "INTERVENCION_DIRECTA",
+    label: "Intervención Directa",
+    icon: Shield,
+  },
   { value: "VIDEO_CCO", label: "Video CCO", icon: Video },
   { value: "ANALITICA", label: "Analítica", icon: BarChart3 },
   { value: "APP_PODER_JUDICIAL", label: "APP Poder Judicial", icon: Scale },
@@ -120,66 +137,66 @@ const REGISTRO_STAGES = {
 };
 
 const NUEVOS_ORIGEN_LLAMADA_OPTIONS = [
-  { 
-    value: "TELEFONO_107", 
-    label: "Llamada Telefónica (107)", 
+  {
+    value: "TELEFONO_107",
+    label: "Llamada Telefónica (107)",
     icon: Phone,
-    color: "text-blue-600"
+    color: "text-blue-600",
   },
-  { 
-    value: "RADIO_TETRA", 
-    label: "Llamada Radio TETRA", 
+  {
+    value: "RADIO_TETRA",
+    label: "Llamada Radio TETRA",
     icon: Radio,
-    color: "text-green-600"
+    color: "text-green-600",
   },
-  { 
-    value: "REDES_SOCIALES", 
-    label: "Redes Sociales", 
+  {
+    value: "REDES_SOCIALES",
+    label: "Redes Sociales",
     icon: Share2,
-    color: "text-purple-600"
+    color: "text-purple-600",
   },
   {
     value: "BOTON_EMERGENCIA_ALERTA",
     label: "Botón Emergencia",
     icon: AlertTriangle,
-    color: "text-red-600"
+    color: "text-red-600",
   },
   {
     value: "BOTON_DENUNCIA_VECINO_ALERTA",
     label: "Botón Denuncia (App VECINO ALERTA)",
     icon: Home,
-    color: "text-orange-600"
+    color: "text-orange-600",
   },
   {
     value: "INTERVENCION_DIRECTA",
     label: "Intervención Directa",
     icon: Shield,
-    color: "text-teal-600"
+    color: "text-teal-600",
   },
   {
     value: "ANALITICA",
     label: "Analítica",
     icon: BarChart3,
-    color: "text-indigo-600"
+    color: "text-indigo-600",
   },
-  { 
-    value: "APP_PODER_JUDICIAL", 
-    label: "APP Poder Judicial", 
+  {
+    value: "APP_PODER_JUDICIAL",
+    label: "APP Poder Judicial",
     icon: Scale,
-    color: "text-gray-700"
+    color: "text-gray-700",
   },
   {
     value: "VIDEO_CCO",
     label: "Video CCO",
     icon: Video,
-    color: "text-cyan-600"
+    color: "text-cyan-600",
   },
   {
     value: "BOT",
     label: "Bot",
     icon: Bot,
-    color: "text-violet-600"
-  }
+    color: "text-violet-600",
+  },
 ];
 
 const TIPO_DOCUMENTO_OPTIONS = [
@@ -270,7 +287,7 @@ const formatDireccionCompleta = (direccion) => {
   // Complemento
   if (direccion.tipo_complemento && direccion.numero_complemento) {
     parts.push(
-      `(${direccion.tipo_complemento} ${direccion.numero_complemento})`
+      `(${direccion.tipo_complemento} ${direccion.numero_complemento})`,
     );
   }
 
@@ -287,7 +304,7 @@ const formatDireccionManual = (formData, callesList) => {
 
   // Calle seleccionada
   if (formData.calle_id && callesList) {
-    const calle = callesList.find(c => c.id === parseInt(formData.calle_id));
+    const calle = callesList.find((c) => c.id === parseInt(formData.calle_id));
     if (calle?.nombre_completo) {
       parts.push(calle.nombre_completo);
     }
@@ -350,29 +367,29 @@ export default function NovedadesPage() {
   const { estadosRol } = useEstadosPorRol();
 
   /**
- * Obtiene la fecha/hora actual local en formato "YYYY-MM-DD HH:mm:ss" (sin Z).
- * El backend interpreta este formato como hora local Peru sin conversión timezone.
- * Igual que la usada en DespacharModal para consistencia.
- */
-const getLocalDatetime = () => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  const hours = String(now.getHours()).padStart(2, "0");
-  const minutes = String(now.getMinutes()).padStart(2, "0");
-  const seconds = String(now.getSeconds()).padStart(2, "0");
-  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-};
+   * Obtiene la fecha/hora actual local en formato "YYYY-MM-DD HH:mm:ss" (sin Z).
+   * El backend interpreta este formato como hora local Peru sin conversión timezone.
+   * Igual que la usada en DespacharModal para consistencia.
+   */
+  const getLocalDatetime = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+    const seconds = String(now.getSeconds()).padStart(2, "0");
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  };
 
-// Devuelve true si la novedad fue despachada por otro usuario distinto al logueado
+  // Devuelve true si la novedad fue despachada por otro usuario distinto al logueado
   // NOTA: Los supervisores pueden atender novedades despachadas por cualquier usuario
   const esDespachadoPorOtro = (n) => {
     // Si es supervisor, siempre puede atender (sin restricción de despachador)
     if (isSupervisor()) {
       return false; // No está despachado por otro para fines de restricción
     }
-    
+
     const uid = n?.usuarioDespachoNovedad?.id ?? n?.usuario_despacho;
     return !!uid && uid !== user?.id;
   };
@@ -381,8 +398,14 @@ const getLocalDatetime = () => {
   const isSupervisor = () => {
     const roles = user?.roles || user?.Roles || [];
     const elevated = ["supervisor", "admin", "super_admin"];
-    return roles.some(r => {
-      const s = (r?.slug || r?.Slug || r?.nombre || r?.name || "").toLowerCase();
+    return roles.some((r) => {
+      const s = (
+        r?.slug ||
+        r?.Slug ||
+        r?.nombre ||
+        r?.name ||
+        ""
+      ).toLowerCase();
       return elevated.includes(s);
     });
   };
@@ -390,13 +413,13 @@ const getLocalDatetime = () => {
   // Determinar si se puede mostrar el botón atender según el estado de la novedad
   const canShowAtenderButton = (novedad) => {
     const estadoId = novedad?.estado_novedad_id;
-    
+
     // Supervisor siempre puede atender en cualquier estado
     if (isSupervisor()) return true;
-    
+
     // Para otros usuarios, verificar permiso y estado
     if (!canAtender) return false;
-    
+
     // Estados permitidos: 2=DESPACHADA, 3=EN RUTA, 4=EN LUGAR, 5=EN ATENCION
     const estadosPermitidos = [2, 3, 4, 5];
     return estadosPermitidos.includes(estadoId);
@@ -458,7 +481,8 @@ const getLocalDatetime = () => {
   const [gpsEnabled, setGpsEnabled] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [showSeguimientoModal, setShowSeguimientoModal] = useState(false);
-  const [selectedNovedadSeguimiento, setSelectedNovedadSeguimiento] = useState(null);
+  const [selectedNovedadSeguimiento, setSelectedNovedadSeguimiento] =
+    useState(null);
 
   // Estados para geocodificación en formulario manual
   const [geocodingData, setGeocodingData] = useState(null);
@@ -608,7 +632,7 @@ const getLocalDatetime = () => {
         sort: "prioridad_actual,novedad_code",
         order: "asc,desc", // Ordenar por prioridad ASC, luego novedad_code DESC (usando índice idx_novedad_prioridad)
       };
-      
+
       // Agregar fechas si tienen valores válidos (basado en ReportesOperativosPage)
       if (filters.fecha_inicio) {
         payload.fecha_inicio = filters.fecha_inicio;
@@ -616,7 +640,7 @@ const getLocalDatetime = () => {
       if (filters.fecha_fin) {
         payload.fecha_fin = filters.fecha_fin;
       }
-      
+
       const result = await listNovedades(payload);
       setNovedades(Array.isArray(result.novedades) ? result.novedades : []);
       setPagination(result.pagination);
@@ -627,10 +651,10 @@ const getLocalDatetime = () => {
         if (err?.response?.status === 403) {
           const requiredRoles = err?.response?.data?.requiredRoles;
           const userRoleSlugs = err?.response?.data?.userRoleSlugs;
-          
+
           toast.error(
-            `Acceso denegado: Se requieren roles ${requiredRoles?.join(', ')} para acceder a las novedades. Tu rol actual: ${userRoleSlugs?.join(', ')}`,
-            { autoClose: 8000 }
+            `Acceso denegado: Se requieren roles ${requiredRoles?.join(", ")} para acceder a las novedades. Tu rol actual: ${userRoleSlugs?.join(", ")}`,
+            { autoClose: 8000 },
           );
         } else {
           toast.error(msg);
@@ -651,12 +675,13 @@ const getLocalDatetime = () => {
    */
   const fetchCatalogos = async () => {
     try {
-      const [tiposRes, estadosRes, sectoresRes, subtiposRes] = await Promise.all([
-        listTiposNovedad(),
-        listEstadosNovedad(),
-        listSectores(),
-        listSubtiposNovedad(),
-      ]);
+      const [tiposRes, estadosRes, sectoresRes, subtiposRes] =
+        await Promise.all([
+          listTiposNovedad(),
+          listEstadosNovedad(),
+          listSectores(),
+          listSubtiposNovedad(),
+        ]);
       setTipos(Array.isArray(tiposRes) ? tiposRes : []);
       setEstados(Array.isArray(estadosRes) ? estadosRes : []);
       setSectores(Array.isArray(sectoresRes) ? sectoresRes : []);
@@ -738,7 +763,10 @@ const getLocalDatetime = () => {
   // Click fuera cierra dropdown de tipo/subtipo
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (tipoSubtipoRef.current && !tipoSubtipoRef.current.contains(e.target)) {
+      if (
+        tipoSubtipoRef.current &&
+        !tipoSubtipoRef.current.contains(e.target)
+      ) {
         setShowTipoSubtipoDropdown(false);
       }
     };
@@ -793,7 +821,12 @@ const getLocalDatetime = () => {
       if (e.altKey && e.key.toLowerCase() === "n") {
         e.preventDefault();
         // Usar la nueva pestaña REGISTRO en lugar del modal antiguo
-        if (canCreate && !showCreateForm && !showAtencionModal && !viewingNovedad) {
+        if (
+          canCreate &&
+          !showCreateForm &&
+          !showAtencionModal &&
+          !viewingNovedad
+        ) {
           setPageTab(PAGE_TABS.REGISTRO);
           resetRegistroForm();
           // Poner foco en el primer campo después de que se renderice
@@ -813,7 +846,7 @@ const getLocalDatetime = () => {
           if (hasData) {
             if (
               window.confirm(
-                "¿Cancelar registro? Se perderán los datos ingresados."
+                "¿Cancelar registro? Se perderán los datos ingresados.",
               )
             ) {
               resetRegistroForm();
@@ -864,13 +897,20 @@ const getLocalDatetime = () => {
       // ALT+N para abrir Nueva Novedad
       if (e.altKey && e.key.toLowerCase() === "n") {
         e.preventDefault();
-        if (canCreate && !showCreateForm && !showAtencionModal && !viewingNovedad) {
+        if (
+          canCreate &&
+          !showCreateForm &&
+          !showAtencionModal &&
+          !viewingNovedad
+        ) {
           setPageTab(PAGE_TABS.REGISTRO);
           resetRegistroForm();
 
           // Hacer focus en el campo Origen de Llamada después de un pequeño delay
           setTimeout(() => {
-            const origenLlamadaSelect = document.getElementById("select_origen_llamada");
+            const origenLlamadaSelect = document.getElementById(
+              "select_origen_llamada",
+            );
             if (origenLlamadaSelect) {
               origenLlamadaSelect.focus();
             }
@@ -907,7 +947,7 @@ const getLocalDatetime = () => {
   // Debounced search de dirección
   useEffect(() => {
     if (pageTab !== PAGE_TABS.REGISTRO) return;
-    
+
     // No hacer búsqueda si ya hay una dirección seleccionada
     if (direccionMatch) return;
 
@@ -932,17 +972,17 @@ const getLocalDatetime = () => {
 
           setCalles(callesData?.items || callesData?.data || callesData || []);
           setSectoresRegistro(
-            sectoresData?.items || sectoresData?.data || sectoresData || []
+            sectoresData?.items || sectoresData?.data || sectoresData || [],
           );
 
           // Cargar radios TETRA por separado con manejo de errores
           setLoadingRadios(true);
           setErrorRadios("");
-          
+
           try {
             const radiosData = await listRadiosTetra();
             setRadiosTetra(Array.isArray(radiosData) ? radiosData : []);
-            
+
             if (radiosData.length === 0) {
               setErrorRadios("No hay radios TETRA disponibles");
             }
@@ -958,7 +998,6 @@ const getLocalDatetime = () => {
           } finally {
             setLoadingRadios(false);
           }
-          
         } catch (error) {
           console.error("Error al cargar catálogos:", error);
           toast.error("Error al cargar catálogos");
@@ -986,7 +1025,7 @@ const getLocalDatetime = () => {
             cuadrantesData?.items ||
               cuadrantesData?.data ||
               cuadrantesData ||
-              []
+              [],
           );
         } catch (error) {
           console.error("Error al cargar cuadrantes:", error);
@@ -1023,7 +1062,10 @@ const getLocalDatetime = () => {
   // Cargar información de ubigeo cuando cambia el ubigeo_code
   useEffect(() => {
     const loadUbigeoInfo = async () => {
-      if (registroFormData.ubigeo_code && registroFormData.ubigeo_code.length === 6) {
+      if (
+        registroFormData.ubigeo_code &&
+        registroFormData.ubigeo_code.length === 6
+      ) {
         try {
           const ubigeo = await getUbigeoByCode(registroFormData.ubigeo_code);
           if (ubigeo) {
@@ -1061,7 +1103,14 @@ const getLocalDatetime = () => {
     setPage(1);
     fetchNovedades({ nextPage: 1 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterTipo, filterEstado, filterPrioridad, filterOrigenLlamada, filterCreatedBy, filterUsuarioDespacho]);
+  }, [
+    filterTipo,
+    filterEstado,
+    filterPrioridad,
+    filterOrigenLlamada,
+    filterCreatedBy,
+    filterUsuarioDespacho,
+  ]);
 
   const handleDelete = async (n) => {
     const confirmed = window.confirm(`¿Eliminar novedad "${n.novedad_code}"?`);
@@ -1085,7 +1134,7 @@ const getLocalDatetime = () => {
       tipo_novedad_id: "",
       subtipo_novedad_id: "",
       fecha_hora_ocurrencia: new Date(
-        Date.now() - new Date().getTimezoneOffset() * 60000
+        Date.now() - new Date().getTimezoneOffset() * 60000,
       )
         .toISOString()
         .slice(0, 16),
@@ -1143,7 +1192,7 @@ const getLocalDatetime = () => {
         else if (error.code === 3) msg = "Tiempo de espera agotado";
         toast.error(msg);
       },
-      { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 },
     );
   };
 
@@ -1170,7 +1219,7 @@ const getLocalDatetime = () => {
       !formData.descripcion
     ) {
       toast.error(
-        "Complete los campos requeridos: Tipo, Subtipo y Descripción"
+        "Complete los campos requeridos: Tipo, Subtipo y Descripción",
       );
       return;
     }
@@ -1187,16 +1236,21 @@ const getLocalDatetime = () => {
     try {
       // Obtener nombre del tipo y subtipo para historial
       const nombreTipo = getNombreTipoNovedad(formData.tipo_novedad_id);
-      const nombreSubtipo = getNombreSubtipoNovedad(formData.subtipo_novedad_id);
-      const descripcionCorta = formData.descripcion.length > 100 
-        ? formData.descripcion.substring(0, 100) + "..." 
-        : formData.descripcion;
+      const nombreSubtipo = getNombreSubtipoNovedad(
+        formData.subtipo_novedad_id,
+      );
+      const descripcionCorta =
+        formData.descripcion.length > 100
+          ? formData.descripcion.substring(0, 100) + "..."
+          : formData.descripcion;
       const observacionesHistorial = `Novedad creada: ${nombreTipo} / ${nombreSubtipo} - ${descripcionCorta}`;
 
-      const resultado = await createNovedad({
+      await createNovedad({
         tipo_novedad_id: Number(formData.tipo_novedad_id),
         subtipo_novedad_id: Number(formData.subtipo_novedad_id),
-        fecha_hora_ocurrencia: toBackendDatetime(formData.fecha_hora_ocurrencia),
+        fecha_hora_ocurrencia: toBackendDatetime(
+          formData.fecha_hora_ocurrencia,
+        ),
         origen_llamada: formData.origen_llamada,
         localizacion: formData.localizacion || undefined,
         referencia_ubicacion: formData.referencia_ubicacion || undefined,
@@ -1236,13 +1290,13 @@ const getLocalDatetime = () => {
 
   // Obtener nombre del tipo de novedad para el historial
   const getNombreTipoNovedad = (tipoId) => {
-    const tipo = tipos.find(t => t.id === Number(tipoId));
+    const tipo = tipos.find((t) => t.id === Number(tipoId));
     return tipo?.nombre || `Tipo #${tipoId}`;
   };
 
   // Obtener nombre del subtipo de novedad para el historial
   const getNombreSubtipoNovedad = (subtipoId) => {
-    const subtipo = subtipos.find(s => s.id === Number(subtipoId));
+    const subtipo = subtipos.find((s) => s.id === Number(subtipoId));
     return subtipo?.nombre || `Subtipo #${subtipoId}`;
   };
 
@@ -1293,14 +1347,19 @@ const getLocalDatetime = () => {
       // Obtener datos completos de la novedad para tener usuarioDespacho
       const novedadCompleta = await getNovedadById(novedad.id);
       // Validar que solo el usuario que despachó puede atender (excepto supervisor)
-      const uid = novedadCompleta?.usuarioDespacho?.id ?? novedadCompleta?.usuario_despacho_id;
+      const uid =
+        novedadCompleta?.usuarioDespacho?.id ??
+        novedadCompleta?.usuario_despacho_id;
       if (uid && uid !== user?.id && !isSupervisor()) {
-        toast.error("Solo se permite Atender a las novedades despachadas por el mismo usuario", {
-          autoClose: 3000
-        });
+        toast.error(
+          "Solo se permite Atender a las novedades despachadas por el mismo usuario",
+          {
+            autoClose: 3000,
+          },
+        );
         return;
       }
-      
+
       setSelectedNovedad(novedadCompleta);
       setAtencionData({
         unidad_oficina_id: novedadCompleta.unidad_oficina_id || "",
@@ -1315,7 +1374,8 @@ const getLocalDatetime = () => {
               .toISOString()
               .slice(0, 16),
         turno: novedadCompleta.turno || "",
-        tiempo_respuesta_minutos: novedadCompleta.tiempo_respuesta_minutos || "",
+        tiempo_respuesta_minutos:
+          novedadCompleta.tiempo_respuesta_minutos || "",
         observaciones: novedadCompleta.observaciones || "",
         estado_novedad_id: novedadCompleta.estado_novedad_id || 2,
         requiere_seguimiento: novedadCompleta.requiere_seguimiento || false,
@@ -1328,7 +1388,9 @@ const getLocalDatetime = () => {
         km_inicial: novedadCompleta.km_inicial || "",
         km_final: novedadCompleta.km_final || "",
         fecha_proxima_revision: novedadCompleta.fecha_proxima_revision
-          ? new Date(novedadCompleta.fecha_proxima_revision).toISOString().slice(0, 10)
+          ? new Date(novedadCompleta.fecha_proxima_revision)
+              .toISOString()
+              .slice(0, 10)
           : "",
         perdidas_materiales_estimadas:
           novedadCompleta.perdidas_materiales_estimadas || "",
@@ -1386,15 +1448,19 @@ const getLocalDatetime = () => {
         : new Date(selectedNovedadSeguimiento.created_at);
 
       const tiempoTranscurridoMs = fechaActual - fechaEstadoAnterior;
-      const tiempo_en_estado_min = Math.floor(tiempoTranscurridoMs / (1000 * 60));
+      const tiempo_en_estado_min = Math.floor(
+        tiempoTranscurridoMs / (1000 * 60),
+      );
 
       // Buscar descripción del estado DESPACHADO (id=2) para usar si no hay observaciones
       const estadoDespachado = estados.find((e) => e.id === 2);
       const observacionesFinal = seguimientoData.observaciones?.trim()
         ? seguimientoData.observaciones
-        : (estadoDespachado?.descripcion || "Novedad despachada");
+        : estadoDespachado?.descripcion || "Novedad despachada";
 
-      const fechaDespachoFinal = toBackendDatetime(seguimientoData.fecha_despacho) || toBackendDatetime(getCurrentDateTimeLocal());
+      const fechaDespachoFinal =
+        toBackendDatetime(seguimientoData.fecha_despacho) ||
+        toBackendDatetime(getCurrentDateTimeLocal());
 
       const payload = {
         novedad_id: selectedNovedadSeguimiento.id,
@@ -1403,10 +1469,22 @@ const getLocalDatetime = () => {
         estado_novedad_id: 2, // DESPACHADO
 
         // Asignación de recursos (conversión explícita a Number para el backend)
-        ...(seguimientoData.unidad_oficina_id ? { unidad_oficina_id: Number(seguimientoData.unidad_oficina_id) } : {}),
-        ...(seguimientoData.vehiculo_id ? { vehiculo_id: Number(seguimientoData.vehiculo_id) } : {}),
-        ...(seguimientoData.personal_cargo_id ? { personal_cargo_id: Number(seguimientoData.personal_cargo_id) } : {}),
-        ...(seguimientoData.personal_seguridad2_id ? { personal_seguridad2_id: Number(seguimientoData.personal_seguridad2_id) } : {}),
+        ...(seguimientoData.unidad_oficina_id
+          ? { unidad_oficina_id: Number(seguimientoData.unidad_oficina_id) }
+          : {}),
+        ...(seguimientoData.vehiculo_id
+          ? { vehiculo_id: Number(seguimientoData.vehiculo_id) }
+          : {}),
+        ...(seguimientoData.personal_cargo_id
+          ? { personal_cargo_id: Number(seguimientoData.personal_cargo_id) }
+          : {}),
+        ...(seguimientoData.personal_seguridad2_id
+          ? {
+              personal_seguridad2_id: Number(
+                seguimientoData.personal_seguridad2_id,
+              ),
+            }
+          : {}),
 
         // Fechas y kilometraje (sin Z, backend interpreta como hora local Peru)
         fecha_despacho: fechaDespachoFinal,
@@ -1422,7 +1500,8 @@ const getLocalDatetime = () => {
           estado_nuevo_id: 2, // DESPACHADO
           observaciones: observacionesFinal,
           fecha_cambio: fechaDespachoFinal,
-          tiempo_en_estado_min: tiempo_en_estado_min >= 0 ? tiempo_en_estado_min : 0,
+          tiempo_en_estado_min:
+            tiempo_en_estado_min >= 0 ? tiempo_en_estado_min : 0,
           created_by: user?.id || null,
           updated_by: user?.id || null,
         },
@@ -1435,19 +1514,29 @@ const getLocalDatetime = () => {
       setSelectedNovedadSeguimiento(null);
       // Recargar lista de novedades
       fetchNovedades({ nextPage: page });
-      
+
       // Si hay una novedad en visualización, actualizar sus datos
-      if (viewingNovedad && viewingNovedad.id === selectedNovedadSeguimiento.id) {
+      if (
+        viewingNovedad &&
+        viewingNovedad.id === selectedNovedadSeguimiento.id
+      ) {
         try {
-          const updatedNovedad = await getNovedadById(selectedNovedadSeguimiento.id);
+          const updatedNovedad = await getNovedadById(
+            selectedNovedadSeguimiento.id,
+          );
           setViewingNovedad(updatedNovedad);
         } catch (error) {
-          console.error("Error al actualizar datos de la novedad visualizada:", error);
+          console.error(
+            "Error al actualizar datos de la novedad visualizada:",
+            error,
+          );
         }
       }
     } catch (error) {
       console.error("Error al guardar seguimiento:", error);
-      toast.error(error.response?.data?.message || "Error al despachar novedad");
+      toast.error(
+        error.response?.data?.message || "Error al despachar novedad",
+      );
       throw error;
     }
   };
@@ -1474,13 +1563,17 @@ const getLocalDatetime = () => {
     const uniqueIds = new Set(personalIds);
     if (personalIds.length !== uniqueIds.size) {
       toast.error(
-        "No puede asignar la misma persona en múltiples campos de personal"
+        "No puede asignar la misma persona en múltiples campos de personal",
       );
       return;
     }
 
     // Validar Fecha de Cierre obligatoria cuando estado = CERRADA (id=7)
-    if (isSupervisor() && Number(atencionData.estado_novedad_id) >= 7 && !atencionData.fecha_cierre) {
+    if (
+      isSupervisor() &&
+      Number(atencionData.estado_novedad_id) >= 7 &&
+      !atencionData.fecha_cierre
+    ) {
       if (!atencionData.requiere_seguimiento) {
         setAtencionData((prev) => ({ ...prev, requiere_seguimiento: true }));
       }
@@ -1510,7 +1603,8 @@ const getLocalDatetime = () => {
         personal_seguridad4_id: atencionData.personal_seguridad4_id
           ? Number(atencionData.personal_seguridad4_id)
           : undefined,
-        fecha_despacho: toBackendDatetime(atencionData.fecha_despacho) || undefined,
+        fecha_despacho:
+          toBackendDatetime(atencionData.fecha_despacho) || undefined,
         turno: atencionData.turno || undefined,
         tiempo_respuesta_minutos: atencionData.tiempo_respuesta_minutos
           ? Number(atencionData.tiempo_respuesta_minutos)
@@ -1532,14 +1626,14 @@ const getLocalDatetime = () => {
           atencionData.fecha_proxima_revision || undefined,
         perdidas_materiales_estimadas:
           atencionData.perdidas_materiales_estimadas
-          ? Number(atencionData.perdidas_materiales_estimadas)
-          : undefined,
+            ? Number(atencionData.perdidas_materiales_estimadas)
+            : undefined,
         num_personas_afectadas: atencionData.num_personas_afectadas
           ? Number(atencionData.num_personas_afectadas)
           : undefined,
         acciones_tomadas: atencionData.acciones_tomadas || undefined,
       };
-      
+
       await asignarRecursos(selectedNovedad.id, payload);
 
       // Registrar en historial de estados
@@ -1547,29 +1641,39 @@ const getLocalDatetime = () => {
         const nuevoEstadoId = atencionData.estado_novedad_id
           ? Number(atencionData.estado_novedad_id)
           : null;
-        const cambioEstado = nuevoEstadoId && nuevoEstadoId !== Number(selectedNovedad.estado_novedad_id);
-        const vehiculoSel = vehiculos.find((v) => v.id === Number(atencionData.vehiculo_id));
+        const cambioEstado =
+          nuevoEstadoId &&
+          nuevoEstadoId !== Number(selectedNovedad.estado_novedad_id);
+        const vehiculoSel = vehiculos.find(
+          (v) => v.id === Number(atencionData.vehiculo_id),
+        );
         const vehiculoDesc = vehiculoSel
-          ? [vehiculoSel.tipoVehiculo?.nombre, vehiculoSel.placa].filter(Boolean).join(' - ')
+          ? [vehiculoSel.tipoVehiculo?.nombre, vehiculoSel.placa]
+              .filter(Boolean)
+              .join(" - ")
           : null;
-        const personalSel = personalSeguridad.find((p) => p.id === Number(atencionData.personal_cargo_id));
+        const personalSel = personalSeguridad.find(
+          (p) => p.id === Number(atencionData.personal_cargo_id),
+        );
         const personalDesc = personalSel
           ? `${personalSel.nombres} ${personalSel.apellido_paterno}`.trim()
           : null;
         const partes = [];
         if (vehiculoDesc) partes.push(`Vehículo: ${vehiculoDesc}`);
         if (personalDesc) partes.push(`Personal: ${personalDesc}`);
-        if (atencionData.observaciones) partes.push(`Obs: ${atencionData.observaciones}`);
-        const obsHistorial = partes.length > 0 ? partes.join(' | ') : 'Atención registrada';
-        
+        if (atencionData.observaciones)
+          partes.push(`Obs: ${atencionData.observaciones}`);
+        const obsHistorial =
+          partes.length > 0 ? partes.join(" | ") : "Atención registrada";
+
         // Usar getLocalDatetime() igual que en operativos para consistencia
         const fechaLocal = getLocalDatetime();
-        
+
         await crearHistorialNovedad(
           selectedNovedad.id,
           obsHistorial,
           cambioEstado ? nuevoEstadoId : null,
-          fechaLocal // Agregar fecha_cambio en formato local
+          fechaLocal, // Agregar fecha_cambio en formato local
         );
       } catch {
         // No bloquear si falla el historial
@@ -1581,7 +1685,7 @@ const getLocalDatetime = () => {
       fetchNovedades({ nextPage: page });
     } catch (err) {
       toast.error(
-        err?.response?.data?.message || "Error al registrar atención"
+        err?.response?.data?.message || "Error al registrar atención",
       );
     } finally {
       setSaving(false);
@@ -1691,7 +1795,10 @@ const getLocalDatetime = () => {
       ...prev,
       calle_id: String(calle.id),
     }));
-    setCalleSearchText(calle.nombre_completo || `${calle.tipo_via?.abreviatura || ""} ${calle.nombre_via}`.trim());
+    setCalleSearchText(
+      calle.nombre_completo ||
+        `${calle.tipo_via?.abreviatura || ""} ${calle.nombre_via}`.trim(),
+    );
     setShowCalleDropdown(false);
     setCallesFiltered([]);
   };
@@ -1725,13 +1832,16 @@ const getLocalDatetime = () => {
 
       // getCuadrantesPorCalle retorna array de relaciones calle-cuadrante
       // Cada item tiene: calle_id, cuadrante_id, y posiblemente sector_id
-      const items = Array.isArray(cuadrantesData) ? cuadrantesData : (cuadrantesData?.items || []);
+      const items = Array.isArray(cuadrantesData)
+        ? cuadrantesData
+        : cuadrantesData?.items || [];
 
       if (items.length > 0) {
         // Tomar el primer cuadrante encontrado para la calle
         const firstRelation = items[0];
         const cuadranteId = firstRelation.cuadrante_id;
-        const sectorId = firstRelation.sector_id || firstRelation.cuadrante?.sector_id;
+        const sectorId =
+          firstRelation.sector_id || firstRelation.cuadrante?.sector_id;
 
         if (sectorId && cuadranteId) {
           // Cargar los cuadrantes del sector primero
@@ -1767,7 +1877,7 @@ const getLocalDatetime = () => {
     }
 
     const selected = direccionesOptions.find(
-      (d) => d.id === parseInt(direccionId)
+      (d) => d.id === parseInt(direccionId),
     );
     if (selected) {
       setSelectedDireccionId(direccionId);
@@ -1806,35 +1916,39 @@ const getLocalDatetime = () => {
    */
   const construirDireccionManualParaGeocodificar = () => {
     const partes = [];
-    
+
     // Obtener nombre de la calle seleccionada
     if (registroFormData.calle_id && calles) {
-      const calle = calles.find(c => c.id === parseInt(registroFormData.calle_id));
+      const calle = calles.find(
+        (c) => c.id === parseInt(registroFormData.calle_id),
+      );
       if (calle?.nombre_completo) {
         partes.push(calle.nombre_completo);
       }
     }
-    
+
     // Número municipal
     if (registroFormData.numero_municipal) {
       partes.push(registroFormData.numero_municipal);
     }
-    
+
     // Manzana y Lote
     if (registroFormData.manzana && registroFormData.lote) {
-      partes.push(`Mz. ${registroFormData.manzana} Lt. ${registroFormData.lote}`);
+      partes.push(
+        `Mz. ${registroFormData.manzana} Lt. ${registroFormData.lote}`,
+      );
     }
-    
+
     // Urbanización
     if (registroFormData.urbanizacion) {
       partes.push(registroFormData.urbanizacion);
     }
-    
+
     // Referencia
     if (registroFormData.referencia_ubicacion) {
       partes.push(`(${registroFormData.referencia_ubicacion})`);
     }
-    
+
     return partes.join(" ");
   };
 
@@ -1843,41 +1957,59 @@ const getLocalDatetime = () => {
    */
   const handleGeocodificarDireccionManual = async () => {
     const direccionCompleta = construirDireccionManualParaGeocodificar();
-    
+
     if (!direccionCompleta || direccionCompleta.length < 5) {
       toast.error("Por favor, ingrese al menos una calle y número");
       return;
     }
-    
+
     setLoadingGeocoding(true);
     setGeocodingData(null);
-    
-    try {
-      const resultado = await geocodificarDireccion(direccionCompleta);
-      
-      // Validar que las coordenadas sean válidas para Perú
-      if (!validarCoordenadasPeru(resultado.latitud, resultado.longitud)) {
-        toast("Las coordenadas obtenidas están fuera del territorio peruano", { icon: "⚠️" });
-      }
-      
-      // Actualizar el formulario de registro con las coordenadas
-      setRegistroFormData(prev => ({
-        ...prev,
-        latitud: resultado.latitud != null ? resultado.latitud.toString() : "",
-        longitud: resultado.longitud != null ? resultado.longitud.toString() : ""
-      }));
-      
-      // Guardar datos de geocodificación para mostrar información
-      setGeocodingData(resultado);
-      
-      // Mostrar toast de éxito con información detallada
-      const locationType = getDescripcionLocationType(resultado.location_type);
-      const fuente = getDescripcionFuente(resultado.fuente_geocodificacion);
-      
-      toast.success(`📍 Dirección geocodificada (${locationType}) - Fuente: ${fuente}`);
 
+    try {
+      const geocodeResultado = await geocodificarDireccion(direccionCompleta);
+
+      // Validar que las coordenadas sean válidas para Perú
+      if (
+        !validarCoordenadasPeru(
+          geocodeResultado.latitud,
+          geocodeResultado.longitud,
+        )
+      ) {
+        toast("Las coordenadas obtenidas están fuera del territorio peruano", {
+          icon: "⚠️",
+        });
+      }
+
+      // Actualizar el formulario de registro con las coordenadas
+      setRegistroFormData((prev) => ({
+        ...prev,
+        latitud:
+          geocodeResultado.latitud != null
+            ? geocodeResultado.latitud.toString()
+            : "",
+        longitud:
+          geocodeResultado.longitud != null
+            ? geocodeResultado.longitud.toString()
+            : "",
+      }));
+
+      // Guardar datos de geocodificación para mostrar información
+      setGeocodingData(geocodeResultado);
+
+      // Mostrar toast de éxito con información detallada
+      const locationType = getDescripcionLocationType(
+        geocodeResultado.location_type,
+      );
+      const fuente = getDescripcionFuente(
+        geocodeResultado.fuente_geocodificacion,
+      );
+
+      toast.success(
+        `📍 Dirección geocodificada (${locationType}) - Fuente: ${fuente}`,
+      );
     } catch (error) {
-      console.error('Error en geocodificación manual:', error);
+      console.error("Error en geocodificación manual:", error);
       toast.error(error.message || "No se pudo geocodificar la dirección");
       setGeocodingData(null);
     } finally {
@@ -1892,11 +2024,18 @@ const getLocalDatetime = () => {
     // 0. Auto-generar referencia_ubicacion si estamos en modo manual y no existe
     let workingFormData = { ...registroFormData };
 
-    if (!direccionMatch && showManualLocation && !workingFormData.referencia_ubicacion) {
+    if (
+      !direccionMatch &&
+      showManualLocation &&
+      !workingFormData.referencia_ubicacion
+    ) {
       // Buscar la calle seleccionada para obtener su nombre
-      const calleSeleccionada = calles.find(c => String(c.id) === String(workingFormData.calle_id));
+      const calleSeleccionada = calles.find(
+        (c) => String(c.id) === String(workingFormData.calle_id),
+      );
       if (calleSeleccionada) {
-        const calleName = calleSeleccionada.nombre_completo ||
+        const calleName =
+          calleSeleccionada.nombre_completo ||
           `${calleSeleccionada.tipo_via?.abreviatura || ""} ${calleSeleccionada.nombre_via}`.trim();
 
         // Construir referencia_ubicacion desde los datos manuales
@@ -1915,7 +2054,10 @@ const getLocalDatetime = () => {
 
         workingFormData.referencia_ubicacion = referenciaAuto;
         // Actualizar el estado también
-        setRegistroFormData(prev => ({ ...prev, referencia_ubicacion: referenciaAuto }));
+        setRegistroFormData((prev) => ({
+          ...prev,
+          referencia_ubicacion: referenciaAuto,
+        }));
       }
     }
 
@@ -1938,7 +2080,10 @@ const getLocalDatetime = () => {
       }
     } else {
       // Para otros orígenes, validar teléfono si no es anónimo
-      if (workingFormData.es_anonimo === 0 && !workingFormData.reportante_telefono) {
+      if (
+        workingFormData.es_anonimo === 0 &&
+        !workingFormData.reportante_telefono
+      ) {
         errors.push("Teléfono del reportante es requerido");
       }
     }
@@ -1947,13 +2092,19 @@ const getLocalDatetime = () => {
     if (!direccionMatch && showManualLocation) {
       if (!workingFormData.calle_id) errors.push("Debe seleccionar una calle");
       if (!workingFormData.sector_id) errors.push("Debe seleccionar un sector");
-      if (!workingFormData.cuadrante_id) errors.push("Debe seleccionar un cuadrante");
+      if (!workingFormData.cuadrante_id)
+        errors.push("Debe seleccionar un cuadrante");
     }
 
     // Incidente
-    if (!workingFormData.tipo_novedad_id) errors.push("Tipo de novedad es requerido");
-    if (!workingFormData.subtipo_novedad_id) errors.push("Subtipo es requerido");
-    if (!workingFormData.descripcion || workingFormData.descripcion.trim().length < 10) {
+    if (!workingFormData.tipo_novedad_id)
+      errors.push("Tipo de novedad es requerido");
+    if (!workingFormData.subtipo_novedad_id)
+      errors.push("Subtipo es requerido");
+    if (
+      !workingFormData.descripcion ||
+      workingFormData.descripcion.trim().length < 10
+    ) {
       errors.push("Descripción debe tener al menos 10 caracteres");
     }
 
@@ -1982,13 +2133,19 @@ const getLocalDatetime = () => {
         // Construir direccion_completa para la nueva dirección (sin detalles_ubicacion que va a novedad)
         const direccionCompletaTexto = formatDireccionManual(
           { ...workingFormData, detalles_ubicacion: "" }, // Sin detalles, esos van a novedad
-          calles
+          calles,
         );
 
         const direccionPayload = {
-          calle_id: workingFormData.calle_id ? Number(workingFormData.calle_id) : null,
-          sector_id: workingFormData.sector_id ? Number(workingFormData.sector_id) : null,
-          cuadrante_id: workingFormData.cuadrante_id ? Number(workingFormData.cuadrante_id) : null,
+          calle_id: workingFormData.calle_id
+            ? Number(workingFormData.calle_id)
+            : null,
+          sector_id: workingFormData.sector_id
+            ? Number(workingFormData.sector_id)
+            : null,
+          cuadrante_id: workingFormData.cuadrante_id
+            ? Number(workingFormData.cuadrante_id)
+            : null,
           numero_municipal: workingFormData.numero_municipal || null,
           referencia: workingFormData.detalles_ubicacion || null, // Solo detalles adicionales como referencia
           direccion_completa: direccionCompletaTexto || null, // Texto concatenado de la dirección
@@ -1997,10 +2154,17 @@ const getLocalDatetime = () => {
           manzana: workingFormData.manzana || null,
           lote: workingFormData.lote || null,
           urbanizacion: workingFormData.urbanizacion || null,
-          ubigeo_code: workingFormData.ubigeo_code || defaultUbigeo?.code || null,
+          ubigeo_code:
+            workingFormData.ubigeo_code || defaultUbigeo?.code || null,
           // Latitud y longitud son opcionales
-          latitud: workingFormData.latitud && workingFormData.latitud !== "" ? parseFloat(workingFormData.latitud) : null,
-          longitud: workingFormData.longitud && workingFormData.longitud !== "" ? parseFloat(workingFormData.longitud) : null,
+          latitud:
+            workingFormData.latitud && workingFormData.latitud !== ""
+              ? parseFloat(workingFormData.latitud)
+              : null,
+          longitud:
+            workingFormData.longitud && workingFormData.longitud !== ""
+              ? parseFloat(workingFormData.longitud)
+              : null,
           // Datos de geocodificación (si se geocodificó la dirección)
           geocodificada: geocodingData ? 1 : 0,
           fuente_geocodificacion: geocodingData?.fuente_geocodificacion || null,
@@ -2014,22 +2178,39 @@ const getLocalDatetime = () => {
       }
 
       // 3. Crear novedad (latitud y longitud son opcionales)
-      const latitudValue = workingFormData.latitud && workingFormData.latitud !== "" ? parseFloat(workingFormData.latitud) : null;
-      const longitudValue = workingFormData.longitud && workingFormData.longitud !== "" ? parseFloat(workingFormData.longitud) : null;
+      const latitudValue =
+        workingFormData.latitud && workingFormData.latitud !== ""
+          ? parseFloat(workingFormData.latitud)
+          : null;
+      const longitudValue =
+        workingFormData.longitud && workingFormData.longitud !== ""
+          ? parseFloat(workingFormData.longitud)
+          : null;
 
       // Obtener nombre del tipo y subtipo para historial
       const nombreTipo = getNombreTipoNovedad(workingFormData.tipo_novedad_id);
-      const nombreSubtipo = getNombreSubtipoNovedad(workingFormData.subtipo_novedad_id);
-      const descripcionCorta = workingFormData.descripcion.length > 100 
-        ? workingFormData.descripcion.substring(0, 100) + "..." 
-        : workingFormData.descripcion;
+      const nombreSubtipo = getNombreSubtipoNovedad(
+        workingFormData.subtipo_novedad_id,
+      );
+      const descripcionCorta =
+        workingFormData.descripcion.length > 100
+          ? workingFormData.descripcion.substring(0, 100) + "..."
+          : workingFormData.descripcion;
       const observacionesHistorial = `Novedad creada: ${nombreTipo} / ${nombreSubtipo} - ${descripcionCorta}`;
 
       const novedadPayload = {
         origen_llamada: workingFormData.origen_llamada,
-        reportante_telefono: workingFormData.origen_llamada === "RADIO_TETRA" ? null : workingFormData.reportante_telefono,
-        radio_tetra_id: workingFormData.origen_llamada === "RADIO_TETRA" ? workingFormData.radio_tetra_id : null,
-        fecha_hora_ocurrencia: toBackendDatetime(workingFormData.fecha_hora_ocurrencia),
+        reportante_telefono:
+          workingFormData.origen_llamada === "RADIO_TETRA"
+            ? null
+            : workingFormData.reportante_telefono,
+        radio_tetra_id:
+          workingFormData.origen_llamada === "RADIO_TETRA"
+            ? workingFormData.radio_tetra_id
+            : null,
+        fecha_hora_ocurrencia: toBackendDatetime(
+          workingFormData.fecha_hora_ocurrencia,
+        ),
         es_anonimo: workingFormData.es_anonimo,
         reportante_tipo_doc: workingFormData.reportante_tipo_doc,
         // Concatenar tipo de documento con número
@@ -2048,11 +2229,17 @@ const getLocalDatetime = () => {
         subtipo_novedad_id: Number(workingFormData.subtipo_novedad_id),
         descripcion: workingFormData.descripcion,
         prioridad_actual: workingFormData.prioridad_actual || "MEDIA",
-        personal_cargo_id: workingFormData.personal_cargo_id ? Number(workingFormData.personal_cargo_id) : null,
+        personal_cargo_id: workingFormData.personal_cargo_id
+          ? Number(workingFormData.personal_cargo_id)
+          : null,
         estado_novedad_id: 1, // Pendiente De Registro
         created_by: user?.id,
-        sector_id: workingFormData.sector_id ? Number(workingFormData.sector_id) : null,
-        cuadrante_id: workingFormData.cuadrante_id ? Number(workingFormData.cuadrante_id) : null,
+        sector_id: workingFormData.sector_id
+          ? Number(workingFormData.sector_id)
+          : null,
+        cuadrante_id: workingFormData.cuadrante_id
+          ? Number(workingFormData.cuadrante_id)
+          : null,
         latitud: latitudValue,
         longitud: longitudValue,
         ubigeo_code: workingFormData.ubigeo_code || defaultUbigeo?.code || null,
@@ -2060,10 +2247,10 @@ const getLocalDatetime = () => {
         observaciones_historial: observacionesHistorial,
       };
 
-      const resultado = await createNovedad(novedadPayload);
+      const res = await createNovedad(novedadPayload);
 
       toast.success(
-        `Novedad ${resultado?.data?.novedad_code || "creada"} exitosamente`
+        `Novedad ${res?.data?.novedad_code || "creada"} exitosamente`,
       );
       resetRegistroForm();
       setPageTab(PAGE_TABS.LISTADO);
@@ -2072,7 +2259,7 @@ const getLocalDatetime = () => {
       await fetchNovedades({ nextPage: 1 });
     } catch (error) {
       console.error("Error al guardar novedad:", error);
-      
+
       // Usar la nueva utilidad de errores
       setValidationError(error);
       showValidationError(error, toast, "Error al crear novedad");
@@ -2096,7 +2283,7 @@ const getLocalDatetime = () => {
       toast.error(
         `Error al cargar cuadrantes del sector: ${
           error.response?.data?.message || error.message
-        }`
+        }`,
       );
     }
   };
@@ -2161,7 +2348,7 @@ const getLocalDatetime = () => {
    */
   const openViewingModal = async (novedad) => {
     setViewingFromTruck(false); // Abierto desde Eye
-    
+
     // Cargar catálogos si no están disponibles
     if (
       unidadesOficina.length === 0 ||
@@ -2170,7 +2357,7 @@ const getLocalDatetime = () => {
     ) {
       await fetchCatalogosAtencion();
     }
-    
+
     try {
       // Cargar siempre datos actualizados desde backend
       const [novedadCompleta] = await Promise.all([
@@ -2411,14 +2598,16 @@ const getLocalDatetime = () => {
                   </button>
                 </div>
               </div>
-              
+
               {/* Segunda fila - Fechas + Origen + Created_by + Usuario_despacho */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                 <div>
                   <input
                     type="date"
                     value={filters.fecha_inicio}
-                    onChange={(e) => setFilters({ ...filters, fecha_inicio: e.target.value })}
+                    onChange={(e) =>
+                      setFilters({ ...filters, fecha_inicio: e.target.value })
+                    }
                     className="w-full text-xs px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-600/25 [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:dark:invert"
                     placeholder="Fecha inicio"
                   />
@@ -2427,7 +2616,9 @@ const getLocalDatetime = () => {
                   <input
                     type="date"
                     value={filters.fecha_fin}
-                    onChange={(e) => setFilters({ ...filters, fecha_fin: e.target.value })}
+                    onChange={(e) =>
+                      setFilters({ ...filters, fecha_fin: e.target.value })
+                    }
                     className="w-full text-xs px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-600/25 [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:dark:invert"
                     placeholder="Fecha fin"
                   />
@@ -2465,7 +2656,10 @@ const getLocalDatetime = () => {
 
             {/* Tabla */}
             <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900">
-              <div className="overflow-x-auto" style={{ overflowX: 'auto', maxWidth: '100%' }}>
+              <div
+                className="overflow-x-auto"
+                style={{ overflowX: "auto", maxWidth: "100%" }}
+              >
                 <table className="w-full text-xs">
                   <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
                     <tr>
@@ -2521,13 +2715,14 @@ const getLocalDatetime = () => {
                       novedades.map((n) => (
                         <tr
                           key={n.id}
-                          className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
+                          onClick={() => openViewingModal(n)}
+                          className={`cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
                             n.deleted_at ? "opacity-50" : ""
                           }`}
                         >
                           <td className="px-2 py-2 text-slate-700 dark:text-slate-200">
-                            <OrigenLlamadaCell 
-                              origen={n.origen_llamada} 
+                            <OrigenLlamadaCell
+                              origen={n.origen_llamada}
                               showLabel={false}
                               size="sm"
                             />
@@ -2558,51 +2753,66 @@ const getLocalDatetime = () => {
                           <td className="px-3 py-2">
                             <span
                               className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium ${prioridadColor(
-                                n.prioridad_actual
+                                n.prioridad_actual,
                               )}`}
                             >
                               {n.prioridad_actual || "MEDIA"}
                             </span>
                           </td>
                           <td className="px-3 py-2 text-slate-600 dark:text-slate-300 whitespace-nowrap">
-                            {filterEstado === "1"
-                              ? (n.creadorNovedad?.username
-                                  ? <span className="font-mono text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">{n.creadorNovedad.username}</span>
-                                  : <span className="text-slate-400">—</span>)
-                              : (n.usuarioDespachoNovedad?.username
-                                  ? <span className="font-mono text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">{n.usuarioDespachoNovedad.username}</span>
-                                  : <span className="text-slate-400">—</span>)}
+                            {filterEstado === "1" ? (
+                              n.creadorNovedad?.username ? (
+                                <span className="font-mono text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                                  {n.creadorNovedad.username}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400">—</span>
+                              )
+                            ) : n.usuarioDespachoNovedad?.username ? (
+                              <span className="font-mono text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                                {n.usuarioDespachoNovedad.username}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400">—</span>
+                            )}
                           </td>
                           <td className="px-3 py-2 text-right">
                             <div className="flex items-center justify-end gap-1">
-                              <button
-                                onClick={() => openViewingModal(n)}
-                                className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                                title="Ver detalle"
-                              >
-                                <Eye size={14} />
-                              </button>
-                              {canEdit && n.estado_novedad_id === 1 && !n.deleted_at && (
-                                <button
-                                  onClick={() => openSeguimientoModal(n)}
-                                  className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                                  title="Despachar novedad"
-                                >
-                                  <Truck size={14} />
-                                </button>
-                              )}
-                              {canShowAtenderButton(n) && !n.deleted_at && !esDespachadoPorOtro(n) && (
-                                <button
-                                  onClick={() => openAtencionModal(n)}
-                                  className="p-1.5 rounded-lg text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
-                                  title="Atender novedad"
-                                >
-                                  <Shield size={14} />
-                                </button>
-                              )}
+                              {/* Row is clickable to open detail; removed Eye icon button */}
+                              {canEdit &&
+                                n.estado_novedad_id === 1 &&
+                                !n.deleted_at && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openSeguimientoModal(n);
+                                    }}
+                                    className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                    title="Despachar novedad"
+                                  >
+                                    <Truck size={14} />
+                                  </button>
+                                )}
+                              {canShowAtenderButton(n) &&
+                                !n.deleted_at &&
+                                !esDespachadoPorOtro(n) && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openAtencionModal(n);
+                                    }}
+                                    className="p-1.5 rounded-lg text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
+                                    title="Atender novedad"
+                                  >
+                                    <Shield size={14} />
+                                  </button>
+                                )}
                               {canDelete && !n.deleted_at && (
                                 <button
-                                  onClick={() => handleDelete(n)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDelete(n);
+                                  }}
                                   className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                                   title="Eliminar"
                                 >
@@ -2678,7 +2888,7 @@ const getLocalDatetime = () => {
                 />
               </div>
             )}
-            
+
             {/* Formulario REGISTRO - Versión Completa */}
             <div className="space-y-8">
               {/* Grupo 1: Información de Origen */}
@@ -2704,8 +2914,14 @@ const getLocalDatetime = () => {
                           ...registroFormData,
                           origen_llamada: nuevoOrigen,
                           // Limpiar campos según el nuevo origen
-                          reportante_telefono: nuevoOrigen === "RADIO_TETRA" ? "" : registroFormData.reportante_telefono,
-                          radio_tetra_id: nuevoOrigen === "RADIO_TETRA" ? null : registroFormData.radio_tetra_id,
+                          reportante_telefono:
+                            nuevoOrigen === "RADIO_TETRA"
+                              ? ""
+                              : registroFormData.reportante_telefono,
+                          radio_tetra_id:
+                            nuevoOrigen === "RADIO_TETRA"
+                              ? null
+                              : registroFormData.radio_tetra_id,
                         });
                       }}
                       className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500"
@@ -2724,14 +2940,14 @@ const getLocalDatetime = () => {
                       <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                         Radio TETRA <span className="text-red-500">*</span>
                       </label>
-                      
+
                       {loadingRadios && (
                         <div className="flex items-center gap-2 p-3 text-sm text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 rounded-lg">
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600"></div>
                           <span>Cargando radios...</span>
                         </div>
                       )}
-                      
+
                       {errorRadios && !loadingRadios && (
                         <div className="p-3 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg">
                           <div className="flex items-center justify-between">
@@ -2743,14 +2959,23 @@ const getLocalDatetime = () => {
                                 setErrorRadios("");
                                 listRadiosTetra()
                                   .then((data) => {
-                                    setRadiosTetra(Array.isArray(data) ? data : []);
+                                    setRadiosTetra(
+                                      Array.isArray(data) ? data : [],
+                                    );
                                     if (data.length === 0) {
-                                      setErrorRadios("No hay radios TETRA disponibles");
+                                      setErrorRadios(
+                                        "No hay radios TETRA disponibles",
+                                      );
                                     }
                                   })
                                   .catch((err) => {
-                                    console.error("Error recargando radios:", err);
-                                    setErrorRadios("Error al cargar radios TETRA");
+                                    console.error(
+                                      "Error recargando radios:",
+                                      err,
+                                    );
+                                    setErrorRadios(
+                                      "Error al cargar radios TETRA",
+                                    );
                                   })
                                   .finally(() => setLoadingRadios(false));
                               }}
@@ -2761,26 +2986,39 @@ const getLocalDatetime = () => {
                           </div>
                         </div>
                       )}
-                      
+
                       {!loadingRadios && !errorRadios && (
                         <select
                           value={registroFormData.radio_tetra_id || ""}
                           onChange={(e) => {
-                            const radioId = e.target.value ? Number(e.target.value) : null;
-                            const selectedRadio = radiosTetra.find(r => r.id === radioId);
+                            const radioId = e.target.value
+                              ? Number(e.target.value)
+                              : null;
+                            const selectedRadio = radiosTetra.find(
+                              (r) => r.id === radioId,
+                            );
 
                             // Auto-poblar datos del reportante si el radio tiene personal asignado
                             if (selectedRadio?.personalAsignado) {
                               const personal = selectedRadio.personalAsignado;
-                              const nombreCompleto = [personal.nombres, personal.apellido_paterno, personal.apellido_materno]
-                                .filter(Boolean).join(' ');
+                              const nombreCompleto = [
+                                personal.nombres,
+                                personal.apellido_paterno,
+                                personal.apellido_materno,
+                              ]
+                                .filter(Boolean)
+                                .join(" ");
 
                               setRegistroFormData({
                                 ...registroFormData,
                                 radio_tetra_id: radioId,
-                                reportante_nombre: nombreCompleto || registroFormData.reportante_nombre,
+                                reportante_nombre:
+                                  nombreCompleto ||
+                                  registroFormData.reportante_nombre,
                                 reportante_tipo_doc: personal.doc_tipo || "DNI",
-                                reportante_doc_identidad: personal.doc_numero || registroFormData.reportante_doc_identidad,
+                                reportante_doc_identidad:
+                                  personal.doc_numero ||
+                                  registroFormData.reportante_doc_identidad,
                               });
                             } else {
                               setRegistroFormData({
@@ -2794,18 +3032,24 @@ const getLocalDatetime = () => {
                           <option value="">Seleccione un radio...</option>
                           {radiosTetra.map((radio) => (
                             <option key={radio.id} value={radio.id}>
-                              {radio.radio_tetra_code} - {radio.descripcion || 'Sin descripción'}
-                              {radio.personalAsignado && ` (${radio.personalAsignado.nombres || ''} ${radio.personalAsignado.apellido_paterno || ''})`}
+                              {radio.radio_tetra_code} -{" "}
+                              {radio.descripcion || "Sin descripción"}
+                              {radio.personalAsignado &&
+                                ` (${radio.personalAsignado.nombres || ""} ${radio.personalAsignado.apellido_paterno || ""})`}
                             </option>
                           ))}
                         </select>
                       )}
-                      
-                      {!loadingRadios && !errorRadios && radiosTetra.length === 0 && (
-                        <div className="p-3 text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
-                          <span>No hay radios TETRA disponibles en este momento</span>
-                        </div>
-                      )}
+
+                      {!loadingRadios &&
+                        !errorRadios &&
+                        radiosTetra.length === 0 && (
+                          <div className="p-3 text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+                            <span>
+                              No hay radios TETRA disponibles en este momento
+                            </span>
+                          </div>
+                        )}
                     </div>
                   ) : (
                     <div>
@@ -2871,7 +3115,9 @@ const getLocalDatetime = () => {
                               : registroFormData.reportante_doc_identidad,
                           })
                         }
-                        disabled={registroFormData.origen_llamada === "RADIO_TETRA"}
+                        disabled={
+                          registroFormData.origen_llamada === "RADIO_TETRA"
+                        }
                         className="rounded border-slate-300 dark:border-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
                       />
                       <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -2896,7 +3142,9 @@ const getLocalDatetime = () => {
                             })
                           }
                           placeholder="Nombres y apellidos"
-                          readOnly={registroFormData.origen_llamada === "RADIO_TETRA"}
+                          readOnly={
+                            registroFormData.origen_llamada === "RADIO_TETRA"
+                          }
                           className={`w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 uppercase ${
                             registroFormData.origen_llamada === "RADIO_TETRA"
                               ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
@@ -2916,7 +3164,9 @@ const getLocalDatetime = () => {
                               reportante_tipo_doc: e.target.value,
                             })
                           }
-                          disabled={registroFormData.origen_llamada === "RADIO_TETRA"}
+                          disabled={
+                            registroFormData.origen_llamada === "RADIO_TETRA"
+                          }
                           className={`w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 ${
                             registroFormData.origen_llamada === "RADIO_TETRA"
                               ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
@@ -2944,7 +3194,9 @@ const getLocalDatetime = () => {
                             })
                           }
                           placeholder="Ej: 12345678"
-                          readOnly={registroFormData.origen_llamada === "RADIO_TETRA"}
+                          readOnly={
+                            registroFormData.origen_llamada === "RADIO_TETRA"
+                          }
                           className={`w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 ${
                             registroFormData.origen_llamada === "RADIO_TETRA"
                               ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
@@ -2969,7 +3221,10 @@ const getLocalDatetime = () => {
                   {/* Campo de búsqueda de dirección con sugerencias inline */}
                   <div className="relative">
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      {direccionMatch ? "Dirección Seleccionada" : "Buscar Dirección"} <span className="text-red-500">*</span>
+                      {direccionMatch
+                        ? "Dirección Seleccionada"
+                        : "Buscar Dirección"}{" "}
+                      <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
                       <input
@@ -3032,7 +3287,9 @@ const getLocalDatetime = () => {
                           <button
                             key={dir.id}
                             type="button"
-                            onClick={() => handleSelectDireccion(String(dir.id))}
+                            onClick={() =>
+                              handleSelectDireccion(String(dir.id))
+                            }
                             className="w-full px-4 py-3 text-left hover:bg-slate-100 dark:hover:bg-slate-700 border-b border-slate-200 dark:border-slate-600 last:border-0"
                           >
                             <div className="font-medium text-slate-900 dark:text-slate-50">
@@ -3105,12 +3362,12 @@ const getLocalDatetime = () => {
                               {direccionMatch.sector?.nombre ||
                                 direccionMatch.cuadrante?.sector?.nombre ||
                                 sectoresRegistro.find(
-                                  (s) => s.id === direccionMatch.sector_id
+                                  (s) => s.id === direccionMatch.sector_id,
                                 )?.nombre ||
                                 sectoresRegistro.find(
                                   (s) =>
                                     s.id ===
-                                    parseInt(registroFormData.sector_id)
+                                    parseInt(registroFormData.sector_id),
                                 )?.nombre ||
                                 (registroFormData.sector_id
                                   ? `ID: ${registroFormData.sector_id}`
@@ -3120,12 +3377,12 @@ const getLocalDatetime = () => {
                               Cuadrante:{" "}
                               {direccionMatch.cuadrante?.nombre ||
                                 cuadrantesRegistro.find(
-                                  (c) => c.id === direccionMatch.cuadrante_id
+                                  (c) => c.id === direccionMatch.cuadrante_id,
                                 )?.nombre ||
                                 cuadrantesRegistro.find(
                                   (c) =>
                                     c.id ===
-                                    parseInt(registroFormData.cuadrante_id)
+                                    parseInt(registroFormData.cuadrante_id),
                                 )?.nombre ||
                                 (registroFormData.cuadrante_id
                                   ? `ID: ${registroFormData.cuadrante_id}`
@@ -3199,7 +3456,9 @@ const getLocalDatetime = () => {
                             <input
                               type="text"
                               value={calleSearchText}
-                              onChange={(e) => handleCalleSearch(e.target.value)}
+                              onChange={(e) =>
+                                handleCalleSearch(e.target.value)
+                              }
                               onFocus={() => {
                                 if (calleSearchText.length >= 2) {
                                   handleCalleSearch(calleSearchText);
@@ -3232,7 +3491,8 @@ const getLocalDatetime = () => {
                                   className="w-full px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-700 border-b border-slate-200 dark:border-slate-600 last:border-0"
                                 >
                                   <div className="font-medium text-slate-900 dark:text-slate-50 text-sm">
-                                    {calle.nombre_completo || `${calle.tipo_via?.abreviatura || ""} ${calle.nombre_via}`.trim()}
+                                    {calle.nombre_completo ||
+                                      `${calle.tipo_via?.abreviatura || ""} ${calle.nombre_via}`.trim()}
                                   </div>
                                   {calle.urbanizacion && (
                                     <div className="text-xs text-slate-500 dark:text-slate-400">
@@ -3250,11 +3510,14 @@ const getLocalDatetime = () => {
                               Escriba al menos 2 caracteres
                             </p>
                           )}
-                          {calleSearchText && calleSearchText.length >= 2 && callesFiltered.length === 0 && !registroFormData.calle_id && (
-                            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                              No se encontraron calles
-                            </p>
-                          )}
+                          {calleSearchText &&
+                            calleSearchText.length >= 2 &&
+                            callesFiltered.length === 0 &&
+                            !registroFormData.calle_id && (
+                              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                                No se encontraron calles
+                              </p>
+                            )}
                           {/* Indicador de calle seleccionada */}
                           {registroFormData.calle_id && (
                             <p className="text-xs text-green-600 dark:text-green-400 mt-1">
@@ -3442,7 +3705,10 @@ const getLocalDatetime = () => {
                                 cuadrante_id: e.target.value,
                               })
                             }
-                            disabled={!registroFormData.sector_id || autoPopulatedFromCalle}
+                            disabled={
+                              !registroFormData.sector_id ||
+                              autoPopulatedFromCalle
+                            }
                             className={`w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary-500 disabled:opacity-50 ${
                               autoPopulatedFromCalle
                                 ? "border-green-400 dark:border-green-600 bg-green-50 dark:bg-green-900/20 text-slate-700 dark:text-slate-300 cursor-not-allowed"
@@ -3480,7 +3746,8 @@ const getLocalDatetime = () => {
                           });
                         } else if (direccionMatch) {
                           // Modo con dirección seleccionada: concatenar a la dirección
-                          const direccionBase = formatDireccionCompleta(direccionMatch);
+                          const direccionBase =
+                            formatDireccionCompleta(direccionMatch);
                           const direccionCompleta = detalles
                             ? `${direccionBase} - ${detalles}`
                             : direccionBase;
@@ -3507,64 +3774,76 @@ const getLocalDatetime = () => {
                     </p>
                   </div>
                   {/* Campos para latitud, longitud y ubigeo (read-only si vienen de dirección seleccionada) */}
-                    {/* Botón de geocodificación - solo visible en modo manual */}
-                    {showManualLocation && !direccionMatch && (
-                      <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
-                            📍 Geocodificación Automática
-                          </p>
-                          <p className="text-xs text-blue-700 dark:text-blue-300">
-                            Obtenga coordenadas GPS automáticamente para la dirección ingresada
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={handleGeocodificarDireccionManual}
-                          disabled={loadingGeocoding || !registroFormData.calle_id}
-                          className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
-                        >
-                          {loadingGeocoding ? (
-                            <>
-                              <Loader2 size={16} className="animate-spin" />
-                              Geocodificando...
-                            </>
-                          ) : (
-                            <>
-                              <MapPin size={16} />
-                              Geocodificar
-                            </>
-                          )}
-                        </button>
+                  {/* Botón de geocodificación - solo visible en modo manual */}
+                  {showManualLocation && !direccionMatch && (
+                    <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
+                          📍 Geocodificación Automática
+                        </p>
+                        <p className="text-xs text-blue-700 dark:text-blue-300">
+                          Obtenga coordenadas GPS automáticamente para la
+                          dirección ingresada
+                        </p>
                       </div>
-                    )}
-
-                    {/* Información de geocodificación */}
-                    {geocodingData && showManualLocation && !direccionMatch && (
-                      <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                        <div className="flex items-start gap-2">
-                          <MapPin size={16} className="text-green-600 dark:text-green-400 mt-0.5" />
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-green-800 dark:text-green-200 mb-1">
-                              ✅ Dirección geocodificada exitosamente
+                      <button
+                        type="button"
+                        onClick={handleGeocodificarDireccionManual}
+                        disabled={
+                          loadingGeocoding || !registroFormData.calle_id
+                        }
+                        className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+                      >
+                        {loadingGeocoding ? (
+                          <>
+                            <Loader2 size={16} className="animate-spin" />
+                            Geocodificando...
+                          </>
+                        ) : (
+                          <>
+                            <MapPin size={16} />
+                            Geocodificar
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+                  {/* Información de geocodificación */}
+                  {geocodingData && showManualLocation && !direccionMatch && (
+                    <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <MapPin
+                          size={16}
+                          className="text-green-600 dark:text-green-400 mt-0.5"
+                        />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-green-800 dark:text-green-200 mb-1">
+                            ✅ Dirección geocodificada exitosamente
+                          </p>
+                          <div className="text-xs text-green-700 dark:text-green-300 space-y-1">
+                            <p>
+                              <strong>Precisión:</strong>{" "}
+                              {getDescripcionLocationType(
+                                geocodingData.location_type,
+                              )}
                             </p>
-                            <div className="text-xs text-green-700 dark:text-green-300 space-y-1">
-                              <p>
-                                <strong>Precisión:</strong> {getDescripcionLocationType(geocodingData.location_type)}
-                              </p>
-                              <p>
-                                <strong>Fuente:</strong> {getDescripcionFuente(geocodingData.fuente_geocodificacion)}
-                              </p>
-                              <p>
-                                <strong>Coordenadas:</strong> {parseFloat(geocodingData.latitud).toFixed(6)}, {parseFloat(geocodingData.longitud).toFixed(6)}
-                              </p>
-                            </div>
+                            <p>
+                              <strong>Fuente:</strong>{" "}
+                              {getDescripcionFuente(
+                                geocodingData.fuente_geocodificacion,
+                              )}
+                            </p>
+                            <p>
+                              <strong>Coordenadas:</strong>{" "}
+                              {parseFloat(geocodingData.latitud).toFixed(6)},{" "}
+                              {parseFloat(geocodingData.longitud).toFixed(6)}
+                            </p>
                           </div>
                         </div>
                       </div>
-                    )}
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    </div>
+                  )}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1">
                         Latitud{" "}
@@ -3653,7 +3932,9 @@ const getLocalDatetime = () => {
                       />
                       {registroUbigeoInfo && (
                         <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
-                          {registroUbigeoInfo.distrito} - {registroUbigeoInfo.provincia}, {registroUbigeoInfo.departamento}
+                          {registroUbigeoInfo.distrito} -{" "}
+                          {registroUbigeoInfo.provincia},{" "}
+                          {registroUbigeoInfo.departamento}
                         </p>
                       )}
                     </div>
@@ -3674,10 +3955,14 @@ const getLocalDatetime = () => {
                 </h3>
                 <div ref={tipoSubtipoRef} className="relative">
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    Tipo / Subtipo de Novedad <span className="text-red-500">*</span>
+                    Tipo / Subtipo de Novedad{" "}
+                    <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
+                    <Search
+                      className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400"
+                      size={16}
+                    />
                     <input
                       type="text"
                       value={searchTipoSubtipo}
@@ -3719,21 +4004,33 @@ const getLocalDatetime = () => {
                   {showTipoSubtipoDropdown && searchTipoSubtipo.length > 0 && (
                     <div className="absolute z-50 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                       {(() => {
-                        const words = searchTipoSubtipo.toLowerCase().split(/\s+/).filter(Boolean);
+                        const words = searchTipoSubtipo
+                          .toLowerCase()
+                          .split(/\s+/)
+                          .filter(Boolean);
                         const filtered = subtipos.filter((st) => {
-                          const tipo = tipos.find((t) => t.id == st.tipo_novedad_id);
+                          const tipo = tipos.find(
+                            (t) => t.id == st.tipo_novedad_id,
+                          );
                           const tipoNom = (tipo?.nombre || "").toLowerCase();
                           const subtipoNom = st.nombre.toLowerCase();
                           if (words.length === 1) {
-                            return tipoNom.includes(words[0]) || subtipoNom.includes(words[0]);
+                            return (
+                              tipoNom.includes(words[0]) ||
+                              subtipoNom.includes(words[0])
+                            );
                           }
                           // Primera palabra busca en tipo, resto en subtipo
                           const matchTipo = tipoNom.includes(words[0]);
                           const restoWords = words.slice(1);
-                          const matchSubtipo = restoWords.every((w) => subtipoNom.includes(w));
+                          const matchSubtipo = restoWords.every((w) =>
+                            subtipoNom.includes(w),
+                          );
                           // También permitir búsqueda general por si el orden no importa
                           const combined = `${tipoNom} ${subtipoNom}`;
-                          const matchCombined = words.every((w) => combined.includes(w));
+                          const matchCombined = words.every((w) =>
+                            combined.includes(w),
+                          );
                           return (matchTipo && matchSubtipo) || matchCombined;
                         });
                         if (filtered.length === 0) {
@@ -3744,7 +4041,9 @@ const getLocalDatetime = () => {
                           );
                         }
                         return filtered.map((st) => {
-                          const tipo = tipos.find((t) => t.id == st.tipo_novedad_id);
+                          const tipo = tipos.find(
+                            (t) => t.id == st.tipo_novedad_id,
+                          );
                           const tipoNombre = tipo?.nombre || "Sin tipo";
                           return (
                             <button
@@ -3757,20 +4056,33 @@ const getLocalDatetime = () => {
                                   subtipo_novedad_id: String(st.id),
                                   prioridad_actual: st.prioridad || "",
                                 });
-                                setSearchTipoSubtipo(`${tipoNombre} - ${st.nombre}`);
+                                setSearchTipoSubtipo(
+                                  `${tipoNombre} - ${st.nombre}`,
+                                );
                                 setShowTipoSubtipoDropdown(false);
                               }}
                               className="w-full text-left px-4 py-2 text-sm hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-b-0"
                             >
-                              <span className="font-medium text-primary-700 dark:text-primary-400">{tipoNombre}</span>
-                              <span className="text-slate-500 dark:text-slate-400"> - </span>
-                              <span className="text-slate-900 dark:text-white">{st.nombre}</span>
+                              <span className="font-medium text-primary-700 dark:text-primary-400">
+                                {tipoNombre}
+                              </span>
+                              <span className="text-slate-500 dark:text-slate-400">
+                                {" "}
+                                -{" "}
+                              </span>
+                              <span className="text-slate-900 dark:text-white">
+                                {st.nombre}
+                              </span>
                               {st.prioridad && (
-                                <span className={`ml-2 text-xs px-1.5 py-0.5 rounded ${
-                                  st.prioridad === "ALTA" ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" :
-                                  st.prioridad === "MEDIA" ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" :
-                                  "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                                }`}>
+                                <span
+                                  className={`ml-2 text-xs px-1.5 py-0.5 rounded ${
+                                    st.prioridad === "ALTA"
+                                      ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                                      : st.prioridad === "MEDIA"
+                                        ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                                        : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                  }`}
+                                >
                                   {st.prioridad}
                                 </span>
                               )}
@@ -3815,7 +4127,7 @@ const getLocalDatetime = () => {
                     if (hasData) {
                       if (
                         window.confirm(
-                          "¿Cancelar registro? Se perderán los datos ingresados."
+                          "¿Cancelar registro? Se perderán los datos ingresados.",
                         )
                       ) {
                         resetRegistroForm();
@@ -4144,7 +4456,7 @@ const getLocalDatetime = () => {
                                     ubigeo_code: u.ubigeo_code,
                                   });
                                   setUbigeoSearch(
-                                    `${u.departamento}/${u.provincia}/${u.distrito}`
+                                    `${u.departamento}/${u.provincia}/${u.distrito}`,
                                   );
                                   setUbigeos([]);
                                 }}
@@ -4471,7 +4783,7 @@ const getLocalDatetime = () => {
       {showAtencionModal && selectedNovedad && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-          style={{ overflow: 'hidden' }}
+          style={{ overflow: "hidden" }}
           onWheel={(e) => e.stopPropagation()}
         >
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
@@ -4479,15 +4791,46 @@ const getLocalDatetime = () => {
             <div className="flex items-start justify-between p-4 border-b border-slate-200 dark:border-slate-700">
               <div className="flex items-center gap-3">
                 <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                  <svg className="w-6 h-6" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+                  <svg
+                    className="w-6 h-6"
+                    viewBox="0 0 32 32"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
                     <defs>
-                      <linearGradient id="shieldGradAtencion" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" style={{ stopColor: "#4F7942", stopOpacity: 1 }} />
-                        <stop offset="100%" style={{ stopColor: "#2D4A22", stopOpacity: 1 }} />
+                      <linearGradient
+                        id="shieldGradAtencion"
+                        x1="0%"
+                        y1="0%"
+                        x2="0%"
+                        y2="100%"
+                      >
+                        <stop
+                          offset="0%"
+                          style={{ stopColor: "#4F7942", stopOpacity: 1 }}
+                        />
+                        <stop
+                          offset="100%"
+                          style={{ stopColor: "#2D4A22", stopOpacity: 1 }}
+                        />
                       </linearGradient>
                     </defs>
-                    <path d="M16 2 L28 6 L28 14 C28 22 22 28 16 30 C10 28 4 22 4 14 L4 6 Z" fill="url(#shieldGradAtencion)" stroke="#1a2e14" strokeWidth="1" />
-                    <text x="16" y="20" fontFamily="Arial, sans-serif" fontSize="14" fontWeight="bold" fill="#FFFFFF" textAnchor="middle">C</text>
+                    <path
+                      d="M16 2 L28 6 L28 14 C28 22 22 28 16 30 C10 28 4 22 4 14 L4 6 Z"
+                      fill="url(#shieldGradAtencion)"
+                      stroke="#1a2e14"
+                      strokeWidth="1"
+                    />
+                    <text
+                      x="16"
+                      y="20"
+                      fontFamily="Arial, sans-serif"
+                      fontSize="14"
+                      fontWeight="bold"
+                      fill="#FFFFFF"
+                      textAnchor="middle"
+                    >
+                      C
+                    </text>
                   </svg>
                 </div>
                 <div>
@@ -4499,43 +4842,55 @@ const getLocalDatetime = () => {
                       #{selectedNovedad.novedad_code}
                     </span>
                     {selectedNovedad.prioridad_actual && (
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                        selectedNovedad.prioridad_actual === 'ALTA'
-                          ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-                          : selectedNovedad.prioridad_actual === 'MEDIA'
-                          ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
-                          : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                      }`}>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                          selectedNovedad.prioridad_actual === "ALTA"
+                            ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+                            : selectedNovedad.prioridad_actual === "MEDIA"
+                              ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
+                              : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                        }`}
+                      >
                         {selectedNovedad.prioridad_actual}
                       </span>
                     )}
                     {selectedNovedad.novedadEstado && (
                       <span
                         className="px-2 py-0.5 rounded-full text-xs font-medium"
-                        style={selectedNovedad.novedadEstado.color_hex ? {
-                          backgroundColor: `${selectedNovedad.novedadEstado.color_hex}25`,
-                          color: selectedNovedad.novedadEstado.color_hex,
-                        } : {}}
+                        style={
+                          selectedNovedad.novedadEstado.color_hex
+                            ? {
+                                backgroundColor: `${selectedNovedad.novedadEstado.color_hex}25`,
+                                color: selectedNovedad.novedadEstado.color_hex,
+                              }
+                            : {}
+                        }
                       >
                         {selectedNovedad.novedadEstado.nombre}
                       </span>
                     )}
                   </div>
                   <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50 mt-0.5">
-                    {selectedNovedad.novedadTipoNovedad?.nombre || 'Novedad'}
+                    {selectedNovedad.novedadTipoNovedad?.nombre || "Novedad"}
                     {selectedNovedad.novedadSubtipoNovedad?.nombre && (
                       <span className="font-normal text-sm text-slate-500 dark:text-slate-400">
-                        {' / '}{selectedNovedad.novedadSubtipoNovedad.nombre}
+                        {" / "}
+                        {selectedNovedad.novedadSubtipoNovedad.nombre}
                       </span>
                     )}
                   </h3>
-                  {(selectedNovedad.localizacion || selectedNovedad.referencia_ubicacion) && (
-                    <p className="text-xs font-semibold text-amber-700 dark:text-amber-300 mt-0.5 truncate max-w-lg"
-                      title={selectedNovedad.localizacion
-                        ? selectedNovedad.referencia_ubicacion
-                          ? `${selectedNovedad.localizacion} (${selectedNovedad.referencia_ubicacion})`
-                          : selectedNovedad.localizacion
-                        : selectedNovedad.referencia_ubicacion}>
+                  {(selectedNovedad.localizacion ||
+                    selectedNovedad.referencia_ubicacion) && (
+                    <p
+                      className="text-xs font-semibold text-amber-700 dark:text-amber-300 mt-0.5 truncate max-w-lg"
+                      title={
+                        selectedNovedad.localizacion
+                          ? selectedNovedad.referencia_ubicacion
+                            ? `${selectedNovedad.localizacion} (${selectedNovedad.referencia_ubicacion})`
+                            : selectedNovedad.localizacion
+                          : selectedNovedad.referencia_ubicacion
+                      }
+                    >
                       <MapPin size={11} className="inline mr-1" />
                       {selectedNovedad.localizacion
                         ? selectedNovedad.referencia_ubicacion
@@ -4588,7 +4943,6 @@ const getLocalDatetime = () => {
               {/* Tab 0: Recursos Asignados */}
               {atencionTab === 0 && (
                 <div className="space-y-4">
-
                   {/* Fila 1: Vehículo + Personal a pie */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -4608,7 +4962,14 @@ const getLocalDatetime = () => {
                         <option value="">Seleccione vehículo...</option>
                         {vehiculos.map((v) => (
                           <option key={v.id} value={v.id}>
-                            {[v.tipoVehiculo?.nombre, v.placa, v.marca, v.modelo_vehiculo || v.modelo].filter(Boolean).join(' - ')}
+                            {[
+                              v.tipoVehiculo?.nombre,
+                              v.placa,
+                              v.marca,
+                              v.modelo_vehiculo || v.modelo,
+                            ]
+                              .filter(Boolean)
+                              .join(" - ")}
                           </option>
                         ))}
                       </select>
@@ -4630,8 +4991,10 @@ const getLocalDatetime = () => {
                         <option value="">Seleccione personal...</option>
                         {personalSeguridad.map((p) => (
                           <option key={p.id} value={p.id}>
-                            {[p.doc_tipo, p.doc_numero].filter(Boolean).join(' ') || p.codigo} - {p.nombres}{" "}
-                            {p.apellido_paterno}
+                            {[p.doc_tipo, p.doc_numero]
+                              .filter(Boolean)
+                              .join(" ") || p.codigo}{" "}
+                            - {p.nombres} {p.apellido_paterno}
                           </option>
                         ))}
                       </select>
@@ -4646,21 +5009,31 @@ const getLocalDatetime = () => {
                     </span>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       <div>
-                        <span className="text-xs text-slate-500 dark:text-slate-400">Fecha Despacho</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                          Fecha Despacho
+                        </span>
                         <p className="text-sm font-medium text-slate-900 dark:text-slate-50 mt-0.5">
-                          {selectedNovedad?.fecha_despacho ? new Date(selectedNovedad.fecha_despacho).toLocaleString('es-PE', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          }) : '—'}
+                          {selectedNovedad?.fecha_despacho
+                            ? new Date(
+                                selectedNovedad.fecha_despacho,
+                              ).toLocaleString("es-PE", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
+                            : "—"}
                         </p>
                       </div>
                       <div>
-                        <span className="text-xs text-slate-500 dark:text-slate-400">Despachado por</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                          Despachado por
+                        </span>
                         <p className="text-sm font-medium text-slate-900 dark:text-slate-50 mt-0.5">
-                          {selectedNovedad?.usuarioDespacho?.username || selectedNovedad?.usuarioDespacho?.email || '—'}
+                          {selectedNovedad?.usuarioDespacho?.username ||
+                            selectedNovedad?.usuarioDespacho?.email ||
+                            "—"}
                         </p>
                       </div>
                       <div>
@@ -4678,8 +5051,8 @@ const getLocalDatetime = () => {
                           disabled={!isSupervisor()}
                           className={`w-full rounded-lg border px-2 py-1.5 text-sm text-slate-900 dark:text-slate-50 ${
                             !isSupervisor()
-                              ? 'border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 cursor-not-allowed'
-                              : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800'
+                              ? "border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
+                              : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
                           }`}
                         >
                           <option value="">— Turno —</option>
@@ -4704,8 +5077,8 @@ const getLocalDatetime = () => {
                           readOnly={!isSupervisor()}
                           className={`w-full rounded-lg border px-2 py-1.5 text-sm text-slate-900 dark:text-slate-50 ${
                             !isSupervisor()
-                              ? 'border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 cursor-not-allowed'
-                              : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800'
+                              ? "border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
+                              : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
                           }`}
                           placeholder="min"
                         />
@@ -4734,7 +5107,9 @@ const getLocalDatetime = () => {
 
                   {/* Fila 5: Personal Seguridad Adicional (Opcional) */}
                   <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-slate-700 dark:text-slate-200">Personal Adicional (Opcional)</h4>
+                    <h4 className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                      Personal Adicional (Opcional)
+                    </h4>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <label className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">
@@ -4753,8 +5128,10 @@ const getLocalDatetime = () => {
                           <option value="">Seleccione personal...</option>
                           {personalSeguridad.map((p) => (
                             <option key={p.id} value={p.id}>
-                              {[p.doc_tipo, p.doc_numero].filter(Boolean).join(' ')||p.codigo} - {p.nombres}{" "}
-                              {p.apellido_paterno}
+                              {[p.doc_tipo, p.doc_numero]
+                                .filter(Boolean)
+                                .join(" ") || p.codigo}{" "}
+                              - {p.nombres} {p.apellido_paterno}
                             </option>
                           ))}
                         </select>
@@ -4776,8 +5153,10 @@ const getLocalDatetime = () => {
                           <option value="">Seleccione personal...</option>
                           {personalSeguridad.map((p) => (
                             <option key={p.id} value={p.id}>
-                              {[p.doc_tipo, p.doc_numero].filter(Boolean).join(' ')||p.codigo} - {p.nombres}{" "}
-                              {p.apellido_paterno}
+                              {[p.doc_tipo, p.doc_numero]
+                                .filter(Boolean)
+                                .join(" ") || p.codigo}{" "}
+                              - {p.nombres} {p.apellido_paterno}
                             </option>
                           ))}
                         </select>
@@ -4799,8 +5178,10 @@ const getLocalDatetime = () => {
                           <option value="">Seleccione personal...</option>
                           {personalSeguridad.map((p) => (
                             <option key={p.id} value={p.id}>
-                              {[p.doc_tipo, p.doc_numero].filter(Boolean).join(' ')||p.codigo} - {p.nombres}{" "}
-                              {p.apellido_paterno}
+                              {[p.doc_tipo, p.doc_numero]
+                                .filter(Boolean)
+                                .join(" ") || p.codigo}{" "}
+                              - {p.nombres} {p.apellido_paterno}
                             </option>
                           ))}
                         </select>
@@ -4835,234 +5216,361 @@ const getLocalDatetime = () => {
               )}
 
               {/* Tab 1: Seguimiento */}
-              {atencionTab === 1 && (() => {
-                const requiereSeg = atencionData.requiere_seguimiento;
-                const estadoId = Number(atencionData.estado_novedad_id || selectedNovedad.estado_novedad_id);
-                const isCerrada = estadoId >= 7;
-                const fechaLlegadaVacia = !atencionData.fecha_llegada;
+              {atencionTab === 1 &&
+                (() => {
+                  const requiereSeg = atencionData.requiere_seguimiento;
+                  const estadoId = Number(
+                    atencionData.estado_novedad_id ||
+                      selectedNovedad.estado_novedad_id,
+                  );
+                  const isCerrada = estadoId >= 7;
+                  const fechaLlegadaVacia = !atencionData.fecha_llegada;
 
-                const clsEditable = "mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50";
-                const clsReadonly = "mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 px-3 py-2 text-slate-500 cursor-not-allowed";
+                  const clsEditable =
+                    "mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50";
+                  const clsReadonly =
+                    "mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 px-3 py-2 text-slate-500 cursor-not-allowed";
 
-                const historialBlock = (
-                  <div className="p-4 rounded-lg border border-slate-200 dark:border-slate-700">
-                    <h4 className="font-medium text-slate-900 dark:text-slate-50 mb-3">Historial de Estados</h4>
-                    {loadingHistorial ? (
-                      <p className="text-sm text-slate-500">Cargando historial...</p>
-                    ) : historialEstados.length === 0 ? (
-                      <p className="text-sm text-slate-500">No hay cambios de estado registrados.</p>
-                    ) : (
-                      <div className="space-y-3 max-h-48 overflow-y-auto">
-                        {[...historialEstados]
-                          .sort((a, b) => new Date(b.fecha_cambio || b.created_at) - new Date(a.fecha_cambio || a.created_at))
-                          .map((h) => (
-                            <div key={h.id} className="flex items-start gap-3 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                              <div className="flex-shrink-0 w-2 h-2 mt-2 rounded-full" style={{ backgroundColor: h.estadoNuevo?.color_hex || "#6b7280" }}></div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  {h.estadoAnterior && (
-                                    <>
-                                      <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: `${h.estadoAnterior?.color_hex}20`, color: h.estadoAnterior?.color_hex }}>
-                                        {h.estadoAnterior?.nombre}
-                                      </span>
-                                      <span className="text-slate-400">→</span>
-                                    </>
+                  const historialBlock = (
+                    <div className="p-4 rounded-lg border border-slate-200 dark:border-slate-700">
+                      <h4 className="font-medium text-slate-900 dark:text-slate-50 mb-3">
+                        Historial de Estados
+                      </h4>
+                      {loadingHistorial ? (
+                        <p className="text-sm text-slate-500">
+                          Cargando historial...
+                        </p>
+                      ) : historialEstados.length === 0 ? (
+                        <p className="text-sm text-slate-500">
+                          No hay cambios de estado registrados.
+                        </p>
+                      ) : (
+                        <div className="space-y-3 max-h-48 overflow-y-auto">
+                          {[...historialEstados]
+                            .sort(
+                              (a, b) =>
+                                new Date(b.fecha_cambio || b.created_at) -
+                                new Date(a.fecha_cambio || a.created_at),
+                            )
+                            .map((h) => (
+                              <div
+                                key={h.id}
+                                className="flex items-start gap-3 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50"
+                              >
+                                <div
+                                  className="flex-shrink-0 w-2 h-2 mt-2 rounded-full"
+                                  style={{
+                                    backgroundColor:
+                                      h.estadoNuevo?.color_hex || "#6b7280",
+                                  }}
+                                ></div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    {h.estadoAnterior && (
+                                      <>
+                                        <span
+                                          className="text-xs px-2 py-0.5 rounded"
+                                          style={{
+                                            backgroundColor: `${h.estadoAnterior?.color_hex}20`,
+                                            color: h.estadoAnterior?.color_hex,
+                                          }}
+                                        >
+                                          {h.estadoAnterior?.nombre}
+                                        </span>
+                                        <span className="text-slate-400">
+                                          →
+                                        </span>
+                                      </>
+                                    )}
+                                    <span
+                                      className="text-xs px-2 py-0.5 rounded font-medium"
+                                      style={{
+                                        backgroundColor: `${h.estadoNuevo?.color_hex}30`,
+                                        color: h.estadoNuevo?.color_hex,
+                                      }}
+                                    >
+                                      {h.estadoNuevo?.nombre}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-slate-500 mt-1">
+                                    {formatFecha(
+                                      h.fecha_cambio || h.created_at,
+                                    )}
+                                    {h.historialEstadoNovedadUsuario &&
+                                      ` • ${h.historialEstadoNovedadUsuario.nombres || h.historialEstadoNovedadUsuario.username}`}
+                                    {h.tiempo_en_estado_min &&
+                                      ` • ${h.tiempo_en_estado_min} min en estado anterior`}
+                                  </p>
+                                  {h.observaciones && (
+                                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 italic">
+                                      "{h.observaciones}"
+                                    </p>
                                   )}
-                                  <span className="text-xs px-2 py-0.5 rounded font-medium" style={{ backgroundColor: `${h.estadoNuevo?.color_hex}30`, color: h.estadoNuevo?.color_hex }}>
-                                    {h.estadoNuevo?.nombre}
-                                  </span>
                                 </div>
-                                <p className="text-xs text-slate-500 mt-1">
-                                  {formatFecha(h.fecha_cambio || h.created_at)}
-                                  {h.historialEstadoNovedadUsuario && ` • ${h.historialEstadoNovedadUsuario.nombres || h.historialEstadoNovedadUsuario.username}`}
-                                  {h.tiempo_en_estado_min && ` • ${h.tiempo_en_estado_min} min en estado anterior`}
-                                </p>
-                                {h.observaciones && (
-                                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 italic">"{h.observaciones}"</p>
-                                )}
                               </div>
-                            </div>
-                          ))}
-                      </div>
-                    )}
-                  </div>
-                );
-
-                const datosSeguimientoBlock = (
-                  <div className="p-4 rounded-lg border border-primary-300 dark:border-primary-700 bg-primary-50/50 dark:bg-primary-900/10">
-                    <h4 className="font-medium text-slate-900 dark:text-slate-50 mb-3">Datos de Seguimiento</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        {(() => {
-                          const esEnLugar = Number(atencionData.estado_novedad_id) === 4;
-                          const clsLlegada = fechaLlegadaVacia
-                            ? esEnLugar
-                              ? "mt-1 w-full rounded-lg border-2 border-green-500 dark:border-green-400 bg-green-50 dark:bg-green-900/30 px-3 py-2 text-slate-900 dark:text-slate-50 ring-2 ring-green-400/40"
-                              : clsEditable
-                            : clsReadonly;
-                          return (
-                            <>
-                              <label className={`block text-sm font-medium mb-0 ${esEnLugar ? "text-green-700 dark:text-green-400 font-bold" : "text-slate-700 dark:text-slate-200"}`}>
-                                Fecha de Llegada{esEnLugar && <span className="ml-1 text-green-600 dark:text-green-400">★ Requerido</span>}
-                              </label>
-                              <input
-                                type="datetime-local"
-                                value={atencionData.fecha_llegada}
-                                onChange={(e) => setAtencionData({ ...atencionData, fecha_llegada: e.target.value })}
-                                disabled={!fechaLlegadaVacia}
-                                className={clsLlegada}
-                              />
-                            </>
-                          );
-                        })()}
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-                          Fecha de Cierre
-                          {isCerrada && isSupervisor() && <span className="text-xs text-red-500 ml-1">*</span>}
-                          {!isSupervisor() && <span className="text-xs text-slate-400 ml-1">(Solo supervisor)</span>}
-                        </label>
-                        <input
-                          type="datetime-local"
-                          value={atencionData.fecha_cierre}
-                          onChange={(e) => setAtencionData({ ...atencionData, fecha_cierre: e.target.value })}
-                          disabled={!isSupervisor() || !isCerrada}
-                          className={isSupervisor() && isCerrada ? clsEditable : clsReadonly}
-                        />
-                      </div>
+                            ))}
+                        </div>
+                      )}
                     </div>
+                  );
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-                          Km Inicial
-                          {!isSupervisor() && <span className="text-xs text-slate-400 ml-1">(Solo supervisor)</span>}
-                        </label>
-                        <input
-                          type="number"
-                          value={atencionData.km_inicial}
-                          onChange={(e) => setAtencionData({ ...atencionData, km_inicial: e.target.value })}
-                          disabled={!isSupervisor()}
-                          placeholder="0"
-                          className={isSupervisor() ? clsEditable : clsReadonly}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-                          Km Final
-                          {!isSupervisor() && <span className="text-xs text-slate-400 ml-1">(Solo supervisor)</span>}
-                        </label>
-                        <input
-                          type="number"
-                          value={atencionData.km_final}
-                          onChange={(e) => setAtencionData({ ...atencionData, km_final: e.target.value })}
-                          disabled={!isSupervisor()}
-                          placeholder="0"
-                          className={isSupervisor() ? clsEditable : clsReadonly}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-                          Fecha Próxima Revisión
-                          {isCerrada && <span className="text-xs text-slate-400 ml-1">(Solo lectura)</span>}
-                        </label>
-                        <input
-                          type="date"
-                          value={atencionData.fecha_proxima_revision}
-                          onChange={(e) => setAtencionData({ ...atencionData, fecha_proxima_revision: e.target.value })}
-                          disabled={isCerrada}
-                          className={!isCerrada ? clsEditable : clsReadonly}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-                          Pérdidas Materiales Estimadas (S/.)
-                          {isCerrada && <span className="text-xs text-slate-400 ml-1">(Solo lectura)</span>}
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={atencionData.perdidas_materiales_estimadas}
-                          onChange={(e) => setAtencionData({ ...atencionData, perdidas_materiales_estimadas: e.target.value })}
-                          disabled={isCerrada}
-                          placeholder="0.00"
-                          className={!isCerrada ? clsEditable : clsReadonly}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                );
-
-                return (
-                  <div className="space-y-4">
-                    {/* Fila 1: Estado de Novedad + Requiere Seguimiento */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-                          Estado de Novedad *
-                        </label>
-                        <select
-                          value={atencionData.estado_novedad_id}
-                          onChange={(e) =>
-                            setAtencionData({
-                              ...atencionData,
-                              estado_novedad_id: e.target.value,
-                            })
-                          }
-                          className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
-                        >
-                          <option value="">Seleccione estado...</option>
-                          {(estadosRol.length > 0
-                            ? estadosRol
-                            : isSupervisor()
-                              ? estados
-                              : []
-                          ).filter((e) => e.id > Number(selectedNovedad?.estado_novedad_id || 0))
-                           .map((e) => (
-                            <option key={e.id} value={e.id}>
-                              {e.nombre}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="flex items-end">
-                        <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 w-full">
+                  const datosSeguimientoBlock = (
+                    <div className="p-4 rounded-lg border border-primary-300 dark:border-primary-700 bg-primary-50/50 dark:bg-primary-900/10">
+                      <h4 className="font-medium text-slate-900 dark:text-slate-50 mb-3">
+                        Datos de Seguimiento
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          {(() => {
+                            const esEnLugar =
+                              Number(atencionData.estado_novedad_id) === 4;
+                            const clsLlegada = fechaLlegadaVacia
+                              ? esEnLugar
+                                ? "mt-1 w-full rounded-lg border-2 border-green-500 dark:border-green-400 bg-green-50 dark:bg-green-900/30 px-3 py-2 text-slate-900 dark:text-slate-50 ring-2 ring-green-400/40"
+                                : clsEditable
+                              : clsReadonly;
+                            return (
+                              <>
+                                <label
+                                  className={`block text-sm font-medium mb-0 ${esEnLugar ? "text-green-700 dark:text-green-400 font-bold" : "text-slate-700 dark:text-slate-200"}`}
+                                >
+                                  Fecha de Llegada
+                                  {esEnLugar && (
+                                    <span className="ml-1 text-green-600 dark:text-green-400">
+                                      ★ Requerido
+                                    </span>
+                                  )}
+                                </label>
+                                <input
+                                  type="datetime-local"
+                                  value={atencionData.fecha_llegada}
+                                  onChange={(e) =>
+                                    setAtencionData({
+                                      ...atencionData,
+                                      fecha_llegada: e.target.value,
+                                    })
+                                  }
+                                  disabled={!fechaLlegadaVacia}
+                                  className={clsLlegada}
+                                />
+                              </>
+                            );
+                          })()}
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                            Fecha de Cierre
+                            {isCerrada && isSupervisor() && (
+                              <span className="text-xs text-red-500 ml-1">
+                                *
+                              </span>
+                            )}
+                            {!isSupervisor() && (
+                              <span className="text-xs text-slate-400 ml-1">
+                                (Solo supervisor)
+                              </span>
+                            )}
+                          </label>
                           <input
-                            type="checkbox"
-                            id="requiere_seguimiento"
-                            checked={atencionData.requiere_seguimiento}
-                            onChange={(e) => {
+                            type="datetime-local"
+                            value={atencionData.fecha_cierre}
+                            onChange={(e) =>
                               setAtencionData({
                                 ...atencionData,
-                                requiere_seguimiento: e.target.checked,
-                              });
-                              if (e.target.checked) {
-                                toast("Completar datos en pestaña Seguimiento", {
-                                  icon: "📋",
-                                  duration: 3000,
-                                });
-                              }
-                            }}
-                            className="w-5 h-5 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                                fecha_cierre: e.target.value,
+                              })
+                            }
+                            disabled={!isSupervisor() || !isCerrada}
+                            className={
+                              isSupervisor() && isCerrada
+                                ? clsEditable
+                                : clsReadonly
+                            }
                           />
-                          <label
-                            htmlFor="requiere_seguimiento"
-                            className="text-sm font-medium text-amber-800 dark:text-amber-200"
-                          >
-                            ¿Requiere Seguimiento?
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                            Km Inicial
+                            {!isSupervisor() && (
+                              <span className="text-xs text-slate-400 ml-1">
+                                (Solo supervisor)
+                              </span>
+                            )}
                           </label>
+                          <input
+                            type="number"
+                            value={atencionData.km_inicial}
+                            onChange={(e) =>
+                              setAtencionData({
+                                ...atencionData,
+                                km_inicial: e.target.value,
+                              })
+                            }
+                            disabled={!isSupervisor()}
+                            placeholder="0"
+                            className={
+                              isSupervisor() ? clsEditable : clsReadonly
+                            }
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                            Km Final
+                            {!isSupervisor() && (
+                              <span className="text-xs text-slate-400 ml-1">
+                                (Solo supervisor)
+                              </span>
+                            )}
+                          </label>
+                          <input
+                            type="number"
+                            value={atencionData.km_final}
+                            onChange={(e) =>
+                              setAtencionData({
+                                ...atencionData,
+                                km_final: e.target.value,
+                              })
+                            }
+                            disabled={!isSupervisor()}
+                            placeholder="0"
+                            className={
+                              isSupervisor() ? clsEditable : clsReadonly
+                            }
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                            Fecha Próxima Revisión
+                            {isCerrada && (
+                              <span className="text-xs text-slate-400 ml-1">
+                                (Solo lectura)
+                              </span>
+                            )}
+                          </label>
+                          <input
+                            type="date"
+                            value={atencionData.fecha_proxima_revision}
+                            onChange={(e) =>
+                              setAtencionData({
+                                ...atencionData,
+                                fecha_proxima_revision: e.target.value,
+                              })
+                            }
+                            disabled={isCerrada}
+                            className={!isCerrada ? clsEditable : clsReadonly}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                            Pérdidas Materiales Estimadas (S/.)
+                            {isCerrada && (
+                              <span className="text-xs text-slate-400 ml-1">
+                                (Solo lectura)
+                              </span>
+                            )}
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={atencionData.perdidas_materiales_estimadas}
+                            onChange={(e) =>
+                              setAtencionData({
+                                ...atencionData,
+                                perdidas_materiales_estimadas: e.target.value,
+                              })
+                            }
+                            disabled={isCerrada}
+                            placeholder="0.00"
+                            className={!isCerrada ? clsEditable : clsReadonly}
+                          />
                         </div>
                       </div>
                     </div>
+                  );
 
-                    {requiereSeg && datosSeguimientoBlock}
-                    {historialBlock}
-                  </div>
-                );
-              })()}
+                  return (
+                    <div className="space-y-4">
+                      {/* Fila 1: Estado de Novedad + Requiere Seguimiento */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                            Estado de Novedad *
+                          </label>
+                          <select
+                            value={atencionData.estado_novedad_id}
+                            onChange={(e) =>
+                              setAtencionData({
+                                ...atencionData,
+                                estado_novedad_id: e.target.value,
+                              })
+                            }
+                            className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+                          >
+                            <option value="">Seleccione estado...</option>
+                            {(estadosRol.length > 0
+                              ? estadosRol
+                              : isSupervisor()
+                                ? estados
+                                : []
+                            )
+                              .filter(
+                                (e) =>
+                                  e.id >
+                                  Number(
+                                    selectedNovedad?.estado_novedad_id || 0,
+                                  ),
+                              )
+                              .map((e) => (
+                                <option key={e.id} value={e.id}>
+                                  {e.nombre}
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+                        <div className="flex items-end">
+                          <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 w-full">
+                            <input
+                              type="checkbox"
+                              id="requiere_seguimiento"
+                              checked={atencionData.requiere_seguimiento}
+                              onChange={(e) => {
+                                setAtencionData({
+                                  ...atencionData,
+                                  requiere_seguimiento: e.target.checked,
+                                });
+                                if (e.target.checked) {
+                                  toast(
+                                    "Completar datos en pestaña Seguimiento",
+                                    {
+                                      icon: "📋",
+                                      duration: 3000,
+                                    },
+                                  );
+                                }
+                              }}
+                              className="w-5 h-5 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <label
+                              htmlFor="requiere_seguimiento"
+                              className="text-sm font-medium text-amber-800 dark:text-amber-200"
+                            >
+                              ¿Requiere Seguimiento?
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+
+                      {requiereSeg && datosSeguimientoBlock}
+                      {historialBlock}
+                    </div>
+                  );
+                })()}
             </div>
 
             {/* Footer */}
@@ -5102,6 +5610,6 @@ const getLocalDatetime = () => {
         unidadesOficina={unidadesOficina}
         onSubmit={handleSaveSeguimiento}
       />
-  </div>
-);
+    </div>
+  );
 }
