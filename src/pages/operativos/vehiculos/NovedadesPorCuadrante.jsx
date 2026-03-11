@@ -432,6 +432,17 @@ export default function NovedadesPorCuadrante() {
             // Usar getLocalDatetime() igual que en DespacharModal para consistencia
             const fechaLocal = getLocalDatetime();
 
+            // Debug: registrar payload de historial antes de enviar
+            console.debug(
+              "[NovedadesPorCuadrante] crearHistorialNovedad payload:",
+              {
+                novedadPrincipalId,
+                mensaje: `Cambio de estado a: ${editData.resultado}`,
+                nuevoEstadoId,
+                fechaLocal,
+              },
+            );
+
             await crearHistorialNovedad(
               novedadPrincipalId,
               `Cambio de estado a: ${editData.resultado}`,
@@ -477,6 +488,15 @@ export default function NovedadesPorCuadrante() {
           // 🐛 FIX CORRECCIÓN: Enviar atendido con fecha local correcta cuando es RESUELTA (siempre)
           ...(nuevoEstadoId === 6 ? { atendido: getLocalDatetime() } : {}),
         };
+
+        // Debug: registrar payload y conversiones antes de actualizar novedad
+        console.debug("[NovedadesPorCuadrante] updateNovedad payload:", {
+          turnoId,
+          vehiculoId,
+          cuadranteId,
+          novedadId: selectedNovedadEdit.id,
+          payload,
+        });
 
         await operativosNovedadesService.updateNovedad(
           turnoId,
