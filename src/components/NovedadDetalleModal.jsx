@@ -42,8 +42,16 @@ const ORIGEN_LLAMADA_OPTIONS = [
   { value: "RADIO_TETRA", label: "Llamada Radio TETRA", icon: Radio },
   { value: "REDES_SOCIALES", label: "Redes Sociales", icon: Users },
   { value: "BOTON_EMERGENCIA_ALERTA", label: "Botón Emergencia", icon: Bell },
-  { value: "BOTON_DENUNCIA_VECINO_ALERTA", label: "Botón Denuncia (App VECINO ALERTA)", icon: Bell },
-  { value: "INTERVENCION_DIRECTA", label: "Intervención Directa", icon: Shield },
+  {
+    value: "BOTON_DENUNCIA_VECINO_ALERTA",
+    label: "Botón Denuncia (App VECINO ALERTA)",
+    icon: Bell,
+  },
+  {
+    value: "INTERVENCION_DIRECTA",
+    label: "Intervención Directa",
+    icon: Shield,
+  },
   { value: "VIDEO_CCO", label: "Video CCO", icon: Camera },
   { value: "ANALITICA", label: "Analítica", icon: Clock },
   { value: "APP_PODER_JUDICIAL", label: "APP Poder Judicial", icon: Shield },
@@ -60,7 +68,12 @@ const formatFecha = (fecha) => {
   if (!fecha) return "—";
   try {
     const d = new Date(fecha);
-    console.debug("[NovedadDetalleModal] formatFecha input:", fecha, "-> parsed:", d.toISOString());
+    console.debug(
+      "[NovedadDetalleModal] formatFecha input:",
+      fecha,
+      "-> parsed:",
+      d.toISOString(),
+    );
     return d.toLocaleString("es-PE", {
       day: "2-digit",
       month: "2-digit",
@@ -111,7 +124,6 @@ const estadoColor = (estado) => {
   return "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300";
 };
 
-
 /**
  * NovedadDetalleModal - Modal de detalle de novedad
  *
@@ -154,37 +166,42 @@ export default function NovedadDetalleModal({
   const [savingCoordinates, setSavingCoordinates] = useState(false);
 
   // Handler para ajustar coordenadas desde el mapa
-  const handleCoordinatesChange = useCallback(async (newLat, newLng) => {
-    if (!novedad?.id) {
-      toast.error("No se puede actualizar: falta ID de la novedad");
-      return;
-    }
-
-    setSavingCoordinates(true);
-    try {
-      await updateNovedad(novedad.id, {
-        latitud: newLat,
-        longitud: newLng,
-      });
-
-      if (novedad.direccion_id) {
-        await geocodificarDireccion(novedad.direccion_id, {
-          latitud: newLat,
-          longitud: newLng,
-          fuente: "Ajuste manual en mapa",
-        });
+  const handleCoordinatesChange = useCallback(
+    async (newLat, newLng) => {
+      if (!novedad?.id) {
+        toast.error("No se puede actualizar: falta ID de la novedad");
+        return;
       }
 
-      setEditedCoordinates({ latitud: newLat, longitud: newLng });
-      toast.success("Ubicación actualizada correctamente");
-    } catch (error) {
-      console.error("Error al actualizar coordenadas:", error);
-      toast.error(error.response?.data?.message || "Error al actualizar la ubicación");
-      setEditedCoordinates(null);
-    } finally {
-      setSavingCoordinates(false);
-    }
-  }, [novedad?.id, novedad?.direccion_id]);
+      setSavingCoordinates(true);
+      try {
+        await updateNovedad(novedad.id, {
+          latitud: newLat,
+          longitud: newLng,
+        });
+
+        if (novedad.direccion_id) {
+          await geocodificarDireccion(novedad.direccion_id, {
+            latitud: newLat,
+            longitud: newLng,
+            fuente: "Ajuste manual en mapa",
+          });
+        }
+
+        setEditedCoordinates({ latitud: newLat, longitud: newLng });
+        toast.success("Ubicación actualizada correctamente");
+      } catch (error) {
+        console.error("Error al actualizar coordenadas:", error);
+        toast.error(
+          error.response?.data?.message || "Error al actualizar la ubicación",
+        );
+        setEditedCoordinates(null);
+      } finally {
+        setSavingCoordinates(false);
+      }
+    },
+    [novedad?.id, novedad?.direccion_id],
+  );
 
   useEffect(() => {
     if (!isOpen) return;
@@ -210,9 +227,15 @@ export default function NovedadDetalleModal({
             fecha_llegada: novedadData?.fecha_llegada,
             rawNovedad: novedadData,
           });
-          console.debug("[NovedadDetalleModal] fetched historial (first 5):", (historialData || []).slice(0,5));
+          console.debug(
+            "[NovedadDetalleModal] fetched historial (first 5):",
+            (historialData || []).slice(0, 5),
+          );
         } catch (logErr) {
-          console.error("[NovedadDetalleModal] error logging fetched data:", logErr);
+          console.error(
+            "[NovedadDetalleModal] error logging fetched data:",
+            logErr,
+          );
         }
       } catch (err) {
         console.error("Error cargando novedad:", err);
@@ -229,21 +252,21 @@ export default function NovedadDetalleModal({
   // Función helper para abreviar título de novedad
   const abreviarTituloNovedad = useCallback((tipoNombre, subtipoNombre) => {
     if (!tipoNombre) return "Novedad";
-    
+
     // Si no hay subtipo, devolver tipo completo
     if (!subtipoNombre) return tipoNombre;
-    
+
     // Buscar primer slash en el tipo
-    const primerSlashIndex = tipoNombre.indexOf('/');
-    
+    const primerSlashIndex = tipoNombre.indexOf("/");
+
     if (primerSlashIndex === -1) {
       // Si no hay slash, devolver tipo completo + subtipo
       return `${tipoNombre} / ${subtipoNombre}`;
     }
-    
+
     // Tomar desde el inicio hasta el primer slash (excluyendo el slash)
     const tipoAbreviado = tipoNombre.substring(0, primerSlashIndex).trim();
-    
+
     // Concatenar con subtipo completo
     return `${tipoAbreviado} / ${subtipoNombre}`;
   }, []);
@@ -272,7 +295,12 @@ export default function NovedadDetalleModal({
         e.preventDefault();
 
         // Si está en la pestaña 3 (Recursos) o 4 (Seguimiento) y el botón Despachar está visible
-        if ((activeTab === 3 || activeTab === 4) && showDespacharButton && novedad?.estado_novedad_id === 1 && onDespachar) {
+        if (
+          (activeTab === 3 || activeTab === 4) &&
+          showDespacharButton &&
+          novedad?.estado_novedad_id === 1 &&
+          onDespachar
+        ) {
           // Simular click en botón Despachar
           onDespachar(novedad);
           onClose();
@@ -343,7 +371,7 @@ export default function NovedadDetalleModal({
                   </span>
                   <span
                     className={`px-2 py-0.5 rounded-full text-xs font-medium ${prioridadColor(
-                      novedad.prioridad_actual
+                      novedad.prioridad_actual,
                     )}`}
                   >
                     {novedad.prioridad_actual || "MEDIA"}
@@ -366,17 +394,20 @@ export default function NovedadDetalleModal({
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50 mt-1">
                   {abreviarTituloNovedad(
                     novedad.novedadTipoNovedad?.nombre,
-                    novedad.novedadSubtipoNovedad?.nombre
+                    novedad.novedadSubtipoNovedad?.nombre,
                   )}
                 </h3>
                 {(novedad.localizacion || novedad.referencia_ubicacion) && (
-                  <p className="text-sm font-semibold text-amber-800 dark:text-amber-200 mt-0.5 truncate max-w-md" title={
-                    novedad.localizacion
-                      ? novedad.referencia_ubicacion
-                        ? `${novedad.localizacion} (${novedad.referencia_ubicacion})`
-                        : novedad.localizacion
-                      : novedad.referencia_ubicacion
-                  }>
+                  <p
+                    className="text-sm font-semibold text-amber-800 dark:text-amber-200 mt-0.5 truncate max-w-md"
+                    title={
+                      novedad.localizacion
+                        ? novedad.referencia_ubicacion
+                          ? `${novedad.localizacion} (${novedad.referencia_ubicacion})`
+                          : novedad.localizacion
+                        : novedad.referencia_ubicacion
+                    }
+                  >
                     <MapPin size={14} className="inline mr-1" />
                     {novedad.localizacion
                       ? novedad.referencia_ubicacion
@@ -439,7 +470,7 @@ export default function NovedadDetalleModal({
                       </span>
                       <p className="text-sm text-slate-900 dark:text-slate-50 font-medium">
                         {ORIGEN_LLAMADA_OPTIONS.find(
-                          (o) => o.value === novedad.origen_llamada
+                          (o) => o.value === novedad.origen_llamada,
                         )?.label ||
                           novedad.origen_llamada ||
                           "—"}
@@ -447,10 +478,16 @@ export default function NovedadDetalleModal({
                     </div>
                     <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
                       <span className="text-xs font-medium text-slate-500">
-                        {novedad.reportante_telefono ? "Teléfono" : "Radio TETRA"}
+                        {novedad.reportante_telefono
+                          ? "Teléfono"
+                          : "Radio TETRA"}
                       </span>
                       <p className="text-sm text-slate-900 dark:text-slate-50 font-medium">
-                        {novedad.reportante_telefono || novedad.novedadRadioTetra?.radio_tetra_code || novedad.radioTetra?.radio_tetra_code || novedad.radio_tetra?.radio_tetra_code || "—"}
+                        {novedad.reportante_telefono ||
+                          novedad.novedadRadioTetra?.radio_tetra_code ||
+                          novedad.radioTetra?.radio_tetra_code ||
+                          novedad.radio_tetra?.radio_tetra_code ||
+                          "—"}
                       </p>
                     </div>
                   </div>
@@ -495,7 +532,10 @@ export default function NovedadDetalleModal({
                     {savingCoordinates && (
                       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center rounded-lg z-[1000]">
                         <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-xl flex items-center gap-3">
-                          <Loader2 className="animate-spin text-blue-600" size={20} />
+                          <Loader2
+                            className="animate-spin text-blue-600"
+                            size={20}
+                          />
                           <p className="text-sm text-slate-700 dark:text-slate-300">
                             Guardando ubicación...
                           </p>
@@ -511,28 +551,30 @@ export default function NovedadDetalleModal({
                       editable={
                         canEditLocation &&
                         (!novedad?.usuarioDespacho?.id ||
-                        novedad?.usuarioDespacho?.id === user?.id)
+                          novedad?.usuarioDespacho?.id === user?.id)
                       }
                       onCoordinatesChange={handleCoordinatesChange}
                     />
                   </div>
 
                   {/* Aviso solo-lectura cuando fue despachado por otro usuario */}
-                  {novedad?.usuarioDespacho?.id && novedad?.usuarioDespacho?.id !== user?.id && (
-                    <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-700/50 dark:bg-amber-900/20 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-                      <MapPin size={13} className="shrink-0" />
-                      Ubicación de solo lectura — despachado por{" "}
-                      <span className="font-semibold">
-                        {novedad.usuarioDespacho?.username || "otro usuario"}
-                      </span>
-                    </div>
-                  )}
+                  {novedad?.usuarioDespacho?.id &&
+                    novedad?.usuarioDespacho?.id !== user?.id && (
+                      <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-700/50 dark:bg-amber-900/20 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+                        <MapPin size={13} className="shrink-0" />
+                        Ubicación de solo lectura — despachado por{" "}
+                        <span className="font-semibold">
+                          {novedad.usuarioDespacho?.username || "otro usuario"}
+                        </span>
+                      </div>
+                    )}
 
                   {/* Aviso para usuarios de consulta sin permisos de edición */}
                   {!canEditLocation && (
                     <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-700/50 dark:bg-slate-800/20 px-3 py-2 text-xs text-slate-600 dark:text-slate-400">
                       <MapPin size={13} className="shrink-0" />
-                      Ubicación de solo lectura — tu rol de consulta no permite editar ubicaciones
+                      Ubicación de solo lectura — tu rol de consulta no permite
+                      editar ubicaciones
                     </div>
                   )}
 
@@ -576,7 +618,8 @@ export default function NovedadDetalleModal({
                         )}
                       </div>
                       <p className="text-sm text-slate-900 dark:text-slate-50 font-mono">
-                        {(editedCoordinates?.latitud ?? novedad.latitud) && (editedCoordinates?.longitud ?? novedad.longitud)
+                        {(editedCoordinates?.latitud ?? novedad.latitud) &&
+                        (editedCoordinates?.longitud ?? novedad.longitud)
                           ? `${parseFloat(editedCoordinates?.latitud ?? novedad.latitud).toFixed(6)}, ${parseFloat(editedCoordinates?.longitud ?? novedad.longitud).toFixed(6)}`
                           : "—"}
                       </p>
@@ -637,7 +680,9 @@ export default function NovedadDetalleModal({
                         Pérdidas Materiales Estimadas
                       </span>
                       <p className="text-sm text-slate-900 dark:text-slate-50">
-                        {novedad.perdidas_materiales_estimadas ? `S/ ${parseFloat(novedad.perdidas_materiales_estimadas).toFixed(2)}` : "S/ 0.00"}
+                        {novedad.perdidas_materiales_estimadas
+                          ? `S/ ${parseFloat(novedad.perdidas_materiales_estimadas).toFixed(2)}`
+                          : "S/ 0.00"}
                       </p>
                     </div>
                   </div>
@@ -708,7 +753,9 @@ export default function NovedadDetalleModal({
                       </span>
                       <p className="text-sm text-slate-900 dark:text-slate-50">
                         {(() => {
-                          const vehiculo = vehiculos?.find(v => v.id === novedad.vehiculo_id);
+                          const vehiculo = vehiculos?.find(
+                            (v) => v.id === novedad.vehiculo_id,
+                          );
                           return vehiculo
                             ? `${vehiculo.placa} - ${vehiculo.marca} ${vehiculo.modelo_vehiculo || vehiculo.modelo || ""}`.trim()
                             : "—";
@@ -721,11 +768,19 @@ export default function NovedadDetalleModal({
                       </span>
                       <p className="text-sm text-slate-900 dark:text-slate-50">
                         {(() => {
-                          const vehiculo = vehiculos?.find(v => v.id === novedad.vehiculo_id);
+                          const vehiculo = vehiculos?.find(
+                            (v) => v.id === novedad.vehiculo_id,
+                          );
                           if (!vehiculo) return "—";
-                          const rel = vehiculo.conductorAsignado || vehiculo.conductor_asignado || vehiculo.conductor;
+                          const rel =
+                            vehiculo.conductorAsignado ||
+                            vehiculo.conductor_asignado ||
+                            vehiculo.conductor;
                           if (rel) {
-                            return `${rel.apellido_paterno || ""} ${rel.apellido_materno || ""} ${rel.nombres || ""}`.trim() || "—";
+                            return (
+                              `${rel.apellido_paterno || ""} ${rel.apellido_materno || ""} ${rel.nombres || ""}`.trim() ||
+                              "—"
+                            );
                           }
                           return "—";
                         })()}
@@ -741,7 +796,9 @@ export default function NovedadDetalleModal({
                       </span>
                       <p className="text-sm text-slate-900 dark:text-slate-50">
                         {(() => {
-                          const personal = personalSeguridad?.find(p => p.id === novedad.personal_cargo_id);
+                          const personal = personalSeguridad?.find(
+                            (p) => p.id === novedad.personal_cargo_id,
+                          );
                           return personal
                             ? `${personal.nombres} ${personal.apellido_paterno}`
                             : "—";
@@ -754,7 +811,9 @@ export default function NovedadDetalleModal({
                       </span>
                       <p className="text-sm text-slate-900 dark:text-slate-50">
                         {(() => {
-                          const personal = personalSeguridad?.find(p => p.id === novedad.personal_seguridad2_id);
+                          const personal = personalSeguridad?.find(
+                            (p) => p.id === novedad.personal_seguridad2_id,
+                          );
                           return personal
                             ? `${personal.nombres} ${personal.apellido_paterno}`
                             : "—";
@@ -771,15 +830,21 @@ export default function NovedadDetalleModal({
                     </span>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <span className="text-xs text-slate-500 dark:text-slate-400">Fecha Despacho</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                          Fecha Despacho
+                        </span>
                         <p className="text-sm font-medium text-slate-900 dark:text-slate-50">
                           {formatFecha(novedad.fecha_despacho)}
                         </p>
                       </div>
                       <div>
-                        <span className="text-xs text-slate-500 dark:text-slate-400">Despachado por</span>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                          Despachado por
+                        </span>
                         <p className="text-sm font-medium text-slate-900 dark:text-slate-50">
-                          {novedad.usuarioDespacho?.username || novedad.usuarioDespacho?.email || "—"}
+                          {novedad.usuarioDespacho?.username ||
+                            novedad.usuarioDespacho?.email ||
+                            "—"}
                         </p>
                       </div>
                     </div>
@@ -792,7 +857,9 @@ export default function NovedadDetalleModal({
                     </span>
                     <p className="text-sm text-slate-900 dark:text-slate-50">
                       {(() => {
-                        const unidad = unidadesOficina?.find(u => u.id === novedad.unidad_oficina_id);
+                        const unidad = unidadesOficina?.find(
+                          (u) => u.id === novedad.unidad_oficina_id,
+                        );
                         return unidad?.nombre || "—";
                       })()}
                     </p>
@@ -814,66 +881,104 @@ export default function NovedadDetalleModal({
                         {novedad.turno || "—"}
                       </p>
                     </div>
-                    
+
                     {/* Tiempo Estimado */}
                     <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
                       <span className="text-xs font-medium text-slate-500">
                         Tiempo Estimado
                       </span>
                       <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
-                        {novedad.novedadSubtipoNovedad?.tiempo_respuesta_min 
+                        {novedad.novedadSubtipoNovedad?.tiempo_respuesta_min
                           ? `${novedad.novedadSubtipoNovedad.tiempo_respuesta_min} min`
                           : "—"}
                       </p>
                     </div>
-                    
+
                     {/* Tiempo Respuesta desde Despachado */}
-                    <div className={`p-3 rounded-lg border-2 ${
-                      (novedad.tiempo_respuesta_min_operativo && novedad.novedadSubtipoNovedad?.tiempo_respuesta_min &&
-                       novedad.tiempo_respuesta_min_operativo > novedad.novedadSubtipoNovedad.tiempo_respuesta_min)
-                        ? 'bg-red-100 border-red-500 text-red-900 dark:bg-red-900/30 dark:border-red-400 dark:text-red-200'
-                        : (novedad.tiempo_respuesta_min_operativo && novedad.novedadSubtipoNovedad?.tiempo_respuesta_min &&
-                           novedad.tiempo_respuesta_min_operativo < novedad.novedadSubtipoNovedad.tiempo_respuesta_min)
-                        ? 'bg-green-100 border-green-500 text-green-900 dark:bg-green-900/30 dark:border-green-400 dark:text-green-200'
-                        : (novedad.tiempo_respuesta_min_operativo && novedad.novedadSubtipoNovedad?.tiempo_respuesta_min &&
-                           novedad.tiempo_respuesta_min_operativo === novedad.novedadSubtipoNovedad.tiempo_respuesta_min)
-                        ? 'bg-amber-100 border-amber-500 text-amber-900 dark:bg-amber-900/30 dark:border-amber-400 dark:text-amber-200'
-                        : 'bg-slate-50 dark:bg-slate-800/50'
-                    }`}>
-                      <span className={`text-xs font-medium ${
-                        (novedad.tiempo_respuesta_min_operativo && novedad.novedadSubtipoNovedad?.tiempo_respuesta_min &&
-                         novedad.tiempo_respuesta_min_operativo > novedad.novedadSubtipoNovedad.tiempo_respuesta_min)
-                          ? 'text-red-700 dark:text-red-300'
-                          : (novedad.tiempo_respuesta_min_operativo && novedad.novedadSubtipoNovedad?.tiempo_respuesta_min &&
-                             novedad.tiempo_respuesta_min_operativo < novedad.novedadSubtipoNovedad.tiempo_respuesta_min)
-                          ? 'text-green-700 dark:text-green-300'
-                          : (novedad.tiempo_respuesta_min_operativo && novedad.novedadSubtipoNovedad?.tiempo_respuesta_min &&
-                             novedad.tiempo_respuesta_min_operativo === novedad.novedadSubtipoNovedad.tiempo_respuesta_min)
-                          ? 'text-amber-700 dark:text-amber-300'
-                          : 'text-slate-500'
-                      }`}>
+                    <div
+                      className={`p-3 rounded-lg border-2 ${
+                        novedad.tiempo_respuesta_min_operativo &&
+                        novedad.novedadSubtipoNovedad?.tiempo_respuesta_min &&
+                        novedad.tiempo_respuesta_min_operativo >
+                          novedad.novedadSubtipoNovedad.tiempo_respuesta_min
+                          ? "bg-red-100 border-red-500 text-red-900 dark:bg-red-900/30 dark:border-red-400 dark:text-red-200"
+                          : novedad.tiempo_respuesta_min_operativo &&
+                              novedad.novedadSubtipoNovedad
+                                ?.tiempo_respuesta_min &&
+                              novedad.tiempo_respuesta_min_operativo <
+                                novedad.novedadSubtipoNovedad
+                                  .tiempo_respuesta_min
+                            ? "bg-green-100 border-green-500 text-green-900 dark:bg-green-900/30 dark:border-green-400 dark:text-green-200"
+                            : novedad.tiempo_respuesta_min_operativo &&
+                                novedad.novedadSubtipoNovedad
+                                  ?.tiempo_respuesta_min &&
+                                novedad.tiempo_respuesta_min_operativo ===
+                                  novedad.novedadSubtipoNovedad
+                                    .tiempo_respuesta_min
+                              ? "bg-amber-100 border-amber-500 text-amber-900 dark:bg-amber-900/30 dark:border-amber-400 dark:text-amber-200"
+                              : "bg-slate-50 dark:bg-slate-800/50"
+                      }`}
+                    >
+                      <span
+                        className={`text-xs font-medium ${
+                          novedad.tiempo_respuesta_min_operativo &&
+                          novedad.novedadSubtipoNovedad?.tiempo_respuesta_min &&
+                          novedad.tiempo_respuesta_min_operativo >
+                            novedad.novedadSubtipoNovedad.tiempo_respuesta_min
+                            ? "text-red-700 dark:text-red-300"
+                            : novedad.tiempo_respuesta_min_operativo &&
+                                novedad.novedadSubtipoNovedad
+                                  ?.tiempo_respuesta_min &&
+                                novedad.tiempo_respuesta_min_operativo <
+                                  novedad.novedadSubtipoNovedad
+                                    .tiempo_respuesta_min
+                              ? "text-green-700 dark:text-green-300"
+                              : novedad.tiempo_respuesta_min_operativo &&
+                                  novedad.novedadSubtipoNovedad
+                                    ?.tiempo_respuesta_min &&
+                                  novedad.tiempo_respuesta_min_operativo ===
+                                    novedad.novedadSubtipoNovedad
+                                      .tiempo_respuesta_min
+                                ? "text-amber-700 dark:text-amber-300"
+                                : "text-slate-500"
+                        }`}
+                      >
                         Tiempo Respuesta desde Despachado
                       </span>
-                      <p className={`text-lg font-bold ${
-                        (novedad.tiempo_respuesta_min_operativo !== null && novedad.tiempo_respuesta_min_operativo !== undefined && 
-                         novedad.novedadSubtipoNovedad?.tiempo_respuesta_min &&
-                         novedad.tiempo_respuesta_min_operativo > novedad.novedadSubtipoNovedad.tiempo_respuesta_min)
-                          ? 'text-red-900 dark:text-red-100'
-                          : (novedad.tiempo_respuesta_min_operativo && novedad.novedadSubtipoNovedad?.tiempo_respuesta_min &&
-                             novedad.tiempo_respuesta_min_operativo < novedad.novedadSubtipoNovedad.tiempo_respuesta_min)
-                          ? 'text-green-900 dark:text-green-100'
-                          : (novedad.tiempo_respuesta_min_operativo && novedad.novedadSubtipoNovedad?.tiempo_respuesta_min &&
-                             novedad.tiempo_respuesta_min_operativo === novedad.novedadSubtipoNovedad.tiempo_respuesta_min)
-                          ? 'text-amber-900 dark:text-amber-100'
-                          : 'text-slate-900 dark:text-slate-50'
-                      }`}>
-                        {novedad.tiempo_respuesta_min_operativo !== null && novedad.tiempo_respuesta_min_operativo !== undefined
+                      <p
+                        className={`text-lg font-bold ${
+                          novedad.tiempo_respuesta_min_operativo !== null &&
+                          novedad.tiempo_respuesta_min_operativo !==
+                            undefined &&
+                          novedad.novedadSubtipoNovedad?.tiempo_respuesta_min &&
+                          novedad.tiempo_respuesta_min_operativo >
+                            novedad.novedadSubtipoNovedad.tiempo_respuesta_min
+                            ? "text-red-900 dark:text-red-100"
+                            : novedad.tiempo_respuesta_min_operativo &&
+                                novedad.novedadSubtipoNovedad
+                                  ?.tiempo_respuesta_min &&
+                                novedad.tiempo_respuesta_min_operativo <
+                                  novedad.novedadSubtipoNovedad
+                                    .tiempo_respuesta_min
+                              ? "text-green-900 dark:text-green-100"
+                              : novedad.tiempo_respuesta_min_operativo &&
+                                  novedad.novedadSubtipoNovedad
+                                    ?.tiempo_respuesta_min &&
+                                  novedad.tiempo_respuesta_min_operativo ===
+                                    novedad.novedadSubtipoNovedad
+                                      .tiempo_respuesta_min
+                                ? "text-amber-900 dark:text-amber-100"
+                                : "text-slate-900 dark:text-slate-50"
+                        }`}
+                      >
+                        {novedad.tiempo_respuesta_min_operativo !== null &&
+                        novedad.tiempo_respuesta_min_operativo !== undefined
                           ? `${novedad.tiempo_respuesta_min_operativo} min`
                           : "—"}
                       </p>
                     </div>
                   </div>
-                  
+
                   {/* Tiempo de Respuesta desde reportado con fechas en misma fila */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
@@ -881,27 +986,33 @@ export default function NovedadDetalleModal({
                         Tiempo de Respuesta desde reportado
                       </span>
                       <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
-                        {(novedad.tiempo_respuesta_minutos ?? novedad.tiempo_respuesta_min)
+                        {(novedad.tiempo_respuesta_minutos ??
+                        novedad.tiempo_respuesta_min)
                           ? `${novedad.tiempo_respuesta_minutos ?? novedad.tiempo_respuesta_min} min`
                           : "—"}
                       </p>
                     </div>
-                    
+
                     {/* Tiempo Total */}
                     {(() => {
-                      const historialOrdenado = (Array.isArray(historial) ? historial : [])
-                        .sort((a, b) => {
-                          const fechaA = new Date(a.fecha_cambio || a.created_at);
-                          const fechaB = new Date(b.fecha_cambio || b.created_at);
-                          return fechaB - fechaA;
-                        });
-                      
+                      const historialOrdenado = (
+                        Array.isArray(historial) ? historial : []
+                      ).sort((a, b) => {
+                        const fechaA = new Date(a.fecha_cambio || a.created_at);
+                        const fechaB = new Date(b.fecha_cambio || b.created_at);
+                        return fechaB - fechaA;
+                      });
+
                       if (historialOrdenado.length > 0 && novedad?.created_at) {
                         const ultimoEstado = historialOrdenado[0];
                         const fechaCreacion = new Date(novedad.created_at);
-                        const fechaUltimoEstado = new Date(ultimoEstado.fecha_cambio || ultimoEstado.created_at);
-                        const tiempoTotalMin = Math.floor((fechaUltimoEstado - fechaCreacion) / 60000);
-                        
+                        const fechaUltimoEstado = new Date(
+                          ultimoEstado.fecha_cambio || ultimoEstado.created_at,
+                        );
+                        const tiempoTotalMin = Math.floor(
+                          (fechaUltimoEstado - fechaCreacion) / 60000,
+                        );
+
                         return (
                           <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
                             <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
@@ -916,50 +1027,75 @@ export default function NovedadDetalleModal({
                       return null;
                     })()}
                   </div>
-                  
+
                   {/* Fechas: Registrado | Despachado | Hora Llegada */}
                   <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
                     <div className="grid grid-cols-3 gap-4">
                       <div>
-                        <span className="text-xs font-medium text-slate-500">Registrado</span>
+                        <span className="text-xs font-medium text-slate-500">
+                          Registrado
+                        </span>
                         <p className="text-sm text-slate-900 dark:text-slate-50">
-                          {novedad.created_at ? formatFecha(novedad.created_at) : "—"}
+                          {novedad.created_at
+                            ? formatFecha(novedad.created_at)
+                            : "—"}
                         </p>
                       </div>
                       <div>
-                        <span className="text-xs font-medium text-slate-500">Despachado</span>
+                        <span className="text-xs font-medium text-slate-500">
+                          Despachado
+                        </span>
                         <p className="text-sm text-slate-900 dark:text-slate-50">
-                          {novedad.fecha_despacho ? formatFecha(novedad.fecha_despacho) : "—"}
+                          {novedad.fecha_despacho
+                            ? formatFecha(novedad.fecha_despacho)
+                            : "—"}
                         </p>
                       </div>
                       <div>
-                        <span className="text-xs font-medium text-slate-500">Hora Llegada</span>
-                        <p className={`text-sm font-medium ${
-                          novedad.fecha_llegada && novedad.fecha_despacho && novedad.novedadSubtipoNovedad?.tiempo_respuesta_min
-                            ? (() => {
-                                const llegada = new Date(novedad.fecha_llegada);
-                                const despachado = new Date(novedad.fecha_despacho);
-                                const tiempoReal = Math.round((llegada - despachado) / (1000 * 60));
-                                const tiempoEstimado = novedad.novedadSubtipoNovedad.tiempo_respuesta_min;
-                                
-                                if (tiempoReal > tiempoEstimado) {
-                                  return 'text-red-700 dark:text-red-300 font-bold';
-                                } else if (tiempoReal < tiempoEstimado) {
-                                  return 'text-green-700 dark:text-green-300 font-bold';
-                                } else {
-                                  return 'text-amber-700 dark:text-amber-300 font-bold';
-                                }
-                              })()
-                            : 'text-slate-900 dark:text-slate-50'
-                        }`}>
-                          {novedad.fecha_llegada ? formatFecha(novedad.fecha_llegada) : "—"}
+                        <span className="text-xs font-medium text-slate-500">
+                          Hora Llegada
+                        </span>
+                        <p
+                          className={`text-sm font-medium ${
+                            novedad.fecha_llegada &&
+                            novedad.fecha_despacho &&
+                            novedad.novedadSubtipoNovedad?.tiempo_respuesta_min
+                              ? (() => {
+                                  const llegada = new Date(
+                                    novedad.fecha_llegada,
+                                  );
+                                  const despachado = new Date(
+                                    novedad.fecha_despacho,
+                                  );
+                                  const tiempoReal = Math.round(
+                                    (llegada - despachado) / (1000 * 60),
+                                  );
+                                  const tiempoEstimado =
+                                    novedad.novedadSubtipoNovedad
+                                      .tiempo_respuesta_min;
+
+                                  if (tiempoReal > tiempoEstimado) {
+                                    return "text-red-700 dark:text-red-300 font-bold";
+                                  } else if (tiempoReal < tiempoEstimado) {
+                                    return "text-green-700 dark:text-green-300 font-bold";
+                                  } else {
+                                    return "text-amber-700 dark:text-amber-300 font-bold";
+                                  }
+                                })()
+                              : "text-slate-900 dark:text-slate-50"
+                          }`}
+                        >
+                          {novedad.fecha_llegada
+                            ? formatFecha(novedad.fecha_llegada)
+                            : "—"}
                         </p>
                       </div>
                     </div>
                   </div>
 
                   {/* Datos de Seguimiento — solo si requiere_seguimiento */}
-                  {(novedad.requiere_seguimiento === true || novedad.requiere_seguimiento === 1) && (
+                  {(novedad.requiere_seguimiento === true ||
+                    novedad.requiere_seguimiento === 1) && (
                     <div className="p-3 rounded-lg border border-primary-200 dark:border-primary-700 bg-primary-50/50 dark:bg-primary-900/10">
                       <span className="text-xs font-medium text-primary-600 dark:text-primary-400 flex items-center gap-1 mb-3">
                         <Clock size={13} />
@@ -967,40 +1103,61 @@ export default function NovedadDetalleModal({
                       </span>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <span className="text-xs text-slate-500 dark:text-slate-400">Fecha Llegada</span>
-                          <p className={`text-sm font-medium mt-0.5 ${
-                            novedad.fecha_llegada && novedad.reportado && novedad.novedadSubtipoNovedad?.tiempo_respuesta_min
-                              ? (() => {
-                                  const llegada = new Date(novedad.fecha_llegada);
-                                  const reportado = new Date(novedad.reportado);
-                                  const tiempoReal = Math.round((llegada - reportado) / (1000 * 60));
-                                  const tiempoEstimado = novedad.novedadSubtipoNovedad.tiempo_respuesta_min;
-                                  
-                                  if (tiempoReal > tiempoEstimado) {
-                                    return 'text-red-700 dark:text-red-300 font-bold';
-                                  } else if (tiempoReal < tiempoEstimado) {
-                                    return 'text-green-700 dark:text-green-300 font-bold';
-                                  } else {
-                                    return 'text-amber-700 dark:text-amber-300 font-bold';
-                                  }
-                                })()
-                              : 'text-slate-900 dark:text-slate-50'
-                          }`}>
+                          <span className="text-xs text-slate-500 dark:text-slate-400">
+                            Fecha Llegada
+                          </span>
+                          <p
+                            className={`text-sm font-medium mt-0.5 ${
+                              novedad.fecha_llegada &&
+                              novedad.reportado &&
+                              novedad.novedadSubtipoNovedad
+                                ?.tiempo_respuesta_min
+                                ? (() => {
+                                    const llegada = new Date(
+                                      novedad.fecha_llegada,
+                                    );
+                                    const reportado = new Date(
+                                      novedad.reportado,
+                                    );
+                                    const tiempoReal = Math.round(
+                                      (llegada - reportado) / (1000 * 60),
+                                    );
+                                    const tiempoEstimado =
+                                      novedad.novedadSubtipoNovedad
+                                        .tiempo_respuesta_min;
+
+                                    if (tiempoReal > tiempoEstimado) {
+                                      return "text-red-700 dark:text-red-300 font-bold";
+                                    } else if (tiempoReal < tiempoEstimado) {
+                                      return "text-green-700 dark:text-green-300 font-bold";
+                                    } else {
+                                      return "text-amber-700 dark:text-amber-300 font-bold";
+                                    }
+                                  })()
+                                : "text-slate-900 dark:text-slate-50"
+                            }`}
+                          >
                             {formatFecha(novedad.fecha_llegada)}
                           </p>
                         </div>
                         <div>
-                          <span className="text-xs text-slate-500 dark:text-slate-400">Fecha Cierre</span>
+                          <span className="text-xs text-slate-500 dark:text-slate-400">
+                            Fecha Cierre
+                          </span>
                           <p className="text-sm font-medium text-slate-900 dark:text-slate-50 mt-0.5">
                             {formatFecha(novedad.fecha_cierre)}
                           </p>
                         </div>
                         <div className="col-span-2">
-                          <span className="text-xs text-slate-500 dark:text-slate-400">Cerrado por</span>
+                          <span className="text-xs text-slate-500 dark:text-slate-400">
+                            Cerrado por
+                          </span>
                           <p className="text-sm font-medium text-slate-900 dark:text-slate-50 mt-0.5">
                             {novedad.usuarioCierre?.nombres
                               ? `${novedad.usuarioCierre.nombres} ${novedad.usuarioCierre.apellidos || novedad.usuarioCierre.apellido_paterno || ""}`.trim()
-                              : novedad.usuarioCierre?.username || novedad.usuarioCierre?.email || "—"}
+                              : novedad.usuarioCierre?.username ||
+                                novedad.usuarioCierre?.email ||
+                                "—"}
                           </p>
                         </div>
                       </div>
@@ -1025,69 +1182,78 @@ export default function NovedadDetalleModal({
                           {(Array.isArray(historial) ? historial : [])
                             .sort((a, b) => {
                               // Ordenar por fecha_cambio descendente (más reciente primero)
-                              const fechaA = new Date(a.fecha_cambio || a.created_at);
-                              const fechaB = new Date(b.fecha_cambio || b.created_at);
+                              const fechaA = new Date(
+                                a.fecha_cambio || a.created_at,
+                              );
+                              const fechaB = new Date(
+                                b.fecha_cambio || b.created_at,
+                              );
                               return fechaB - fechaA;
                             })
                             .map((h) => (
-                            <div
-                              key={h.id}
-                              className="flex items-start gap-3 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50"
-                            >
                               <div
-                                className="flex-shrink-0 w-2 h-2 mt-2 rounded-full"
-                                style={{
-                                  backgroundColor:
-                                    h.estadoNuevo?.color_hex || "#6b7280",
-                                }}
-                              ></div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  {h.estadoAnterior && (
-                                    <>
-                                      <span
-                                        className="text-xs px-2 py-0.5 rounded"
-                                        style={{
-                                          backgroundColor: `${h.estadoAnterior?.color_hex}20`,
-                                          color: h.estadoAnterior?.color_hex,
-                                        }}
-                                      >
-                                        {h.estadoAnterior?.nombre}
-                                      </span>
-                                      <span className="text-slate-400">→</span>
-                                    </>
-                                  )}
-                                  <span
-                                    className="text-xs px-2 py-0.5 rounded font-medium"
-                                    style={{
-                                      backgroundColor: `${h.estadoNuevo?.color_hex}30`,
-                                      color: h.estadoNuevo?.color_hex,
-                                    }}
-                                  >
-                                    {h.estadoNuevo?.nombre}
-                                  </span>
-                                </div>
-                                <p className="text-xs text-slate-500 mt-1">
-                                  {formatFecha(h.fecha_cambio || h.created_at)}
-                                  {h.historialEstadoNovedadUsuario &&
-                                    ` • ${
-                                      h.historialEstadoNovedadUsuario.nombres ||
-                                      h.historialEstadoNovedadUsuario.username
-                                    }`}
-                                  {h.tiempo_en_estado_min !== null && h.tiempo_en_estado_min !== undefined &&
-                                    ` • ${h.tiempo_en_estado_min} min en estado anterior`}
-                                </p>
-                                {h.observaciones && (
-                                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 italic whitespace-pre-wrap">
-                                    "{h.observaciones}"
+                                key={h.id}
+                                className="flex items-start gap-3 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50"
+                              >
+                                <div
+                                  className="flex-shrink-0 w-2 h-2 mt-2 rounded-full"
+                                  style={{
+                                    backgroundColor:
+                                      h.estadoNuevo?.color_hex || "#6b7280",
+                                  }}
+                                <div>
+                                  <span className="text-xs font-medium text-slate-500">Registrado</span>
+                                  <p className="text-sm text-slate-900 dark:text-slate-50">
+                                    {novedad.fecha_hora_ocurrencia ? formatFecha(novedad.fecha_hora_ocurrencia) : "—"}
                                   </p>
-                                )}
+                                </div>
+                                          className="text-xs px-2 py-0.5 rounded"
+                                          style={{
+                                            backgroundColor: `${h.estadoAnterior?.color_hex}20`,
+                                            color: h.estadoAnterior?.color_hex,
+                                          }}
+                                        >
+                                          {h.estadoAnterior?.nombre}
+                                        </span>
+                                        <span className="text-slate-400">
+                                          →
+                                        </span>
+                                      </>
+                                    )}
+                                    <span
+                                      className="text-xs px-2 py-0.5 rounded font-medium"
+                                      style={{
+                                        backgroundColor: `${h.estadoNuevo?.color_hex}30`,
+                                        color: h.estadoNuevo?.color_hex,
+                                      }}
+                                    >
+                                      {h.estadoNuevo?.nombre}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-slate-500 mt-1">
+                                    {formatFecha(
+                                      h.fecha_cambio || h.created_at,
+                                    )}
+                                    {h.historialEstadoNovedadUsuario &&
+                                      ` • ${
+                                        h.historialEstadoNovedadUsuario
+                                          .nombres ||
+                                        h.historialEstadoNovedadUsuario.username
+                                      }`}
+                                    {h.tiempo_en_estado_min !== null &&
+                                      h.tiempo_en_estado_min !== undefined &&
+                                      ` • ${h.tiempo_en_estado_min} min en estado anterior`}
+                                  </p>
+                                  {h.observaciones && (
+                                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 italic whitespace-pre-wrap">
+                                      "{h.observaciones}"
+                                    </p>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            ))}
                         </div>
                       </>
-                    
                     )}
                   </div>
                 </div>
@@ -1110,18 +1276,21 @@ export default function NovedadDetalleModal({
           </button>
 
           {/* Botón Despachar - visible en pestaña 3 (Recursos) y 4 (Seguimiento) cuando showDespacharButton=true y estado_novedad_id === 1 */}
-          {showDespacharButton && novedad?.estado_novedad_id === 1 && onDespachar && (activeTab === 3 || activeTab === 4) && (
-            <button
-              onClick={() => {
-                onDespachar(novedad);
-                onClose(); // Cerrar modal de detalle al abrir modal de despacho
-              }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-700 text-white hover:bg-primary-800 font-medium"
-            >
-              <Truck size={18} />
-              Despachar
-            </button>
-          )}
+          {showDespacharButton &&
+            novedad?.estado_novedad_id === 1 &&
+            onDespachar &&
+            (activeTab === 3 || activeTab === 4) && (
+              <button
+                onClick={() => {
+                  onDespachar(novedad);
+                  onClose(); // Cerrar modal de detalle al abrir modal de despacho
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-700 text-white hover:bg-primary-800 font-medium"
+              >
+                <Truck size={18} />
+                Despachar
+              </button>
+            )}
         </div>
       </div>
     </div>
