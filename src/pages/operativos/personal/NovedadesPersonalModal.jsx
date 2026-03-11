@@ -516,6 +516,17 @@ export default function NovedadesPersonalModal({
           // Usar getLocalDatetime() igual que en vehículos para consistencia
           const fechaLocal = getLocalDatetime();
 
+          // Debug: registrar payload de historial antes de crear
+          console.debug(
+            "[NovedadesPersonalModal] crearHistorialNovedad payload:",
+            {
+              novedadPrincipalId,
+              mensaje: `[${timestamp} - ${nombrePersonal}] Cambio de estado a: ${estadoNuevo?.nombre || "Nuevo estado"}`,
+              nuevoEstadoId,
+              fechaLocal,
+            },
+          );
+
           await crearHistorialNovedad(
             novedadPrincipalId,
             `[${timestamp} - ${nombrePersonal}] Cambio de estado a: ${estadoNuevo?.nombre || "Nuevo estado"}`,
@@ -553,6 +564,15 @@ export default function NovedadesPersonalModal({
           payload.atendido = getLocalDatetime();
         }
       }
+
+      // Debug: registrar payload antes de updateNovedadPersonal
+      console.debug("[NovedadesPersonalModal] updateNovedadPersonal payload:", {
+        turnoId,
+        personalId: personal.id,
+        cuadranteId: cuadrante.id,
+        novedadId: selectedNovedad.id,
+        payload,
+      });
 
       await updateNovedadPersonal(
         turnoId,
