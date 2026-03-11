@@ -24,21 +24,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 
-/**
- * Obtiene la fecha/hora actual local en formato "YYYY-MM-DD HH:mm:ss" (sin Z).
- * El backend interpreta este formato como hora local Peru sin conversión timezone.
- * Igual que la usada en DespacharModal para consistencia.
- */
-const getLocalDatetime = () => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  const hours = String(now.getHours()).padStart(2, "0");
-  const minutes = String(now.getMinutes()).padStart(2, "0");
-  const seconds = String(now.getSeconds()).padStart(2, "0");
-  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-};
+// Usar getNowLocal desde dateHelper (respeta APP_TIMEZONE)
 
 // Servicios
 import {
@@ -481,7 +467,7 @@ export default function NovedadesPersonalModal({
           nuevasObservaciones !== (selectedNovedad.observaciones || "")
         ) {
           try {
-            const fechaLocal = getLocalDatetime();
+            const fechaLocal = getNowLocal();
 
             await crearHistorialNovedad(
               novedadPrincipalId,
@@ -513,8 +499,8 @@ export default function NovedadesPersonalModal({
           const nombrePersonal = formatPersonalNombre(personal?.personal);
           const estadoNuevo = estadosRol.find((e) => e.id === nuevoEstadoId);
 
-          // Usar getLocalDatetime() igual que en vehículos para consistencia
-          const fechaLocal = getLocalDatetime();
+          // Usar getNowLocal() igual que en vehículos para consistencia
+          const fechaLocal = getNowLocal();
 
           // Debug: registrar payload de historial antes de crear
           console.debug(
@@ -561,7 +547,7 @@ export default function NovedadesPersonalModal({
         payload.estado_novedad_id = nuevoEstadoId;
         // 🐛 FIX CORRECCIÓN: Enviar atendido con fecha local correcta cuando cambia a RESUELTA
         if (nuevoEstadoId === 6) {
-          payload.atendido = getLocalDatetime();
+          payload.atendido = getNowLocal();
         }
       }
 

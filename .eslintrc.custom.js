@@ -3,6 +3,8 @@
  * Archivo: .eslintrc.custom.js
  */
 
+/* global module */
+
 module.exports = {
   // Regla personalizada para detectar uso directo de Date
   rules: {
