@@ -24,27 +24,41 @@
  * - Formato consistente con backend: "YYYY-MM-DD HH:mm:ss"
  */
 
-// Timezone por defecto: Perú (desde .env.local)
-const DEFAULT_TIMEZONE = import.meta.env.VITE_APP_TIMEZONE || "America/Lima";
+// Timezone por defecto: intenta leer ambas variantes de env (.env.APP_TIMEZONE
+// o VITE_APP_TIMEZONE), luego fallback a America/Lima.
+const DEFAULT_TIMEZONE =
+  import.meta.env.APP_TIMEZONE ||
+  import.meta.env.VITE_APP_TIMEZONE ||
+  "America/Lima";
 
 /**
- * Formatea un Date a string "YYYY-MM-DD HH:mm:ss" en la timezone local.
- * Evita conversión a UTC que causa problemas en DATETIME/TIMESTAMP.
- *
- * @param {Date} dateObj - Fecha a formatear
- * @returns {string} "YYYY-MM-DD HH:mm:ss" en hora local
+ * Formatea una fecha en la timezone configurada a "YYYY-MM-DD HH:mm:ss".
+ * Usa Intl.DateTimeFormat con la zona configurada para evitar conversiones UTC
+ * indeseadas cuando el navegador hace .toISOString().
  */
-export const formatDateTimeToString = (dateObj) => {
-  // Detectar si estamos en Railway (producción)
-  const isRailway =
-    window.location.hostname.includes("railway.app") ||
-    window.location.hostname !== "localhost";
+const formatInConfiguredTimezone = (dateObj) => {
+  try {
+    const tz = DEFAULT_TIMEZONE;
+    // Formato 'en-CA' produce YYYY-MM-DD, combinamos con la hora.
+    const formatted = new Intl.DateTimeFormat("en-CA", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+      timeZone: tz,
+    })
+      .format(dateObj)
+      .replace(",", "");
 
-  if (isRailway) {
-    // En Railway, enviar en formato UTC para evitar conversión incorrecta
-    return dateObj.toISOString().slice(0, 19).replace("T", " ");
-  } else {
-    // En localhost, usar formato local (funciona correctamente)
+    // Asegurar separadores con guiones
+    return formatted.replace(/\//g, "-").trim();
+  } catch (err) {
+    // Usar el error para evitar warning de variable no usada, pero no interrumpir flow
+    void err;
+    // Fallback robusto: usar opciones locales sin timezone explícito
     return dateObj
       .toLocaleString("en-CA", {
         year: "numeric",
@@ -61,6 +75,18 @@ export const formatDateTimeToString = (dateObj) => {
 };
 
 /**
+ * Formatea un Date a string "YYYY-MM-DD HH:mm:ss" en la timezone local.
+ * Evita conversión a UTC que causa problemas en DATETIME/TIMESTAMP.
+ *
+ * @param {Date} dateObj - Fecha a formatear
+ * @returns {string} "YYYY-MM-DD HH:mm:ss" en hora local
+ */
+export const formatDateTimeToString = (dateObj) => {
+  // Usar la timezone configurada en DEFAULT_TIMEZONE para formatear la fecha.
+  return formatInConfiguredTimezone(dateObj);
+};
+
+/**
  * Obtiene la fecha/hora actual en timezone local.
  * Retorna string "YYYY-MM-DD HH:mm:ss" para enviar al backend.
  *
@@ -72,19 +98,7 @@ export const formatDateTimeToString = (dateObj) => {
  */
 export const getNowLocal = () => {
   const now = new Date();
-
-  // Detectar si estamos en Railway (producción)
-  const isRailway =
-    window.location.hostname.includes("railway.app") ||
-    window.location.hostname !== "localhost";
-
-  if (isRailway) {
-    // En Railway, usar toISOString() para evitar conversión incorrecta
-    return now.toISOString().slice(0, 19).replace("T", " ");
-  } else {
-    // En localhost, usar formato local
-    return formatDateTimeToString(now);
-  }
+  return formatInConfiguredTimezone(now);
 };
 
 /**
@@ -217,7 +231,9 @@ export const formatForInput = (backendDate) => {
   try {
     const dateObj = new Date(backendDate);
     if (isNaN(dateObj.getTime())) return "";
-    return dateObj.toISOString().slice(0, 16);
+    // Formatear en timezone configurada y devolver con T separator
+    const formatted = formatInConfiguredTimezone(dateObj); // YYYY-MM-DD HH:mm:ss
+    return formatted.replace(" ", "T").slice(0, 16);
   } catch {
     return "";
   }

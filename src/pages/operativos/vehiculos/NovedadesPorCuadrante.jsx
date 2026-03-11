@@ -43,23 +43,10 @@ import NovedadDetalleModal from "../../../components/NovedadDetalleModal.jsx";
 import {
   formatForDisplay,
   safeConvertToTimezone,
+  getNowLocal,
 } from "../../../utils/dateHelper";
 
-/**
- * Obtiene la fecha/hora actual local en formato "YYYY-MM-DD HH:mm:ss" (sin Z).
- * El backend interpreta este formato como hora local Peru sin conversión timezone.
- * Igual que la usada en DespacharModal para consistencia.
- */
-const getLocalDatetime = () => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  const hours = String(now.getHours()).padStart(2, "0");
-  const minutes = String(now.getMinutes()).padStart(2, "0");
-  const seconds = String(now.getSeconds()).padStart(2, "0");
-  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-};
+// Usar getNowLocal desde dateHelper (respeta APP_TIMEZONE)
 
 /**
  * Formatea fecha/hora a formato legible (usando dateHelper)
@@ -206,8 +193,9 @@ export default function NovedadesPorCuadrante() {
           // Intentar submit del formulario o click en botón
           try {
             form.requestSubmit();
-          } catch (e) {
-            // Alternativa: buscar botón de submit
+          } catch (err) {
+            // Registrar error leve y fallback a click en el botón de submit
+            console.debug("requestSubmit fallback:", err);
             const submitButton = document.querySelector(
               '#edit-novedad-form button[type="submit"]',
             );
@@ -327,7 +315,6 @@ export default function NovedadesPorCuadrante() {
     // Obtener el estado actual de la novedad principal
     const estadoActualId = novedad.novedad?.estado_novedad_id || 1;
     const resultadoActual = novedad.resultado || "PENDIENTE";
-    const esResuelta = resultadoActual === "RESUELTO";
 
     setEditData({
       estado_novedad_id: estadoActualId,
@@ -401,7 +388,7 @@ export default function NovedadesPorCuadrante() {
             nuevasObservaciones !== (selectedNovedadEdit.observaciones || "")
           ) {
             try {
-              const fechaLocal = getLocalDatetime();
+              const fechaLocal = getNowLocal();
 
               await crearHistorialNovedad(
                 novedadPrincipalId,
@@ -429,8 +416,8 @@ export default function NovedadesPorCuadrante() {
         if (cambioEstado && novedadPrincipalId) {
           try {
             // Si hay cambio de estado, enviarlo al historial con fecha local
-            // Usar getLocalDatetime() igual que en DespacharModal para consistencia
-            const fechaLocal = getLocalDatetime();
+            // Usar getNowLocal() (dateHelper) para consistencia
+            const fechaLocal = getNowLocal();
 
             // Debug: registrar payload de historial antes de enviar
             console.debug(
@@ -486,7 +473,7 @@ export default function NovedadesPorCuadrante() {
             ? { fecha_llegada: fechaLlegadaPayload }
             : {}),
           // 🐛 FIX CORRECCIÓN: Enviar atendido con fecha local correcta cuando es RESUELTA (siempre)
-          ...(nuevoEstadoId === 6 ? { atendido: getLocalDatetime() } : {}),
+          ...(nuevoEstadoId === 6 ? { atendido: getNowLocal() } : {}),
         };
 
         // Debug: registrar payload y conversiones antes de actualizar novedad
