@@ -195,7 +195,10 @@ export default function NovedadesPorCuadrante() {
             form.requestSubmit();
           } catch (err) {
             // Registrar error leve y fallback a click en el botón de submit
-            console.debug("requestSubmit fallback:", err);
+            // Debug (guarded)
+            import("../../../utils/debug").then(({ debug }) =>
+              debug("requestSubmit fallback:", err),
+            );
             const submitButton = document.querySelector(
               '#edit-novedad-form button[type="submit"]',
             );
@@ -419,15 +422,14 @@ export default function NovedadesPorCuadrante() {
             // Usar getNowLocal() (dateHelper) para consistencia
             const fechaLocal = getNowLocal();
 
-            // Debug: registrar payload de historial antes de enviar
-            console.debug(
-              "[NovedadesPorCuadrante] crearHistorialNovedad payload:",
-              {
+            // Debug: registrar payload de historial antes de enviar (guardado detrás de VITE_DEBUG)
+            import("../../../utils/debug").then(({ debug }) =>
+              debug("[NovedadesPorCuadrante] crearHistorialNovedad payload:", {
                 novedadPrincipalId,
                 mensaje: `Cambio de estado a: ${editData.resultado}`,
                 nuevoEstadoId,
                 fechaLocal,
-              },
+              }),
             );
 
             await crearHistorialNovedad(
@@ -476,14 +478,16 @@ export default function NovedadesPorCuadrante() {
           ...(nuevoEstadoId === 6 ? { atendido: getNowLocal() } : {}),
         };
 
-        // Debug: registrar payload y conversiones antes de actualizar novedad
-        console.debug("[NovedadesPorCuadrante] updateNovedad payload:", {
-          turnoId,
-          vehiculoId,
-          cuadranteId,
-          novedadId: selectedNovedadEdit.id,
-          payload,
-        });
+        // Debug: registrar payload y conversiones antes de actualizar novedad (guarded)
+        import("../../../utils/debug").then(({ debug }) =>
+          debug("[NovedadesPorCuadrante] updateNovedad payload:", {
+            turnoId,
+            vehiculoId,
+            cuadranteId,
+            novedadId: selectedNovedadEdit.id,
+            payload,
+          }),
+        );
 
         await operativosNovedadesService.updateNovedad(
           turnoId,

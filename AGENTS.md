@@ -1,6 +1,7 @@
 # City Security Frontend V2 - Documentación para Agentes AI
 
 ## 📋 Tabla de Contenidos
+
 - [Definición del Alcance del Frontend](#definición-del-alcance-del-frontend)
 - [Arquitectura Frontend](#arquitectura-frontend)
 - [Patrones de Software Aplicados](#patrones-de-software-aplicados)
@@ -14,9 +15,11 @@
 ## 🎯 Definición del Alcance del Frontend
 
 ### **Propósito Principal**
+
 Aplicación web moderna para la gestión integral de seguridad ciudadana, permitiendo el control de operativos policiales, registro de novedades, gestión de personal y vehículos en tiempo real.
 
 ### **Módulos Principales Frontend**
+
 1. **Dashboard** - Panel principal con estadísticas y KPIs
 2. **Administración** - Gestión de usuarios, roles y permisos
 3. **Personal** - Gestión de personal policial y asignaciones
@@ -27,7 +30,26 @@ Aplicación web moderna para la gestión integral de seguridad ciudadana, permit
 8. **Operativos** - Gestión de turnos y asignaciones operativas
 9. **Reportes** - Generación de informes y auditoría
 
+---
+
+## 🐞 Debug logging (developer guide)
+
+To avoid noisy logs in production and to make debugging easy during development, the frontend exposes a global debug helper.
+
+- Env var: set `VITE_DEBUG=true` in `.env.local` (or `false` in production).
+- Utility: `src/utils/debug.js` exports `isDebug()` and `debug(...args)`.
+- Usage: import `{ debug }` and call `debug('msg', payload)` or use dynamic import to avoid bundling overhead for low-frequency logs:
+
+```js
+import("../../utils/debug").then(({ debug }) => debug("payload", payload));
+```
+
+This ensures debug messages are only printed when `VITE_DEBUG` is `true`. For date-specific debugging, create a separate env var `VITE_DEBUG_DATES` and check that inside the helper.
+
+Make sure to gate heavy or frequent logs behind the debug flag to avoid performance impact in production.
+
 ### **Características Técnicas**
+
 - **SPA (Single Page Application)** con React 18
 - **Responsive Design** para dispositivos móviles y desktop
 - **Estado Global** con Zustand
@@ -41,6 +63,7 @@ Aplicación web moderna para la gestión integral de seguridad ciudadana, permit
 ## 🏗️ Arquitectura Frontend
 
 ### **Estructura del Proyecto**
+
 ```
 src/
 ├── components/
@@ -94,6 +117,7 @@ src/
 ```
 
 ### **Flujo de Datos Frontend**
+
 ```
 Componentes → Services → API → Backend
      ↓           ↓         ↓
@@ -101,6 +125,7 @@ Store ← Utils ← Hooks ← Estado
 ```
 
 ### **Arquitectura de Componentes**
+
 - **Presentational Components**: Componentes visuales puros
 - **Container Components**: Lógica de negocio y estado
 - **Custom Hooks**: Lógica reutilizable
@@ -112,6 +137,7 @@ Store ← Utils ← Hooks ← Estado
 ## 🔧 Patrones de Software Aplicados
 
 ### **Patrones de Diseño Frontend**
+
 1. **Component-Based Architecture** - Componentes React modulares
 2. **Custom Hooks Pattern** - Lógica reutilizable con hooks
 3. **Service Layer Pattern** - Separación de llamadas API
@@ -122,6 +148,7 @@ Store ← Utils ← Hooks ← Estado
 8. **Compound Components** - Componentes compuestos
 
 ### **Patrones de Estado**
+
 1. **State Management** - Zustand para estado global
 2. **Local State** - useState para estado local
 3. **Derived State** - Estados calculados
@@ -129,6 +156,7 @@ Store ← Utils ← Hooks ← Estado
 5. **Form State** - React Hook Form para formularios
 
 ### **Patrones de Programación**
+
 1. **Functional Programming** - React hooks y funciones puras
 2. **Async/Await Pattern** - Manejo de operaciones asíncronas
 3. **Error Boundary Pattern** - Manejo de errores
@@ -141,6 +169,7 @@ Store ← Utils ← Hooks ← Estado
 ## 💻 Lenguajes y Librerías
 
 ### **Core Frontend Stack**
+
 ```javascript
 // Framework UI
 React: ^18.2.0          // Framework principal
@@ -172,6 +201,7 @@ clsx: ^1.2.0             # Class names utilities
 ```
 
 ### **DevTools y Build**
+
 ```javascript
 // Build Tool
 Vite: ^4.0.0             // Build tool y dev server
@@ -186,6 +216,7 @@ React Testing Library: ^13.4.0 // Component testing
 ```
 
 ### **Dependencias de Desarrollo**
+
 ```json
 {
   "devDependencies": {
@@ -203,6 +234,7 @@ React Testing Library: ^13.4.0 // Component testing
 ## 📝 Estándares y Nomenclatura
 
 ### **Nomenclatura de Archivos**
+
 ```
 # Componentes React
 PascalCase.jsx → NovedadDetalleModal.jsx
@@ -226,6 +258,7 @@ UPPER_SNAKE_CASE → API_ENDPOINTS
 ```
 
 ### **Nomenclatura de Variables**
+
 ```javascript
 // Variables y funciones: camelCase
 const novedadActiva = null;
@@ -246,6 +279,7 @@ const ModalContainer = () => {};
 ```
 
 ### **Estructura de Carpetas Detallada**
+
 ```
 src/
 ├── components/
@@ -299,6 +333,7 @@ src/
 ```
 
 ### **Estándares de Código**
+
 - **Indentación**: 2 espacios (configuración VSCode/Prettier)
 - **Quotes**: Single quotes para strings
 - **Semicolons**: Required al final de statements
@@ -312,6 +347,7 @@ src/
 ## 🎨 Identidad Visual - Colores
 
 ### **Paleta de Colores Principal - Verde Oliva**
+
 ```css
 /* Primary Colors - Verde Oliva */
 bg-primary-50:   #f0f9e8   /* Fondo muy claro */
@@ -340,6 +376,7 @@ bg-white:         #ffffff   /* Fondo blanco */
 ```
 
 ### **Colores Semánticos**
+
 ```css
 /* Success States */
 bg-green-50:      #f0fdf4   /* Success fondo */
@@ -363,6 +400,7 @@ text-blue-600:    #2563eb   /* Info texto */
 ```
 
 ### **Uso de Botones - Ejemplos Prácticos**
+
 ```jsx
 // Botón Primario (Verde Oliva)
 <button className="bg-primary-700 hover:bg-primary-800 text-white px-4 py-2 rounded-lg font-medium transition-colors">
@@ -386,6 +424,7 @@ text-blue-600:    #2563eb   /* Info texto */
 ```
 
 ### **Sistema de Design Tokens**
+
 ```css
 /* Spacing */
 spacing-1: 0.25rem (4px)
@@ -416,6 +455,7 @@ rounded-2xl: 1rem (16px)
 ## 📋 Menú del Sistema - Funcionalidades Frontend
 
 ### **🏠 Dashboard**
+
 - **Descripción**: Panel principal con resumen del sistema
 - **Componentes**: `DashboardPage.jsx`, `StatsCard.jsx`, `Chart.jsx`
 - **Funcionalidades**:
@@ -427,7 +467,9 @@ rounded-2xl: 1rem (16px)
   - Filtros por rango de fechas
 
 ### **👥 Administración**
+
 #### **Usuarios**
+
 - **Descripción**: Gestión de cuentas de usuario
 - **Componentes**: `UsersPage.jsx`, `UserForm.jsx`, `UserCard.jsx`
 - **Funcionalidades**:
@@ -440,6 +482,7 @@ rounded-2xl: 1rem (16px)
   - Paginación con infinite scroll
 
 #### **Roles**
+
 - **Descripción**: Definición de roles y permisos
 - **Componentes**: `RolesPage.jsx`, `RoleForm.jsx`, `PermissionsTree.jsx`
 - **Funcionalidades**:
@@ -450,6 +493,7 @@ rounded-2xl: 1rem (16px)
   - Vista previa de permisos antes de guardar
 
 #### **Permisos**
+
 - **Descripción**: Configuración granular de permisos
 - **Componentes**: `PermissionsPage.jsx`, `PermissionCard.jsx`
 - **Funcionalidades**:
@@ -459,6 +503,7 @@ rounded-2xl: 1rem (16px)
   - Auditoría de permisos con logs de cambios
 
 ### **👤 Personal**
+
 - **Descripción**: Gestión del personal policial
 - **Componentes**: `PersonalPage.jsx`, `PersonalCard.jsx`, `PersonalForm.jsx`
 - **Funcionalidades**:
@@ -470,6 +515,7 @@ rounded-2xl: 1rem (16px)
   - Búsqueda por nombre, DNI, placa
 
 ### **🚗 Vehículos**
+
 - **Descripción**: Gestión de flota vehicular
 - **Componentes**: `VehiculosPage.jsx`, `VehiculoCard.jsx`, `MaintenanceForm.jsx`
 - **Funcionalidades**:
@@ -481,6 +527,7 @@ rounded-2xl: 1rem (16px)
   - Control de combustible con gráficos
 
 ### **🚨 Novedades**
+
 - **Descripción**: Sistema central de incidentes
 - **Componentes**: `NovedadesPage.jsx`, `NovedadCard.jsx`, `NovedadModal.jsx`
 - **Funcionalidades**:
@@ -493,7 +540,9 @@ rounded-2xl: 1rem (16px)
   - Mapa de incidentes con clustering
 
 ### **📍 Calles**
+
 #### **Calles**
+
 - **Descripción**: Gestión del catastro vial
 - **Componentes**: `CallesPage.jsx`, `CalleForm.jsx`, `CalleMap.jsx`
 - **Funcionalidades**:
@@ -504,6 +553,7 @@ rounded-2xl: 1rem (16px)
   - Conexiones entre calles con graph visual
 
 #### **Sectores**
+
 - **Descripción**: División territorial en sectores
 - **Componentes**: `SectoresPage.jsx`, `SectorForm.jsx`, `SectorMap.jsx`
 - **Funcionalidades**:
@@ -513,6 +563,7 @@ rounded-2xl: 1rem (16px)
   - Responsables por sector con user picker
 
 #### **Cuadrantes**
+
 - **Descripción**: División operativa en cuadrantes
 - **Componentes**: `CuadrantesPage.jsx`, `CuadranteForm.jsx`, `CuadranteGrid.jsx`
 - **Funcionalidades**:
@@ -522,7 +573,9 @@ rounded-2xl: 1rem (16px)
   - Priorización de atención con color coding
 
 ### **📋 Catálogos**
+
 #### **Unidades/Oficinas**
+
 - **Descripción**: Unidades organizacionales
 - **Componentes**: `UnidadesPage.jsx`, `UnidadForm.jsx`, `OrgChart.jsx`
 - **Funcionalidades**:
@@ -532,6 +585,7 @@ rounded-2xl: 1rem (16px)
   - Contactos y ubicación con map integration
 
 #### **Radios TETRA**
+
 - **Descripción**: Equipamiento de comunicación
 - **Componentes**: `RadiosPage.jsx`, `RadioForm.jsx`, `RadioStatus.jsx`
 - **Funcionalidades**:
@@ -541,6 +595,7 @@ rounded-2xl: 1rem (16px)
   - Mantenimiento con schedule calendar
 
 #### **Tipos de Novedad**
+
 - **Descripción**: Clasificación de incidentes
 - **Componentes**: `TiposNovedadPage.jsx`, `TipoNovedadForm.jsx`, `CategoryTree.jsx`
 - **Funcionalidades**:
@@ -550,7 +605,9 @@ rounded-2xl: 1rem (16px)
   - Prioridades asociadas with color coding
 
 ### **🚓 Operativos**
+
 #### **Turnos**
+
 - **Descripción**: Gestión de turnos operativos
 - **Componentes**: `TurnosPage.jsx`, `TurnoForm.jsx`, `TurnoCalendar.jsx`
 - **Funcionalidades**:
@@ -561,6 +618,7 @@ rounded-2xl: 1rem (16px)
   - Reportes de turno con export PDF
 
 #### **Vehículos**
+
 - **Descripción**: Operativos por vehículo
 - **Componentes**: `OperativosVehiculosPage.jsx`, `VehiculoOperativoCard.jsx`
 - **Funcionalidades**:
@@ -571,6 +629,7 @@ rounded-2xl: 1rem (16px)
   - Control de combustible with fuel log
 
 #### **Personal**
+
 - **Descripción**: Operativos por personal
 - **Componentes**: `OperativosPersonalPage.jsx`, `PersonalOperativoCard.jsx`
 - **Funcionalidades**:
@@ -581,7 +640,9 @@ rounded-2xl: 1rem (16px)
   - Reportes de actividad with heat maps
 
 ### **📊 Reportes**
+
 #### **Vehículos**
+
 - **Descripción**: Reportes de flota vehicular
 - **Componentes**: `ReportesVehiculosPage.jsx`, `VehicleReportChart.jsx`
 - **Funcionalidades**:
@@ -592,6 +653,7 @@ rounded-2xl: 1rem (16px)
   - Disponibilidad with utilization metrics
 
 #### **Auditoría**
+
 - **Descripción**: Registro de actividades del sistema
 - **Componentes**: `AuditoriaPage.jsx`, `AuditLogTable.jsx`
 - **Funcionalidades**:
@@ -606,21 +668,26 @@ rounded-2xl: 1rem (16px)
 ## 🔐 Seguridad y Control de Acceso Frontend
 
 ### **Sistema RBAC (Role-Based Access Control)**
+
 ```javascript
 // Roles del sistema
 const ROLE_SLUGS = {
   SUPER_ADMIN: "super_admin",
-  ADMIN: "admin", 
+  ADMIN: "admin",
   OPERADOR: "operador",
   SUPERVISOR: "supervisor",
   CONSULTA: "consulta",
-  USUARIO_BASICO: "usuario_basico"
+  USUARIO_BASICO: "usuario_basico",
 };
 
 // Permisos por módulo
 const ACTION_PERMISSIONS = {
-  "operativos.personal.novedades.delete": ["operativos.personal.novedades.delete"],
-  "operativos.vehiculos.novedades.delete": ["operativos.vehiculos.novedades.delete"],
+  "operativos.personal.novedades.delete": [
+    "operativos.personal.novedades.delete",
+  ],
+  "operativos.vehiculos.novedades.delete": [
+    "operativos.vehiculos.novedades.delete",
+  ],
   "novedades.incidentes.create": ["novedades.incidentes.create"],
   "novedades.incidentes.update": ["novedades.incidentes.update"],
   // ... más permisos
@@ -628,24 +695,28 @@ const ACTION_PERMISSIONS = {
 ```
 
 ### **Validación de Acceso Frontend**
+
 - **Nivel de Ruta**: Protección de páginas con `ProtectedRoute`
 - **Nivel de Componente**: Ocultar/mostrar elementos con `canPerformAction`
 - **Nivel de API**: Validación en backend (doble verificación)
 - **Nivel de Datos**: Filtros por permisos en servicios
 
 ### **Componentes de Seguridad**
+
 ```jsx
 // Protected Route Component
 <ProtectedRoute requiredPermission="novedades.incidentes.create">
   <NovedadesPage />
-</ProtectedRoute>
+</ProtectedRoute>;
 
 // Conditional Rendering
-{canPerformAction(user, "operativos.personal.novedades.delete") && (
-  <button onClick={handleDelete}>
-    <Trash2 />
-  </button>
-)}
+{
+  canPerformAction(user, "operativos.personal.novedades.delete") && (
+    <button onClick={handleDelete}>
+      <Trash2 />
+    </button>
+  );
+}
 ```
 
 ---
@@ -653,6 +724,7 @@ const ACTION_PERMISSIONS = {
 ## 🚀 Desarrollo y Despliegue Frontend
 
 ### **Variables de Entorno**
+
 ```bash
 # .env.local
 VITE_API_BASE_URL=http://localhost:3000/api
@@ -663,6 +735,7 @@ VITE_ENABLE_MOCK_API=false
 ```
 
 ### **Comandos de Desarrollo**
+
 ```bash
 # Instalación de dependencias
 npm install
@@ -687,39 +760,41 @@ npm run type-check
 ```
 
 ### **Configuración Vite**
+
 ```javascript
 // vite.config.js
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
   build: {
-    outDir: 'dist',
+    outDir: "dist",
     sourcemap: true,
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom'],
-          router: ['react-router-dom'],
-          ui: ['lucide-react', 'react-hot-toast']
-        }
-      }
-    }
+          vendor: ["react", "react-dom"],
+          router: ["react-router-dom"],
+          ui: ["lucide-react", "react-hot-toast"],
+        },
+      },
+    },
   },
   server: {
     port: 5173,
     proxy: {
-      '/api': {
-        target: 'http://localhost:3000',
-        changeOrigin: true
-      }
-    }
-  }
-})
+      "/api": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+      },
+    },
+  },
+});
 ```
 
 ### **Build de Producción**
+
 - **Output**: `dist/`
 - **Optimización**: Code splitting por vendor
 - **Minificación**: JavaScript y CSS con Terser
@@ -732,23 +807,24 @@ export default defineConfig({
 ## 📞 Estructura de Componentes Reutilizables
 
 ### **Componentes Common**
+
 ```jsx
 // Button.jsx - Botón reutilizable
-export const Button = ({ 
-  variant = 'primary', 
-  size = 'md', 
-  children, 
-  ...props 
+export const Button = ({
+  variant = "primary",
+  size = "md",
+  children,
+  ...props
 }) => {
-  const baseClasses = 'font-medium rounded-lg transition-colors';
+  const baseClasses = "font-medium rounded-lg transition-colors";
   const variantClasses = {
-    primary: 'bg-primary-700 hover:bg-primary-800 text-white',
-    secondary: 'bg-slate-600 hover:bg-slate-700 text-white',
-    danger: 'bg-red-600 hover:bg-red-700 text-white'
+    primary: "bg-primary-700 hover:bg-primary-800 text-white",
+    secondary: "bg-slate-600 hover:bg-slate-700 text-white",
+    danger: "bg-red-600 hover:bg-red-700 text-white",
   };
-  
+
   return (
-    <button 
+    <button
       className={`${baseClasses} ${variantClasses[size]} ${variantClasses[variant]}`}
       {...props}
     >
@@ -760,7 +836,7 @@ export const Button = ({
 // Modal.jsx - Modal reutilizable
 export const Modal = ({ isOpen, onClose, title, children }) => {
   if (!isOpen) return null;
-  
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
@@ -773,13 +849,14 @@ export const Modal = ({ isOpen, onClose, title, children }) => {
 ```
 
 ### **Custom Hooks**
+
 ```javascript
 // useApi.js - Hook para llamadas API
 export const useApi = (url, options = {}) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -792,10 +869,10 @@ export const useApi = (url, options = {}) => {
         setLoading(false);
       }
     };
-    
+
     fetchData();
   }, [url]);
-  
+
   return { data, loading, error };
 };
 
@@ -809,7 +886,7 @@ export const useLocalStorage = (key, initialValue) => {
       return initialValue;
     }
   });
-  
+
   const setValue = (value) => {
     try {
       setStoredValue(value);
@@ -818,7 +895,7 @@ export const useLocalStorage = (key, initialValue) => {
       console.error(error);
     }
   };
-  
+
   return [storedValue, setValue];
 };
 ```
@@ -828,12 +905,14 @@ export const useLocalStorage = (key, initialValue) => {
 ## 🔄 Versiones y Cambios Frontend
 
 ### **Versión Actual**: 2.0.0
+
 - **Framework**: React 18.2.0 con Vite 4.0.0
 - **Última Actualización**: 2026-03-10
 - **Estado**: Producción activa
 - **Siguiente Release**: 2.1.0 (planeado)
 
 ### **Historial de Cambios Recientes (Frontend)**
+
 - ✅ **Mejoras UX**: Abreviación de títulos en cards de novedades
 - ✅ **Interfaz**: Grid clickeable en cuadrantes de personal
 - ✅ **Seguridad**: Fix RBAC en permisos de Operativos Personal
@@ -843,6 +922,7 @@ export const useLocalStorage = (key, initialValue) => {
 - ✅ **Responsive**: Optimización para móviles
 
 ### **Technical Debt Pendiente**
+
 - 🔄 Migración a TypeScript (opcional)
 - 🔄 Implementación de tests unitarios
 - 🔄 Optimización de bundle size
@@ -853,6 +933,7 @@ export const useLocalStorage = (key, initialValue) => {
 ## 🎯 Mejores Prácticas Frontend
 
 ### **Performance**
+
 - **Lazy Loading**: Componentes y rutas bajo demanda
 - **Memoization**: React.memo y useMemo para renderizados costosos
 - **Code Splitting**: División del bundle por rutas
@@ -860,6 +941,7 @@ export const useLocalStorage = (key, initialValue) => {
 - **Bundle Analysis**: Monitoreo regular del tamaño del bundle
 
 ### **Accesibilidad**
+
 - **Semantic HTML**: Uso correcto de elementos semánticos
 - **ARIA Labels**: Etiquetas para screen readers
 - **Keyboard Navigation**: Navegación completa con teclado
@@ -867,6 +949,7 @@ export const useLocalStorage = (key, initialValue) => {
 - **Focus Management**: Manejo adecuado del foco en modales
 
 ### **SEO (si aplica)**
+
 - **Meta Tags**: Descripciones y títulos dinámicos
 - **Structured Data**: Schema.org para contenido
 - **Open Graph**: Compartir en redes sociales
@@ -874,4 +957,4 @@ export const useLocalStorage = (key, initialValue) => {
 
 ---
 
-*Este documento está diseñado específicamente para agentes AI que trabajen en el frontend del proyecto City Security Frontend V2, proporcionando toda la información necesaria para desarrollo, mantenimiento y extensión de la aplicación.*
+_Este documento está diseñado específicamente para agentes AI que trabajen en el frontend del proyecto City Security Frontend V2, proporcionando toda la información necesaria para desarrollo, mantenimiento y extensión de la aplicación._

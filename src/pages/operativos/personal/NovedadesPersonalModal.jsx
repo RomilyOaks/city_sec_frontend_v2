@@ -502,15 +502,14 @@ export default function NovedadesPersonalModal({
           // Usar getNowLocal() igual que en vehículos para consistencia
           const fechaLocal = getNowLocal();
 
-          // Debug: registrar payload de historial antes de crear
-          console.debug(
-            "[NovedadesPersonalModal] crearHistorialNovedad payload:",
-            {
+          // Debug: registrar payload de historial antes de crear (guarded)
+          import("../../../utils/debug").then(({ debug }) =>
+            debug("[NovedadesPersonalModal] crearHistorialNovedad payload:", {
               novedadPrincipalId,
               mensaje: `[${timestamp} - ${nombrePersonal}] Cambio de estado a: ${estadoNuevo?.nombre || "Nuevo estado"}`,
               nuevoEstadoId,
               fechaLocal,
-            },
+            }),
           );
 
           await crearHistorialNovedad(
@@ -551,14 +550,16 @@ export default function NovedadesPersonalModal({
         }
       }
 
-      // Debug: registrar payload antes de updateNovedadPersonal
-      console.debug("[NovedadesPersonalModal] updateNovedadPersonal payload:", {
-        turnoId,
-        personalId: personal.id,
-        cuadranteId: cuadrante.id,
-        novedadId: selectedNovedad.id,
-        payload,
-      });
+      // Debug: registrar payload antes de updateNovedadPersonal (guarded)
+      import("../../../utils/debug").then(({ debug }) =>
+        debug("[NovedadesPersonalModal] updateNovedadPersonal payload:", {
+          turnoId,
+          personalId: personal.id,
+          cuadranteId: cuadrante.id,
+          novedadId: selectedNovedad.id,
+          payload,
+        }),
+      );
 
       await updateNovedadPersonal(
         turnoId,
