@@ -66,25 +66,13 @@ const ORIGEN_LLAMADA_OPTIONS = [
  */
 const formatFecha = (fecha) => {
   if (!fecha) return "—";
-  try {
-    const d = new Date(fecha);
-    console.debug(
-      "[NovedadDetalleModal] formatFecha input:",
-      fecha,
-      "-> parsed:",
-      d.toISOString(),
-    );
-    return d.toLocaleString("es-PE", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch (err) {
-    console.error("[NovedadDetalleModal] formatFecha parse error:", fecha, err);
-    return String(fecha);
-  }
+  return new Date(fecha).toLocaleString("es-PE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 };
 
 /**
@@ -217,26 +205,6 @@ export default function NovedadDetalleModal({
         ]);
         setNovedad(novedadData);
         setHistorial(historialData || []);
-        // Debugging: log raw payloads to verify backend date fields
-        try {
-          console.debug("[NovedadDetalleModal] fetched novedad:", {
-            id: id,
-            fecha_hora_ocurrencia: novedadData?.fecha_hora_ocurrencia,
-            created_at: novedadData?.created_at,
-            fecha_despacho: novedadData?.fecha_despacho,
-            fecha_llegada: novedadData?.fecha_llegada,
-            rawNovedad: novedadData,
-          });
-          console.debug(
-            "[NovedadDetalleModal] fetched historial (first 5):",
-            (historialData || []).slice(0, 5),
-          );
-        } catch (logErr) {
-          console.error(
-            "[NovedadDetalleModal] error logging fetched data:",
-            logErr,
-          );
-        }
       } catch (err) {
         console.error("Error cargando novedad:", err);
         if (initialNovedad) setNovedad(initialNovedad);
@@ -1036,8 +1004,8 @@ export default function NovedadDetalleModal({
                           Registrado
                         </span>
                         <p className="text-sm text-slate-900 dark:text-slate-50">
-                          {novedad.created_at
-                            ? formatFecha(novedad.created_at)
+                          {novedad.fecha_hora_ocurrencia
+                            ? formatFecha(novedad.fecha_hora_ocurrencia)
                             : "—"}
                         </p>
                       </div>
@@ -1201,12 +1169,12 @@ export default function NovedadDetalleModal({
                                     backgroundColor:
                                       h.estadoNuevo?.color_hex || "#6b7280",
                                   }}
-                                <div>
-                                  <span className="text-xs font-medium text-slate-500">Registrado</span>
-                                  <p className="text-sm text-slate-900 dark:text-slate-50">
-                                    {novedad.fecha_hora_ocurrencia ? formatFecha(novedad.fecha_hora_ocurrencia) : "—"}
-                                  </p>
-                                </div>
+                                ></div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    {h.estadoAnterior && (
+                                      <>
+                                        <span
                                           className="text-xs px-2 py-0.5 rounded"
                                           style={{
                                             backgroundColor: `${h.estadoAnterior?.color_hex}20`,
