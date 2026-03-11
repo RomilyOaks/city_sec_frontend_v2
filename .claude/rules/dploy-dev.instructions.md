@@ -9,3 +9,4 @@ paths:
 3. Verificar que no se hayan eliminado líneas de código importantes.
 4. Aplicar Build para verificar que el proyecto compile correctamente.
 5. Preguntar siempre si se va a subir a GitHub los cambios.
+6. Si se va asubir a GitHub poner un comentario detallado de los cambios realizados.
