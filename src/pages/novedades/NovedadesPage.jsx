@@ -1509,7 +1509,15 @@ export default function NovedadesPage() {
 
       await asignarRecursos(selectedNovedadSeguimiento.id, payload);
 
-      toast.success("Novedad despachada exitosamente");
+      const code =
+        selectedNovedadSeguimiento?.novedad_code ||
+        selectedNovedadSeguimiento?.codigo ||
+        null;
+      toast.success(
+        code
+          ? `Novedad ${code} despachada exitosamente`
+          : "Novedad despachada exitosamente",
+      );
       setShowSeguimientoModal(false);
       setSelectedNovedadSeguimiento(null);
       // Recargar lista de novedades
