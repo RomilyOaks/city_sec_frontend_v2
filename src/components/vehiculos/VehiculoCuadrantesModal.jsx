@@ -2,13 +2,13 @@
  * File: src/components/vehiculos/VehiculoCuadrantesModal.jsx
  * @version 1.0.0
  * @description Modal para mostrar los cuadrantes asignados a un vehículo
- * 
+ *
  * Funcionalidades:
  * - Muestra información principal del vehículo
  * - Lista cuadrantes asignados agrupados por sector
  * - Filtrado por sector y cuadrantes
  * - Manejo de tecla ESC para cerrar
- * 
+ *
  * @module src/components/vehiculos/VehiculoCuadrantesModal.jsx
  */
 
@@ -42,18 +42,18 @@ export default function VehiculoCuadrantesModal({ vehiculo, onClose }) {
   const loadCuadranteCompleto = async (cuadranteBasico) => {
     try {
       const response = await getCuadranteById(cuadranteBasico.id);
-      
+
       // Los datos están directamente en response, no en response.data
       const datosCuadrante = response.data || response;
-      
+
       // Combinar datos básicos con datos completos
       const cuadranteCompleto = {
         ...cuadranteBasico,
         ...datosCuadrante,
         // Mantener sector si no viene en la respuesta completa
-        sector: cuadranteBasico.sector || datosCuadrante?.sector
+        sector: cuadranteBasico.sector || datosCuadrante?.sector,
       };
-      
+
       setShowCuadranteModal(cuadranteCompleto);
     } catch (error) {
       console.error("Error cargando cuadrante completo:", error);
@@ -64,9 +64,9 @@ export default function VehiculoCuadrantesModal({ vehiculo, onClose }) {
 
   // Desactivar scroll exterior cuando el modal está abierto
   useEffect(() => {
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = "hidden";
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     };
   }, []);
 
@@ -77,14 +77,18 @@ export default function VehiculoCuadrantesModal({ vehiculo, onClose }) {
     const cargarCuadrantes = async () => {
       setLoading(true);
       setError(null);
-      
+
       try {
-        const response = await cuadranteVehiculoAsignadoService.getCuadrantesByVehiculo(vehiculo.id, {
-          estado: true // Solo asignaciones activas (por defecto)
-        });
-        
+        const response =
+          await cuadranteVehiculoAsignadoService.getCuadrantesByVehiculo(
+            vehiculo.id,
+            {
+              estado: true, // Solo asignaciones activas (por defecto)
+            },
+          );
+
         let asignaciones = [];
-        
+
         // Manejar estructura de respuesta según indicaciones del backend
         // Respuesta esperada: { success: true, message: "...", data: [...], count: 3 }
         if (response?.success && Array.isArray(response?.data)) {
@@ -124,30 +128,34 @@ export default function VehiculoCuadrantesModal({ vehiculo, onClose }) {
   }, [onClose]);
 
   // Agrupar cuadrantes por sector
-  const cuadrantesPorSector = (cuadrantesAsignados || []).reduce((acc, asignacion) => {
-    const sector = asignacion.cuadrante?.sector;
-    if (!sector) return acc;
+  const cuadrantesPorSector = (cuadrantesAsignados || []).reduce(
+    (acc, asignacion) => {
+      const sector = asignacion.cuadrante?.sector;
+      if (!sector) return acc;
 
-    if (!acc[sector.id]) {
-      acc[sector.id] = {
-        ...sector,
-        cuadrantes: []
-      };
-    }
+      if (!acc[sector.id]) {
+        acc[sector.id] = {
+          ...sector,
+          cuadrantes: [],
+        };
+      }
 
-    acc[sector.id].cuadrantes.push(asignacion.cuadrante);
-    return acc;
-  }, {});
+      acc[sector.id].cuadrantes.push(asignacion.cuadrante);
+      return acc;
+    },
+    {},
+  );
 
   // Filtrar sectores por búsqueda
-  const sectoresFiltrados = Object.values(cuadrantesPorSector).filter(sector =>
-    sector.nombre.toLowerCase().includes(searchSector.toLowerCase()) ||
-    sector.sector_code.toLowerCase().includes(searchSector.toLowerCase())
+  const sectoresFiltrados = Object.values(cuadrantesPorSector).filter(
+    (sector) =>
+      sector.nombre.toLowerCase().includes(searchSector.toLowerCase()) ||
+      sector.sector_code.toLowerCase().includes(searchSector.toLowerCase()),
   );
 
   // Filtrar cuadrantes si hay un sector seleccionado
   const cuadrantesFiltrados = selectedSector
-    ? (cuadrantesPorSector[selectedSector]?.cuadrantes || [])
+    ? cuadrantesPorSector[selectedSector]?.cuadrantes || []
     : [];
 
   if (!vehiculo) return null;
@@ -185,7 +193,8 @@ export default function VehiculoCuadrantesModal({ vehiculo, onClose }) {
                 {vehiculo.placa} - {vehiculo.nombre}
               </h3>
               <p className="text-sm text-slate-600 dark:text-slate-400">
-                {vehiculo.marca} {vehiculo.modelo_vehiculo} • {vehiculo.tipoVehiculo?.nombre || 'Tipo no especificado'}
+                {vehiculo.marca} {vehiculo.modelo_vehiculo} •{" "}
+                {vehiculo.tipoVehiculo?.nombre || "Tipo no especificado"}
               </p>
             </div>
             <div className="text-right">
@@ -240,7 +249,10 @@ export default function VehiculoCuadrantesModal({ vehiculo, onClose }) {
               <div className="w-80 border-r border-slate-200 dark:border-slate-700 p-4 overflow-y-auto">
                 <div className="mb-4">
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                    <Search
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                      size={16}
+                    />
                     <input
                       type="text"
                       value={searchSector}
@@ -255,7 +267,11 @@ export default function VehiculoCuadrantesModal({ vehiculo, onClose }) {
                   {sectoresFiltrados.map((sector) => (
                     <button
                       key={sector.id}
-                      onClick={() => setSelectedSector(selectedSector === sector.id ? null : sector.id)}
+                      onClick={() =>
+                        setSelectedSector(
+                          selectedSector === sector.id ? null : sector.id,
+                        )
+                      }
                       className={`w-full text-left p-3 rounded-lg border transition-all ${
                         selectedSector === sector.id
                           ? "bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800"
@@ -291,22 +307,45 @@ export default function VehiculoCuadrantesModal({ vehiculo, onClose }) {
                         {cuadrantesPorSector[selectedSector]?.nombre}
                       </h3>
                       <p className="text-sm text-slate-600 dark:text-slate-400">
-                        {cuadrantesFiltrados.length} cuadrante{cuadrantesFiltrados.length !== 1 ? 's' : ''} asignado{cuadrantesFiltrados.length !== 1 ? 's' : ''}
+                        {cuadrantesFiltrados.length} cuadrante
+                        {cuadrantesFiltrados.length !== 1 ? "s" : ""} asignado
+                        {cuadrantesFiltrados.length !== 1 ? "s" : ""}
                       </p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {cuadrantesFiltrados.map((cuadrante) => (
-                        <div
+                        <button
                           key={cuadrante.id}
-                          className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:shadow-md transition-shadow"
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+
+                            const tieneDatosUbicacion =
+                              cuadrante.coordenadas ||
+                              cuadrante.poligono ||
+                              cuadrante.poligono_json ||
+                              (cuadrante.latitud && cuadrante.longitud);
+
+                            if (tieneDatosUbicacion) {
+                              setShowCuadranteModal(cuadrante);
+                            } else {
+                              loadCuadranteCompleto(cuadrante);
+                            }
+                          }}
+                          className="w-full text-left p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:shadow-md transition-shadow cursor-pointer"
+                          title={`Ver mapa: ${cuadrante.nombre}`}
                         >
                           <div className="flex items-start gap-3">
                             <div
                               className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold"
-                              style={{ backgroundColor: cuadrante.color_mapa || '#64748b' }}
+                              style={{
+                                backgroundColor:
+                                  cuadrante.color_mapa || "#64748b",
+                              }}
                             >
-                              {cuadrante.cuadrante_code?.charAt(0) || 'C'}
+                              {cuadrante.cuadrante_code?.charAt(0) || "C"}
                             </div>
                             <div className="flex-1">
                               <p className="font-medium text-slate-900 dark:text-slate-50">
@@ -321,35 +360,18 @@ export default function VehiculoCuadrantesModal({ vehiculo, onClose }) {
                                 </p>
                               )}
                             </div>
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                
-                                // Verificar si tiene datos de ubicación
-                                const tieneDatosUbicacion = cuadrante.coordenadas || cuadrante.poligono || 
-                                  cuadrante.poligono_json || (cuadrante.latitud && cuadrante.longitud);
-                                
-                                if (tieneDatosUbicacion) {
-                                  setShowCuadranteModal(cuadrante);
-                                } else {
-                                  loadCuadranteCompleto(cuadrante);
-                                }
-                              }}
-                              className="p-2 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                              title="Ver mapa del cuadrante"
-                            >
-                              <Eye size={14} />
-                            </button>
                           </div>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   </div>
                 ) : (
                   <div className="flex items-center justify-center h-full">
                     <div className="text-center">
-                      <Building className="text-slate-300 dark:text-slate-600 mx-auto mb-4" size={48} />
+                      <Building
+                        className="text-slate-300 dark:text-slate-600 mx-auto mb-4"
+                        size={48}
+                      />
                       <p className="text-slate-600 dark:text-slate-400">
                         Seleccione un sector para ver sus cuadrantes
                       </p>

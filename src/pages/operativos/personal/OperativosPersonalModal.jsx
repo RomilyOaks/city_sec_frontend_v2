@@ -72,14 +72,17 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
   const canCreate = canPerformAction(user, "operativos.personal.create");
   const canEdit = canPerformAction(user, "operativos.personal.update");
   const canDelete = canPerformAction(user, "operativos.personal.delete");
-  const canReadCuadrantes = canPerformAction(user, "operativos.personal.cuadrantes.read");
+  const canReadCuadrantes = canPerformAction(
+    user,
+    "operativos.personal.cuadrantes.read",
+  );
 
   // Estado del componente
   const [personalList, setPersonalList] = useState([]); // Lista de personal asignado
-  const [loading, setLoading] = useState(false);        // Indicador de carga
-  const [showCreateForm, setShowCreateForm] = useState(false);  // Mostrar form de asignación
-  const [showEditForm, setShowEditForm] = useState(false);      // Mostrar form de edición
-  const [showViewModal, setShowViewModal] = useState(false);    // Mostrar modal de detalle
+  const [loading, setLoading] = useState(false); // Indicador de carga
+  const [showCreateForm, setShowCreateForm] = useState(false); // Mostrar form de asignación
+  const [showEditForm, setShowEditForm] = useState(false); // Mostrar form de edición
+  const [showViewModal, setShowViewModal] = useState(false); // Mostrar modal de detalle
   const [selectedPersonal, setSelectedPersonal] = useState(null); // Personal seleccionado
 
   // Estados para modales de cuadrantes y novedades
@@ -101,7 +104,15 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
     const handleKeyDown = (e) => {
       // ESC: Cerrar modal (solo si no hay formularios/modales internos abiertos)
       // IMPORTANTE: No cerrar si hay modales hijos abiertos (Cuadrantes o Novedades)
-      if (e.key === "Escape" && isOpen && !showCreateForm && !showEditForm && !showViewModal && !showCuadrantesModal && !showNovedadesModal) {
+      if (
+        e.key === "Escape" &&
+        isOpen &&
+        !showCreateForm &&
+        !showEditForm &&
+        !showViewModal &&
+        !showCuadrantesModal &&
+        !showNovedadesModal
+      ) {
         onClose();
       }
 
@@ -112,7 +123,16 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
       }
 
       // Alt+P: Abrir formulario de asignación de personal (solo si tiene permiso)
-      if (e.altKey && e.key === "p" && isOpen && !showCreateForm && !showEditForm && !showCuadrantesModal && !showNovedadesModal && canCreate) {
+      if (
+        e.altKey &&
+        e.key === "p" &&
+        isOpen &&
+        !showCreateForm &&
+        !showEditForm &&
+        !showCuadrantesModal &&
+        !showNovedadesModal &&
+        canCreate
+      ) {
         e.preventDefault();
         setShowCreateForm(true);
       }
@@ -123,7 +143,16 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
       document.addEventListener("keydown", handleKeyDown, true);
       return () => document.removeEventListener("keydown", handleKeyDown, true);
     }
-  }, [isOpen, onClose, showCreateForm, showEditForm, showViewModal, showCuadrantesModal, showNovedadesModal, canCreate]);
+  }, [
+    isOpen,
+    onClose,
+    showCreateForm,
+    showEditForm,
+    showViewModal,
+    showCuadrantesModal,
+    showNovedadesModal,
+    canCreate,
+  ]);
 
   // ============================================================================
   // FUNCIONES DE DATOS
@@ -144,7 +173,9 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
       setPersonalList(Array.isArray(items) ? items : []);
     } catch (err) {
       console.error("Error cargando personal:", err);
-      toast.error(err?.response?.data?.message || "Error al cargar personal del turno");
+      toast.error(
+        err?.response?.data?.message || "Error al cargar personal del turno",
+      );
     } finally {
       setLoading(false);
     }
@@ -206,7 +237,7 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
     const nombrePersonal = formatPersonalNombre(personal.personal);
 
     const confirmed = window.confirm(
-      `¿Eliminar la asignación de ${nombrePersonal} de este turno?`
+      `¿Eliminar la asignación de ${nombrePersonal} de este turno?`,
     );
     if (!confirmed) return;
 
@@ -267,7 +298,6 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-7xl max-h-[90vh] overflow-hidden flex flex-col">
-
         {/* ================================================================== */}
         {/* HEADER - Título, info del turno y botón cerrar */}
         {/* ================================================================== */}
@@ -297,28 +327,48 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
               <div className="flex flex-wrap items-center gap-3 text-sm">
                 <div className="flex items-center gap-1">
                   <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span className="text-slate-600 dark:text-slate-400">Fecha:</span>
-                  <span className="font-medium text-slate-700 dark:text-slate-300">{turno?.fecha}</span>
+                  <span className="text-slate-600 dark:text-slate-400">
+                    Fecha:
+                  </span>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">
+                    {turno?.fecha}
+                  </span>
                 </div>
                 <div className="flex items-center gap-1">
                   <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                  <span className="text-slate-600 dark:text-slate-400">Turno:</span>
-                  <span className="font-medium text-slate-700 dark:text-slate-300">{turno?.turno}</span>
+                  <span className="text-slate-600 dark:text-slate-400">
+                    Turno:
+                  </span>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">
+                    {turno?.turno}
+                  </span>
                 </div>
                 <div className="flex items-center gap-1">
                   <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                  <span className="text-slate-600 dark:text-slate-400">Sector:</span>
-                  <span className="font-medium text-slate-700 dark:text-slate-300">{turno?.sector?.nombre || "No asignado"}</span>
+                  <span className="text-slate-600 dark:text-slate-400">
+                    Sector:
+                  </span>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">
+                    {turno?.sector?.nombre || "No asignado"}
+                  </span>
                 </div>
                 <div className="flex items-center gap-1">
                   <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                  <span className="text-slate-600 dark:text-slate-400">Supervisor:</span>
-                  <span className="font-medium text-slate-700 dark:text-slate-300">{getSupervisorNombre()}</span>
+                  <span className="text-slate-600 dark:text-slate-400">
+                    Supervisor:
+                  </span>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">
+                    {getSupervisorNombre()}
+                  </span>
                 </div>
                 <div className="flex items-center gap-1">
                   <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                  <span className="text-slate-600 dark:text-slate-400">Operador:</span>
-                  <span className="font-medium text-slate-700 dark:text-slate-300">{getOperadorNombre()}</span>
+                  <span className="text-slate-600 dark:text-slate-400">
+                    Operador:
+                  </span>
+                  <span className="font-medium text-slate-700 dark:text-slate-300">
+                    {getOperadorNombre()}
+                  </span>
                 </div>
               </div>
             </div>
@@ -337,7 +387,9 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
               }
             }}
             className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-            title={showCreateForm || showEditForm ? "Cancelar (ESC)" : "Cerrar (ESC)"}
+            title={
+              showCreateForm || showEditForm ? "Cancelar (ESC)" : "Cerrar (ESC)"
+            }
           >
             <X size={20} />
           </button>
@@ -375,7 +427,6 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
         {/* CONTENIDO PRINCIPAL */}
         {/* ================================================================== */}
         <div className="flex-1 overflow-auto p-6">
-
           {/* Estado: Formulario de creación */}
           {showCreateForm ? (
             <AsignarPersonalForm
@@ -387,9 +438,8 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
               }}
               onCancel={() => setShowCreateForm(false)}
             />
-
-          /* Estado: Formulario de edición */
-          ) : showEditForm && selectedPersonal ? (
+          ) : /* Estado: Formulario de edición */
+          showEditForm && selectedPersonal ? (
             <EditarPersonalForm
               turnoId={turno?.id}
               personal={selectedPersonal}
@@ -404,9 +454,8 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
                 setSelectedPersonal(null);
               }}
             />
-
-          /* Estado: Cargando */
-          ) : loading ? (
+          ) : /* Estado: Cargando */
+          loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
                 <div className="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
@@ -415,11 +464,13 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
                 </p>
               </div>
             </div>
-
-          /* Estado: Lista vacía */
-          ) : personalList.length === 0 ? (
+          ) : /* Estado: Lista vacía */
+          personalList.length === 0 ? (
             <div className="text-center py-12">
-              <PersonStanding size={48} className="mx-auto text-slate-300 dark:text-slate-700 mb-4" />
+              <PersonStanding
+                size={48}
+                className="mx-auto text-slate-300 dark:text-slate-700 mb-4"
+              />
               <p className="text-slate-600 dark:text-slate-400 mb-4">
                 No hay personal asignado a este turno
               </p>
@@ -434,9 +485,8 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
                 </button>
               )}
             </div>
-
-          /* Estado: Mostrar tabla de personal */
           ) : (
+            /* Estado: Mostrar tabla de personal */
             <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
               <table className="w-full text-sm">
                 {/* Encabezado de la tabla */}
@@ -452,10 +502,14 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
                       Compañero
                     </th>
                     <th className="px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-200">
-                      <span title="Radio TETRA"><Radio size={16} className="inline" /></span>
+                      <span title="Radio TETRA">
+                        <Radio size={16} className="inline" />
+                      </span>
                     </th>
                     <th className="px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-200">
-                      <span title="Equipamiento"><Shield size={16} className="inline" /></span>
+                      <span title="Equipamiento">
+                        <Shield size={16} className="inline" />
+                      </span>
                     </th>
                     <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">
                       Hora Inicio
@@ -473,7 +527,9 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {personalList.map((p) => {
                     // Obtener configuración de color para el tipo de patrullaje
-                    const tipoConfig = getTipoPatrullajeConfig(p.tipo_patrullaje);
+                    const tipoConfig = getTipoPatrullajeConfig(
+                      p.tipo_patrullaje,
+                    );
                     // Contar items de equipamiento
                     const equipCount = contarEquipamiento(p);
 
@@ -482,8 +538,8 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
                         key={p.id}
                         className="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer"
                         onClick={(e) => {
-                          if (e.target.closest('button')) return;
-                          if (canReadCuadrantes) handleCuadrantes(p);
+                          if (e.target.closest("button")) return;
+                          handleView(p);
                         }}
                       >
                         {/* Personal principal */}
@@ -493,7 +549,9 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
 
                         {/* Tipo de patrullaje con badge de color */}
                         <td className="px-4 py-3">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${tipoConfig.color}`}>
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${tipoConfig.color}`}
+                          >
                             {tipoConfig.label}
                           </span>
                         </td>
@@ -508,7 +566,10 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
                           {p.radio_tetra ? (
                             <span
                               className="text-green-600 dark:text-green-400"
-                              title={p.radio_tetra.radio_tetra_code || "Radio asignado"}
+                              title={
+                                p.radio_tetra.radio_tetra_code ||
+                                "Radio asignado"
+                              }
                             >
                               {p.radio_tetra.radio_tetra_code || "✓"}
                             </span>
@@ -547,22 +608,16 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
                             {/* Botón Cuadrantes */}
                             {canReadCuadrantes && (
                               <button
-                                onClick={() => handleCuadrantes(p)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCuadrantes(p);
+                                }}
                                 className="p-2 rounded-lg text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20"
                                 title="Ver Cuadrantes"
                               >
                                 <MapPin size={14} />
                               </button>
                             )}
-
-                            {/* Botón Ver detalle */}
-                            <button
-                              onClick={() => handleView(p)}
-                              className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                              title="Ver detalle"
-                            >
-                              <Eye size={14} />
-                            </button>
 
                             {/* Botón Editar */}
                             {canEdit && (
