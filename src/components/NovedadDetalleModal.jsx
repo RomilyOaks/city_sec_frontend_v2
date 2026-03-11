@@ -58,13 +58,20 @@ const ORIGEN_LLAMADA_OPTIONS = [
  */
 const formatFecha = (fecha) => {
   if (!fecha) return "—";
-  return new Date(fecha).toLocaleString("es-PE", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  try {
+    const d = new Date(fecha);
+    console.debug("[NovedadDetalleModal] formatFecha input:", fecha, "-> parsed:", d.toISOString());
+    return d.toLocaleString("es-PE", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch (err) {
+    console.error("[NovedadDetalleModal] formatFecha parse error:", fecha, err);
+    return String(fecha);
+  }
 };
 
 /**
@@ -193,6 +200,20 @@ export default function NovedadDetalleModal({
         ]);
         setNovedad(novedadData);
         setHistorial(historialData || []);
+        // Debugging: log raw payloads to verify backend date fields
+        try {
+          console.debug("[NovedadDetalleModal] fetched novedad:", {
+            id: id,
+            fecha_hora_ocurrencia: novedadData?.fecha_hora_ocurrencia,
+            created_at: novedadData?.created_at,
+            fecha_despacho: novedadData?.fecha_despacho,
+            fecha_llegada: novedadData?.fecha_llegada,
+            rawNovedad: novedadData,
+          });
+          console.debug("[NovedadDetalleModal] fetched historial (first 5):", (historialData || []).slice(0,5));
+        } catch (logErr) {
+          console.error("[NovedadDetalleModal] error logging fetched data:", logErr);
+        }
       } catch (err) {
         console.error("Error cargando novedad:", err);
         if (initialNovedad) setNovedad(initialNovedad);
