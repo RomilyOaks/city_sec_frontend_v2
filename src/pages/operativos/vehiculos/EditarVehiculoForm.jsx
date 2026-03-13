@@ -60,6 +60,18 @@ export default function EditarVehiculoForm({
     observaciones: "",
   });
 
+  // Función helper para convertir datetime a time format
+  const datetimeToTime = (datetime) => {
+    if (!datetime) return "";
+    try {
+      const date = new Date(datetime);
+      if (isNaN(date.getTime())) return "";
+      return date.toTimeString().slice(0, 5); // HH:mm
+    } catch (error) {
+      return "";
+    }
+  };
+
   // Inicializar formulario con datos del vehículo
   useEffect(() => {
     if (vehiculo) {
@@ -70,12 +82,12 @@ export default function EditarVehiculoForm({
         radio_tetra_id: vehiculo.radio_tetra_id || "",
         estado_operativo_id: vehiculo.estado_operativo_id || "",
         kilometraje_recarga: vehiculo.kilometraje_recarga || "",
-        hora_recarga: vehiculo.hora_recarga || "",
+        hora_recarga: datetimeToTime(vehiculo.hora_recarga),
         combustible_litros: vehiculo.combustible_litros || "",
         importe_recarga: vehiculo.importe_recarga || "",
         nivel_combustible_recarga: vehiculo.nivel_combustible_recarga || "",
         kilometraje_fin: vehiculo.kilometraje_fin || "",
-        hora_fin: vehiculo.hora_fin || "",
+        hora_fin: datetimeToTime(vehiculo.hora_fin),
         nivel_combustible_fin: vehiculo.nivel_combustible_fin || "",
         kilometros_recorridos: vehiculo.kilometros_recorridos || "",
         observaciones: vehiculo.observaciones || "",
