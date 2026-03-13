@@ -48,9 +48,15 @@ export default function EditarVehiculoForm({
     tipo_copiloto_id: "",
     radio_tetra_id: "",
     estado_operativo_id: "",
+    kilometraje_recarga: "",
+    hora_recarga: "",
+    combustible_litros: "",
+    importe_recarga: "",
+    nivel_combustible_recarga: "",
     kilometraje_fin: "",
     hora_fin: "",
     nivel_combustible_fin: "",
+    kilometros_recorridos: "",
     observaciones: "",
   });
 
@@ -63,9 +69,15 @@ export default function EditarVehiculoForm({
         tipo_copiloto_id: vehiculo.tipo_copiloto_id || "",
         radio_tetra_id: vehiculo.radio_tetra_id || "",
         estado_operativo_id: vehiculo.estado_operativo_id || "",
+        kilometraje_recarga: vehiculo.kilometraje_recarga || "",
+        hora_recarga: vehiculo.hora_recarga || "",
+        combustible_litros: vehiculo.combustible_litros || "",
+        importe_recarga: vehiculo.importe_recarga || "",
+        nivel_combustible_recarga: vehiculo.nivel_combustible_recarga || "",
         kilometraje_fin: vehiculo.kilometraje_fin || "",
         hora_fin: vehiculo.hora_fin || "",
         nivel_combustible_fin: vehiculo.nivel_combustible_fin || "",
+        kilometros_recorridos: vehiculo.kilometros_recorridos || "",
         observaciones: vehiculo.observaciones || "",
       });
     }
@@ -518,13 +530,13 @@ export default function EditarVehiculoForm({
       {/* Datos de Cierre */}
       <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
         <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">
-          Datos de Cierre (opcionales)
+          Datos de Cierre
         </h3>
         <div className="grid grid-cols-4 gap-4">
-          {/* Kilometraje Inicial - Read Only */}
+          {/* Km Inicial - Read Only */}
           <div>
             <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">
-              Km Inicial (Referencia)
+              Km Inicial
             </label>
             <input
               type="text"
@@ -532,6 +544,103 @@ export default function EditarVehiculoForm({
               readOnly
               className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 cursor-not-allowed"
             />
+          </div>
+
+          {/* Hora Inicio - Read Only */}
+          <div>
+            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">
+              Hora Inicio
+            </label>
+            <input
+              type="text"
+              value={vehiculo.hora_inicio ? new Date(vehiculo.hora_inicio).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '—'}
+              readOnly
+              className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 cursor-not-allowed"
+            />
+          </div>
+
+          {/* Kilometraje Recarga - Editable */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
+              Kilometraje Recarga
+            </label>
+            <input
+              type="number"
+              name="kilometraje_recarga"
+              value={formData.kilometraje_recarga}
+              onChange={handleChange}
+              step="0.1"
+              className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50"
+              placeholder="Ingrese kilometraje"
+            />
+          </div>
+
+          {/* Hora Recarga - Editable */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
+              Hora Recarga
+            </label>
+            <input
+              type="time"
+              name="hora_recarga"
+              value={formData.hora_recarga}
+              onChange={handleChange}
+              className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50"
+            />
+          </div>
+
+          {/* Combustible Litros - Editable */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
+              Combustible (Litros)
+            </label>
+            <input
+              type="number"
+              name="combustible_litros"
+              value={formData.combustible_litros}
+              onChange={handleChange}
+              step="0.1"
+              min="0"
+              className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50"
+              placeholder="Ingrese litros"
+            />
+          </div>
+
+          {/* Importe Recarga - Editable */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
+              Importe Recarga
+            </label>
+            <input
+              type="number"
+              name="importe_recarga"
+              value={formData.importe_recarga}
+              onChange={handleChange}
+              step="0.01"
+              min="0"
+              className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50"
+              placeholder="Ingrese importe"
+            />
+          </div>
+
+          {/* Nivel Combustible Recarga - Editable */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
+              Nivel Combustible Recarga
+            </label>
+            <select
+              name="nivel_combustible_recarga"
+              value={formData.nivel_combustible_recarga}
+              onChange={handleChange}
+              className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50"
+            >
+              <option value="">Seleccione nivel</option>
+              {NIVELES_COMBUSTIBLE.map((n) => (
+                <option key={n.value} value={n.value}>
+                  {n.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Kilometraje Final - Editable */}
@@ -551,19 +660,6 @@ export default function EditarVehiculoForm({
             />
           </div>
 
-          {/* Hora Inicio - Read Only */}
-          <div>
-            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">
-              Hora Inicio (Referencia)
-            </label>
-            <input
-              type="text"
-              value={vehiculo.hora_inicio ? new Date(vehiculo.hora_inicio).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '—'}
-              readOnly
-              className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 cursor-not-allowed"
-            />
-          </div>
-
           {/* Hora Fin - Editable */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
@@ -578,6 +674,7 @@ export default function EditarVehiculoForm({
             />
           </div>
 
+          {/* Nivel Combustible Final - Editable */}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
               Nivel Combustible Final
@@ -595,6 +692,23 @@ export default function EditarVehiculoForm({
                 </option>
               ))}
             </select>
+          </div>
+
+          {/* Kilómetros Recorridos - Editable */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
+              Kilómetros Recorridos
+            </label>
+            <input
+              type="number"
+              name="kilometros_recorridos"
+              value={formData.kilometros_recorridos}
+              onChange={handleChange}
+              step="0.1"
+              min="0"
+              className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50"
+              placeholder="Ingrese kilómetros recorridos"
+            />
           </div>
         </div>
       </div>
