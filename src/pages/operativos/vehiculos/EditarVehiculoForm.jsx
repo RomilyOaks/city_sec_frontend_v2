@@ -341,6 +341,38 @@ export default function EditarVehiculoForm({
         payload.hora_fin = fechaFin.toISOString();
       }
 
+      // Nuevos campos de recarga de combustible
+      if (formData.kilometraje_recarga) payload.kilometraje_recarga = parseFloat(formData.kilometraje_recarga);
+      
+      // Hora recarga: Construir fecha-hora completa basada en hora_inicio
+      if (formData.hora_recarga) {
+        // Obtener la fecha base del hora_inicio
+        const fechaInicio = new Date(vehiculo.hora_inicio);
+        const [horaRecargaHH, horaRecargaMM] = formData.hora_recarga.split(':').map(Number);
+
+        // Crear fecha con la misma fecha pero la hora de recarga ingresada
+        const fechaRecarga = new Date(fechaInicio);
+        fechaRecarga.setHours(horaRecargaHH, horaRecargaMM, 0, 0);
+
+        // Si la hora recarga es menor que hora inicio, probablemente es turno nocturno (día siguiente)
+        const [horaInicioHH, horaInicioMM] = vehiculo.hora_inicio.split(/[T: ]/).slice(-2).map(Number);
+        const minutosInicio = horaInicioHH * 60 + horaInicioMM;
+        const minutosRecarga = horaRecargaHH * 60 + horaRecargaMM;
+
+        if (minutosRecarga < minutosInicio) {
+          // Es turno nocturno, agregar un día
+          fechaRecarga.setDate(fechaRecarga.getDate() + 1);
+        }
+
+        // Convertir a formato ISO string
+        payload.hora_recarga = fechaRecarga.toISOString();
+      }
+
+      if (formData.combustible_litros) payload.combustible_litros = parseFloat(formData.combustible_litros);
+      if (formData.importe_recarga) payload.importe_recarga = parseFloat(formData.importe_recarga);
+      if (formData.nivel_combustible_recarga) payload.nivel_combustible_recarga = formData.nivel_combustible_recarga;
+      if (formData.kilometros_recorridos) payload.kilometros_recorridos = parseFloat(formData.kilometros_recorridos);
+
       if (formData.nivel_combustible_fin) payload.nivel_combustible_fin = formData.nivel_combustible_fin;
       if (formData.observaciones) payload.observaciones = formData.observaciones;
 
