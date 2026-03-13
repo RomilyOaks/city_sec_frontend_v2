@@ -12,6 +12,7 @@ export const ROLE_SLUGS = {
   OPERADOR: "operador",
   SUPERVISOR: "supervisor",
   CONSULTA: "consulta",
+  RADIO_OPERADOR: "radio_operador",
   USUARIO_BASICO: "usuario_basico",
 };
 
@@ -35,6 +36,7 @@ export const ROUTE_ACCESS = {
     ROLE_SLUGS.SUPERVISOR,
     ROLE_SLUGS.OPERADOR,
     ROLE_SLUGS.CONSULTA,
+    ROLE_SLUGS.RADIO_OPERADOR,
   ],
   calles: [
     ROLE_SLUGS.SUPER_ADMIN,
@@ -70,6 +72,7 @@ export const ROUTE_ACCESS = {
     ROLE_SLUGS.SUPERVISOR,
     ROLE_SLUGS.OPERADOR,
     ROLE_SLUGS.CONSULTA,
+    ROLE_SLUGS.RADIO_OPERADOR,
   ],
   operativos_vehiculos: [
     ROLE_SLUGS.SUPER_ADMIN,
@@ -77,6 +80,7 @@ export const ROUTE_ACCESS = {
     ROLE_SLUGS.SUPERVISOR,
     ROLE_SLUGS.OPERADOR,
     ROLE_SLUGS.CONSULTA,
+    ROLE_SLUGS.RADIO_OPERADOR,
   ],
 };
 
@@ -220,6 +224,18 @@ export const ACTION_PERMISSIONS = {
   "catalogos.subtipos_novedad.create": ["catalogos.subtipos_novedad.create"],
   "catalogos.subtipos_novedad.update": ["catalogos.subtipos_novedad.update"],
   "catalogos.subtipos_novedad.delete": ["catalogos.subtipos_novedad.delete"],
+
+  // Catálogos - Tipos Copiloto
+  "catalogos.tipos_copiloto.read": ["catalogos.tipos_copiloto.read"],
+  "catalogos.tipos_copiloto.create": ["catalogos.tipos_copiloto.create"],
+  "catalogos.tipos_copiloto.update": ["catalogos.tipos_copiloto.update"],
+  "catalogos.tipos_copiloto.delete": ["catalogos.tipos_copiloto.delete"],
+
+  // Catálogos - Estados Operativo
+  "catalogos.estados_operativo.read": ["catalogos.estados_operativo.read"],
+  "catalogos.estados_operativo.create": ["catalogos.estados_operativo.create"],
+  "catalogos.estados_operativo.update": ["catalogos.estados_operativo.update"],
+  "catalogos.estados_operativo.delete": ["catalogos.estados_operativo.delete"],
 };
 
 export function getUserRoleSlugs(user) {
