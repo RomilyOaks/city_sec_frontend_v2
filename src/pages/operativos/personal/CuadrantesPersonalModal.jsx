@@ -18,6 +18,7 @@ import {
   Trash2,
   AlertTriangle,
   RefreshCw,
+  Map,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -30,7 +31,8 @@ import {
   formatPersonalNombre,
   formatDuracion,
 } from "../../../services/operativosPersonalService.js";
-import { listCuadrantes } from "../../../services/cuadrantesService.js";
+import { listCuadrantes, getCuadranteById } from "../../../services/cuadrantesService.js";
+import CuadranteMapaModal from "../../../components/calles/CuadranteMapaModal.jsx";
 
 // RBAC
 import { canPerformAction } from "../../../rbac/rbac.js";
@@ -84,6 +86,9 @@ export default function CuadrantesPersonalModal({
   // Modal de registrar salida
   const [showSalidaModal, setShowSalidaModal] = useState(false);
   const [selectedCuadrante, setSelectedCuadrante] = useState(null);
+  
+  // Modal del mapa
+  const [showCuadranteModal, setShowCuadranteModal] = useState(null);
   const [salidaData, setSalidaData] = useState({
     hora_salida: "",
     observaciones: "",
@@ -318,6 +323,29 @@ export default function CuadrantesPersonalModal({
       console.error("Error eliminando cuadrante:", error);
       const msg = formatBackendError(error);
       toast.error(msg, { duration: 5000, style: { whiteSpace: "pre-line" } });
+    }
+  };
+
+  // Función para cargar cuadrante completo con datos de ubicación
+  const loadCuadranteCompleto = async (cuadranteBasico) => {
+    try {
+      const response = await getCuadranteById(cuadranteBasico.id);
+
+      // Los datos están directamente en response, no en response.data
+      const datosCuadrante = response.data || response;
+
+      // Combinar datos básicos con datos completos
+      const cuadranteCompleto = {
+        ...cuadranteBasico,
+        ...datosCuadrante,
+        sector: cuadranteBasico.sector || datosCuadrante?.sector,
+      };
+
+      setShowCuadranteModal(cuadranteCompleto);
+    } catch (error) {
+      console.error("Error cargando cuadrante completo:", error);
+      // Si hay error, mostrar con datos básicos
+      setShowCuadranteModal(cuadranteBasico);
     }
   };
 
@@ -587,6 +615,30 @@ export default function CuadrantesPersonalModal({
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex items-center justify-center gap-1">
+                            {/* Botón Mapa */}
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+
+                                const tieneDatosUbicacion =
+                                  cuadrante.datosCuadrante?.coordenadas ||
+                                  cuadrante.datosCuadrante?.poligono ||
+                                  cuadrante.datosCuadrante?.poligono_json ||
+                                  (cuadrante.datosCuadrante?.latitud && cuadrante.datosCuadrante?.longitud);
+
+                                if (tieneDatosUbicacion) {
+                                  setShowCuadranteModal(cuadrante.datosCuadrante);
+                                } else {
+                                  loadCuadranteCompleto(cuadrante.datosCuadrante);
+                                }
+                              }}
+                              className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                              title="Ver mapa del cuadrante"
+                            >
+                              <Map size={14} />
+                            </button>
+
                             {/* Botón Novedades */}
                             {onOpenNovedades && (
                               <button
@@ -723,6 +775,15 @@ export default function CuadrantesPersonalModal({
             </form>
           </div>
         </div>
+      )}
+
+      {/* Modal del Cuadrante con Mapa */}
+      {showCuadranteModal && (
+        <CuadranteMapaModal
+          isOpen={true}
+          cuadrante={showCuadranteModal}
+          onClose={() => setShowCuadranteModal(null)}
+        />
       )}
     </div>
   );

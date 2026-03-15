@@ -67,7 +67,7 @@ export default function EditarVehiculoForm({
       const date = new Date(datetime);
       if (isNaN(date.getTime())) return "";
       return date.toTimeString().slice(0, 5); // HH:mm
-    } catch (error) {
+    } catch {
       return "";
     }
   };
