@@ -23,7 +23,6 @@ import {
   Pencil,
   Trash2,
   PersonStanding,
-  MapPin,
   Radio,
   Shield,
 } from "lucide-react";
@@ -72,10 +71,6 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
   const canCreate = canPerformAction(user, "operativos.personal.create");
   const canEdit = canPerformAction(user, "operativos.personal.update");
   const canDelete = canPerformAction(user, "operativos.personal.delete");
-  const canReadCuadrantes = canPerformAction(
-    user,
-    "operativos.personal.cuadrantes.read",
-  );
 
   // Estado del componente
   const [personalList, setPersonalList] = useState([]); // Lista de personal asignado
@@ -194,14 +189,7 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
   // HANDLERS DE ACCIONES
   // ============================================================================
 
-  /**
-   * Abrir modal de detalle (solo lectura)
-   */
-  const handleView = (personal) => {
-    setSelectedPersonal(personal);
-    setShowViewModal(true);
-  };
-
+  
   /**
    * Abrir formulario de edición
    */
@@ -539,7 +527,7 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
                         className="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer"
                         onClick={(e) => {
                           if (e.target.closest("button")) return;
-                          handleView(p);
+                          handleCuadrantes(p);
                         }}
                       >
                         {/* Personal principal */}
@@ -605,20 +593,6 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
                         {/* Acciones */}
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-1">
-                            {/* Botón Cuadrantes */}
-                            {canReadCuadrantes && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleCuadrantes(p);
-                                }}
-                                className="p-2 rounded-lg text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20"
-                                title="Ver Cuadrantes"
-                              >
-                                <MapPin size={14} />
-                              </button>
-                            )}
-
                             {/* Botón Editar */}
                             {canEdit && (
                               <button
