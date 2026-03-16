@@ -436,30 +436,127 @@ export default function NovedadesPersonalModal({
 
   // Función helper para detectar si una novedad está RESUELTA
   const esNovedadResuelta = useCallback((novedad) => {
-    const resultadoActual = novedad?.resultado || "PENDIENTE";
+    const resultadoActual = novedad?.resultado;
     const estadoActualId = novedad?.novedad?.estado_novedad_id;
     // Detectar si está RESUELTA por resultado o por estado (ID 6 = RESUELTA)
     return resultadoActual === "RESUELTO" || estadoActualId === 6;
+  }, []);
+
+  // 🔥 NUEVA FUNCIÓN: Verificar si se puede editar según nuevas reglas
+  // - Si está RESUELTO y atendido IS NULL: permitir editar campos específicos
+  // - Si está RESUELTO y atendido tiene dato: solo lectura (ocultar botón pencil)
+  const puedeEditarNovedadResuelta = useCallback((novedad) => {
+    const resultadoActual = novedad?.resultado;
+    const estadoActualId = novedad?.novedad?.estado_novedad_id;
+    const atendido = novedad?.atendido;
+    
+    // Solo aplica si está RESUELTO
+    const estaResuelto = resultadoActual === "RESUELTO" || estadoActualId === 6;
+    
+    if (!estaResuelto) {
+      return true; // Si no está resuelto, se puede editar normalmente
+    }
+    
+    // Si está resuelto, verificar si atendido es NULL
+    return !atendido; // TRUE si atendido es NULL (puede editar), FALSE si tiene dato (solo lectura)
+  }, []);
+
+  // 🔥 FUNCIÓN: Determinar si los campos específicos deben ser de solo lectura
+  // - Si está RESUELTO y atendido IS NULL: permitir editar estos campos
+  // - Si está RESUELTO y atendido tiene dato: campos de solo lectura
+  // - Si no está RESUELTO: comportamiento normal (usar esNovedadResuelta)
+  const debeSerReadOnly = useCallback((novedad) => {
+    const resultadoActual = novedad?.resultado;
+    const estadoActualId = novedad?.novedad?.estado_novedad_id;
+    const atendido = novedad?.atendido;
+    
+    // Solo aplica si está RESUELTO
+    const estaResuelto = resultadoActual === "RESUELTO" || estadoActualId === 6;
+    
+    if (!estaResuelto) {
+      return false; // Si no está resuelto, los campos son editables
+    }
+    
+    // Si está resuelto, los campos son de solo lectura si atendido tiene dato
+    return !!atendido; // TRUE si atendido tiene dato (solo lectura), FALSE si es NULL (editable)
   }, []);
 
   const handleUpdateNovedad = async (e) => {
     e.preventDefault();
 
     setSaving(true);
-    try {
-      const observacionesOperativo = editData.observaciones?.trim() || "";
-      const tieneAcciones = editData.acciones_tomadas?.trim();
-      const novedadPrincipalId =
-        selectedNovedad.novedad_id || selectedNovedad.novedad?.id;
-      const estadoActualId = selectedNovedad.novedad?.estado_novedad_id;
-      const nuevoEstadoId = editData.estado_novedad_id
-        ? Number(editData.estado_novedad_id)
-        : null;
-      const cambioEstado = nuevoEstadoId && nuevoEstadoId !== estadoActualId;
-      const esResuelta = esNovedadResuelta(selectedNovedad);
+    
+    // 🔥 DEBUG: Datos iniciales (definidos antes del try para estar disponibles en catch)
+    const observacionesOperativo = editData.observaciones?.trim() || "";
+    const tieneAcciones = editData.acciones_tomadas?.trim();
+    const novedadPrincipalId =
+      selectedNovedad.novedad_id || selectedNovedad.novedad?.id;
+    const estadoActualId = selectedNovedad.novedad?.estado_novedad_id;
+    const nuevoEstadoId = editData.estado_novedad_id
+      ? Number(editData.estado_novedad_id)
+      : null;
+    const cambioEstado = nuevoEstadoId && nuevoEstadoId !== estadoActualId;
+    const esResuelta = esNovedadResuelta(selectedNovedad);
 
-      // 🎯 CASO ESPECIAL: Novedad RESUELTA - Solo guardar en historial
-      if (esResuelta) {
+    // 2. Preparar payload para actualización (definido antes del try-catch para estar disponible)
+    // Usar dateHelper seguro para manejo correcto de timezone
+    const fechaLlegadaPayload = editData.fecha_llegada
+      ? safeConvertToTimezone(editData.fecha_llegada)
+      : undefined;
+    let payload = {
+      resultado: editData.resultado,
+      acciones_tomadas: editData.acciones_tomadas?.trim() || "", // Guardar acciones del formulario
+      observaciones: observacionesOperativo,
+      num_personas_afectadas: editData.num_personas_afectadas || 0,
+      perdidas_materiales_estimadas:
+        editData.perdidas_materiales_estimadas || 0,
+      ...(fechaLlegadaPayload ? { fecha_llegada: fechaLlegadaPayload } : {}),
+    };
+
+    // Incluir estado_novedad_id si cambió
+    if (cambioEstado) {
+      payload.estado_novedad_id = nuevoEstadoId;
+      // 🐛 FIX CORRECCIÓN: Enviar atendido con fecha local correcta cuando cambia a RESUELTA
+      if (nuevoEstadoId === 6) {
+        payload.atendido = getNowLocal();
+      }
+    }
+
+    try {
+      // 🔥 DEBUG: Registrar estado inicial
+      import("../../../utils/debug").then(({ debug }) =>
+        debug("[NovedadesPersonalModal] INICIO handleUpdateNovedad:", {
+          selectedNovedad,
+          editData,
+          turnoId,
+          personal: personal?.id,
+          cuadrante: cuadrante?.id,
+          novedadPrincipalId,
+          estadoActualId,
+          nuevoEstadoId,
+          cambioEstado,
+          esResuelta,
+          observacionesOperativo,
+          tieneAcciones,
+          payloadPreparado: payload,
+        }),
+      );
+
+      // 🎯 CASO ESPECIAL: Novedad RESUELTA - Verificar si se puede editar
+      if (esResuelta && !puedeEditarNovedadResuelta(selectedNovedad)) {
+        // 🔥 DEBUG: Caso especial RESUELTO con atendido con dato - SOLO HISTORIAL
+        import("../../../utils/debug").then(({ debug }) =>
+          debug("[NovedadesPersonalModal] CASO ESPECIAL RESUELTA - SOLO HISTORIAL:", {
+            selectedNovedad,
+            editData,
+            novedadPrincipalId,
+            nuevasObservaciones: editData.observaciones?.trim(),
+            observacionesOriginales: selectedNovedad.observaciones || "",
+            hayCambios: editData.observaciones?.trim() !== (selectedNovedad.observaciones || ""),
+            motivo: "atendido tiene dato, solo permite historial",
+          }),
+        );
+
         // Solo crear historial si hay nuevas observaciones
         const nuevasObservaciones = editData.observaciones?.trim();
         if (
@@ -468,6 +565,15 @@ export default function NovedadesPersonalModal({
         ) {
           try {
             const fechaLocal = getNowLocal();
+
+            // 🔥 DEBUG: Creando historial para novedad resuelta
+            import("../../../utils/debug").then(({ debug }) =>
+              debug("[NovedadesPersonalModal] Creando historial para RESUELTA:", {
+                novedadPrincipalId,
+                nuevasObservaciones,
+                fechaLocal,
+              }),
+            );
 
             await crearHistorialNovedad(
               novedadPrincipalId,
@@ -478,10 +584,27 @@ export default function NovedadesPersonalModal({
 
             toast.success("Información complementaria agregada al historial");
           } catch (historialError) {
+            // 🔥 DEBUG: Error en historial
+            import("../../../utils/debug").then(({ debug }) =>
+              debug("[NovedadesPersonalModal] ERROR en crearHistorialNovedad:", {
+                historialError,
+                historialErrorMessage: historialError?.message,
+                historialErrorStatus: historialError?.response?.status,
+              }),
+            );
+
             console.error("Error al grabar historial:", historialError);
             toast.error("Error al guardar en historial");
           }
         } else {
+          // 🔥 DEBUG: No hay cambios para guardar
+          import("../../../utils/debug").then(({ debug }) =>
+            debug("[NovedadesPersonalModal] No hay cambios para guardar en RESUELTA:", {
+              nuevasObservaciones,
+              observacionesOriginales: selectedNovedad.observaciones || "",
+            }),
+          );
+
           toast.info("No hay cambios para guardar");
         }
 
@@ -491,7 +614,30 @@ export default function NovedadesPersonalModal({
         return;
       }
 
+      // 🔥 DEBUG: Novedad RESUELTA con atendido NULL - PERMITE ACTUALIZACIÓN COMPLETA
+      if (esResuelta && puedeEditarNovedadResuelta(selectedNovedad)) {
+        import("../../../utils/debug").then(({ debug }) =>
+          debug("[NovedadesPersonalModal] CASO ESPECIAL RESUELTA - PERMITE ACTUALIZACIÓN:", {
+            selectedNovedad,
+            editData,
+            novedadPrincipalId,
+            payloadPreparado: payload,
+            motivo: "atendido es NULL, permite actualizar datos principales",
+          }),
+        );
+      }
+
       // 🎯 CASO NORMAL: Novedad no RESUELTA - Actualizar completo
+      // 🔥 DEBUG: Entrando en flujo normal
+      import("../../../utils/debug").then(({ debug }) =>
+        debug("[NovedadesPersonalModal] CASO NORMAL - Actualización completa:", {
+          cambioEstado,
+          novedadPrincipalId,
+          "¿Tiene acciones?": tieneAcciones,
+          "¿Tiene observaciones?": !!observacionesOperativo,
+        }),
+      );
+
       // 1. Si hay cambio de estado, crear historial (solo cambios de estado, no acciones)
       if (cambioEstado && novedadPrincipalId) {
         try {
@@ -526,29 +672,7 @@ export default function NovedadesPersonalModal({
         }
       }
 
-      // 2. Actualizar el registro operativo (operativos_personal_novedades)
-      // Usar dateHelper seguro para manejo correcto de timezone
-      const fechaLlegadaPayload = editData.fecha_llegada
-        ? safeConvertToTimezone(editData.fecha_llegada)
-        : undefined;
-      const payload = {
-        resultado: editData.resultado,
-        acciones_tomadas: editData.acciones_tomadas?.trim() || "", // Guardar acciones del formulario
-        observaciones: observacionesOperativo,
-        num_personas_afectadas: editData.num_personas_afectadas || 0,
-        perdidas_materiales_estimadas:
-          editData.perdidas_materiales_estimadas || 0,
-        ...(fechaLlegadaPayload ? { fecha_llegada: fechaLlegadaPayload } : {}),
-      };
-
-      // Incluir estado_novedad_id si cambió
-      if (cambioEstado) {
-        payload.estado_novedad_id = nuevoEstadoId;
-        // 🐛 FIX CORRECCIÓN: Enviar atendido con fecha local correcta cuando cambia a RESUELTA
-        if (nuevoEstadoId === 6) {
-          payload.atendido = getNowLocal();
-        }
-      }
+      // 🔥 DEBUG: Payload ya está preparado antes del try, continuando con actualización
 
       // Debug: registrar payload antes de updateNovedadPersonal (guarded)
       import("../../../utils/debug").then(({ debug }) =>
@@ -561,12 +685,32 @@ export default function NovedadesPersonalModal({
         }),
       );
 
-      await updateNovedadPersonal(
+      // 🔥 DEBUG: Antes de llamar al backend
+      import("../../../utils/debug").then(({ debug }) =>
+        debug("[NovedadesPersonalModal] ANTES de updateNovedadPersonal:", {
+          endpoint: `/operativos/${turnoId}/personal/${personal.id}/cuadrantes/${cuadrante.id}/novedades/${selectedNovedad.id}`,
+          method: "PUT",
+          payload,
+        }),
+      );
+
+      const response = await updateNovedadPersonal(
         turnoId,
         personal.id,
         cuadrante.id,
         selectedNovedad.id,
         payload,
+      );
+
+      // 🔥 DEBUG: Respuesta del backend
+      import("../../../utils/debug").then(({ debug }) =>
+        debug("[NovedadesPersonalModal] RESPUESTA de updateNovedadPersonal:", {
+          response,
+          responseStatus: response?.status,
+          responseData: response?.data,
+          responseSuccess: response?.data?.success,
+          responseMessage: response?.data?.message,
+        }),
       );
 
       toast.success(
@@ -578,6 +722,20 @@ export default function NovedadesPersonalModal({
       setSelectedNovedad(null);
       fetchNovedades();
     } catch (error) {
+      // 🔥 DEBUG: Error detallado
+      import("../../../utils/debug").then(({ debug }) =>
+        debug("[NovedadesPersonalModal] ERROR en updateNovedadPersonal:", {
+          error,
+          errorMessage: error?.message,
+          errorStatus: error?.response?.status,
+          errorData: error?.response?.data,
+          errorBackendMessage: error?.response?.data?.message,
+          errorBackendErrors: error?.response?.data?.errors,
+          endpoint: `/operativos/${turnoId}/personal/${personal.id}/cuadrantes/${cuadrante.id}/novedades/${selectedNovedad.id}`,
+          payloadEnviado: payload || 'payload no definido',
+        }),
+      );
+
       console.error("Error actualizando novedad:", error);
       const msg = formatBackendError(error);
       toast.error(msg, { duration: 5000, style: { whiteSpace: "pre-line" } });
@@ -910,7 +1068,7 @@ export default function NovedadesPersonalModal({
                         </h3>
                       </div>
                       <div className="flex items-center gap-0.5 flex-shrink-0">
-                        {canUpdate && (
+                        {canUpdate && puedeEditarNovedadResuelta(novedad) && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -1142,9 +1300,9 @@ export default function NovedadesPersonalModal({
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                     Nuevas Acciones Tomadas
-                    {esNovedadResuelta(selectedNovedad) && (
+                    {debeSerReadOnly(selectedNovedad) && (
                       <span className="ml-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
-                        (Solo lectura - Novedad resuelta)
+                        (Solo lectura - Novedad ya atendida)
                       </span>
                     )}
                   </label>
@@ -1157,9 +1315,9 @@ export default function NovedadesPersonalModal({
                       })
                     }
                     rows={3}
-                    disabled={esNovedadResuelta(selectedNovedad)}
+                    disabled={debeSerReadOnly(selectedNovedad)}
                     className={`w-full px-3 py-2 rounded-lg border resize-none ${
-                      esNovedadResuelta(selectedNovedad)
+                      debeSerReadOnly(selectedNovedad)
                         ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-600 dark:bg-amber-900/20 dark:text-amber-300"
                         : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                     }`}
@@ -1167,14 +1325,14 @@ export default function NovedadesPersonalModal({
                   />
                   <p
                     className={`mt-1 text-xs ${
-                      esNovedadResuelta(selectedNovedad)
+                      debeSerReadOnly(selectedNovedad)
                         ? "text-amber-600 dark:text-amber-400"
                         : "text-blue-600 dark:text-blue-400"
                     }`}
                   >
-                    {esNovedadResuelta(selectedNovedad)
-                      ? "Las acciones ya están registradas en el historial."
-                      : "Las acciones se guardarán en el historial y este campo quedará vacío para nuevas acciones."}
+                    {debeSerReadOnly(selectedNovedad)
+                      ? "Esta novedad ya fue atendida y registrada."
+                      : "Las acciones se guardarán en el historial de la novedad."}
                   </p>
                 </div>
 
@@ -1183,7 +1341,7 @@ export default function NovedadesPersonalModal({
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                       Nro. de Personas Afectadas
-                      {esNovedadResuelta(selectedNovedad) && (
+                      {debeSerReadOnly(selectedNovedad) && (
                         <span className="ml-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
                           (Solo lectura)
                         </span>
@@ -1199,9 +1357,9 @@ export default function NovedadesPersonalModal({
                           num_personas_afectadas: parseInt(e.target.value) || 0,
                         })
                       }
-                      disabled={esNovedadResuelta(selectedNovedad)}
+                      disabled={debeSerReadOnly(selectedNovedad)}
                       className={`w-full px-3 py-2 rounded-lg border ${
-                        esNovedadResuelta(selectedNovedad)
+                        debeSerReadOnly(selectedNovedad)
                           ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-600 dark:bg-amber-900/20 dark:text-amber-300"
                           : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                       }`}
@@ -1211,7 +1369,7 @@ export default function NovedadesPersonalModal({
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                       Pérdidas Materiales Estimadas (S/)
-                      {esNovedadResuelta(selectedNovedad) && (
+                      {debeSerReadOnly(selectedNovedad) && (
                         <span className="ml-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
                           (Solo lectura)
                         </span>
@@ -1229,9 +1387,9 @@ export default function NovedadesPersonalModal({
                             parseFloat(e.target.value) || 0,
                         })
                       }
-                      disabled={esNovedadResuelta(selectedNovedad)}
+                      disabled={debeSerReadOnly(selectedNovedad)}
                       className={`w-full px-3 py-2 rounded-lg border ${
-                        esNovedadResuelta(selectedNovedad)
+                        debeSerReadOnly(selectedNovedad)
                           ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-600 dark:bg-amber-900/20 dark:text-amber-300"
                           : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                       }`}
@@ -1272,14 +1430,16 @@ export default function NovedadesPersonalModal({
                 >
                   Cancelar
                 </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-4 py-2 rounded-lg bg-primary-700 text-white hover:bg-primary-800 disabled:opacity-50"
-                >
-                  {saving ? "Guardando..." : "Grabar"}{" "}
-                  <span className="text-xs opacity-75">(ALT+G)</span>
-                </button>
+                {!debeSerReadOnly(selectedNovedad) && (
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="px-4 py-2 rounded-lg bg-primary-700 text-white hover:bg-primary-800 disabled:opacity-50"
+                  >
+                    {saving ? "Guardando..." : "Grabar"}{" "}
+                    <span className="text-xs opacity-75">(ALT+G)</span>
+                  </button>
+                )}
               </div>
             </form>
           </div>
