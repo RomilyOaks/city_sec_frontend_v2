@@ -58,6 +58,7 @@ import {
 
 // Componentes
 import NovedadDetalleModal from "../../../components/NovedadDetalleModal.jsx";
+import EyePersonalModal from "./EyePersonalModal.jsx";
 
 /**
  * Función helper para abreviar título de novedad
@@ -145,6 +146,10 @@ export default function NovedadesPersonalModal({
   // Estados - Modal ver detalle
   const [showViewModal, setShowViewModal] = useState(false);
   const [viewingNovedad, setViewingNovedad] = useState(null);
+
+  // Estado para modal EYE
+  const [showEyeModal, setShowEyeModal] = useState(false);
+  const [selectedEyeOperativo, setSelectedEyeOperativo] = useState(null);
 
   // Estados - Catálogos para el modal de detalle
   const [unidadesOficina, setUnidadesOficina] = useState([]);
@@ -766,6 +771,18 @@ export default function NovedadesPersonalModal({
     }
   };
 
+  // Manejar modal EYE para personal
+  const handleEyeOperativo = useCallback((novedad) => {
+        setSelectedEyeOperativo(novedad);
+    setShowEyeModal(true);
+  }, []);
+
+  // Cerrar modal EYE
+  const handleCloseEyeModal = useCallback(() => {
+    setShowEyeModal(false);
+    setSelectedEyeOperativo(null);
+  }, []);
+
   // ============================================================================
   // HELPERS
   // ============================================================================
@@ -1080,6 +1097,16 @@ export default function NovedadesPersonalModal({
                             <Edit size={14} />
                           </button>
                         )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEyeOperativo(novedad);
+                          }}
+                          className="p-1.5 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded-lg"
+                          title="Consultar Operativo (READ ONLY)"
+                        >
+                          <Eye size={14} />
+                        </button>
                         {canDelete && (
                           <button
                             onClick={(e) => {
@@ -1460,6 +1487,14 @@ export default function NovedadesPersonalModal({
         unidadesOficina={unidadesOficina}
         vehiculos={vehiculos}
         personalSeguridad={personalSeguridad}
+      />
+
+      {/* Modal EYE para personal */}
+      <EyePersonalModal
+        isOpen={showEyeModal}
+        onClose={handleCloseEyeModal}
+        cuadranteId={cuadrante?.id}
+        operativoId={selectedEyeOperativo?.id}
       />
     </div>
   );

@@ -95,6 +95,34 @@ class OperativosNovedadesService {
     const response = await api.get("/novedades");
     return response.data;
   }
+
+  /**
+   * Obtiene datos completos de un operativo vehículo para modal EYE (READ ONLY)
+   * @param {number} turnoId - ID del turno
+   * @param {number} vehiculoId - ID del vehículo operativo
+   * @param {number} cuadranteId - ID del cuadrante asignado
+   * @param {number} operativoId - ID del operativo vehículo novedad
+   * @returns {Promise<Object>} - Datos completos del operativo
+   */
+  async getEyeVehiculoNovedad(turnoId, vehiculoId, cuadranteId, operativoId) {
+    const response = await api.get(
+      `/operativos/${turnoId}/vehiculos/${vehiculoId}/cuadrantes/${cuadranteId}/novedades/eye/${operativoId}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Obtiene datos completos de un operativo personal para modal EYE (READ ONLY)
+   * @param {number} cuadranteId - ID del cuadrante asignado
+   * @param {number} operativoId - ID del operativo personal novedad
+   * @returns {Promise<Object>} - Datos completos del operativo
+   */
+  async getEyePersonalNovedad(cuadranteId, operativoId) {
+    const response = await api.get(
+      `/operativos/personal/cuadrantes/${cuadranteId}/novedades/eye/${operativoId}`
+    );
+    return response.data;
+  }
 }
 
 // Exportar una instancia única del servicio

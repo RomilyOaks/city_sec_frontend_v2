@@ -40,6 +40,7 @@ import { useAuthStore } from "../../../store/useAuthStore.js";
 import { useEstadosPorRol } from "../../../hooks/useEstadosPorRol.js";
 import RegistrarNovedadForm from "./RegistrarNovedadForm.jsx";
 import NovedadDetalleModal from "../../../components/NovedadDetalleModal.jsx";
+import EyeVehiculoModal from "./EyeVehiculoModal.jsx";
 import {
   formatForDisplay,
   safeConvertToTimezone,
@@ -159,6 +160,10 @@ export default function NovedadesPorCuadrante() {
     usar_fecha_actual: true, // Agregar usar_fecha_actual al estado inicial
   });
   const [savingEdit, setSavingEdit] = useState(false);
+
+  // Estado para modal EYE
+  const [showEyeModal, setShowEyeModal] = useState(false);
+  const [selectedEyeOperativo, setSelectedEyeOperativo] = useState(null);
 
   // Opciones de resultado para el select
   const RESULTADOS_NOVEDAD = [
@@ -541,6 +546,18 @@ export default function NovedadesPorCuadrante() {
   // Manejar ver detalle de novedad
   const handleViewNovedad = useCallback((novedad) => {
     setViewingNovedad(novedad);
+  }, []);
+
+  // Manejar modal EYE para vehículos
+  const handleEyeOperativo = useCallback((novedad) => {
+        setSelectedEyeOperativo(novedad);
+    setShowEyeModal(true);
+  }, []);
+
+  // Cerrar modal EYE
+  const handleCloseEyeModal = useCallback(() => {
+    setShowEyeModal(false);
+    setSelectedEyeOperativo(null);
   }, []);
 
   // Manejar cierre del modal de detalle
@@ -975,6 +992,16 @@ export default function NovedadesPorCuadrante() {
                           <Pencil size={14} />
                         </button>
                       )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEyeOperativo(novedad);
+                        }}
+                        className="p-1.5 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 rounded-lg"
+                        title="Consultar Operativo (READ ONLY)"
+                      >
+                        <Eye size={14} />
+                      </button>
                       {canDelete && (
                         <button
                           onClick={(e) => {
@@ -1484,6 +1511,16 @@ export default function NovedadesPorCuadrante() {
           </div>
         </div>
       )}
+
+      {/* Modal EYE para vehículos */}
+      <EyeVehiculoModal
+        isOpen={showEyeModal}
+        onClose={handleCloseEyeModal}
+        turnoId={turnoId}
+        vehiculoId={vehiculoId}
+        cuadranteId={cuadranteId}
+        operativoId={selectedEyeOperativo?.id}
+      />
     </div>
   );
 }
