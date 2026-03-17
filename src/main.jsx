@@ -21,7 +21,7 @@ if (
   import.meta.env.VITE_DEBUG === "true" ||
   import.meta.env.VITE_DEBUG === true
 ) {
-  // eslint-disable-next-line no-console
+   
   console.log("import.meta.env:", import.meta.env);
 }
 
