@@ -77,6 +77,16 @@ export default function RegistrarNovedadForm({
   const [selectedNovedad, setSelectedNovedad] = useState(null);
   const [errors, setErrors] = useState({});
 
+  // Función para determinar si la novedad está atendida y resuelta (solo acciones y observaciones editables)
+  const esNovedadAtendidaResuelta = useCallback(() => {
+    if (!novedad) return false;
+    
+    const tieneAtendido = novedad.atendido && novedad.atendido !== null && novedad.atendido !== "";
+    const esResuelto = novedad.resultado === "RESUELTO";
+    
+    return tieneAtendido && esResuelto;
+  }, [novedad]);
+
   // Form data
   const [formData, setFormData] = useState({
     novedad_id: "",
@@ -354,6 +364,18 @@ export default function RegistrarNovedadForm({
           </button>
         </div>
 
+        {/* Alerta de modo restringido */}
+        {esNovedadAtendidaResuelta() && (
+          <div className="mx-6 mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+            <div className="flex items-center gap-2">
+              <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400" />
+              <p className="text-sm text-amber-800 dark:text-amber-300">
+                <strong>Novedad atendida y resuelta:</strong> Solo puede editar "Acciones Tomadas" y "Observaciones" para registrar información adicional.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Form */}
         <form id="novedad-cuadrante-form" onSubmit={handleSubmit} className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -443,9 +465,10 @@ export default function RegistrarNovedadForm({
                 name="reportado"
                 value={formData.reportado}
                 onChange={handleInputChange}
+                disabled={esNovedadAtendidaResuelta()}
                 className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
                   errors.reportado ? 'border-red-500' : 'border-slate-300 dark:border-slate-700'
-                }`}
+                } ${esNovedadAtendidaResuelta() ? 'bg-slate-100 dark:bg-slate-700 cursor-not-allowed opacity-60' : ''}`}
               />
               {errors.reportado && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.reportado}</p>
@@ -463,7 +486,8 @@ export default function RegistrarNovedadForm({
                 name="atendido"
                 value={formData.atendido}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                disabled={esNovedadAtendidaResuelta()}
+                className={`w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${esNovedadAtendidaResuelta() ? 'bg-slate-100 dark:bg-slate-700 cursor-not-allowed opacity-60' : ''}`}
               />
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                 Opcional: Dejar en blanco si no ha sido atendido
@@ -480,9 +504,10 @@ export default function RegistrarNovedadForm({
                 name="prioridad"
                 value={formData.prioridad}
                 onChange={handleInputChange}
+                disabled={esNovedadAtendidaResuelta()}
                 className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
                   errors.prioridad ? 'border-red-500' : 'border-slate-300 dark:border-slate-700'
-                }`}
+                } ${esNovedadAtendidaResuelta() ? 'bg-slate-100 dark:bg-slate-700 cursor-not-allowed opacity-60' : ''}`}
               >
                 {PRIORIDADES.map(prioridad => (
                   <option key={prioridad.value} value={prioridad.value}>
@@ -504,7 +529,8 @@ export default function RegistrarNovedadForm({
                 name="estado"
                 value={formData.estado}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                disabled={esNovedadAtendidaResuelta()}
+                className={`w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${esNovedadAtendidaResuelta() ? 'bg-slate-100 dark:bg-slate-700 cursor-not-allowed opacity-60' : ''}`}
               >
                 <option value="0">Inactivo</option>
                 <option value="1">Activo</option>
@@ -521,7 +547,8 @@ export default function RegistrarNovedadForm({
                 name="resultado"
                 value={formData.resultado}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                disabled={esNovedadAtendidaResuelta()}
+                className={`w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-50 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${esNovedadAtendidaResuelta() ? 'bg-slate-100 dark:bg-slate-700 cursor-not-allowed opacity-60' : ''}`}
               >
                 {RESULTADOS.map(resultado => (
                   <option key={resultado.value} value={resultado.value}>
