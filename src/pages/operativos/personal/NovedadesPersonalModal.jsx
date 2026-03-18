@@ -420,25 +420,7 @@ export default function NovedadesPersonalModal({
     setViewingNovedad(null);
   };
 
-  const handleOpenEdit = async (novedad) => {
-    setSelectedNovedad(novedad);
-
-    // Obtener el estado actual de la novedad principal
-    const estadoActualId = novedad.novedad?.estado_novedad_id || 1;
-
-    setEditData({
-      estado_novedad_id: estadoActualId,
-      resultado: novedad.resultado || "PENDIENTE",
-      acciones_tomadas: "", // Siempre vacío - las anteriores ya están en observaciones/historial
-      observaciones: novedad.observaciones || "",
-      fecha_llegada: "",
-      num_personas_afectadas: novedad.novedad?.num_personas_afectadas || 0,
-      perdidas_materiales_estimadas:
-        novedad.novedad?.perdidas_materiales_estimadas || 0,
-    });
-    setShowEditModal(true);
-  };
-
+  
   // Función helper para detectar si una novedad está RESUELTA
   const esNovedadResuelta = useCallback((novedad) => {
     const resultadoActual = novedad?.resultado;
@@ -473,17 +455,12 @@ export default function NovedadesPersonalModal({
   const debeSerReadOnly = useCallback((novedad) => {
     const resultadoActual = novedad?.resultado;
     const estadoActualId = novedad?.novedad?.estado_novedad_id;
-    const atendido = novedad?.atendido;
     
-    // Solo aplica si está RESUELTO
+    // Solo aplica si está RESUELTO (ya no se verifica atendido)
     const estaResuelto = resultadoActual === "RESUELTO" || estadoActualId === 6;
     
-    if (!estaResuelto) {
-      return false; // Si no está resuelto, los campos son editables
-    }
-    
-    // Si está resuelto, los campos son de solo lectura si atendido tiene dato
-    return !!atendido; // TRUE si atendido tiene dato (solo lectura), FALSE si es NULL (editable)
+    // Si está resuelto, los campos son de solo lectura (excepto acciones_tomadas y observaciones)
+    return estaResuelto;
   }, []);
 
   const handleUpdateNovedad = async (e) => {
@@ -518,50 +495,15 @@ export default function NovedadesPersonalModal({
       ...(fechaLlegadaPayload ? { fecha_llegada: fechaLlegadaPayload } : {}),
     };
 
-    // Incluir estado_novedad_id si cambió
-    if (cambioEstado) {
-      payload.estado_novedad_id = nuevoEstadoId;
-      // 🐛 FIX CORRECCIÓN: Enviar atendido con fecha local correcta cuando cambia a RESUELTA
-      if (nuevoEstadoId === 6) {
-        payload.atendido = getNowLocal();
-      }
-    }
-
+    // 🐛 FIX: Simplificar como en vehículos - no enviar estado_novedad_id
+    // El backend debería actualizar automáticamente cuando resultado = RESUELTO
+    
+    
     try {
-      // 🔥 DEBUG: Registrar estado inicial
-      import("../../../utils/debug").then(({ debug }) =>
-        debug("[NovedadesPersonalModal] INICIO handleUpdateNovedad:", {
-          selectedNovedad,
-          editData,
-          turnoId,
-          personal: personal?.id,
-          cuadrante: cuadrante?.id,
-          novedadPrincipalId,
-          estadoActualId,
-          nuevoEstadoId,
-          cambioEstado,
-          esResuelta,
-          observacionesOperativo,
-          tieneAcciones,
-          payloadPreparado: payload,
-        }),
-      );
 
       // 🎯 CASO ESPECIAL: Novedad RESUELTA - Verificar si se puede editar
       if (esResuelta && !puedeEditarNovedadResuelta(selectedNovedad)) {
-        // 🔥 DEBUG: Caso especial RESUELTO con atendido con dato - SOLO HISTORIAL
-        import("../../../utils/debug").then(({ debug }) =>
-          debug("[NovedadesPersonalModal] CASO ESPECIAL RESUELTA - SOLO HISTORIAL:", {
-            selectedNovedad,
-            editData,
-            novedadPrincipalId,
-            nuevasObservaciones: editData.observaciones?.trim(),
-            observacionesOriginales: selectedNovedad.observaciones || "",
-            hayCambios: editData.observaciones?.trim() !== (selectedNovedad.observaciones || ""),
-            motivo: "atendido tiene dato, solo permite historial",
-          }),
-        );
-
+        
         // Solo crear historial si hay nuevas observaciones
         const nuevasObservaciones = editData.observaciones?.trim();
         if (
@@ -571,15 +513,7 @@ export default function NovedadesPersonalModal({
           try {
             const fechaLocal = getNowLocal();
 
-            // 🔥 DEBUG: Creando historial para novedad resuelta
-            import("../../../utils/debug").then(({ debug }) =>
-              debug("[NovedadesPersonalModal] Creando historial para RESUELTA:", {
-                novedadPrincipalId,
-                nuevasObservaciones,
-                fechaLocal,
-              }),
-            );
-
+            
             await crearHistorialNovedad(
               novedadPrincipalId,
               nuevasObservaciones, // Usar observaciones como mensaje del historial
@@ -589,27 +523,10 @@ export default function NovedadesPersonalModal({
 
             toast.success("Información complementaria agregada al historial");
           } catch (historialError) {
-            // 🔥 DEBUG: Error en historial
-            import("../../../utils/debug").then(({ debug }) =>
-              debug("[NovedadesPersonalModal] ERROR en crearHistorialNovedad:", {
-                historialError,
-                historialErrorMessage: historialError?.message,
-                historialErrorStatus: historialError?.response?.status,
-              }),
-            );
-
             console.error("Error al grabar historial:", historialError);
             toast.error("Error al guardar en historial");
           }
         } else {
-          // 🔥 DEBUG: No hay cambios para guardar
-          import("../../../utils/debug").then(({ debug }) =>
-            debug("[NovedadesPersonalModal] No hay cambios para guardar en RESUELTA:", {
-              nuevasObservaciones,
-              observacionesOriginales: selectedNovedad.observaciones || "",
-            }),
-          );
-
           toast.info("No hay cambios para guardar");
         }
 
@@ -621,159 +538,110 @@ export default function NovedadesPersonalModal({
 
       // 🔥 DEBUG: Novedad RESUELTA con atendido NULL - PERMITE ACTUALIZACIÓN COMPLETA
       if (esResuelta && puedeEditarNovedadResuelta(selectedNovedad)) {
-        import("../../../utils/debug").then(({ debug }) =>
-          debug("[NovedadesPersonalModal] CASO ESPECIAL RESUELTA - PERMITE ACTUALIZACIÓN:", {
-            selectedNovedad,
-            editData,
-            novedadPrincipalId,
-            payloadPreparado: payload,
-            motivo: "atendido es NULL, permite actualizar datos principales",
-          }),
-        );
       }
 
-      // 🎯 CASO NORMAL: Novedad no RESUELTA - Actualizar completo
-      // 🔥 DEBUG: Entrando en flujo normal
-      import("../../../utils/debug").then(({ debug }) =>
-        debug("[NovedadesPersonalModal] CASO NORMAL - Actualización completa:", {
-          cambioEstado,
-          novedadPrincipalId,
-          "¿Tiene acciones?": tieneAcciones,
-          "¿Tiene observaciones?": !!observacionesOperativo,
-        }),
-      );
+        // 🎯 CASO NORMAL: Actualización completa
+        // 1. Si hay cambio de estado, crear historial
+        if (cambioEstado && novedadPrincipalId) {
+          try {
+            const timestamp = formatForDisplay(new Date());
+            const nombrePersonal = formatPersonalNombre(personal?.personal);
+            const estadoNuevo = estadosRol.find((e) => e.id === nuevoEstadoId);
 
-      // 1. Si hay cambio de estado, crear historial (solo cambios de estado, no acciones)
-      if (cambioEstado && novedadPrincipalId) {
-        try {
-          const timestamp = formatForDisplay(new Date());
-          const nombrePersonal = formatPersonalNombre(personal?.personal);
-          const estadoNuevo = estadosRol.find((e) => e.id === nuevoEstadoId);
+            // Usar getNowLocal() igual que en vehículos para consistencia
+            const fechaLocal = getNowLocal();
 
-          // Usar getNowLocal() igual que en vehículos para consistencia
-          const fechaLocal = getNowLocal();
-
-          // Debug: registrar payload de historial antes de crear (guarded)
-          import("../../../utils/debug").then(({ debug }) =>
-            debug("[NovedadesPersonalModal] crearHistorialNovedad payload:", {
+            // Si hay cambio de estado, enviarlo al historial con fecha local
+            await crearHistorialNovedad(
               novedadPrincipalId,
-              mensaje: `[${timestamp} - ${nombrePersonal}] Cambio de estado a: ${estadoNuevo?.nombre || "Nuevo estado"}`,
+              `[${timestamp} - ${nombrePersonal}] Cambio de estado a: ${estadoNuevo?.nombre || "Nuevo estado"}`,
               nuevoEstadoId,
-              fechaLocal,
-            }),
-          );
-
-          await crearHistorialNovedad(
-            novedadPrincipalId,
-            `[${timestamp} - ${nombrePersonal}] Cambio de estado a: ${estadoNuevo?.nombre || "Nuevo estado"}`,
-            nuevoEstadoId,
-            fechaLocal, // Agregar fecha_cambio en formato local
-          );
-        } catch (historialError) {
-          console.error("Error en crearHistorialNovedad:", historialError);
-          toast.error(
-            "Error al guardar en historial, pero se actualizará el registro local",
-          );
+              fechaLocal, // Agregar fecha_cambio en formato local
+            );
+          } catch (historialError) {
+            console.error("Error en crearHistorialNovedad:", historialError);
+            toast.error(
+              "Error al guardar en historial, pero se actualizará el registro local",
+            );
+          }
         }
-      }
 
-      // 🔥 DEBUG: Payload ya está preparado antes del try, continuando con actualización
+        // 🔥 DEBUG: Payload ya está preparado antes del try, continuando con actualización
 
-      // Debug: registrar payload antes de updateNovedadPersonal (guarded)
-      import("../../../utils/debug").then(({ debug }) =>
-        debug("[NovedadesPersonalModal] updateNovedadPersonal payload:", {
+
+        // 🔥 DEBUG: Antes de llamar al backend
+        const response = await updateNovedadPersonal(
           turnoId,
-          personalId: personal.id,
-          cuadranteId: cuadrante.id,
-          novedadId: selectedNovedad.id,
+          personal.id,
+          cuadrante.id,
+          selectedNovedad.id,
           payload,
-        }),
-      );
+        );
 
-      // 🔥 DEBUG: Antes de llamar al backend
-      import("../../../utils/debug").then(({ debug }) =>
-        debug("[NovedadesPersonalModal] ANTES de updateNovedadPersonal:", {
-          endpoint: `/operativos/${turnoId}/personal/${personal.id}/cuadrantes/${cuadrante.id}/novedades/${selectedNovedad.id}`,
-          method: "PUT",
-          payload,
-        }),
-      );
+        toast.success(
+          cambioEstado || tieneAcciones
+            ? "Novedad actualizada. Cambios registrados en historial."
+            : "Novedad actualizada.",
+        );
+        setShowEditModal(false);
+        setSelectedNovedad(null);
+        fetchNovedades();
+      } catch (error) {
+        console.error("Error actualizando novedad:", error);
+        const msg = formatBackendError(error);
+        toast.error(msg, { duration: 5000, style: { whiteSpace: "pre-line" } });
+      } finally {
+        setSaving(false);
+      }
+    };
 
-      const response = await updateNovedadPersonal(
-        turnoId,
-        personal.id,
-        cuadrante.id,
-        selectedNovedad.id,
-        payload,
+    const handleEliminarNovedad = async (novedad) => {
+      const confirmed = window.confirm(
+        "¿Eliminar esta novedad de la lista de atendidas?",
       );
+      if (!confirmed) return;
 
-      // 🔥 DEBUG: Respuesta del backend
-      import("../../../utils/debug").then(({ debug }) =>
-        debug("[NovedadesPersonalModal] RESPUESTA de updateNovedadPersonal:", {
-          response,
-          responseStatus: response?.status,
-          responseData: response?.data,
-          responseSuccess: response?.data?.success,
-          responseMessage: response?.data?.message,
-        }),
-      );
-
-      toast.success(
-        cambioEstado || tieneAcciones
-          ? "Novedad actualizada. Cambios registrados en historial."
-          : "Novedad actualizada.",
-      );
-      setShowEditModal(false);
-      setSelectedNovedad(null);
-      fetchNovedades();
-    } catch (error) {
-      // 🔥 DEBUG: Error detallado
-      import("../../../utils/debug").then(({ debug }) =>
-        debug("[NovedadesPersonalModal] ERROR en updateNovedadPersonal:", {
-          error,
-          errorMessage: error?.message,
-          errorStatus: error?.response?.status,
-          errorData: error?.response?.data,
-          errorBackendMessage: error?.response?.data?.message,
-          errorBackendErrors: error?.response?.data?.errors,
-          endpoint: `/operativos/${turnoId}/personal/${personal.id}/cuadrantes/${cuadrante.id}/novedades/${selectedNovedad.id}`,
-          payloadEnviado: payload || 'payload no definido',
-        }),
-      );
-
-      console.error("Error actualizando novedad:", error);
-      const msg = formatBackendError(error);
-      toast.error(msg, { duration: 5000, style: { whiteSpace: "pre-line" } });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleEliminarNovedad = async (novedad) => {
-    const confirmed = window.confirm(
-      "¿Eliminar esta novedad de la lista de atendidas?",
-    );
-    if (!confirmed) return;
-
-    try {
-      await deleteNovedadPersonal(
-        turnoId,
-        personal.id,
-        cuadrante.id,
-        novedad.id,
-      );
-      toast.success("Novedad eliminada");
-      fetchNovedades();
-    } catch (error) {
-      console.error("Error eliminando novedad:", error);
-      const msg = formatBackendError(error);
-      toast.error(msg, { duration: 5000, style: { whiteSpace: "pre-line" } });
-    }
-  };
+      try {
+        await deleteNovedadPersonal(
+          turnoId,
+          personal.id,
+          cuadrante.id,
+          novedad.id,
+        );
+        toast.success("Novedad eliminada");
+        fetchNovedades();
+      } catch (error) {
+        console.error("Error eliminando novedad:", error);
+        const msg = formatBackendError(error);
+        toast.error(msg);
+      }
+    };
 
   // Manejar modal EYE para personal
+  const handleOpenEdit = useCallback((novedad) => {
+    // 🔥 DEBUG: Verificar datos al abrir modal
+        
+    setSelectedNovedad(novedad);
+
+    // Obtener el estado actual de la novedad principal
+    const estadoActualId = novedad.novedad?.estado_novedad_id || 1;
+
+    setEditData({
+      estado_novedad_id: estadoActualId,
+      resultado: novedad.resultado || "PENDIENTE",
+      acciones_tomadas: "", // Siempre vacío - las anteriores ya están en observaciones/historial
+      observaciones: novedad.observaciones || "",
+      fecha_llegada: "",
+      num_personas_afectadas: novedad.novedad?.num_personas_afectadas || 0,
+      perdidas_materiales_estimadas:
+        novedad.novedad?.perdidas_materiales_estimadas || 0,
+    });
+    setShowEditModal(true);
+  }, []);
+
+  // Abrir modal EYE
   const handleEyeOperativo = useCallback((novedad) => {
-        setSelectedEyeOperativo(novedad);
+    setSelectedEyeOperativo(novedad);
     setShowEyeModal(true);
   }, []);
 
@@ -1209,7 +1077,7 @@ export default function NovedadesPersonalModal({
 
       {/* ================================================================== */}
       {/* MODAL EDITAR/RESOLVER */}
-      {/* ================================================================== */}
+      {/* =================================================================={/* Modal de Edición */}
       {showEditModal && selectedNovedad && (
         <div
           className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4"
@@ -1342,12 +1210,7 @@ export default function NovedadesPersonalModal({
                       })
                     }
                     rows={3}
-                    disabled={debeSerReadOnly(selectedNovedad)}
-                    className={`w-full px-3 py-2 rounded-lg border resize-none ${
-                      debeSerReadOnly(selectedNovedad)
-                        ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-600 dark:bg-amber-900/20 dark:text-amber-300"
-                        : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                    }`}
+                    className={`w-full px-3 py-2 rounded-lg border resize-none border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white`}
                     placeholder="Descripción de acciones realizadas..."
                   />
                   <p
@@ -1385,6 +1248,7 @@ export default function NovedadesPersonalModal({
                         })
                       }
                       disabled={debeSerReadOnly(selectedNovedad)}
+                      onFocus={() => console.log("🔍 Campo Personas Afectadas - debeSerReadOnly:", debeSerReadOnly(selectedNovedad), "selectedNovedad:", selectedNovedad)}
                       className={`w-full px-3 py-2 rounded-lg border ${
                         debeSerReadOnly(selectedNovedad)
                           ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-600 dark:bg-amber-900/20 dark:text-amber-300"
@@ -1415,6 +1279,7 @@ export default function NovedadesPersonalModal({
                         })
                       }
                       disabled={debeSerReadOnly(selectedNovedad)}
+                      onFocus={() => console.log("🔍 Campo Pérdidas Materiales - debeSerReadOnly:", debeSerReadOnly(selectedNovedad), "selectedNovedad:", selectedNovedad)}
                       className={`w-full px-3 py-2 rounded-lg border ${
                         debeSerReadOnly(selectedNovedad)
                           ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-600 dark:bg-amber-900/20 dark:text-amber-300"
@@ -1457,8 +1322,7 @@ export default function NovedadesPersonalModal({
                 >
                   Cancelar
                 </button>
-                {!debeSerReadOnly(selectedNovedad) && (
-                  <button
+                <button
                     type="submit"
                     disabled={saving}
                     className="px-4 py-2 rounded-lg bg-primary-700 text-white hover:bg-primary-800 disabled:opacity-50"
@@ -1466,7 +1330,6 @@ export default function NovedadesPersonalModal({
                     {saving ? "Guardando..." : "Grabar"}{" "}
                     <span className="text-xs opacity-75">(ALT+G)</span>
                   </button>
-                )}
               </div>
             </form>
           </div>

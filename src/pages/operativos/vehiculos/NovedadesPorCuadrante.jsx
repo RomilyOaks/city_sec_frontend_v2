@@ -198,12 +198,8 @@ export default function NovedadesPorCuadrante() {
           // Intentar submit del formulario o click en botón
           try {
             form.requestSubmit();
-          } catch (err) {
-            // Registrar error leve y fallback a click en el botón de submit
-            // Debug (guarded)
-            import("../../../utils/debug").then(({ debug }) =>
-              debug("requestSubmit fallback:", err),
-            );
+          } catch {
+            // Fallback a click en el botón de submit
             const submitButton = document.querySelector(
               '#edit-novedad-form button[type="submit"]',
             );
@@ -387,31 +383,53 @@ export default function NovedadesPorCuadrante() {
 
         const cambioEstado = nuevoEstadoId && nuevoEstadoId !== estadoActualId;
 
-        // 🎯 CASO ESPECIAL: Novedad RESUELTA - Solo guardar en historial
+        // 🎯 CASO ESPECIAL: Novedad RESUELTA - Actualizar campos + historial
         if (esResuelta) {
-          // Solo crear historial si hay nuevas observaciones
-          const nuevasObservaciones = editData.observaciones?.trim();
-          if (
-            nuevasObservaciones &&
-            nuevasObservaciones !== (selectedNovedadEdit.observaciones || "")
-          ) {
-            try {
-              const fechaLocal = getNowLocal();
+          // Construir payload para actualizar acciones y observaciones
+          const payload = {
+            acciones_tomadas: editData.acciones_tomadas?.trim() || "",
+            observaciones: editData.observaciones?.trim() || "",
+            // Establecer atendido como fecha actual si aún no está establecido
+            atendido: selectedNovedadEdit.atendido ? selectedNovedadEdit.atendido : getNowLocal(),
+          };
 
-              await crearHistorialNovedad(
-                novedadPrincipalId,
-                nuevasObservaciones, // Usar observaciones como mensaje del historial
-                null, // No cambiar estado
-                fechaLocal,
-              );
+          try {
+            // Actualizar el registro en la base de datos
+            await operativosNovedadesService.updateNovedad(
+              turnoId,
+              selectedNovedadEdit.operativo_vehiculo_cuadrante_id,
+              selectedNovedadEdit.id,
+              selectedNovedadEdit.id,
+              payload
+            );
 
-              toast.success("Información complementaria agregada al historial");
-            } catch (historialError) {
-              console.error("Error al grabar historial:", historialError);
-              toast.error("Error al guardar en historial");
+            // Si hay nuevas observaciones, agregar al historial
+            const nuevasObservaciones = editData.observaciones?.trim();
+            if (
+              nuevasObservaciones &&
+              nuevasObservaciones !== (selectedNovedadEdit.observaciones || "")
+            ) {
+              try {
+                const fechaLocal = getNowLocal();
+
+                await crearHistorialNovedad(
+                  novedadPrincipalId,
+                  nuevasObservaciones, // Usar observaciones como mensaje del historial
+                  null, // No cambiar estado
+                  fechaLocal,
+                );
+
+                toast.success("Información actualizada y agregada al historial");
+              } catch (historialError) {
+                console.error("Error al grabar historial:", historialError);
+                toast.error("Información actualizada, pero error al guardar en historial");
+              }
+            } else {
+              toast.success("Información actualizada correctamente");
             }
-          } else {
-            toast.info("No hay cambios para guardar");
+          } catch (updateError) {
+            console.error("Error al actualizar novedad:", updateError);
+            toast.error("Error al actualizar la novedad");
           }
 
           handleCloseEditModal();
@@ -423,25 +441,13 @@ export default function NovedadesPorCuadrante() {
         // 1. Si hay cambio de estado, crear historial (solo cambios de estado, no acciones)
         if (cambioEstado && novedadPrincipalId) {
           try {
-            // Si hay cambio de estado, enviarlo al historial con fecha local
-            // Usar getNowLocal() (dateHelper) para consistencia
             const fechaLocal = getNowLocal();
-
-            // Debug: registrar payload de historial antes de enviar (guardado detrás de VITE_DEBUG)
-            import("../../../utils/debug").then(({ debug }) =>
-              debug("[NovedadesPorCuadrante] crearHistorialNovedad payload:", {
-                novedadPrincipalId,
-                mensaje: `Cambio de estado a: ${editData.resultado}`,
-                nuevoEstadoId,
-                fechaLocal,
-              }),
-            );
 
             await crearHistorialNovedad(
               novedadPrincipalId,
               `Cambio de estado a: ${editData.resultado}`,
               nuevoEstadoId,
-              fechaLocal, // Agregar fecha_cambio en formato local
+              fechaLocal,
             );
           } catch (historialError) {
             console.error("Error al grabar historial:", historialError);
@@ -482,17 +488,6 @@ export default function NovedadesPorCuadrante() {
           // 🐛 FIX CORRECCIÓN: Enviar atendido con fecha local correcta cuando es RESUELTA (siempre)
           ...(nuevoEstadoId === 6 ? { atendido: getNowLocal() } : {}),
         };
-
-        // Debug: registrar payload y conversiones antes de actualizar novedad (guarded)
-        import("../../../utils/debug").then(({ debug }) =>
-          debug("[NovedadesPorCuadrante] updateNovedad payload:", {
-            turnoId,
-            vehiculoId,
-            cuadranteId,
-            novedadId: selectedNovedadEdit.id,
-            payload,
-          }),
-        );
 
         await operativosNovedadesService.updateNovedad(
           turnoId,
@@ -980,7 +975,7 @@ export default function NovedadesPorCuadrante() {
                       </h3>
                     </div>
                     <div className="flex items-center gap-0.5 flex-shrink-0">
-                      {canUpdate && novedad.resultado !== "RESUELTO" && (
+                      {canUpdate && (!novedad.atendido) && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -1187,12 +1182,7 @@ export default function NovedadesPorCuadrante() {
                         </div>
                       ) : (
                         <div className="space-y-2">
-                          {selectedNovedadEdit?.resultado === "RESUELTA" && (
-                            <div className="text-xs text-amber-600 dark:text-amber-400 font-medium mb-2">
-                              (Solo lectura - Novedad resuelta)
-                            </div>
-                          )}
-                          <div className="flex items-center gap-2">
+                                                    <div className="flex items-center gap-2">
                             <input
                               type="checkbox"
                               id="usar-fecha-actual"
@@ -1294,7 +1284,7 @@ export default function NovedadesPorCuadrante() {
                     Resultado Operativo
                     {selectedNovedadEdit?.resultado === "RESUELTO" && (
                       <span className="ml-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
-                        (Solo lectura - Novedad resuelta)
+                        (Solo lectura)
                       </span>
                     )}
                   </label>
@@ -1322,11 +1312,6 @@ export default function NovedadesPorCuadrante() {
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                     Nuevas Acciones Tomadas
-                    {selectedNovedadEdit?.resultado === "RESUELTA" && (
-                      <span className="ml-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
-                        (Solo lectura - Novedad resuelta)
-                      </span>
-                    )}
                   </label>
                   <textarea
                     value={editData.acciones_tomadas}
@@ -1337,12 +1322,7 @@ export default function NovedadesPorCuadrante() {
                       })
                     }
                     rows={3}
-                    disabled={selectedNovedadEdit?.resultado === "RESUELTO"}
-                    className={`w-full px-3 py-2 rounded-lg border resize-none ${
-                      selectedNovedadEdit?.resultado === "RESUELTO"
-                        ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-600 dark:bg-amber-900/20 dark:text-amber-300"
-                        : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                    }`}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white resize-none"
                     placeholder="Descripción de acciones realizadas..."
                   />
                   <p
