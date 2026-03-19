@@ -165,6 +165,7 @@ export default function NovedadesPersonalModal({
     acciones_tomadas: "",
     observaciones: "",
     fecha_llegada: "",
+    usar_fecha_actual: false,
     num_personas_afectadas: 0,
     perdidas_materiales_estimadas: 0,
   });
@@ -279,6 +280,16 @@ export default function NovedadesPersonalModal({
         prioridad: "MEDIA",
         observaciones: "",
         acciones_tomadas: "",
+      });
+      setEditData({
+        estado_novedad_id: "",
+        resultado: "",
+        acciones_tomadas: "",
+        observaciones: "",
+        fecha_llegada: "",
+        usar_fecha_actual: false,
+        num_personas_afectadas: 0,
+        perdidas_materiales_estimadas: 0,
       });
     }
   }, [isOpen]);
@@ -468,7 +479,6 @@ export default function NovedadesPersonalModal({
 
     setSaving(true);
     
-    // 🔥 DEBUG: Datos iniciales (definidos antes del try para estar disponibles en catch)
     const observacionesOperativo = editData.observaciones?.trim() || "";
     const tieneAcciones = editData.acciones_tomadas?.trim();
     const novedadPrincipalId =
@@ -536,10 +546,7 @@ export default function NovedadesPersonalModal({
         return;
       }
 
-      // 🔥 DEBUG: Novedad RESUELTA con atendido NULL - PERMITE ACTUALIZACIÓN COMPLETA
-      if (esResuelta && puedeEditarNovedadResuelta(selectedNovedad)) {
-      }
-
+      
         // 🎯 CASO NORMAL: Actualización completa
         // 1. Si hay cambio de estado, crear historial
         if (cambioEstado && novedadPrincipalId) {
@@ -566,11 +573,7 @@ export default function NovedadesPersonalModal({
           }
         }
 
-        // 🔥 DEBUG: Payload ya está preparado antes del try, continuando con actualización
-
-
-        // 🔥 DEBUG: Antes de llamar al backend
-        const response = await updateNovedadPersonal(
+        await updateNovedadPersonal(
           turnoId,
           personal.id,
           cuadrante.id,
@@ -619,8 +622,6 @@ export default function NovedadesPersonalModal({
 
   // Manejar modal EYE para personal
   const handleOpenEdit = useCallback((novedad) => {
-    // 🔥 DEBUG: Verificar datos al abrir modal
-        
     setSelectedNovedad(novedad);
 
     // Obtener el estado actual de la novedad principal
@@ -628,10 +629,11 @@ export default function NovedadesPersonalModal({
 
     setEditData({
       estado_novedad_id: estadoActualId,
-      resultado: novedad.resultado || "PENDIENTE",
+      resultado: novedad.resultado === "PENDIENTE" ? "RESUELTO" : (novedad.resultado || "RESUELTO"),
       acciones_tomadas: "", // Siempre vacío - las anteriores ya están en observaciones/historial
       observaciones: novedad.observaciones || "",
       fecha_llegada: "",
+      usar_fecha_actual: false, // Agregar control para checkbox
       num_personas_afectadas: novedad.novedad?.num_personas_afectadas || 0,
       perdidas_materiales_estimadas:
         novedad.novedad?.perdidas_materiales_estimadas || 0,
@@ -1144,18 +1146,76 @@ export default function NovedadesPersonalModal({
                           {formatForDisplay(fechaLlegadaActual)}
                         </div>
                       ) : (
-                        <input
-                          type="datetime-local"
-                          value={editData.fecha_llegada || ""}
-                          onChange={(e) =>
-                            setEditData({
-                              ...editData,
-                              fecha_llegada: e.target.value,
-                            })
-                          }
-                          required
-                          className="w-full px-3 py-2 rounded-lg border-2 border-green-500 dark:border-green-400 bg-green-50 dark:bg-green-900/30 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-green-400/40"
-                        />
+                        <div className="space-y-2">
+                          {/* Checkbox para usar fecha actual */}
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id="usar_fecha_actual"
+                              checked={editData.usar_fecha_actual}
+                              onChange={(e) => {
+                                const usarActual = e.target.checked;
+                                setEditData({
+                                  ...editData,
+                                  usar_fecha_actual: usarActual,
+                                  fecha_llegada: usarActual ? getNowLocal() : "",
+                                });
+                              }}
+                              className="mr-2 rounded border-slate-300 text-primary-600 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-800"
+                            />
+                            <label 
+                              htmlFor="usar_fecha_actual" 
+                              className="text-sm text-slate-700 dark:text-slate-300 cursor-pointer"
+                            >
+                              Usar fecha y hora actual
+                            </label>
+                          </div>
+                          
+                          {/* Campo de fecha/hora */}
+                          {!editData.usar_fecha_actual && (
+                            <div className="relative">
+                              <input
+                                type="datetime-local"
+                                value={editData.fecha_llegada || ""}
+                                onChange={(e) =>
+                                  setEditData({
+                                    ...editData,
+                                    fecha_llegada: e.target.value,
+                                  })
+                                }
+                                required
+                                className="w-full px-3 py-2 rounded-lg border-2 border-green-500 dark:border-green-400 bg-green-50 dark:bg-green-900/30 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-green-400/40"
+                              />
+                              {/* Botón del calendario mejorado para dark mode */}
+                              <style jsx>{`
+                                input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+                                  filter: invert(0.5);
+                                  cursor: pointer;
+                                  border-radius: 4px;
+                                  margin-right: 4px;
+                                }
+                                input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+                                  filter: invert(0.8);
+                                  background-color: rgba(34, 197, 94, 0.1);
+                                }
+                                .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+                                  filter: invert(0.8);
+                                }
+                                .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+                                  filter: invert(1);
+                                  background-color: rgba(34, 197, 94, 0.2);
+                                }
+                              `}</style>
+                            </div>
+                          )}
+                          
+                          {/* Mostrar fecha actual cuando está seleccionada */}
+                          {editData.usar_fecha_actual && (
+                            <div className="w-full px-3 py-2 rounded-lg border border-green-500 dark:border-green-400 bg-green-50 dark:bg-green-900/30 text-sm text-green-700 dark:text-green-300">
+                              {formatForDisplay(getNowLocal())}
+                            </div>
+                          )}
+                        </div>
                       )}
                     </div>
                   );
@@ -1248,8 +1308,7 @@ export default function NovedadesPersonalModal({
                         })
                       }
                       disabled={debeSerReadOnly(selectedNovedad)}
-                      onFocus={() => console.log("🔍 Campo Personas Afectadas - debeSerReadOnly:", debeSerReadOnly(selectedNovedad), "selectedNovedad:", selectedNovedad)}
-                      className={`w-full px-3 py-2 rounded-lg border ${
+                                            className={`w-full px-3 py-2 rounded-lg border ${
                         debeSerReadOnly(selectedNovedad)
                           ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-600 dark:bg-amber-900/20 dark:text-amber-300"
                           : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
@@ -1279,8 +1338,7 @@ export default function NovedadesPersonalModal({
                         })
                       }
                       disabled={debeSerReadOnly(selectedNovedad)}
-                      onFocus={() => console.log("🔍 Campo Pérdidas Materiales - debeSerReadOnly:", debeSerReadOnly(selectedNovedad), "selectedNovedad:", selectedNovedad)}
-                      className={`w-full px-3 py-2 rounded-lg border ${
+                                            className={`w-full px-3 py-2 rounded-lg border ${
                         debeSerReadOnly(selectedNovedad)
                           ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-600 dark:bg-amber-900/20 dark:text-amber-300"
                           : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
@@ -1317,6 +1375,16 @@ export default function NovedadesPersonalModal({
                   onClick={() => {
                     setShowEditModal(false);
                     setSelectedNovedad(null);
+                    setEditData({
+                      estado_novedad_id: "",
+                      resultado: "",
+                      acciones_tomadas: "",
+                      observaciones: "",
+                      fecha_llegada: "",
+                      usar_fecha_actual: false,
+                      num_personas_afectadas: 0,
+                      perdidas_materiales_estimadas: 0,
+                    });
                   }}
                   className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
                 >
