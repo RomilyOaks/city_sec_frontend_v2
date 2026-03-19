@@ -462,7 +462,7 @@ export default function DespacharModal({
             cuadrante_id: novedad.cuadrante_id,
             prioridad_actual: novedad.prioridad_actual || 'MEDIA',
             turno_id: operativoActualizado.id,
-            observaciones: formData.observaciones_despacho || `Despacho personal - ${new Date().toLocaleString()}`
+            observaciones: formData.observaciones_despacho || ""
           };
 
           await despacharPersonalAPieWrapper(novedadDataForPersonal);

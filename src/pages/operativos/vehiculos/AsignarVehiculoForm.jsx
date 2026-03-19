@@ -178,10 +178,7 @@ export default function AsignarVehiculoForm({ turnoId, vehiculosAsignados = [], 
         setTiposCopiloto(Array.isArray(tiposData) ? tiposData : []);
 
       } catch (err) {
-        console.error("❌ [DEBUG] Error cargando catálogos:", err);
-        console.error("❌ [DEBUG] Error status:", err?.response?.status);
-        console.error("❌ [DEBUG] Error data:", err?.response?.data);
-        console.error("❌ [DEBUG] Error message:", err?.message);
+        console.error("Error cargando catálogos:", err);
         
         // 🔥 MANEJO ESPECÍFICO PARA 401
         if (err?.response?.status === 401) {

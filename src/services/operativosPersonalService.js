@@ -701,7 +701,7 @@ export async function despacharPersonalAPie(novedadData) {
       cuadrante_id: novedadData.cuadrante_id,
       novedad_id: novedadData.id,
       prioridad: novedadData.prioridad_actual || 'MEDIA',
-      observaciones: novedadData.observaciones || `Despacho desde novedades - ${new Date().toLocaleString()}`
+      observaciones: novedadData.observaciones || ""
     };
 
     const resultado = await crearOperativoPersonalCompleto(payload);
