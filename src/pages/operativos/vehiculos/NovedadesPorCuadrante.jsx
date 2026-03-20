@@ -45,11 +45,25 @@ import EyeVehiculoModal from "./EyeVehiculoModal.jsx";
 import {
   formatForDisplay,
   safeConvertToTimezone,
-  getNowLocal,
   getTimezoneDebugInfo,
 } from "../../../utils/dateHelper";
 
-// Usar getNowLocal desde dateHelper (respeta APP_TIMEZONE)
+// Usar getLocalDatetime para evitar conversión UTC (como DespacharModal)
+
+/**
+ * Obtiene la fecha/hora actual local en formato "YYYY-MM-DD HH:mm:ss" (sin Z).
+ * El backend interpreta este formato como hora local Peru sin conversión timezone.
+ */
+const getLocalDatetime = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  const seconds = String(now.getSeconds()).padStart(2, "0");
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+};
 
 /**
  * Formatea fecha/hora a formato legible (usando dateHelper)
@@ -394,7 +408,7 @@ export default function NovedadesPorCuadrante() {
             acciones_tomadas: editData.acciones_tomadas?.trim() || "",
             observaciones: editData.observaciones?.trim() || "",
             // Establecer atendido como fecha actual si aún no está establecido
-            atendido: selectedNovedadEdit.atendido ? selectedNovedadEdit.atendido : getNowLocal(),
+            atendido: selectedNovedadEdit.atendido ? selectedNovedadEdit.atendido : getLocalDatetime(),
           };
 
           try {
@@ -422,7 +436,7 @@ export default function NovedadesPorCuadrante() {
         // 1. Si hay cambio de estado, crear historial (solo cambios de estado, no acciones)
         if (cambioEstado && novedadPrincipalId) {
           try {
-            const fechaLocal = getNowLocal();
+            const fechaLocal = getLocalDatetime();
             
             // 🔍 DEBUGGING: Mostrar datos que se envían al backend
             console.log("🔍 DEBUG - Creando historial de novedad:");
@@ -455,7 +469,7 @@ export default function NovedadesPorCuadrante() {
           try {
             const vehiculoInfo = vehiculo?.placa || `Vehículo ${vehiculoId}`;
             const accionesTexto = editData.acciones_tomadas.trim();
-            const fechaAcciones = getNowLocal();
+            const fechaAcciones = getLocalDatetime();
             
             // Obtener nombre del piloto desde el personal asignado al vehículo
             const pilotoNombre = selectedNovedadEdit?.operativoVehiculo?.personal?.nombre || 
@@ -516,7 +530,7 @@ export default function NovedadesPorCuadrante() {
             ? { fecha_llegada: fechaLlegadaPayload }
             : {}),
           // 🐛 FIX CORRECCIÓN: Enviar atendido con fecha local correcta cuando es RESUELTA (siempre)
-          ...(nuevoEstadoId === 6 ? { atendido: getNowLocal() } : {}),
+          ...(nuevoEstadoId === 6 ? { atendido: getLocalDatetime() } : {}),
         };
 
         await operativosNovedadesService.updateNovedad(
