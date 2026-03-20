@@ -403,30 +403,7 @@ export default function NovedadesPorCuadrante() {
               payload
             );
 
-            // Si hay nuevas observaciones, agregar al historial
-            const nuevasObservaciones = editData.observaciones?.trim();
-            if (
-              nuevasObservaciones &&
-              nuevasObservaciones !== (selectedNovedadEdit.observaciones || "")
-            ) {
-              try {
-                const fechaLocal = getNowLocal();
-
-                await crearHistorialNovedad(
-                  novedadPrincipalId,
-                  nuevasObservaciones, // Usar observaciones como mensaje del historial
-                  null, // No cambiar estado
-                  fechaLocal,
-                );
-
-                toast.success("Información actualizada y agregada al historial");
-              } catch (historialError) {
-                console.error("Error al grabar historial:", historialError);
-                toast.error("Información actualizada, pero error al guardar en historial");
-              }
-            } else {
-              toast.success("Información actualizada correctamente");
-            }
+            toast.success("Información actualizada correctamente");
           } catch (updateError) {
             console.error("Error al actualizar novedad:", updateError);
             toast.error("Error al actualizar la novedad");
