@@ -352,11 +352,23 @@ export async function crearHistorialNovedad(novedadId, observaciones, estadoNuev
     payload.fecha_cambio = fechaCambio;
   }
 
+  // 🔍 DEBUGGING: Mostrar payload que se envía al backend
+  console.log("🔍 DEBUG SERVICE - crearHistorialNovedad:");
+  console.log("📤 Payload enviado:", JSON.stringify(payload, null, 2));
+  console.log("🆔 novedadId:", novedadId);
+  console.log("📅 fechaCambio recibida:", fechaCambio);
+  console.log("🌐 URL del endpoint:", `/novedades/${novedadId}/historial`);
+
   try {
     const res = await api.post(`/novedades/${novedadId}/historial`, payload);
+    
+    // 🔍 DEBUGGING: Mostrar respuesta del backend
+    console.log("✅ Respuesta del backend:", JSON.stringify(res?.data, null, 2));
+    
     return res?.data;
   } catch (error) {
-    console.error("Error en crearHistorialNovedad:", error);
+    console.error("❌ Error en crearHistorialNovedad:", error);
+    console.error("❌ Detalles del error:", error.response?.data);
     throw error;
   }
 }
