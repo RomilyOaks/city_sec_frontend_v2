@@ -262,6 +262,7 @@ export const getDateLocal = () => {
 
 /**
  * Formatea una fecha para mostrar en UI (formato legible)
+ * v2.0.1 - Fix timezone America/Lima en Railway deploy
  *
  * @param {Date|string} date - Fecha a formatear
  * @param {string} locale - Locale para formateo (default: "es-PE")
