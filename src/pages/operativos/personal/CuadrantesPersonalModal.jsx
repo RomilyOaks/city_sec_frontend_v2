@@ -21,6 +21,7 @@ import {
   Map,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { ConfirmModal } from "../../../components/common";
 
 // Servicios
 import {
@@ -94,6 +95,9 @@ export default function CuadrantesPersonalModal({
     observaciones: "",
     incidentes_reportados: "",
   });
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingCuadrante, setDeletingCuadrante] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // ============================================================================
   // EFECTOS
@@ -309,20 +313,27 @@ export default function CuadrantesPersonalModal({
     }
   };
 
-  const handleEliminarCuadrante = async (cuadrante) => {
-    const confirmed = window.confirm(
-      `¿Eliminar asignación del cuadrante "${cuadrante.datosCuadrante?.nombre || cuadrante.cuadrante_id}"?`
-    );
-    if (!confirmed) return;
+  const handleEliminarCuadrante = (cuadrante) => {
+    setDeletingCuadrante(cuadrante);
+    setShowDeleteModal(true);
+  };
 
+  const handleConfirmDeleteCuadrante = async () => {
+    if (!deletingCuadrante) return;
+
+    setDeleteLoading(true);
     try {
-      await deleteCuadrantePersonal(turnoId, personal.id, cuadrante.id);
+      await deleteCuadrantePersonal(turnoId, personal.id, deletingCuadrante.id);
       toast.success("Asignación eliminada");
       fetchCuadrantes();
+      setShowDeleteModal(false);
+      setDeletingCuadrante(null);
     } catch (error) {
       console.error("Error eliminando cuadrante:", error);
       const msg = formatBackendError(error);
       toast.error(msg, { duration: 5000, style: { whiteSpace: "pre-line" } });
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -776,6 +787,23 @@ export default function CuadrantesPersonalModal({
           </div>
         </div>
       )}
+
+      {/* Modal Confirmar Eliminación */}
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDeletingCuadrante(null);
+        }}
+        onConfirm={handleConfirmDeleteCuadrante}
+        title="Eliminar Asignación de Cuadrante"
+        message={`¿Está seguro de eliminar la asignación del cuadrante "${deletingCuadrante?.datosCuadrante?.nombre || deletingCuadrante?.cuadrante_id}"?`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        type="danger"
+        loading={deleteLoading}
+        disabled={deleteLoading}
+      />
 
       {/* Modal del Cuadrante con Mapa */}
       {showCuadranteModal && (

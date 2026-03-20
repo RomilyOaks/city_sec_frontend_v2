@@ -58,7 +58,7 @@ const formatInConfiguredTimezone = (dateObj) => {
   } catch (err) {
     // Usar el error para evitar warning de variable no usada, pero no interrumpir flow
     void err;
-    // Fallback robusto: usar opciones locales sin timezone explícito
+    // Fallback robusto: asegurar timezone correcto incluso en error
     return dateObj
       .toLocaleString("en-CA", {
         year: "numeric",
@@ -68,6 +68,7 @@ const formatInConfiguredTimezone = (dateObj) => {
         minute: "2-digit",
         second: "2-digit",
         hour12: false,
+        timeZone: DEFAULT_TIMEZONE,
       })
       .replace(",", "")
       .replace(/\//g, "-");
