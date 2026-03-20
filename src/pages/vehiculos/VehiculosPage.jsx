@@ -27,6 +27,7 @@ import {
   X,
   MapPin,
 } from "lucide-react";
+import { ConfirmModal } from "../../components/common";
 
 import {
   listVehiculos,
@@ -204,6 +205,9 @@ export default function VehiculosPage() {
   const [viewingVehiculo, setViewingVehiculo] = useState(null);
   const [showCuadrantesModal, setShowCuadrantesModal] = useState(null); // Para mostrar cuadrantes del vehículo
   const [cuadrantesCount, setCuadrantesCount] = useState({}); // Contador de cuadrantes por vehículo
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingVehiculo, setDeletingVehiculo] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [formData, setFormData] = useState(initialFormData);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
@@ -343,15 +347,25 @@ export default function VehiculosPage() {
     fetchVehiculos({ nextPage: 1 });
   };
 
-  const handleDelete = async (v) => {
-    const confirmed = window.confirm(`¿Eliminar vehículo ${v.placa}?`);
-    if (!confirmed) return;
+  const handleDelete = (v) => {
+    setDeletingVehiculo(v);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingVehiculo) return;
+    
+    setDeleteLoading(true);
     try {
-      await deleteVehiculo(v.id);
+      await deleteVehiculo(deletingVehiculo.id);
       toast.success("Vehículo eliminado");
       fetchVehiculos({ nextPage: page });
+      setShowDeleteModal(false);
+      setDeletingVehiculo(null);
     } catch (err) {
       toast.error(err?.response?.data?.message || "Error al eliminar");
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -1646,6 +1660,23 @@ export default function VehiculosPage() {
           onClose={() => setShowCuadrantesModal(null)}
         />
       )}
+
+      {/* Modal Confirmar Eliminación */}
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDeletingVehiculo(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        title="Eliminar Vehículo"
+        message={`¿Estás seguro de eliminar el vehículo ${deletingVehiculo?.placa}?`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        type="danger"
+        loading={deleteLoading}
+        disabled={deleteLoading}
+      />
     </div>
   );
 };

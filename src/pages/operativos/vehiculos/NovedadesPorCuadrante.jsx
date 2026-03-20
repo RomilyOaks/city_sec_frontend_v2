@@ -27,6 +27,7 @@ import {
   Trash2,
   Eye,
 } from "lucide-react";
+import { ConfirmModal } from "../../../components/common";
 
 import operativosNovedadesService from "../../../services/operativosNovedadesService.js";
 import {
@@ -136,6 +137,8 @@ export default function NovedadesPorCuadrante() {
   const [editingNovedad, setEditingNovedad] = useState(null);
   const [viewingNovedad, setViewingNovedad] = useState(null);
   const [deletingNovedad, setDeletingNovedad] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [filters, setFilters] = useState({
     estado: "todos",
     prioridad: "todos",
@@ -544,7 +547,9 @@ export default function NovedadesPorCuadrante() {
         toast.error("No tienes permisos para eliminar novedades");
         return;
       }
+
       setDeletingNovedad(novedad);
+      setShowDeleteModal(true);
     },
     [canDelete],
   );
@@ -553,6 +558,7 @@ export default function NovedadesPorCuadrante() {
   const confirmDeleteNovedad = useCallback(async () => {
     if (!deletingNovedad) return;
 
+    setDeleteLoading(true);
     try {
       await operativosNovedadesService.deleteNovedad(
         turnoId,
@@ -561,11 +567,14 @@ export default function NovedadesPorCuadrante() {
         deletingNovedad.id,
       );
       toast.success("Novedad eliminada correctamente");
+      setShowDeleteModal(false);
       setDeletingNovedad(null);
       fetchNovedades();
     } catch (err) {
       console.error("Error eliminando novedad:", err);
       toast.error(err.response?.data?.message || "Error al eliminar novedad");
+    } finally {
+      setDeleteLoading(false);
     }
   }, [deletingNovedad, turnoId, vehiculoId, cuadranteId, fetchNovedades]);
 
@@ -1419,55 +1428,23 @@ export default function NovedadesPorCuadrante() {
         </div>
       )}
 
-      {/* Modal de confirmación de eliminación */}
-      {deletingNovedad && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl max-w-md w-full">
-            <div className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
-                  <AlertTriangle
-                    size={24}
-                    className="text-red-600 dark:text-red-400"
-                  />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
-                    Confirmar Eliminación
-                  </h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Esta acción no se puede deshacer
-                  </p>
-                </div>
-              </div>
-
-              <p className="text-slate-600 dark:text-slate-400 mb-6">
-                ¿Está seguro que desea eliminar la novedad{" "}
-                <strong>
-                  {deletingNovedad.novedad?.nombre ||
-                    deletingNovedad.novedad?.novedad_code}
-                </strong>
-                ?
-              </p>
-
-              <div className="flex justify-end gap-3">
-                <button
-                  onClick={cancelDeleteNovedad}
-                  className="px-4 py-2 text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={confirmDeleteNovedad}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                >
-                  Eliminar
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      
+      {/* Modal Confirmar Eliminación */}
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDeletingNovedad(null);
+        }}
+        onConfirm={confirmDeleteNovedad}
+        title="Eliminar Novedad"
+        message={`¿Está seguro que desea eliminar la novedad ${deletingNovedad?.novedad?.nombre || deletingNovedad?.novedad?.novedad_code || ""}?`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        type="danger"
+        loading={deleteLoading}
+        disabled={deleteLoading}
+      />
 
       {/* Modal EYE para vehículos */}
       <EyeVehiculoModal
