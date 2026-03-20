@@ -52,7 +52,7 @@ import {
 
 /**
  * Obtiene la fecha/hora actual local en formato "YYYY-MM-DD HH:mm:ss" (sin Z).
- * El backend interpreta este formato como hora local Peru sin conversión timezone.
+ * v3.0.0 - FORZAR DEPLOY RAILWAY - El backend interpreta este formato como hora local Peru sin conversión timezone.
  */
 const getLocalDatetime = () => {
   const now = new Date();
