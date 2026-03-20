@@ -26,6 +26,7 @@ import {
   Radio,
   Shield,
 } from "lucide-react";
+import { ConfirmModal } from "../../../components/common";
 
 // Servicios
 import {
@@ -84,6 +85,9 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
   const [showCuadrantesModal, setShowCuadrantesModal] = useState(false);
   const [showNovedadesModal, setShowNovedadesModal] = useState(false);
   const [selectedCuadrante, setSelectedCuadrante] = useState(null); // Cuadrante para novedades
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingPersonal, setDeletingPersonal] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // ============================================================================
   // EFECTOS
@@ -220,22 +224,26 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
    * Eliminar asignación de personal (soft delete)
    * Solicita confirmación antes de eliminar
    */
-  const handleDelete = async (personal) => {
-    // Obtener nombre del personal para mostrar en confirmación
-    const nombrePersonal = formatPersonalNombre(personal.personal);
+  const handleDelete = (personal) => {
+    setDeletingPersonal(personal);
+    setShowDeleteModal(true);
+  };
 
-    const confirmed = window.confirm(
-      `¿Eliminar la asignación de ${nombrePersonal} de este turno?`,
-    );
-    if (!confirmed) return;
+  const handleConfirmDelete = async () => {
+    if (!deletingPersonal) return;
 
+    setDeleteLoading(true);
     try {
-      await deletePersonalOperativo(turno.id, personal.id);
+      await deletePersonalOperativo(turno.id, deletingPersonal.id);
       toast.success("Personal eliminado del turno");
       fetchPersonal(); // Recargar lista
+      setShowDeleteModal(false);
+      setDeletingPersonal(null);
     } catch (err) {
       console.error("Error eliminando personal:", err);
       toast.error(err?.response?.data?.message || "Error al eliminar personal");
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -650,6 +658,23 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
           personal={selectedPersonal}
           onOpenNovedades={handleOpenNovedades}
           isNovedadesModalOpen={showNovedadesModal}
+        />
+
+        {/* Modal Confirmar Eliminación */}
+        <ConfirmModal
+          isOpen={showDeleteModal}
+          onClose={() => {
+            setShowDeleteModal(false);
+            setDeletingPersonal(null);
+          }}
+          onConfirm={handleConfirmDelete}
+          title="Eliminar Asignación de Personal"
+          message={`¿Está seguro de eliminar la asignación de ${formatPersonalNombre(deletingPersonal?.personal)} de este turno?`}
+          confirmText="Eliminar"
+          cancelText="Cancelar"
+          type="danger"
+          loading={deleteLoading}
+          disabled={deleteLoading}
         />
 
         {/* ================================================================== */}

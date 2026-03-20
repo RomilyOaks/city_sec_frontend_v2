@@ -28,6 +28,7 @@ import {
   PersonStanding,
   FileSpreadsheet,
 } from "lucide-react";
+import { ConfirmModal } from "../../components/common";
 
 import {
   listOperativosTurno,
@@ -177,6 +178,9 @@ export default function OperativosTurnoPage() {
   // Modales
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingOperativo, setEditingOperativo] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingOperativo, setDeletingOperativo] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [viewingOperativo, setViewingOperativo] = useState(null);
   const [showVehiculosModal, setShowVehiculosModal] = useState(false);
   const [showPersonalModal, setShowPersonalModal] = useState(false);
@@ -310,18 +314,25 @@ export default function OperativosTurnoPage() {
     }
   }, [showCreateModal, user]);
 
-  const handleDelete = async (operativo) => {
-    const confirmed = window.confirm(
-      `¿Eliminar el turno operativo del ${formatDate(operativo.fecha)}?`
-    );
-    if (!confirmed) return;
+  const handleDelete = (operativo) => {
+    setDeletingOperativo(operativo);
+    setShowDeleteModal(true);
+  };
 
+  const handleConfirmDelete = async () => {
+    if (!deletingOperativo) return;
+
+    setDeleteLoading(true);
     try {
-      await deleteOperativosTurno(operativo.id);
+      await deleteOperativosTurno(deletingOperativo.id);
       toast.success("Turno operativo eliminado");
       fetchOperativos({ nextPage: page });
+      setShowDeleteModal(false);
+      setDeletingOperativo(null);
     } catch (err) {
       toast.error(err?.response?.data?.message || "Error al eliminar");
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -1340,6 +1351,23 @@ export default function OperativosTurnoPage() {
           </div>
         </div>
       )}
+
+      {/* Modal Confirmar Eliminación */}
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDeletingOperativo(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        title="Eliminar Turno Operativo"
+        message={`¿Está seguro de eliminar el turno operativo del ${formatDate(deletingOperativo?.fecha)}?`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        type="danger"
+        loading={deleteLoading}
+        disabled={deleteLoading}
+      />
 
       {/* Modal Vehículos (patrullaje motorizado) */}
       <OperativosVehiculosModal

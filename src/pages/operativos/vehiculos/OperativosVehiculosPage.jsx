@@ -18,6 +18,7 @@ import {
   Car,
   MapPin,
 } from "lucide-react";
+import { ConfirmModal } from "../../../components/common";
 
 import {
   listVehiculosByTurno,
@@ -76,7 +77,7 @@ const getConductorNombre = (v, tipo = "conductor", personalList = []) => {
  * OperativosVehiculosPage - Página para gestionar vehículos de un turno
  * @component
  */
-export default function OperativosVehiculosPage() {
+function OperativosVehiculosPage() {
   const { turnoId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -98,6 +99,9 @@ export default function OperativosVehiculosPage() {
   const [showViewModal, setShowViewModal] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [selectedVehiculo, setSelectedVehiculo] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingVehiculo, setDeletingVehiculo] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Manejar tecla ESC para retornar
   useEffect(() => {
@@ -193,19 +197,26 @@ export default function OperativosVehiculosPage() {
     navigate(`/operativos/turnos/${turnoId}/vehiculos/${vehiculo.id}/cuadrantes${sectorParam}`);
   };
 
-  const handleDelete = async (vehiculo) => {
-    const confirmed = window.confirm(
-      `¿Eliminar el vehículo ${vehiculo.vehiculo?.placa} de este turno?`
-    );
-    if (!confirmed) return;
+  const handleDelete = (vehiculo) => {
+    setDeletingVehiculo(vehiculo);
+    setShowDeleteModal(true);
+  };
 
+  const handleConfirmDelete = async () => {
+    if (!deletingVehiculo) return;
+
+    setDeleteLoading(true);
     try {
-      await deleteVehiculoOperativo(turnoId, vehiculo.id);
+      await deleteVehiculoOperativo(turnoId, deletingVehiculo.id);
       toast.success("Vehículo eliminado del turno");
       fetchVehiculos();
+      setShowDeleteModal(false);
+      setDeletingVehiculo(null);
     } catch (err) {
       console.error("Error eliminando vehículo:", err);
       toast.error("Error al eliminar vehículo");
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -488,6 +499,25 @@ export default function OperativosVehiculosPage() {
           </div>
         )}
       </div>
+
+      {/* Modal Confirmar Eliminación */}
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDeletingVehiculo(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        title="Eliminar Vehículo del Turno"
+        message={`¿Está seguro de eliminar el vehículo ${deletingVehiculo?.vehiculo?.placa} de este turno?`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        type="danger"
+        loading={deleteLoading}
+        disabled={deleteLoading}
+      />
     </div>
   );
 }
+
+export default OperativosVehiculosPage;

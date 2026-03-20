@@ -23,6 +23,7 @@ import {
   Eye,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { ConfirmModal } from "../../../components/common";
 
 // Usar getNowLocal desde dateHelper (respeta APP_TIMEZONE)
 
@@ -137,6 +138,9 @@ export default function NovedadesPersonalModal({
     observaciones: "",
     acciones_tomadas: "",
   });
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingNovedad, setDeletingNovedad] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Estados - Modal editar/resolver
@@ -598,25 +602,32 @@ export default function NovedadesPersonalModal({
       }
     };
 
-    const handleEliminarNovedad = async (novedad) => {
-      const confirmed = window.confirm(
-        "¿Eliminar esta novedad de la lista de atendidas?",
-      );
-      if (!confirmed) return;
+    const handleEliminarNovedad = (novedad) => {
+      setDeletingNovedad(novedad);
+      setShowDeleteModal(true);
+    };
 
+    const handleConfirmDeleteNovedad = async () => {
+      if (!deletingNovedad) return;
+
+      setDeleteLoading(true);
       try {
         await deleteNovedadPersonal(
           turnoId,
           personal.id,
           cuadrante.id,
-          novedad.id,
+          deletingNovedad.id,
         );
         toast.success("Novedad eliminada");
         fetchNovedades();
+        setShowDeleteModal(false);
+        setDeletingNovedad(null);
       } catch (error) {
         console.error("Error eliminando novedad:", error);
         const msg = formatBackendError(error);
         toast.error(msg);
+      } finally {
+        setDeleteLoading(false);
       }
     };
 
@@ -1418,6 +1429,23 @@ export default function NovedadesPersonalModal({
         unidadesOficina={unidadesOficina}
         vehiculos={vehiculos}
         personalSeguridad={personalSeguridad}
+      />
+
+      {/* Modal Confirmar Eliminación */}
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDeletingNovedad(null);
+        }}
+        onConfirm={handleConfirmDeleteNovedad}
+        title="Eliminar Novedad"
+        message="¿Está seguro de eliminar esta novedad de la lista de atendidas?"
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        type="danger"
+        loading={deleteLoading}
+        disabled={deleteLoading}
       />
 
       {/* Modal EYE para personal */}
