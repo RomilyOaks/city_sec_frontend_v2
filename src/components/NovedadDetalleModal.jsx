@@ -36,6 +36,7 @@ import {
 import { geocodificarDireccion } from "../services/direccionesService";
 import UbicacionMiniMapa from "./UbicacionMiniMapa";
 import { formatUsuarioCompleto } from "../utils/usuarioUtils";
+import { formatForDisplay } from "../utils/dateHelper";
 
 const ORIGEN_LLAMADA_OPTIONS = [
   { value: "TELEFONO_107", label: "Llamada Telefónica (107)", icon: Phone },
@@ -59,20 +60,14 @@ const ORIGEN_LLAMADA_OPTIONS = [
 ];
 
 /**
- * formatFecha - Formatea fecha/hora a formato legible (es-PE).
+ * formatFecha - Formatea fecha/hora a formato legible respetando timezone.
  *
  * @param {string|Date} fecha
  * @returns {string}
  */
 const formatFecha = (fecha) => {
   if (!fecha) return "—";
-  return new Date(fecha).toLocaleString("es-PE", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatForDisplay(fecha);
 };
 
 /**
