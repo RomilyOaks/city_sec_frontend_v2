@@ -301,11 +301,14 @@ export const formatForDisplay = (date, locale = "es-PE") => {
 
   // Build a localized date + time string but avoid minute rounding by
   // formatting time with seconds and then stripping seconds textually.
-  const datePart = dateObj.toLocaleDateString(locale);
+  const datePart = dateObj.toLocaleDateString(locale, {
+    timeZone: DEFAULT_TIMEZONE,
+  });
   const timeWithSeconds = dateObj.toLocaleTimeString(locale, {
     hour: "numeric",
     minute: "2-digit",
     second: "2-digit",
+    timeZone: DEFAULT_TIMEZONE,
   });
 
   // Remove the seconds (e.g. "11:06:00 p. m." -> "11:06 p. m.") without rounding
