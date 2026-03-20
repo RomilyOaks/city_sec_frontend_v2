@@ -18,6 +18,7 @@ import {
   Car,
   MapPin,
 } from "lucide-react";
+import { ConfirmModal } from "../../../components/common";
 
 import {
   listVehiculosByTurno,
@@ -55,6 +56,9 @@ export default function OperativosVehiculosModal({ isOpen, onClose, turno }) {
   const [showViewModal, setShowViewModal] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [selectedVehiculo, setSelectedVehiculo] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingVehiculo, setDeletingVehiculo] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Manejar teclas ESC, Alt+N y Alt+V
   useEffect(() => {
@@ -120,19 +124,26 @@ export default function OperativosVehiculosModal({ isOpen, onClose, turno }) {
     navigate(`/operativos/turnos/${turno.id}/vehiculos/${vehiculo.id}/cuadrantes`);
   };
 
-  const handleDelete = async (vehiculo) => {
-    const confirmed = window.confirm(
-      `¿Eliminar el vehículo ${vehiculo.vehiculo?.placa} de este turno?`
-    );
-    if (!confirmed) return;
+  const handleDelete = (vehiculo) => {
+    setDeletingVehiculo(vehiculo);
+    setShowDeleteModal(true);
+  };
 
+  const handleConfirmDelete = async () => {
+    if (!deletingVehiculo) return;
+
+    setDeleteLoading(true);
     try {
-      await deleteVehiculoOperativo(turno.id, vehiculo.id);
+      await deleteVehiculoOperativo(turno.id, deletingVehiculo.id);
       toast.success("Vehículo eliminado del turno");
       fetchVehiculos();
+      setShowDeleteModal(false);
+      setDeletingVehiculo(null);
     } catch (err) {
       console.error("Error eliminando vehículo:", err);
       toast.error(err?.response?.data?.message || "Error al eliminar vehículo");
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -425,6 +436,23 @@ export default function OperativosVehiculosModal({ isOpen, onClose, turno }) {
           setSelectedVehiculo(null);
         }}
         vehiculo={selectedVehiculo}
+      />
+
+      {/* Modal Confirmar Eliminación */}
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDeletingVehiculo(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        title="Eliminar Vehículo del Turno"
+        message={`¿Está seguro de eliminar el vehículo ${deletingVehiculo?.vehiculo?.placa} de este turno?`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        type="danger"
+        loading={deleteLoading}
+        disabled={deleteLoading}
       />
     </div>
   );

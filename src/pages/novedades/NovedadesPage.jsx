@@ -52,6 +52,7 @@ import {
   Loader2,
   Bot,
 } from "lucide-react";
+import { ConfirmModal } from "../../components/common";
 import DespacharModal from "../../components/novedades/DespacharModal";
 import NovedadDetalleModal from "../../components/NovedadDetalleModal";
 import OrigenLlamadaCell from "../../components/novedades/OrigenLlamadaCell";
@@ -476,6 +477,9 @@ export default function NovedadesPage() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [viewingNovedad, setViewingNovedad] = useState(null);
   const [activeTab, setActiveTab] = useState(0);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingNovedad, setDeletingNovedad] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [viewingFromTruck, setViewingFromTruck] = useState(false); // Track si se abrió desde Truck o Eye
   const [gpsEnabled, setGpsEnabled] = useState(false);
@@ -1112,15 +1116,25 @@ export default function NovedadesPage() {
     filterUsuarioDespacho,
   ]);
 
-  const handleDelete = async (n) => {
-    const confirmed = window.confirm(`¿Eliminar novedad "${n.novedad_code}"?`);
-    if (!confirmed) return;
+  const handleDelete = (n) => {
+    setDeletingNovedad(n);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingNovedad) return;
+
+    setDeleteLoading(true);
     try {
-      await deleteNovedad(n.id);
+      await deleteNovedad(deletingNovedad.id);
       toast.success("Novedad eliminada");
       fetchNovedades({ nextPage: page });
+      setShowDeleteModal(false);
+      setDeletingNovedad(null);
     } catch (err) {
       toast.error(err?.response?.data?.message || "Error al eliminar");
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -5604,6 +5618,23 @@ export default function NovedadesPage() {
           </div>
         </div>
       )}
+
+      {/* Modal Confirmar Eliminación */}
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDeletingNovedad(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        title="Eliminar Novedad"
+        message={`¿Está seguro de eliminar la novedad "${deletingNovedad?.novedad_code}"?`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        type="danger"
+        loading={deleteLoading}
+        disabled={deleteLoading}
+      />
 
       {/* Modal de Seguimiento */}
       <DespacharModal

@@ -28,6 +28,7 @@ import {
   Info,
   X,
 } from "lucide-react";
+import { ConfirmModal } from "../../components/common";
 
 import {
   listPersonal,
@@ -156,6 +157,9 @@ export default function PersonalPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingPersonal, setEditingPersonal] = useState(null);
   const [viewingPersonal, setViewingPersonal] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingPersonal, setDeletingPersonal] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [formData, setFormData] = useState(initialFormData);
 
   // Bloquear scroll del body cuando un modal está abierto
@@ -339,17 +343,25 @@ export default function PersonalPage() {
     fetchPersonal({ nextPage: 1 });
   };
 
-  const handleDelete = async (p) => {
-    const confirmed = window.confirm(
-      `¿Eliminar a ${p.nombres} ${p.apellido_paterno}?`
-    );
-    if (!confirmed) return;
+  const handleDelete = (p) => {
+    setDeletingPersonal(p);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingPersonal) return;
+    
+    setDeleteLoading(true);
     try {
-      await deletePersonal(p.id);
+      await deletePersonal(deletingPersonal.id);
       toast.success("Personal eliminado");
       fetchPersonal({ nextPage: page });
+      setShowDeleteModal(false);
+      setDeletingPersonal(null);
     } catch (err) {
       toast.error(err?.response?.data?.message || "Error al eliminar");
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -1613,6 +1625,23 @@ export default function PersonalPage() {
           </div>
         </div>
       )}
+
+      {/* Modal Confirmar Eliminación */}
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDeletingPersonal(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        title="Eliminar Personal"
+        message={`¿Estás seguro de eliminar a ${deletingPersonal?.nombres} ${deletingPersonal?.apellido_paterno}?`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        type="danger"
+        loading={deleteLoading}
+        disabled={deleteLoading}
+      />
     </div>
   );
 }
