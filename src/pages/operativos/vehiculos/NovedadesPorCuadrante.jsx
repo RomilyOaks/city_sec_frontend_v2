@@ -39,7 +39,6 @@ import {
 import { canPerformAction } from "../../../rbac/rbac.js";
 import { useAuthStore } from "../../../store/useAuthStore.js";
 import { useEstadosPorRol } from "../../../hooks/useEstadosPorRol.js";
-import RegistrarNovedadForm from "./RegistrarNovedadForm.jsx";
 import NovedadDetalleModal from "../../../components/NovedadDetalleModal.jsx";
 import EyeVehiculoModal from "./EyeVehiculoModal.jsx";
 import {
@@ -147,7 +146,6 @@ export default function NovedadesPorCuadrante() {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingNovedad, setEditingNovedad] = useState(null);
   const [viewingNovedad, setViewingNovedad] = useState(null);
   const [deletingNovedad, setDeletingNovedad] = useState(null);
@@ -323,12 +321,7 @@ export default function NovedadesPorCuadrante() {
     );
   }, [navigate, turnoId, vehiculoId]);
 
-  // Manejar creación de novedad
-  const handleCreateNovedad = useCallback(() => {
-    setEditingNovedad(null);
-    setShowCreateForm(true);
-  }, []);
-
+  
   // Manejar edición de novedad - Abre modal inline (similar a Patrullaje a Pie)
   const handleEditNovedad = useCallback(async (novedad) => {
     setSelectedNovedadEdit(novedad);
@@ -544,19 +537,7 @@ export default function NovedadesPorCuadrante() {
     ],
   );
 
-  // Manejar cierre del formulario de crear
-  const handleCloseForm = useCallback(() => {
-    setShowCreateForm(false);
-    setEditingNovedad(null);
-  }, []);
-
-  // Manejar éxito del formulario
-  const handleFormSuccess = useCallback(() => {
-    setShowCreateForm(false);
-    setEditingNovedad(null);
-    fetchNovedades();
-  }, [fetchNovedades]);
-
+  
   // Manejar ver detalle de novedad
   const handleViewNovedad = useCallback((novedad) => {
     setViewingNovedad(novedad);
@@ -645,18 +626,9 @@ export default function NovedadesPorCuadrante() {
     return true;
   });
 
-  // Manejar hotkey ALT+N para registrar novedad y ESC
+  // Manejar hotkey ESC para cerrar modales
   useEffect(() => {
     const handleKeyDown = (event) => {
-      // ALT+N para registrar novedad
-      if (event.altKey && event.key === "n") {
-        event.preventDefault();
-        if (canCreate && filteredNovedades.length > 0) {
-          handleCreateNovedad();
-        } else if (canCreate && filteredNovedades.length === 0) {
-          handleCreateNovedad();
-        }
-      }
       // ESC: Cerrar modales en orden de prioridad o volver atrás
       if (event.key === "Escape") {
         event.preventDefault();
@@ -680,13 +652,7 @@ export default function NovedadesPorCuadrante() {
           return;
         }
 
-        // Prioridad 4: Cerrar formulario de registro/edición
-        if (showCreateForm) {
-          handleCloseForm();
-          return;
-        }
-
-        // Prioridad 5: Volver al panel anterior (Cuadrantes del Vehículo)
+        // Prioridad 4: Volver al panel anterior (Cuadrantes del Vehículo)
         handleBack();
       }
     };
@@ -696,12 +662,7 @@ export default function NovedadesPorCuadrante() {
       document.removeEventListener("keydown", handleKeyDown, true);
     };
   }, [
-    canCreate,
-    filteredNovedades.length,
     handleBack,
-    showCreateForm,
-    handleCloseForm,
-    handleCreateNovedad,
     viewingNovedad,
     handleCloseViewModal,
     deletingNovedad,
@@ -787,16 +748,6 @@ export default function NovedadesPorCuadrante() {
                   className="text-slate-600 dark:text-slate-300"
                 />
               </button>
-              {canCreate && filteredNovedades.length > 0 && (
-                <button
-                  onClick={handleCreateNovedad}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-                  title="Registrar Novedad (ALT+N)"
-                >
-                  <Plus size={18} />
-                  Registrar Novedad
-                </button>
-              )}
             </div>
           </div>
 
@@ -1109,18 +1060,7 @@ export default function NovedadesPorCuadrante() {
         </div>
       </div>
 
-      {/* Modal del formulario */}
-      {showCreateForm && (
-        <RegistrarNovedadForm
-          turnoId={turnoId}
-          vehiculoId={vehiculoId}
-          cuadranteId={cuadranteId}
-          novedad={editingNovedad}
-          onClose={handleCloseForm}
-          onSuccess={handleFormSuccess}
-        />
-      )}
-
+      
       {/* Modal de detalle de novedad - Reutilizando NovedadDetalleModal completo */}
       {/* IMPORTANTE: Pasar novedadId para que el modal cargue la novedad completa con getNovedadById */}
       {/* No pasar novedad inicial para forzar la carga desde el backend */}
