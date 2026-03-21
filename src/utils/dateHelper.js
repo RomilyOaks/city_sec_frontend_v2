@@ -313,7 +313,7 @@ export const formatForDisplay = (date, locale = "es-PE") => {
   });
 
   // Remove the seconds (e.g. "11:06:00 p. m." -> "11:06 p. m.") without rounding
-  const timeNoSeconds = timeWithSeconds.replace(/:\d{2}(?=[^\d]|$)/, "");
+  const timeNoSeconds = timeWithSeconds.replace(/:\d{2}(?=\s|$)/, "");
 
   return `${datePart}, ${timeNoSeconds}`;
 };

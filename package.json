@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "test": "vitest",
-    "lint": "eslint .",
+    "lint": "eslint . --ignore-path .gitignore",
     "preview": "vite preview"
   },
   "dependencies": {
