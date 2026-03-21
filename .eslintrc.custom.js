@@ -40,5 +40,15 @@ module.exports = {
         vitest: true,
       },
     },
+    // Excluir mcp-server y configurar globals de Node.js
+    {
+      files: ["mcp-server/**/*"],
+      env: {
+        node: true,
+      },
+      rules: {
+        "no-restricted-syntax": "off", // Desactivar regla de Date para Node.js
+      },
+    },
   ],
 };
