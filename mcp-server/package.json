@@ -1,0 +1,29 @@
+{
+  "name": "mcp-server",
+  "version": "0.1.0",
+  "description": "Minimal MCP (Model Context Protocol) server connecting to MySQL for frontend project",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "keywords": [
+    "mcp",
+    "mysql",
+    "express",
+    "frontend"
+  ],
+  "author": "generated for city_sec_frontend_v2",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^17.0.0",
+    "express": "^5.0.0",
+    "mysql2": "^3.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
