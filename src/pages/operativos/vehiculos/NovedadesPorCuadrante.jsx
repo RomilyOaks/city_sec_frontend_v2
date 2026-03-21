@@ -45,7 +45,6 @@ import EyeVehiculoModal from "./EyeVehiculoModal.jsx";
 import {
   formatForDisplay,
   safeConvertToTimezone,
-  getTimezoneDebugInfo,
 } from "../../../utils/dateHelper";
 
 // Usar getLocalDatetime para evitar conversión UTC (como DespacharModal)
@@ -437,16 +436,6 @@ export default function NovedadesPorCuadrante() {
         if (cambioEstado && novedadPrincipalId) {
           try {
             const fechaLocal = getLocalDatetime();
-            
-            // 🔍 DEBUGGING: Mostrar datos que se envían al backend
-            console.log("🔍 DEBUG - Creando historial de novedad:");
-            console.log("📅 fechaLocal (getNowLocal):", fechaLocal);
-            console.log("🆔 novedadPrincipalId:", novedadPrincipalId);
-            console.log("📝 mensaje:", `Cambio de estado a: ${editData.resultado}`);
-            console.log("🎯 nuevoEstadoId:", nuevoEstadoId);
-            console.log("🌐 Timezone configurado:", import.meta.env.VITE_APP_TIMEZONE);
-            console.log("⏰ Fecha actual del navegador:", new Date().toISOString());
-            console.log("📍 getTimezoneDebugInfo:", getTimezoneDebugInfo());
 
             await crearHistorialNovedad(
               novedadPrincipalId,
@@ -454,8 +443,6 @@ export default function NovedadesPorCuadrante() {
               nuevoEstadoId,
               fechaLocal,
             );
-            
-            console.log("✅ Historial creado exitosamente");
           } catch (historialError) {
             console.error("❌ Error al grabar historial:", historialError);
             toast.error(
@@ -470,22 +457,12 @@ export default function NovedadesPorCuadrante() {
             const vehiculoInfo = vehiculo?.placa || `Vehículo ${vehiculoId}`;
             const accionesTexto = editData.acciones_tomadas.trim();
             const fechaAcciones = getLocalDatetime();
-            
+
             // Obtener nombre del piloto desde el personal asignado al vehículo
             const pilotoNombre = selectedNovedadEdit?.operativoVehiculo?.personal?.nombre || 
                                 selectedNovedadEdit?.operativoVehiculo?.personal?.apellido_paterno ? 
                                 `${selectedNovedadEdit.operativoVehiculo.personal.nombre} ${selectedNovedadEdit.operativoVehiculo.personal.apellido_paterno}` : 
                                 "Piloto no asignado";
-
-            // 🔍 DEBUGGING: Mostrar datos de acciones que se envían al backend
-            console.log("🔍 DEBUG - Creando historial de acciones:");
-            console.log("📅 fechaAcciones (getNowLocal):", fechaAcciones);
-            console.log("🚗 vehiculoInfo:", vehiculoInfo);
-            console.log("👨‍✈️ pilotoNombre:", pilotoNombre);
-            console.log("⏰ fecha_llegada:", editData.fecha_llegada);
-            console.log("📝 accionesTexto:", accionesTexto);
-            console.log("🆔 novedadPrincipalId:", novedadPrincipalId);
-            console.log("🎯 nuevoEstadoId:", nuevoEstadoId);
 
             await crearHistorialNovedad(
               novedadPrincipalId,
@@ -493,8 +470,6 @@ export default function NovedadesPorCuadrante() {
               nuevoEstadoId,
               fechaAcciones,
             );
-            
-            console.log("✅ Historial de acciones creado exitosamente");
           } catch (error) {
             console.error("❌ Error al agregar acciones al historial:", error);
             toast.error("Error al guardar acciones en historial");
