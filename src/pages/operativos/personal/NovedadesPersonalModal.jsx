@@ -129,15 +129,7 @@ export default function NovedadesPersonalModal({
   // Estados - Novedades disponibles
   const [novedadesDisponibles, setNovedadesDisponibles] = useState([]);
   const [loadingDisponibles, setLoadingDisponibles] = useState(false);
-  const [showRegistrarForm, setShowRegistrarForm] = useState(false);
-
-  // Estados - Formulario registrar
-  const [formData, setFormData] = useState({
-    novedad_id: "",
-    prioridad: "MEDIA",
-    observaciones: "",
-    acciones_tomadas: "",
-  });
+  
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletingNovedad, setDeletingNovedad] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -193,37 +185,20 @@ export default function NovedadesPersonalModal({
         } else if (showEditModal) {
           setShowEditModal(false);
           setSelectedNovedad(null);
-        } else if (showRegistrarForm) {
-          setShowRegistrarForm(false);
-          resetForm();
         } else {
           onClose();
         }
         return;
       }
 
-      // Alt+N: Abrir formulario de registrar novedad
-      if (
-        e.altKey &&
-        e.key.toLowerCase() === "n" &&
-        canCreate &&
-        !showRegistrarForm &&
-        !showEditModal &&
-        !showViewModal
-      ) {
-        e.preventDefault();
-        e.stopPropagation();
-        setShowRegistrarForm(true);
-        return;
-      }
-
+      
       // Alt+G: Guardar (submit del formulario activo)
       if (e.altKey && e.key.toLowerCase() === "g") {
         e.preventDefault();
         e.stopPropagation();
         // Buscar el formulario activo y hacer submit
         const activeForm = document.querySelector("form");
-        if (activeForm && (showRegistrarForm || showEditModal)) {
+        if (activeForm && showEditModal) {
           activeForm.requestSubmit();
         }
         return;
@@ -235,7 +210,6 @@ export default function NovedadesPersonalModal({
   }, [
     isOpen,
     onClose,
-    showRegistrarForm,
     showEditModal,
     showViewModal,
     canCreate,
@@ -274,17 +248,10 @@ export default function NovedadesPersonalModal({
   useEffect(() => {
     if (!isOpen) {
       // Limpiar formularios y estados internos al cerrar
-      setShowRegistrarForm(false);
       setShowEditModal(false);
       setShowViewModal(false);
       setSelectedNovedad(null);
       setViewingNovedad(null);
-      setFormData({
-        novedad_id: "",
-        prioridad: "MEDIA",
-        observaciones: "",
-        acciones_tomadas: "",
-      });
       setEditData({
         estado_novedad_id: "",
         resultado: "",
@@ -341,25 +308,12 @@ export default function NovedadesPersonalModal({
     }
   }, [turnoId, personal?.id, cuadrante?.id]);
 
-  useEffect(() => {
-    if (showRegistrarForm) {
-      fetchNovedadesDisponibles();
-    }
-  }, [showRegistrarForm, fetchNovedadesDisponibles]);
-
+  
   // ============================================================================
   // HANDLERS
   // ============================================================================
 
-  const resetForm = () => {
-    setFormData({
-      novedad_id: "",
-      prioridad: "MEDIA",
-      observaciones: "",
-      acciones_tomadas: "",
-    });
-  };
-
+  
   /**
    * Formatear errores del backend para mostrar al usuario
    * @param {Object} error - Error de axios
@@ -382,49 +336,7 @@ export default function NovedadesPersonalModal({
     return data.message || "Error al procesar la solicitud";
   };
 
-  const handleRegistrarNovedad = async (e) => {
-    e.preventDefault();
-
-    if (!formData.novedad_id) {
-      toast.error("Seleccione una novedad");
-      return;
-    }
-
-    setSaving(true);
-    try {
-      // Obtener prioridad de la novedad seleccionada
-      const novedadesYaRegistradasLocal = novedades.map((n) => n.novedad_id);
-      const novedadesFiltradasLocal = novedadesDisponibles.filter(
-        (n) => !novedadesYaRegistradasLocal.includes(n.id),
-      );
-      const selectedNovedadData = novedadesFiltradasLocal.find(
-        (n) => n.id === Number(formData.novedad_id),
-      );
-      const prioridadFromNovedad = selectedNovedadData?.prioridad || "MEDIA";
-
-      const payload = {
-        novedad_id: Number(formData.novedad_id),
-        reportado: getNowLocal(),
-        prioridad: prioridadFromNovedad,
-        resultado: "PENDIENTE",
-        observaciones: formData.observaciones?.trim() || undefined,
-        acciones_tomadas: formData.acciones_tomadas?.trim() || undefined,
-      };
-
-      await createNovedadPersonal(turnoId, personal.id, cuadrante.id, payload);
-      toast.success("Novedad registrada correctamente");
-      setShowRegistrarForm(false);
-      resetForm();
-      fetchNovedades();
-    } catch (error) {
-      console.error("Error registrando novedad:", error);
-      const msg = formatBackendError(error);
-      toast.error(msg, { duration: 5000, style: { whiteSpace: "pre-line" } });
-    } finally {
-      setSaving(false);
-    }
-  };
-
+  
   const handleViewNovedad = (novedad) => {
     setViewingNovedad(novedad);
     setShowViewModal(true);
@@ -697,17 +609,6 @@ export default function NovedadesPersonalModal({
                   Patrullaje a Pie - Novedades en{" "}
                   {cuadrante?.datosCuadrante?.nombre || "Cuadrante"}
                 </h2>
-                {/* Indicador de hotkeys */}
-                {canCreate && !showRegistrarForm && !showEditModal && (
-                  <span className="text-xs px-2 py-1 rounded bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-medium">
-                    Alt+N = Registrar
-                  </span>
-                )}
-                {(showRegistrarForm || showEditModal) && (
-                  <span className="text-xs px-2 py-1 rounded bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-medium">
-                    Alt+G = Guardar | ESC = Cancelar
-                  </span>
-                )}
               </div>
               <p className="text-sm text-slate-500 dark:text-slate-400">
                 Personal: {formatPersonalNombre(personal?.personal)} • Código:{" "}
@@ -718,6 +619,7 @@ export default function NovedadesPersonalModal({
           <button
             onClick={onClose}
             className="p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+            title="Cerrar"
           >
             <X size={20} />
           </button>
@@ -728,197 +630,51 @@ export default function NovedadesPersonalModal({
         {/* ================================================================== */}
         {summary && (
           <div className="px-6 py-3 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
-            <div className="flex items-center gap-6 text-sm">
-              <span className="text-slate-600 dark:text-slate-400">
-                Total: <strong>{summary.total || 0}</strong>
-              </span>
-              {summary.porResultado && (
-                <>
-                  <span className="text-amber-600">
-                    Pendientes:{" "}
-                    <strong>{summary.porResultado.pendientes || 0}</strong>
-                  </span>
-                  <span className="text-emerald-600">
-                    Resueltas:{" "}
-                    <strong>{summary.porResultado.resueltas || 0}</strong>
-                  </span>
-                  <span className="text-purple-600">
-                    Escaladas:{" "}
-                    <strong>{summary.porResultado.escaladas || 0}</strong>
-                  </span>
-                </>
-              )}
+            {/* Mobile: Stack layout, Desktop: Side by side */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-xs sm:text-sm">
+                <span className="text-slate-600 dark:text-slate-400">
+                  Total: <strong>{summary.total || 0}</strong>
+                </span>
+                {summary.porResultado && (
+                  <>
+                    <span className="text-amber-600">
+                      Pendientes:{" "}
+                      <strong>{summary.porResultado.pendientes || 0}</strong>
+                    </span>
+                    <span className="text-emerald-600">
+                      Resueltas:{" "}
+                      <strong>{summary.porResultado.resueltas || 0}</strong>
+                    </span>
+                    <span className="text-purple-600">
+                      Escaladas:{" "}
+                      <strong>{summary.porResultado.escaladas || 0}</strong>
+                    </span>
+                  </>
+                )}
+                <span className="text-slate-600 dark:text-slate-400">
+                  {novedades.length} novedad{novedades.length !== 1 ? "es" : ""}{" "}
+                  atendida{novedades.length !== 1 ? "s" : ""}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={fetchNovedades}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs sm:text-sm"
+                  title="Refrescar"
+                >
+                  <RefreshCw size={14} />
+                  <span className="hidden sm:inline">Refrescar</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
 
         {/* ================================================================== */}
-        {/* TOOLBAR */}
-        {/* ================================================================== */}
-        <div className="px-6 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-slate-600 dark:text-slate-400">
-              {novedades.length} novedad{novedades.length !== 1 ? "es" : ""}{" "}
-              atendida{novedades.length !== 1 ? "s" : ""}
-            </span>
-            <button
-              onClick={fetchNovedades}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
-              title="Refrescar"
-            >
-              <RefreshCw size={16} />
-            </button>
-          </div>
-
-          {canCreate && !showRegistrarForm && novedades.length > 0 && (
-            <button
-              onClick={() => setShowRegistrarForm(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-700 text-white text-sm font-medium hover:bg-primary-800"
-            >
-              <Plus size={16} />
-              Registrar Novedad
-            </button>
-          )}
-        </div>
-
-        {/* ================================================================== */}
         {/* CONTENIDO */}
         {/* ================================================================== */}
         <div className="flex-1 overflow-auto p-6">
-          {/* Formulario de registrar novedad */}
-          {showRegistrarForm && (
-            <div className="mb-6 p-4 bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-xl">
-              <h3 className="text-sm font-semibold text-primary-900 dark:text-primary-100 mb-4">
-                Registrar Novedad Atendida
-              </h3>
-              <form onSubmit={handleRegistrarNovedad} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Novedad */}
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      Novedad del Sistema *
-                    </label>
-                    <select
-                      value={formData.novedad_id}
-                      onChange={(e) =>
-                        setFormData({ ...formData, novedad_id: e.target.value })
-                      }
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                      disabled={loadingDisponibles}
-                    >
-                      <option value="">— Seleccione novedad —</option>
-                      {novedadesFiltradas.map((n) => (
-                        <option key={n.id} value={n.id}>
-                          [{n.novedadTipoNovedad?.nombre || "Sin tipo"}]{" "}
-                          {n.descripcion?.substring(0, 80)}...
-                        </option>
-                      ))}
-                    </select>
-                    {loadingDisponibles && (
-                      <p className="mt-1 text-xs text-slate-500">
-                        Cargando novedades...
-                      </p>
-                    )}
-                    {!loadingDisponibles && novedadesFiltradas.length === 0 && (
-                      <p className="mt-1 text-xs text-amber-600">
-                        No hay novedades disponibles para este cuadrante
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Prioridad (read-only, viene de la novedad seleccionada) */}
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      Prioridad
-                    </label>
-                    {(() => {
-                      const selectedNovedadData = novedadesFiltradas.find(
-                        (n) => n.id === Number(formData.novedad_id),
-                      );
-                      const prioridadConfig = selectedNovedadData
-                        ? getPrioridadConfig(selectedNovedadData.prioridad)
-                        : null;
-                      return (
-                        <div className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white">
-                          {prioridadConfig ? (
-                            <span
-                              className={`px-2 py-0.5 rounded-full text-xs font-medium ${prioridadConfig.color}`}
-                            >
-                              {prioridadConfig.label}
-                            </span>
-                          ) : (
-                            <span className="text-slate-400 italic text-sm">
-                              Seleccione una novedad
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })()}
-                  </div>
-
-                  {/* Acciones tomadas */}
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      Acciones Tomadas
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.acciones_tomadas}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          acciones_tomadas: e.target.value,
-                        })
-                      }
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                      placeholder="Acciones realizadas..."
-                    />
-                  </div>
-
-                  {/* Observaciones */}
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      Observaciones
-                    </label>
-                    <textarea
-                      value={formData.observaciones}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          observaciones: e.target.value,
-                        })
-                      }
-                      rows={2}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white resize-none"
-                      placeholder="Observaciones de la atención..."
-                    />
-                  </div>
-                </div>
-
-                {/* Botones */}
-                <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowRegistrarForm(false);
-                      resetForm();
-                    }}
-                    className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={saving || !formData.novedad_id}
-                    className="px-4 py-2 rounded-lg bg-primary-700 text-white hover:bg-primary-800 disabled:opacity-50"
-                  >
-                    {saving ? "Guardando..." : "Registrar"}
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
-
           {/* Lista de novedades atendidas */}
           {loading ? (
             <div className="flex items-center justify-center py-12">
@@ -930,15 +686,6 @@ export default function NovedadesPersonalModal({
               <p className="text-slate-500 dark:text-slate-400">
                 No hay novedades registradas en este cuadrante
               </p>
-              {canCreate && (
-                <button
-                  onClick={() => setShowRegistrarForm(true)}
-                  className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-700 text-white text-sm font-medium hover:bg-primary-800"
-                >
-                  <Plus size={16} />
-                  Registrar primera novedad
-                </button>
-              )}
             </div>
           ) : (
             <div className="flex flex-wrap gap-4">
@@ -1090,7 +837,8 @@ export default function NovedadesPersonalModal({
 
       {/* ================================================================== */}
       {/* MODAL EDITAR/RESOLVER */}
-      {/* =================================================================={/* Modal de Edición */}
+      {/* ================================================================== */}
+      {/* Modal de Edición */}
       {showEditModal && selectedNovedad && (
         <div
           className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4"

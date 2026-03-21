@@ -382,7 +382,7 @@ export default function OperativosPersonalModal({ isOpen, onClose, turno }) {
                 onClose();
               }
             }}
-            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white"
             title={
               showCreateForm || showEditForm ? "Cancelar (ESC)" : "Cerrar (ESC)"
             }
