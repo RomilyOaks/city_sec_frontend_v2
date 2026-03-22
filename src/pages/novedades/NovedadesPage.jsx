@@ -354,6 +354,26 @@ const formatDireccionManual = (formData, callesList) => {
  * <NovedadesPage />
  */
 
+/**
+ * Función helper para abreviar nombre de tipo hasta el primer slash
+ * @param {string} tipoNombre - Nombre completo del tipo
+ * @returns {string} - Nombre abreviado del tipo
+ */
+const abreviarNombreTipo = (tipoNombre) => {
+  if (!tipoNombre) return "—";
+  
+  // Buscar primer slash en el tipo
+  const primerSlashIndex = tipoNombre.indexOf("/");
+  
+  if (primerSlashIndex === -1) {
+    // Si no hay slash, devolver tipo completo
+    return tipoNombre;
+  }
+  
+  // Tomar desde el inicio hasta el primer slash (excluyendo el slash)
+  return tipoNombre.substring(0, primerSlashIndex).trim();
+};
+
 export default function NovedadesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const user = useAuthStore((s) => s.user);
@@ -2758,7 +2778,7 @@ export default function NovedadesPage() {
                           <td className="px-3 py-2 text-slate-700 dark:text-slate-200">
                             <div className="flex flex-col">
                               <span className="font-medium">
-                                {n.novedadTipoNovedad?.nombre || "—"}
+                                {abreviarNombreTipo(n.novedadTipoNovedad?.nombre)}
                               </span>
                               <span className="text-[10px] text-slate-500">
                                 {n.novedadSubtipoNovedad?.nombre || ""}
