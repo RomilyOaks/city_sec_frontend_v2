@@ -10,6 +10,7 @@ import { createSubtipoNovedad, updateSubtipoNovedad } from "../../services/subti
 import { listTiposNovedad } from "../../services/tiposNovedadService";
 import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 import toast from "react-hot-toast";
+import { showValidationError } from "../../utils/errorUtils";
 
 export default function SubtipoNovedadFormModal({ subtipo, tipoId, onClose, onSuccess }) {
   // Bloquear scroll del body cuando el modal está abierto
@@ -111,7 +112,7 @@ export default function SubtipoNovedadFormModal({ subtipo, tipoId, onClose, onSu
       onSuccess();
     } catch (error) {
       console.error("Error guardando subtipo de novedad:", error);
-      toast.error(error.response?.data?.message || "Error al guardar subtipo de novedad");
+      showValidationError(error, toast, "Error al guardar subtipo de novedad");
     } finally {
       setLoading(false);
     }
