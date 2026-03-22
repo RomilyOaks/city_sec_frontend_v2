@@ -620,6 +620,7 @@ export default function NovedadesPage() {
     km_final: "",
     fecha_proxima_revision: "",
     perdidas_materiales_estimadas: "",
+    observaciones_historial: "",
   });
 
   /**
@@ -1428,6 +1429,7 @@ export default function NovedadesPage() {
           : "",
         perdidas_materiales_estimadas:
           novedadCompleta.perdidas_materiales_estimadas || "",
+        observaciones_historial: "",
       });
       setAtencionTab(0);
       setHistorialEstados([]);
@@ -1705,8 +1707,19 @@ export default function NovedadesPage() {
         if (personalDesc) partes.push(`Personal: ${personalDesc}`);
         if (atencionData.observaciones)
           partes.push(`Obs: ${atencionData.observaciones}`);
-        const obsHistorial =
-          partes.length > 0 ? partes.join(" | ") : "Atención registrada";
+        
+        // Para estados RESUELTA (6) o superior, usar observaciones_historial si existen
+        let obsHistorial;
+        if (nuevoEstadoId >= 6 && atencionData.observaciones_historial?.trim()) {
+          // Combinar partes existentes con las observaciones del historial
+          if (partes.length > 0) {
+            obsHistorial = `${partes.join(" | ")} | ${atencionData.observaciones_historial.trim()}`;
+          } else {
+            obsHistorial = atencionData.observaciones_historial.trim();
+          }
+        } else {
+          obsHistorial = partes.length > 0 ? partes.join(" | ") : "Atención registrada";
+        }
 
         // Usar getLocalDatetime() igual que en operativos para consistencia
         const fechaLocal = getLocalDatetime();
@@ -5609,6 +5622,31 @@ export default function NovedadesPage() {
                       </div>
 
                       {requiereSeg && datosSeguimientoBlock}
+                      
+                      {/* Campo Observaciones para estados RESUELTA (6) o superior */}
+                      {estadoId >= 6 && (
+                        <div className="p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                          <h4 className="font-medium text-slate-900 dark:text-slate-50 mb-3">
+                            Observaciones del Historial
+                          </h4>
+                          <textarea
+                            value={atencionData.observaciones_historial}
+                            onChange={(e) =>
+                              setAtencionData({
+                                ...atencionData,
+                                observaciones_historial: e.target.value,
+                              })
+                            }
+                            placeholder="Ingrese alguna observación o comentario sobre este cambio de estado..."
+                            rows={3}
+                            className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 resize-none"
+                          />
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                            Estas observaciones se guardarán en el historial de estados de la novedad.
+                          </p>
+                        </div>
+                      )}
+                      
                       {historialBlock}
                     </div>
                   );
