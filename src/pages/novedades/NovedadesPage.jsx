@@ -435,6 +435,10 @@ export default function NovedadesPage() {
   const canShowAtenderButton = (novedad) => {
     const estadoId = novedad?.estado_novedad_id;
 
+    // Si el filtro de estado es >= 7 (CERRADA o superior), ocultar botón para todos
+    const filtroEstadoId = filterEstado ? Number(filterEstado) : null;
+    if (filtroEstadoId && filtroEstadoId >= 7) return false;
+
     // Supervisor siempre puede atender en cualquier estado
     if (isSupervisor()) return true;
 
@@ -4996,8 +5000,21 @@ export default function NovedadesPage() {
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-6">
               {/* Tab 0: Recursos Asignados */}
-              {atencionTab === 0 && (
-                <div className="space-y-4">
+              {atencionTab === 0 && (() => {
+                const estadoId = Number(
+                  atencionData.estado_novedad_id ||
+                    selectedNovedad.estado_novedad_id,
+                );
+                const isCerrada = estadoId >= 7;
+                const isAllReadonly = isCerrada;
+                
+                const clsEditable =
+                  "mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50";
+                const clsReadonly =
+                  "mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 px-3 py-2 text-slate-500 cursor-not-allowed";
+
+                return (
+                  <div className="space-y-4">
                   {/* Fila 1: Vehículo + Personal a pie */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -5012,7 +5029,8 @@ export default function NovedadesPage() {
                             vehiculo_id: e.target.value,
                           })
                         }
-                        className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+                        disabled={isAllReadonly}
+                        className={isAllReadonly ? clsReadonly : clsEditable}
                       >
                         <option value="">Seleccione vehículo...</option>
                         {vehiculos.map((v) => (
@@ -5041,7 +5059,8 @@ export default function NovedadesPage() {
                             personal_cargo_id: e.target.value,
                           })
                         }
-                        className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+                        disabled={isAllReadonly}
+                        className={isAllReadonly ? clsReadonly : clsEditable}
                       >
                         <option value="">Seleccione personal...</option>
                         {personalSeguridad.map((p) => (
@@ -5257,7 +5276,8 @@ export default function NovedadesPage() {
                           unidad_oficina_id: e.target.value,
                         })
                       }
-                      className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+                      disabled={isAllReadonly}
+                      className={isAllReadonly ? clsReadonly : clsEditable}
                     >
                       <option value="">Seleccione unidad...</option>
                       {unidadesOficina.map((u) => (
@@ -5268,7 +5288,8 @@ export default function NovedadesPage() {
                     </select>
                   </div>
                 </div>
-              )}
+                );
+              })()}
 
               {/* Tab 1: Seguimiento */}
               {atencionTab === 1 &&
@@ -5285,6 +5306,9 @@ export default function NovedadesPage() {
                     "mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50";
                   const clsReadonly =
                     "mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 px-3 py-2 text-slate-500 cursor-not-allowed";
+                  
+                  // Para estados CERRADA (7) o superior, todos los campos son readonly
+                  const isAllReadonly = isCerrada;
 
                   const historialBlock = (
                     <div className="p-4 rounded-lg border border-slate-200 dark:border-slate-700">
@@ -5379,11 +5403,13 @@ export default function NovedadesPage() {
                           {(() => {
                             const esEnLugar =
                               Number(atencionData.estado_novedad_id) === 4;
-                            const clsLlegada = fechaLlegadaVacia
-                              ? esEnLugar
-                                ? "mt-1 w-full rounded-lg border-2 border-green-500 dark:border-green-400 bg-green-50 dark:bg-green-900/30 px-3 py-2 text-slate-900 dark:text-slate-50 ring-2 ring-green-400/40"
-                                : clsEditable
-                              : clsReadonly;
+                            const clsLlegada = isAllReadonly || fechaLlegadaVacia
+                              ? isAllReadonly
+                                ? clsReadonly
+                                : esEnLugar
+                                  ? "mt-1 w-full rounded-lg border-2 border-green-500 dark:border-green-400 bg-green-50 dark:bg-green-900/30 px-3 py-2 text-slate-900 dark:text-slate-50 ring-2 ring-green-400/40"
+                                  : clsEditable
+                              : clsEditable;
                             return (
                               <>
                                 <label
@@ -5405,7 +5431,7 @@ export default function NovedadesPage() {
                                       fecha_llegada: e.target.value,
                                     })
                                   }
-                                  disabled={!fechaLlegadaVacia}
+                                  disabled={isAllReadonly || !fechaLlegadaVacia}
                                   className={clsLlegada}
                                 />
                               </>
@@ -5435,9 +5461,9 @@ export default function NovedadesPage() {
                                 fecha_cierre: e.target.value,
                               })
                             }
-                            disabled={!isSupervisor() || !isCerrada}
+                            disabled={isAllReadonly || !isSupervisor() || !isCerrada}
                             className={
-                              isSupervisor() && isCerrada
+                              !isAllReadonly && isSupervisor() && isCerrada
                                 ? clsEditable
                                 : clsReadonly
                             }
@@ -5464,10 +5490,10 @@ export default function NovedadesPage() {
                                 km_inicial: e.target.value,
                               })
                             }
-                            disabled={!isSupervisor()}
+                            disabled={isAllReadonly || !isSupervisor()}
                             placeholder="0"
                             className={
-                              isSupervisor() ? clsEditable : clsReadonly
+                              !isAllReadonly && isSupervisor() ? clsEditable : clsReadonly
                             }
                           />
                         </div>
@@ -5489,10 +5515,10 @@ export default function NovedadesPage() {
                                 km_final: e.target.value,
                               })
                             }
-                            disabled={!isSupervisor()}
+                            disabled={isAllReadonly || !isSupervisor()}
                             placeholder="0"
                             className={
-                              isSupervisor() ? clsEditable : clsReadonly
+                              !isAllReadonly && isSupervisor() ? clsEditable : clsReadonly
                             }
                           />
                         </div>
@@ -5517,8 +5543,8 @@ export default function NovedadesPage() {
                                 fecha_proxima_revision: e.target.value,
                               })
                             }
-                            disabled={isCerrada}
-                            className={!isCerrada ? clsEditable : clsReadonly}
+                            disabled={isAllReadonly || isCerrada}
+                            className={!isAllReadonly && !isCerrada ? clsEditable : clsReadonly}
                           />
                         </div>
                         <div>
@@ -5540,9 +5566,9 @@ export default function NovedadesPage() {
                                 perdidas_materiales_estimadas: e.target.value,
                               })
                             }
-                            disabled={isCerrada}
+                            disabled={isAllReadonly || isCerrada}
                             placeholder="0.00"
-                            className={!isCerrada ? clsEditable : clsReadonly}
+                            className={!isAllReadonly && !isCerrada ? clsEditable : clsReadonly}
                           />
                         </div>
                       </div>
@@ -5565,7 +5591,8 @@ export default function NovedadesPage() {
                                 estado_novedad_id: e.target.value,
                               })
                             }
-                            className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+                            disabled={isAllReadonly}
+                            className={isAllReadonly ? clsReadonly : clsEditable}
                           >
                             <option value="">Seleccione estado...</option>
                             {(estadosRol.length > 0
@@ -5595,21 +5622,26 @@ export default function NovedadesPage() {
                               id="requiere_seguimiento"
                               checked={atencionData.requiere_seguimiento}
                               onChange={(e) => {
-                                setAtencionData({
-                                  ...atencionData,
-                                  requiere_seguimiento: e.target.checked,
-                                });
-                                if (e.target.checked) {
-                                  toast(
-                                    "Completar datos en pestaña Seguimiento",
-                                    {
-                                      icon: "📋",
-                                      duration: 3000,
-                                    },
-                                  );
+                                if (!isAllReadonly) {
+                                  setAtencionData({
+                                    ...atencionData,
+                                    requiere_seguimiento: e.target.checked,
+                                  });
+                                  if (e.target.checked) {
+                                    toast(
+                                      "Completar datos en pestaña Seguimiento",
+                                      {
+                                        icon: "📋",
+                                        duration: 3000,
+                                      },
+                                    );
+                                  }
                                 }
                               }}
-                              className="w-5 h-5 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                              disabled={isAllReadonly}
+                              className={`w-5 h-5 rounded border-slate-300 text-primary-600 focus:ring-primary-500 ${
+                                isAllReadonly ? "opacity-50 cursor-not-allowed" : ""
+                              }`}
                             />
                             <label
                               htmlFor="requiere_seguimiento"
@@ -5639,7 +5671,8 @@ export default function NovedadesPage() {
                             }
                             placeholder="Ingrese alguna observación o comentario sobre este cambio de estado..."
                             rows={3}
-                            className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 resize-none"
+                            disabled={isAllReadonly}
+                            className={isAllReadonly ? clsReadonly : "mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 resize-none"}
                           />
                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                             Estas observaciones se guardarán en el historial de estados de la novedad.
@@ -5662,16 +5695,26 @@ export default function NovedadesPage() {
                 }}
                 className="rounded-lg border border-slate-300 dark:border-slate-700 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
               >
-                Cancelar
+                Cerrar
               </button>
-              <button
-                id="btn_guardar_atencion"
-                onClick={handleGuardarAtencion}
-                disabled={saving}
-                className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
-              >
-                {saving ? "Guardando..." : "Guardar Atención"}
-              </button>
+              {(() => {
+                const estadoId = Number(
+                  atencionData.estado_novedad_id ||
+                    selectedNovedad.estado_novedad_id,
+                );
+                const isCerrada = estadoId >= 7;
+                
+                return !isCerrada && (
+                  <button
+                    id="btn_guardar_atencion"
+                    onClick={handleGuardarAtencion}
+                    disabled={saving}
+                    className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
+                  >
+                    {saving ? "Guardando..." : "Guardar Atención"}
+                  </button>
+                );
+              })()}
             </div>
           </div>
         </div>
