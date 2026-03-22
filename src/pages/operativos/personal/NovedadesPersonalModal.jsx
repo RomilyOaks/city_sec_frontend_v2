@@ -30,13 +30,10 @@ import { ConfirmModal } from "../../../components/common";
 // Servicios
 import {
   listNovedadesByCuadrante,
-  getNovedadesDisponibles,
-  createNovedadPersonal,
   updateNovedadPersonal,
   deleteNovedadPersonal,
   formatPersonalNombre,
   getPrioridadConfig,
-  PRIORIDADES_NOVEDAD,
   RESULTADOS_NOVEDAD,
 } from "../../../services/operativosPersonalService.js";
 import {
@@ -126,10 +123,7 @@ export default function NovedadesPersonalModal({
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState(null);
 
-  // Estados - Novedades disponibles
-  const [novedadesDisponibles, setNovedadesDisponibles] = useState([]);
-  const [loadingDisponibles, setLoadingDisponibles] = useState(false);
-  
+    
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletingNovedad, setDeletingNovedad] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -287,28 +281,6 @@ export default function NovedadesPersonalModal({
     }
   }, [isOpen, fetchCatalogos]);
 
-  // Cargar novedades disponibles cuando se abre el form
-  const fetchNovedadesDisponibles = useCallback(async () => {
-    if (!turnoId || !personal?.id || !cuadrante?.id) return;
-
-    setLoadingDisponibles(true);
-    try {
-      const response = await getNovedadesDisponibles(
-        turnoId,
-        personal.id,
-        cuadrante.id,
-      );
-      const data = response?.data || response || [];
-      setNovedadesDisponibles(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error("Error cargando novedades disponibles:", error);
-      setNovedadesDisponibles([]);
-    } finally {
-      setLoadingDisponibles(false);
-    }
-  }, [turnoId, personal?.id, cuadrante?.id]);
-
-  
   // ============================================================================
   // HANDLERS
   // ============================================================================
@@ -586,12 +558,7 @@ export default function NovedadesPersonalModal({
 
   if (!isOpen) return null;
 
-  // Filtrar novedades ya registradas
-  const novedadesYaRegistradas = novedades.map((n) => n.novedad_id);
-  const novedadesFiltradas = novedadesDisponibles.filter(
-    (n) => !novedadesYaRegistradas.includes(n.id),
-  );
-
+  
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4">
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col">

@@ -25,6 +25,7 @@ import TipoNovedadViewModal from "../../components/catalogos/TipoNovedadViewModa
 import SubtipoNovedadViewModal from "../../components/catalogos/SubtipoNovedadViewModal";
 import toast from "react-hot-toast";
 import { canPerformAction } from "../../rbac/rbac.js";
+import { ConfirmModal } from "../../components/common";
 
 export default function TiposSubtiposNovedadPage() {
   const user = useAuthStore((s) => s.user);
@@ -43,6 +44,12 @@ export default function TiposSubtiposNovedadPage() {
   const [editingTipo, setEditingTipo] = useState(null);
   const [viewingTipo, setViewingTipo] = useState(null);
   const [showEliminadosTipos, setShowEliminadosTipos] = useState(false);
+
+  // Estados para modales de confirmación
+  const [showDeleteTipoModal, setShowDeleteTipoModal] = useState(false);
+  const [showDeleteSubtipoModal, setShowDeleteSubtipoModal] = useState(false);
+  const [deletingTipo, setDeletingTipo] = useState(null);
+  const [deletingSubtipo, setDeletingSubtipo] = useState(null);
 
   // Estado de Subtipos de Novedad
   const [subtipos, setSubtipos] = useState([]);
@@ -81,17 +88,63 @@ export default function TiposSubtiposNovedadPage() {
 
   // Cargar subtipos de novedad
   const fetchSubtipos = async () => {
-    if (!selectedTipo?.id) return;
+    // Debug: Verificar estado actual
+    console.log("🔍 DEBUG fetchSubtipos:", {
+      showEliminadosSubtipos,
+      selectedTipo,
+      selectedTipoId: selectedTipo?.id
+    });
+
+    // Solo requerir selectedTipo.id para subtipos activos
+    if (!showEliminadosSubtipos && !selectedTipo?.id) {
+      console.log("🔍 DEBUG: Retornando temprano - showEliminadosSubtipos=false y no selectedTipo");
+      return;
+    }
 
     setLoadingSubtipos(true);
     try {
+      console.log("🔍 DEBUG: Iniciando llamada API...");
       const data = showEliminadosSubtipos
         ? await getSubtiposNovedadEliminados()
         : await listSubtiposNovedad(selectedTipo.id);
-      setSubtipos(Array.isArray(data) ? data : []);
+      
+      console.log("🔍 DEBUG: Datos recibidos:", {
+        showEliminadosSubtipos,
+        dataType: typeof data,
+        isArray: Array.isArray(data),
+        dataLength: Array.isArray(data) ? data.length : 'N/A',
+        data: data
+      });
+      
+      // Manejar estructura anidada del backend
+      let subtiposData = [];
+      console.log("🔍 DEBUG: Verificando condiciones:", {
+        showEliminadosSubtipos,
+        hasData: !!data,
+        hasDataData: !!data?.data,
+        hasDataDataData: !!data?.data?.data,
+        dataDataType: typeof data?.data,
+        dataDataIsArray: Array.isArray(data?.data)
+      });
+      
+      if (showEliminadosSubtipos && data?.data) {
+        // Filtrar subtipos eliminados por el tipo seleccionado
+        subtiposData = data.data.filter(subtipo => 
+          subtipo.tipo_novedad_id === selectedTipo?.id
+        );
+        console.log("🔍 DEBUG: Usando data.data filtrados para eliminados:", subtiposData);
+        console.log("🔍 DEBUG: Filtro aplicado - tipo_novedad_id:", selectedTipo?.id, "Total antes:", data.data.length, "Total después:", subtiposData.length);
+      } else if (Array.isArray(data)) {
+        subtiposData = data;
+        console.log("🔍 DEBUG: Usando array directo para activos:", subtiposData);
+      } else {
+        console.log("🔍 DEBUG: No se cumplió ninguna condición, usando array vacío");
+      }
+      
+      setSubtipos(subtiposData);
     } catch (error) {
+      console.error("🔍 DEBUG: Error en fetchSubtipos:", error);
       toast.error("Error al cargar subtipos de novedad");
-      console.error(error);
     } finally {
       setLoadingSubtipos(false);
     }
@@ -104,8 +157,12 @@ export default function TiposSubtiposNovedadPage() {
   }, [view, showEliminadosTipos]);
 
   useEffect(() => {
-    if (view === "subtipos" && selectedTipo) {
-      fetchSubtipos();
+    if (view === "subtipos") {
+      // Para subtipos activos: requiere selectedTipo
+      // Para subtipos eliminados: no requiere selectedTipo
+      if (showEliminadosSubtipos || selectedTipo) {
+        fetchSubtipos();
+      }
     }
   }, [view, selectedTipo, showEliminadosSubtipos]);
 
@@ -148,28 +205,40 @@ export default function TiposSubtiposNovedadPage() {
     showViewSubtipoModal,
   ]);
 
-  const handleDeleteTipo = async (tipo) => {
-    const confirmed = window.confirm(`¿Eliminar tipo de novedad "${tipo.nombre}"?`);
-    if (!confirmed) return;
+  const handleDeleteTipo = (tipo) => {
+    setDeletingTipo(tipo);
+    setShowDeleteTipoModal(true);
+  };
+
+  const confirmDeleteTipo = async () => {
+    if (!deletingTipo) return;
 
     try {
-      await deleteTipoNovedad(tipo.id);
+      await deleteTipoNovedad(deletingTipo.id);
       toast.success("Tipo de novedad eliminado");
       fetchTipos();
+      setShowDeleteTipoModal(false);
+      setDeletingTipo(null);
     } catch (error) {
       toast.error("Error al eliminar tipo de novedad");
       console.error(error);
     }
   };
 
-  const handleDeleteSubtipo = async (subtipo) => {
-    const confirmed = window.confirm(`¿Eliminar subtipo de novedad "${subtipo.nombre}"?`);
-    if (!confirmed) return;
+  const handleDeleteSubtipo = (subtipo) => {
+    setDeletingSubtipo(subtipo);
+    setShowDeleteSubtipoModal(true);
+  };
+
+  const confirmDeleteSubtipo = async () => {
+    if (!deletingSubtipo) return;
 
     try {
-      await deleteSubtipoNovedad(subtipo.id);
+      await deleteSubtipoNovedad(deletingSubtipo.id);
       toast.success("Subtipo de novedad eliminado");
       fetchSubtipos();
+      setShowDeleteSubtipoModal(false);
+      setDeletingSubtipo(null);
     } catch (error) {
       toast.error("Error al eliminar subtipo de novedad");
       console.error(error);
@@ -277,6 +346,14 @@ export default function TiposSubtiposNovedadPage() {
           {view === "tipos" ? (
             <>
               <button
+                onClick={() => fetchTipos()}
+                className="px-4 py-2 rounded-lg font-medium transition-colors bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center gap-2"
+                title="Refrescar tipos"
+              >
+                <RotateCcw size={16} />
+                Refrescar
+              </button>
+              <button
                 onClick={() => setShowEliminadosTipos(!showEliminadosTipos)}
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                   showEliminadosTipos
@@ -298,6 +375,14 @@ export default function TiposSubtiposNovedadPage() {
             </>
           ) : (
             <>
+              <button
+                onClick={() => fetchSubtipos()}
+                className="px-4 py-2 rounded-lg font-medium transition-colors bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center gap-2"
+                title="Refrescar subtipos"
+              >
+                <RotateCcw size={16} />
+                Refrescar
+              </button>
               <button
                 onClick={() => setShowEliminadosSubtipos(!showEliminadosSubtipos)}
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
@@ -657,6 +742,38 @@ export default function TiposSubtiposNovedadPage() {
           }}
         />
       )}
+
+      {/* Modal de confirmación para eliminar tipo */}
+      <ConfirmModal
+        isOpen={showDeleteTipoModal}
+        onClose={() => {
+          setShowDeleteTipoModal(false);
+          setDeletingTipo(null);
+        }}
+        onConfirm={confirmDeleteTipo}
+        title="Eliminar Tipo de Novedad"
+        message={`¿Está seguro de eliminar el tipo de novedad "${deletingTipo?.nombre}"?`}
+        type="danger"
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        icon={Trash2}
+      />
+
+      {/* Modal de confirmación para eliminar subtipo */}
+      <ConfirmModal
+        isOpen={showDeleteSubtipoModal}
+        onClose={() => {
+          setShowDeleteSubtipoModal(false);
+          setDeletingSubtipo(null);
+        }}
+        onConfirm={confirmDeleteSubtipo}
+        title="Eliminar Subtipo de Novedad"
+        message={`¿Está seguro de eliminar el subtipo de novedad "${deletingSubtipo?.nombre}"?`}
+        type="danger"
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        icon={Trash2}
+      />
     </div>
   );
 }

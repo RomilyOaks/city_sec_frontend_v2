@@ -125,10 +125,6 @@ export default function NovedadesPorCuadrante() {
 
   // Permisos
   const canRead = canPerformAction(user, "operativos.vehiculos.novedades.read");
-  const canCreate = canPerformAction(
-    user,
-    "operativos.vehiculos.novedades.create",
-  );
   const canUpdate = canPerformAction(
     user,
     "operativos.vehiculos.novedades.update",
@@ -146,8 +142,7 @@ export default function NovedadesPorCuadrante() {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [editingNovedad, setEditingNovedad] = useState(null);
-  const [viewingNovedad, setViewingNovedad] = useState(null);
+    const [viewingNovedad, setViewingNovedad] = useState(null);
   const [deletingNovedad, setDeletingNovedad] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -917,17 +912,7 @@ export default function NovedadesPorCuadrante() {
                 No hay novedades para este cuadrante con los filtros
                 seleccionados.
               </p>
-              {canCreate && (
-                <button
-                  onClick={handleCreateNovedad}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-                  title="Registrar Primera Novedad (ALT+N)"
-                >
-                  <Plus size={18} />
-                  Registrar Primera Novedad
-                </button>
-              )}
-            </div>
+                          </div>
           ) : (
             <div className="flex flex-wrap gap-4 p-4">
               {filteredNovedades.map((novedad) => (
