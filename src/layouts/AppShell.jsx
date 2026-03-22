@@ -248,14 +248,12 @@ export default function AppShell() {
             )}
 
             {/* ============================================
-                OPERATIVOS DE PATRULLAJE - MENÚ DESPLEGABLE
+                OPERATIVOS DE PATRULLAJE - ENLACE DIRECTO
                 ============================================ */}
             {canAccess("operativos_turnos") && (
-              <SidebarDropdown icon={Clipboard} label="Operativos de Patrullaje">
-                <SidebarLink to="/operativos/turnos" icon={Clipboard}>
-                  Operativos por Turnos
-                </SidebarLink>
-              </SidebarDropdown>
+              <SidebarLink to="/operativos/turnos" icon={Clipboard}>
+                Operativos de Patrullaje
+              </SidebarLink>
             )}
 
             {/* ============================================

@@ -822,7 +822,7 @@ export default function OperativosTurnoPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50">
-            Operativos por Turnos
+            Operativos de Patrullaje por Turnos
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
             Gestión de turnos operativos de patrullaje
