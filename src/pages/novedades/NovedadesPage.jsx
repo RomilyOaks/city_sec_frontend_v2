@@ -963,11 +963,17 @@ export default function NovedadesPage() {
   useEffect(() => {
     if (showAtencionModal) {
       document.body.style.overflow = "hidden";
+      document.body.style.position = "fixed";
+      document.body.style.width = "100%";
     } else {
       document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
     }
     return () => {
       document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
     };
   }, [showAtencionModal]);
 
@@ -1383,8 +1389,14 @@ export default function NovedadesPage() {
    */
   const openAtencionModal = async (novedad) => {
     try {
+      // Guardar estado original ANTES de cargar datos completos
+      const estadoOriginalId = novedad.estado_novedad_id;
+      
       // Obtener datos completos de la novedad para tener usuarioDespacho
       const novedadCompleta = await getNovedadById(novedad.id);
+      
+      // Restaurar estado original en la novedad completa para el historial
+      novedadCompleta.estado_novedad_id = estadoOriginalId;
       // Validar que solo el usuario que despachó puede atender (excepto supervisor)
       const uid =
         novedadCompleta?.usuarioDespacho?.id ??
@@ -1616,11 +1628,13 @@ export default function NovedadesPage() {
       return;
     }
 
-    // Validar Fecha de Cierre obligatoria cuando estado = CERRADA (id=7)
+    // Validar Fecha de Cierre obligatoria cuando estado = CERRADA (id=7) Y el campo está habilitado
+    const estadoOriginalId = Number(selectedNovedad.estado_novedad_id); // Este es el estado del badge (estado original)
     if (
       isSupervisor() &&
       Number(atencionData.estado_novedad_id) >= 7 &&
-      !atencionData.fecha_cierre
+      !atencionData.fecha_cierre &&
+      estadoOriginalId < 7 // Solo validar si originalmente no estaba cerrada
     ) {
       if (!atencionData.requiere_seguimiento) {
         setAtencionData((prev) => ({ ...prev, requiere_seguimiento: true }));
@@ -1632,6 +1646,7 @@ export default function NovedadesPage() {
 
     setSaving(true);
     try {
+      
       const payload = {
         unidad_oficina_id: atencionData.unidad_oficina_id
           ? Number(atencionData.unidad_oficina_id)
@@ -1712,22 +1727,24 @@ export default function NovedadesPage() {
         if (atencionData.observaciones)
           partes.push(`Obs: ${atencionData.observaciones}`);
         
-        // Para estados RESUELTA (6) o superior, usar observaciones_historial si existen
+        // Para estados RESUELTA (6) o superior, usar solo observaciones_historial si existen
         let obsHistorial;
         if (nuevoEstadoId >= 6 && atencionData.observaciones_historial?.trim()) {
-          // Combinar partes existentes con las observaciones del historial
-          if (partes.length > 0) {
-            obsHistorial = `${partes.join(" | ")} | ${atencionData.observaciones_historial.trim()}`;
-          } else {
-            obsHistorial = atencionData.observaciones_historial.trim();
-          }
+          // Solo usar las observaciones del historial para estados RESUELTA o superior
+          obsHistorial = atencionData.observaciones_historial.trim();
         } else {
-          obsHistorial = partes.length > 0 ? partes.join(" | ") : "Atención registrada";
+          // Para estados menores a RESUELTA, combinar información de recursos
+          if (partes.length > 0) {
+            obsHistorial = partes.join(" | ");
+          } else {
+            obsHistorial = "Atención registrada";
+          }
         }
 
         // Usar getLocalDatetime() igual que en operativos para consistencia
         const fechaLocal = getLocalDatetime();
 
+                
         await crearHistorialNovedad(
           selectedNovedad.id,
           obsHistorial,
@@ -4849,9 +4866,9 @@ export default function NovedadesPage() {
             {/* Header */}
             <div className="flex items-start justify-between p-4 border-b border-slate-200 dark:border-slate-700">
               <div className="flex items-center gap-3">
-                <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                <div className="w-16 h-16 rounded-xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
                   <svg
-                    className="w-6 h-6"
+                    className="w-8 h-8"
                     viewBox="0 0 32 32"
                     xmlns="http://www.w3.org/2000/svg"
                   >
@@ -4896,6 +4913,43 @@ export default function NovedadesPage() {
                   <h2 className="text-xl font-bold text-slate-900 dark:text-slate-50">
                     Atención de Novedad
                   </h2>
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50 mt-0.5">
+                    {(() => {
+                      const tipoNombre = selectedNovedad.novedadTipoNovedad?.nombre || "";
+                      const subtipoNombre = selectedNovedad.novedadSubtipoNovedad?.nombre || "";
+                      
+                      if (!tipoNombre) return "Novedad";
+                      if (!subtipoNombre) return tipoNombre;
+                      
+                      const primerSlashIndex = tipoNombre.indexOf("/");
+                      if (primerSlashIndex === -1) {
+                        return `${tipoNombre} / ${subtipoNombre}`;
+                      }
+                      
+                      const tipoAbreviado = tipoNombre.substring(0, primerSlashIndex).trim();
+                      return `${tipoAbreviado} / ${subtipoNombre}`;
+                    })()}
+                  </h3>
+                  {(selectedNovedad.localizacion ||
+                    selectedNovedad.referencia_ubicacion) && (
+                    <p
+                      className="text-xs font-semibold text-amber-700 dark:text-amber-300 mt-0.5 truncate max-w-lg"
+                      title={
+                        selectedNovedad.localizacion
+                          ? selectedNovedad.referencia_ubicacion
+                            ? `${selectedNovedad.localizacion} (${selectedNovedad.referencia_ubicacion})`
+                            : selectedNovedad.localizacion
+                          : selectedNovedad.referencia_ubicacion || "—"
+                      }
+                    >
+                      <MapPin size={11} className="inline mr-1" />
+                      {selectedNovedad.localizacion
+                        ? selectedNovedad.referencia_ubicacion
+                          ? `${selectedNovedad.localizacion} (${selectedNovedad.referencia_ubicacion})`
+                          : selectedNovedad.localizacion
+                        : selectedNovedad.referencia_ubicacion}
+                    </p>
+                  )}
                   <div className="flex items-center gap-2 flex-wrap mt-1">
                     <span className="font-mono text-xs text-slate-500 dark:text-slate-400">
                       #{selectedNovedad.novedad_code}
@@ -4929,35 +4983,6 @@ export default function NovedadesPage() {
                       </span>
                     )}
                   </div>
-                  <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50 mt-0.5">
-                    {selectedNovedad.novedadTipoNovedad?.nombre || "Novedad"}
-                    {selectedNovedad.novedadSubtipoNovedad?.nombre && (
-                      <span className="font-normal text-sm text-slate-500 dark:text-slate-400">
-                        {" / "}
-                        {selectedNovedad.novedadSubtipoNovedad.nombre}
-                      </span>
-                    )}
-                  </h3>
-                  {(selectedNovedad.localizacion ||
-                    selectedNovedad.referencia_ubicacion) && (
-                    <p
-                      className="text-xs font-semibold text-amber-700 dark:text-amber-300 mt-0.5 truncate max-w-lg"
-                      title={
-                        selectedNovedad.localizacion
-                          ? selectedNovedad.referencia_ubicacion
-                            ? `${selectedNovedad.localizacion} (${selectedNovedad.referencia_ubicacion})`
-                            : selectedNovedad.localizacion
-                          : selectedNovedad.referencia_ubicacion
-                      }
-                    >
-                      <MapPin size={11} className="inline mr-1" />
-                      {selectedNovedad.localizacion
-                        ? selectedNovedad.referencia_ubicacion
-                          ? `${selectedNovedad.localizacion} (${selectedNovedad.referencia_ubicacion})`
-                          : selectedNovedad.localizacion
-                        : selectedNovedad.referencia_ubicacion}
-                    </p>
-                  )}
                 </div>
               </div>
               <button
@@ -5001,12 +5026,10 @@ export default function NovedadesPage() {
             <div className="flex-1 overflow-y-auto p-6">
               {/* Tab 0: Recursos Asignados */}
               {atencionTab === 0 && (() => {
-                const estadoId = Number(
-                  atencionData.estado_novedad_id ||
-                    selectedNovedad.estado_novedad_id,
-                );
-                const isCerrada = estadoId >= 7;
+                const estadoOriginalId = Number(selectedNovedad.estado_novedad_id);
+                const isCerrada = estadoOriginalId >= 7;
                 const isAllReadonly = isCerrada;
+                const isFieldsReadonly = true; // Siempre true para estos campos
                 
                 const clsEditable =
                   "mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50";
@@ -5029,7 +5052,7 @@ export default function NovedadesPage() {
                             vehiculo_id: e.target.value,
                           })
                         }
-                        disabled={isAllReadonly}
+                        disabled={isFieldsReadonly}
                         className={isAllReadonly ? clsReadonly : clsEditable}
                       >
                         <option value="">Seleccione vehículo...</option>
@@ -5059,7 +5082,7 @@ export default function NovedadesPage() {
                             personal_cargo_id: e.target.value,
                           })
                         }
-                        disabled={isAllReadonly}
+                        disabled={isFieldsReadonly}
                         className={isAllReadonly ? clsReadonly : clsEditable}
                       >
                         <option value="">Seleccione personal...</option>
@@ -5122,7 +5145,7 @@ export default function NovedadesPage() {
                               turno: e.target.value,
                             })
                           }
-                          disabled={!isSupervisor()}
+                          disabled={isFieldsReadonly || !isSupervisor()}
                           className={`w-full rounded-lg border px-2 py-1.5 text-sm text-slate-900 dark:text-slate-50 ${
                             !isSupervisor()
                               ? "border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
@@ -5174,7 +5197,8 @@ export default function NovedadesPage() {
                           observaciones: e.target.value,
                         })
                       }
-                      className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+                      disabled={isFieldsReadonly}
+                      className={isFieldsReadonly ? clsReadonly : "mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"}
                       placeholder="Observaciones de la atención..."
                     />
                   </div>
@@ -5197,7 +5221,8 @@ export default function NovedadesPage() {
                               personal_seguridad2_id: e.target.value,
                             })
                           }
-                          className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 text-sm"
+                          disabled={isFieldsReadonly}
+                          className={isFieldsReadonly ? clsReadonly : "w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 text-sm"}
                         >
                           <option value="">Seleccione personal...</option>
                           {personalSeguridad.map((p) => (
@@ -5222,7 +5247,8 @@ export default function NovedadesPage() {
                               personal_seguridad3_id: e.target.value,
                             })
                           }
-                          className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 text-sm"
+                          disabled={isFieldsReadonly}
+                          className={isFieldsReadonly ? clsReadonly : "w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 text-sm"}
                         >
                           <option value="">Seleccione personal...</option>
                           {personalSeguridad.map((p) => (
@@ -5247,7 +5273,8 @@ export default function NovedadesPage() {
                               personal_seguridad4_id: e.target.value,
                             })
                           }
-                          className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 text-sm"
+                          disabled={isFieldsReadonly}
+                          className={isFieldsReadonly ? clsReadonly : "w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 text-sm"}
                         >
                           <option value="">Seleccione personal...</option>
                           {personalSeguridad.map((p) => (
@@ -5276,7 +5303,7 @@ export default function NovedadesPage() {
                           unidad_oficina_id: e.target.value,
                         })
                       }
-                      disabled={isAllReadonly}
+                      disabled={isFieldsReadonly}
                       className={isAllReadonly ? clsReadonly : clsEditable}
                     >
                       <option value="">Seleccione unidad...</option>
@@ -5295,20 +5322,15 @@ export default function NovedadesPage() {
               {atencionTab === 1 &&
                 (() => {
                   const requiereSeg = atencionData.requiere_seguimiento;
-                  const estadoId = Number(
-                    atencionData.estado_novedad_id ||
-                      selectedNovedad.estado_novedad_id,
-                  );
-                  const isCerrada = estadoId >= 7;
+                                    const estadoOriginalId = Number(selectedNovedad.estado_novedad_id);
+                  const isCerrada = estadoOriginalId >= 7;
+                  const isAllReadonly = isCerrada;
                   const fechaLlegadaVacia = !atencionData.fecha_llegada;
 
                   const clsEditable =
                     "mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50";
                   const clsReadonly =
                     "mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 px-3 py-2 text-slate-500 cursor-not-allowed";
-                  
-                  // Para estados CERRADA (7) o superior, todos los campos son readonly
-                  const isAllReadonly = isCerrada;
 
                   const historialBlock = (
                     <div className="p-4 rounded-lg border border-slate-200 dark:border-slate-700">
@@ -5461,7 +5483,7 @@ export default function NovedadesPage() {
                                 fecha_cierre: e.target.value,
                               })
                             }
-                            disabled={isAllReadonly || !isSupervisor() || !isCerrada}
+                            disabled={isAllReadonly || !isSupervisor()}
                             className={
                               !isAllReadonly && isSupervisor() && isCerrada
                                 ? clsEditable
@@ -5474,52 +5496,41 @@ export default function NovedadesPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                         <div>
                           <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-                            Km Inicial
-                            {!isSupervisor() && (
-                              <span className="text-xs text-slate-400 ml-1">
-                                (Solo supervisor)
-                              </span>
-                            )}
+                            N° Personas Afectadas
                           </label>
                           <input
                             type="number"
-                            value={atencionData.km_inicial}
+                            min="0"
+                            value={atencionData.num_personas_afectadas ?? ""}
                             onChange={(e) =>
                               setAtencionData({
                                 ...atencionData,
-                                km_inicial: e.target.value,
+                                num_personas_afectadas: e.target.value,
                               })
                             }
-                            disabled={isAllReadonly || !isSupervisor()}
+                            disabled={isAllReadonly}
                             placeholder="0"
-                            className={
-                              !isAllReadonly && isSupervisor() ? clsEditable : clsReadonly
-                            }
+                            className={isAllReadonly ? clsReadonly : clsEditable}
                           />
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-                            Km Final
-                            {!isSupervisor() && (
-                              <span className="text-xs text-slate-400 ml-1">
-                                (Solo supervisor)
-                              </span>
-                            )}
+                            Pérdidas Materiales Estimadas (S/.)
                           </label>
                           <input
                             type="number"
-                            value={atencionData.km_final}
+                            min="0"
+                            step="0.01"
+                            value={atencionData.perdidas_materiales_estimadas || ""}
                             onChange={(e) =>
                               setAtencionData({
                                 ...atencionData,
-                                km_final: e.target.value,
+                                perdidas_materiales_estimadas: e.target.value,
                               })
                             }
-                            disabled={isAllReadonly || !isSupervisor()}
-                            placeholder="0"
-                            className={
-                              !isAllReadonly && isSupervisor() ? clsEditable : clsReadonly
-                            }
+                            disabled={isAllReadonly || isCerrada}
+                            placeholder="0.00"
+                            className={!isAllReadonly && !isCerrada ? clsEditable : clsReadonly}
                           />
                         </div>
                       </div>
@@ -5547,31 +5558,7 @@ export default function NovedadesPage() {
                             className={!isAllReadonly && !isCerrada ? clsEditable : clsReadonly}
                           />
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-                            Pérdidas Materiales Estimadas (S/.)
-                            {isCerrada && (
-                              <span className="text-xs text-slate-400 ml-1">
-                                (Solo lectura)
-                              </span>
-                            )}
-                          </label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={atencionData.perdidas_materiales_estimadas}
-                            onChange={(e) =>
-                              setAtencionData({
-                                ...atencionData,
-                                perdidas_materiales_estimadas: e.target.value,
-                              })
-                            }
-                            disabled={isAllReadonly || isCerrada}
-                            placeholder="0.00"
-                            className={!isAllReadonly && !isCerrada ? clsEditable : clsReadonly}
-                          />
                         </div>
-                      </div>
                     </div>
                   );
 
@@ -5656,7 +5643,7 @@ export default function NovedadesPage() {
                       {requiereSeg && datosSeguimientoBlock}
                       
                       {/* Campo Observaciones para estados RESUELTA (6) o superior */}
-                      {estadoId >= 6 && (
+                      {estadoOriginalId >= 6 && (
                         <div className="p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
                           <h4 className="font-medium text-slate-900 dark:text-slate-50 mb-3">
                             Observaciones del Historial
@@ -5698,11 +5685,8 @@ export default function NovedadesPage() {
                 Cerrar
               </button>
               {(() => {
-                const estadoId = Number(
-                  atencionData.estado_novedad_id ||
-                    selectedNovedad.estado_novedad_id,
-                );
-                const isCerrada = estadoId >= 7;
+                const estadoOriginalId = Number(selectedNovedad.estado_novedad_id);
+                const isCerrada = estadoOriginalId >= 7;
                 
                 return !isCerrada && (
                   <button
