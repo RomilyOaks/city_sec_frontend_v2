@@ -325,7 +325,7 @@ export const getHistorialEstados = async (novedadId) => {
     // En caso de error, retornar array vacío para evitar que se caiga el componente
     return [];
   }
-};
+}
 
 /**
  * Agregar entrada al historial de estados de una novedad.
@@ -335,9 +335,10 @@ export const getHistorialEstados = async (novedadId) => {
  * @param {string} observaciones - Observaciones/acciones tomadas
  * @param {number|null} [estadoNuevoId] - ID del nuevo estado (opcional, si no se envía mantiene el actual)
  * @param {string} [fechaCambio] - Fecha de cambio en formato local (YYYY-MM-DD HH:mm:ss)
+ * @param {number|null} [estadoAnteriorId] - ID del estado anterior (opcional, para mayor robustez)
  * @returns {Promise<Object>} - Resultado de la operación
  */
-export async function crearHistorialNovedad(novedadId, observaciones, estadoNuevoId = null, fechaCambio = null) {
+export async function crearHistorialNovedad(novedadId, observaciones, estadoNuevoId = null, fechaCambio = null, estadoAnteriorId = null) {
   const payload = {
     observaciones: observaciones,
   };
@@ -345,6 +346,11 @@ export async function crearHistorialNovedad(novedadId, observaciones, estadoNuev
   // Solo incluir estado_nuevo_id si se quiere cambiar el estado
   if (estadoNuevoId) {
     payload.estado_nuevo_id = estadoNuevoId;
+  }
+
+  // Incluir estado_anterior_id si se proporciona (para mayor robustez)
+  if (estadoAnteriorId) {
+    payload.estado_anterior_id = estadoAnteriorId;
   }
 
   // Incluir fecha_cambio si se proporciona (usar hora local en lugar de UTC)

@@ -1750,6 +1750,7 @@ export default function NovedadesPage() {
           obsHistorial,
           cambioEstado ? nuevoEstadoId : null,
           fechaLocal, // Agregar fecha_cambio en formato local
+          Number(selectedNovedad.estado_novedad_id), // Agregar estadoOriginalId para mayor robustez
         );
       } catch {
         // No bloquear si falla el historial
