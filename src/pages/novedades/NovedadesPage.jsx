@@ -5646,6 +5646,7 @@ export default function NovedadesPage() {
                                     selectedNovedad?.estado_novedad_id || 0,
                                   ),
                               )
+                              .sort((a, b) => a.id - b.id) // Ordenar por ID (numérico)
                               .map((e) => (
                                 <option key={e.id} value={e.id}>
                                   {e.nombre}
