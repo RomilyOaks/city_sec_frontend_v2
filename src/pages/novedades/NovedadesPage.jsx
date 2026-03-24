@@ -1445,9 +1445,12 @@ export default function NovedadesPage() {
           : "",
         perdidas_materiales_estimadas:
           novedadCompleta.perdidas_materiales_estimadas || "",
+        num_personas_afectadas: novedadCompleta.num_personas_afectadas ?? 0,
         observaciones_historial: "",
+        usar_fecha_cierre_actual: false, // Siempre inicia sin marcar
       });
-      setAtencionTab(0);
+      
+            setAtencionTab(0);
       setHistorialEstados([]);
       setShowAtencionModal(true);
       // Cargar catálogos si no están cargados
@@ -1695,6 +1698,8 @@ export default function NovedadesPage() {
           ? Number(atencionData.num_personas_afectadas)
           : undefined,
         acciones_tomadas: atencionData.acciones_tomadas || undefined,
+        // Agregar usuario_cierre cuando hay fecha de cierre
+        ...(atencionData.fecha_cierre ? { usuario_cierre: user?.id } : {}),
       };
 
       await asignarRecursos(selectedNovedad.id, payload);
@@ -5475,22 +5480,67 @@ export default function NovedadesPage() {
                               </span>
                             )}
                           </label>
+                          <div className="space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id="usar_fecha_cierre_actual"
+                              checked={atencionData.usar_fecha_cierre_actual}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  const fechaActual = getLocalDatetime();
+                                  setAtencionData({
+                                    ...atencionData,
+                                    fecha_cierre: fechaActual,
+                                    usar_fecha_cierre_actual: true,
+                                  });
+                                } else {
+                                  setAtencionData({
+                                    ...atencionData,
+                                    fecha_cierre: "",
+                                    usar_fecha_cierre_actual: false,
+                                  });
+                                }
+                              }}
+                              disabled={isAllReadonly || !isSupervisor()}
+                              className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-slate-300 rounded"
+                            />
+                            <label
+                              htmlFor="usar_fecha_cierre_actual"
+                              className="text-sm text-slate-700 dark:text-slate-200"
+                            >
+                              Usar fecha y hora actual
+                            </label>
+                          </div>
                           <input
                             type="datetime-local"
-                            value={atencionData.fecha_cierre}
+                            value={atencionData.fecha_cierre || ""}
                             onChange={(e) =>
                               setAtencionData({
                                 ...atencionData,
                                 fecha_cierre: e.target.value,
+                                usar_fecha_cierre_actual: false,
                               })
                             }
-                            disabled={isAllReadonly || !isSupervisor()}
+                            disabled={isAllReadonly || !isSupervisor() || atencionData.usar_fecha_cierre_actual}
                             className={
-                              !isAllReadonly && isSupervisor() && isCerrada
+                              !isAllReadonly && isSupervisor() && isCerrada && !atencionData.usar_fecha_cierre_actual
                                 ? clsEditable
                                 : clsReadonly
                             }
                           />
+                          {atencionData.fecha_cierre && (
+                            <div className="text-xs text-slate-500 dark:text-slate-400">
+                              Fecha actual: {new Date(atencionData.fecha_cierre).toLocaleString('es-PE', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </div>
+                          )}
+                        </div>
                         </div>
                       </div>
 
@@ -5502,7 +5552,7 @@ export default function NovedadesPage() {
                           <input
                             type="number"
                             min="0"
-                            value={atencionData.num_personas_afectadas ?? ""}
+                            value={atencionData.num_personas_afectadas ?? 0}
                             onChange={(e) =>
                               setAtencionData({
                                 ...atencionData,
