@@ -63,6 +63,28 @@ const getLocalDatetime = () => {
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 };
 
+// Función helper para abreviar título de novedad
+const abreviarTituloNovedad = (tipoNombre, subtipoNombre) => {
+  if (!tipoNombre) return "Novedad";
+
+  // Si no hay subtipo, devolver tipo completo
+  if (!subtipoNombre) return tipoNombre;
+
+  // Buscar primer slash en el tipo
+  const primerSlashIndex = tipoNombre.indexOf("/");
+
+  if (primerSlashIndex === -1) {
+    // Si no hay slash, devolver tipo completo + subtipo
+    return `${tipoNombre} / ${subtipoNombre}`;
+  }
+
+  // Tomar desde el inicio hasta el primer slash (excluyendo el slash)
+  const tipoAbreviado = tipoNombre.substring(0, primerSlashIndex).trim();
+
+  // Concatenar con subtipo completo
+  return `${tipoAbreviado} / ${subtipoNombre}`;
+};
+
 /**
  * Formatea fecha/hora a formato legible (usando dateHelper)
  */
@@ -89,29 +111,6 @@ const getPrioridadColor = (prioridad) => {
   }
 };
 
-/**
- * Función helper para abreviar título de novedad
- */
-const abreviarTituloNovedad = (tipoNombre, subtipoNombre) => {
-  if (!tipoNombre) return "Novedad";
-
-  // Si no hay subtipo, devolver tipo completo
-  if (!subtipoNombre) return tipoNombre;
-
-  // Buscar primer slash en el tipo
-  const primerSlashIndex = tipoNombre.indexOf("/");
-
-  if (primerSlashIndex === -1) {
-    // Si no hay slash, devolver tipo completo + subtipo
-    return `${tipoNombre} / ${subtipoNombre}`;
-  }
-
-  // Tomar desde el inicio hasta el primer slash (excluyendo el slash)
-  const tipoAbreviado = tipoNombre.substring(0, primerSlashIndex).trim();
-
-  // Concatenar con subtipo completo
-  return `${tipoAbreviado} / ${subtipoNombre}`;
-};
 
 /**
  * NovedadesPorCuadrante - Página para mostrar novedades de un cuadrante
@@ -329,7 +328,7 @@ export default function NovedadesPorCuadrante() {
       estado_novedad_id: estadoActualId,
       resultado: resultadoActual === "PENDIENTE" ? "RESUELTO" : resultadoActual, // Poner RESUELTA por defecto si es PENDIENTE
       acciones_tomadas: "", // Siempre vacío - las anteriores ya están en historial
-      observaciones: novedad.observaciones || "",
+      observaciones: "", // Siempre vacío - las anteriores ya están en historial
       num_personas_afectadas: novedad.novedad?.num_personas_afectadas || 0,
       perdidas_materiales_estimadas:
         novedad.novedad?.perdidas_materiales_estimadas || 0,
@@ -1069,13 +1068,13 @@ export default function NovedadesPorCuadrante() {
           <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-md flex flex-col max-h-[90vh]">
             <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-                Actualizar Novedad{" "}
-                {selectedNovedadEdit?.novedad?.novedad_code
-                  ? `#${selectedNovedadEdit.novedad.novedad_code}`
-                  : ""}
+                Actualizar Novedad #{String(selectedNovedadEdit?.novedad?.novedad_code || selectedNovedadEdit?.novedad?.id || "").padStart(8, '0')}
               </h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Cambiar estado o agregar información
+              <p className="text-sm font-medium text-primary-700 dark:text-primary-400">
+                {abreviarTituloNovedad(
+                  selectedNovedadEdit?.novedad?.novedadTipoNovedad?.nombre,
+                  selectedNovedadEdit?.novedad?.novedadSubtipoNovedad?.nombre,
+                )}
               </p>
             </div>
 
@@ -1103,6 +1102,36 @@ export default function NovedadesPorCuadrante() {
                     El estado se actualiza automáticamente según el Resultado
                     Operativo
                   </p>
+                </div>
+
+                {/* Resultado/Estado del operativo */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Resultado Operativo
+                    {selectedNovedadEdit?.resultado === "RESUELTO" && (
+                      <span className="ml-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
+                        (Solo lectura)
+                      </span>
+                    )}
+                  </label>
+                  <select
+                    value={editData.resultado}
+                    onChange={(e) =>
+                      setEditData({ ...editData, resultado: e.target.value })
+                    }
+                    disabled={selectedNovedadEdit?.resultado === "RESUELTO"}
+                    className={`w-full px-3 py-2 rounded-lg border ${
+                      selectedNovedadEdit?.resultado === "RESUELTO"
+                        ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-600 dark:bg-amber-900/20 dark:text-amber-300"
+                        : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                    }`}
+                  >
+                    {RESULTADOS_NOVEDAD.map((r) => (
+                      <option key={r.value} value={r.value}>
+                        {r.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Hora de Llegada - obligatorio si está vacío */}
@@ -1228,36 +1257,7 @@ export default function NovedadesPorCuadrante() {
                   );
                 })()}
 
-                {/* Resultado/Estado del operativo */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Resultado Operativo
-                    {selectedNovedadEdit?.resultado === "RESUELTO" && (
-                      <span className="ml-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
-                        (Solo lectura)
-                      </span>
-                    )}
-                  </label>
-                  <select
-                    value={editData.resultado}
-                    onChange={(e) =>
-                      setEditData({ ...editData, resultado: e.target.value })
-                    }
-                    disabled={selectedNovedadEdit?.resultado === "RESUELTO"}
-                    className={`w-full px-3 py-2 rounded-lg border ${
-                      selectedNovedadEdit?.resultado === "RESUELTO"
-                        ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-600 dark:bg-amber-900/20 dark:text-amber-300"
-                        : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                    }`}
-                  >
-                    {RESULTADOS_NOVEDAD.map((r) => (
-                      <option key={r.value} value={r.value}>
-                        {r.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
+                
                 {/* Acciones tomadas */}
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">

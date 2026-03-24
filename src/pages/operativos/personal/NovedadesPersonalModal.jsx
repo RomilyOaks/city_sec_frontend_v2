@@ -19,7 +19,7 @@ import {
   XCircle,
   RefreshCw,
   Trash2,
-  Edit,
+  Pencil,
   Eye,
 } from "lucide-react";
 import toast from "react-hot-toast";
@@ -58,29 +58,6 @@ import {
 import NovedadDetalleModal from "../../../components/NovedadDetalleModal.jsx";
 import EyePersonalModal from "./EyePersonalModal.jsx";
 
-/**
- * Función helper para abreviar título de novedad
- */
-const abreviarTituloNovedad = (tipoNombre, subtipoNombre) => {
-  if (!tipoNombre) return "Novedad";
-
-  // Si no hay subtipo, devolver tipo completo
-  if (!subtipoNombre) return tipoNombre;
-
-  // Buscar primer slash en el tipo
-  const primerSlashIndex = tipoNombre.indexOf("/");
-
-  if (primerSlashIndex === -1) {
-    // Si no hay slash, devolver tipo completo + subtipo
-    return `${tipoNombre} / ${subtipoNombre}`;
-  }
-
-  // Tomar desde el inicio hasta el primer slash (excluyendo el slash)
-  const tipoAbreviado = tipoNombre.substring(0, primerSlashIndex).trim();
-
-  // Concatenar con subtipo completo
-  return `${tipoAbreviado} / ${subtipoNombre}`;
-};
 
 /**
  * NovedadesPersonalModal
@@ -148,6 +125,28 @@ export default function NovedadesPersonalModal({
 
   // Estados habilitados para el rol del usuario (desde rol_estados_novedad)
   const { estadosRol } = useEstadosPorRol();
+
+  // Función helper para abreviar título de novedad
+  const abreviarTituloNovedad = useCallback((tipoNombre, subtipoNombre) => {
+    if (!tipoNombre) return "Novedad";
+
+    // Si no hay subtipo, devolver tipo completo
+    if (!subtipoNombre) return tipoNombre;
+
+    // Buscar primer slash en el tipo
+    const primerSlashIndex = tipoNombre.indexOf("/");
+
+    if (primerSlashIndex === -1) {
+      // Si no hay slash, devolver tipo completo + subtipo
+      return `${tipoNombre} / ${subtipoNombre}`;
+    }
+
+    // Tomar desde el inicio hasta el primer slash (excluyendo el slash)
+    const tipoAbreviado = tipoNombre.substring(0, primerSlashIndex).trim();
+
+    // Concatenar con subtipo completo
+    return `${tipoAbreviado} / ${subtipoNombre}`;
+  }, []);
 
   const [editData, setEditData] = useState({
     estado_novedad_id: "",
@@ -526,7 +525,7 @@ export default function NovedadesPersonalModal({
       estado_novedad_id: estadoActualId,
       resultado: novedad.resultado === "PENDIENTE" ? "RESUELTO" : (novedad.resultado || "RESUELTO"),
       acciones_tomadas: "", // Siempre vacío - las anteriores ya están en observaciones/historial
-      observaciones: novedad.observaciones || "",
+      observaciones: "", // Siempre vacío - las anteriores ya están en historial
       fecha_llegada: "",
       usar_fecha_actual: false, // Agregar control para checkbox
       num_personas_afectadas: novedad.novedad?.num_personas_afectadas || 0,
@@ -687,9 +686,9 @@ export default function NovedadesPersonalModal({
                               handleOpenEdit(novedad);
                             }}
                             className="p-1.5 text-primary-600 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-900/20 rounded-lg"
-                            title="Editar/Resolver"
+                            title="Atender Novedad"
                           >
-                            <Edit size={14} />
+                            <Pencil size={14} />
                           </button>
                         )}
                         <button
@@ -814,10 +813,13 @@ export default function NovedadesPersonalModal({
           <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-md flex flex-col max-h-[90vh]">
             <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-                Actualizar Novedad
+                Actualizar Novedad #{String(selectedNovedad?.novedad?.novedad_code || selectedNovedad?.novedad?.id || "").padStart(8, '0')}
               </h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Cambiar estado o agregar información
+              <p className="text-sm font-medium text-primary-700 dark:text-primary-400">
+                {abreviarTituloNovedad(
+                  selectedNovedad?.novedad?.novedadTipoNovedad?.nombre,
+                  selectedNovedad?.novedad?.novedadSubtipoNovedad?.nombre,
+                )}
               </p>
             </div>
 
@@ -844,6 +846,36 @@ export default function NovedadesPersonalModal({
                     El estado se actualiza automáticamente según el Resultado
                     Operativo
                   </p>
+                </div>
+
+                {/* Resultado/Estado del operativo */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    Resultado Operativo
+                    {esNovedadResuelta(selectedNovedad) && (
+                      <span className="ml-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
+                        (Solo lectura - Novedad resuelta)
+                      </span>
+                    )}
+                  </label>
+                  <select
+                    value={editData.resultado}
+                    onChange={(e) =>
+                      setEditData({ ...editData, resultado: e.target.value })
+                    }
+                    disabled={esNovedadResuelta(selectedNovedad)}
+                    className={`w-full px-3 py-2 rounded-lg border ${
+                      esNovedadResuelta(selectedNovedad)
+                        ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-600 dark:bg-amber-900/20 dark:text-amber-300"
+                        : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                    }`}
+                  >
+                    {RESULTADOS_NOVEDAD.map((r) => (
+                      <option key={r.value} value={r.value}>
+                        {r.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Hora de Llegada - obligatorio si está vacío */}
@@ -946,36 +978,6 @@ export default function NovedadesPersonalModal({
                     </div>
                   );
                 })()}
-
-                {/* Resultado/Estado del operativo */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Resultado Operativo
-                    {esNovedadResuelta(selectedNovedad) && (
-                      <span className="ml-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
-                        (Solo lectura - Novedad resuelta)
-                      </span>
-                    )}
-                  </label>
-                  <select
-                    value={editData.resultado}
-                    onChange={(e) =>
-                      setEditData({ ...editData, resultado: e.target.value })
-                    }
-                    disabled={esNovedadResuelta(selectedNovedad)}
-                    className={`w-full px-3 py-2 rounded-lg border ${
-                      esNovedadResuelta(selectedNovedad)
-                        ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-600 dark:bg-amber-900/20 dark:text-amber-300"
-                        : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                    }`}
-                  >
-                    {RESULTADOS_NOVEDAD.map((r) => (
-                      <option key={r.value} value={r.value}>
-                        {r.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
 
                 {/* Acciones tomadas */}
                 <div>
