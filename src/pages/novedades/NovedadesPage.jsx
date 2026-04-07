@@ -632,21 +632,11 @@ export default function NovedadesPage() {
 // ── SSE: recibir novedades en tiempo real ─────────────────────────────────────
 // Se activa cuando llega una novedad nueva desde WhatsApp, App Móvil u otro canal
 const handleNuevaNovedad = useCallback((novedad) => {
-  // 1. Insertar la novedad al inicio de la lista (más reciente primero)
-  setNovedades((prev) => {
-    // Evitar duplicados si la novedad ya existe en la lista
-    const yaExiste = prev.some((n) => n.id === novedad.id);
-    if (yaExiste) return prev;
-    return [novedad, ...prev];
-  });
+  // 1. Evitar duplicados si la novedad ya existe en la lista
+  const yaExiste = novedades.some((n) => n.id === novedad.id);
+  if (yaExiste) return;
 
-  // 2. Actualizar el contador de paginación
-  setPagination((prev) => ({
-    ...prev,
-    total: (prev?.total || 0) + 1,
-  }));
-
-  // 3. Toast de notificación usando react-hot-toast (ya lo tienes instalado)
+  // 2. Toast de notificación usando react-hot-toast (ya lo tienes instalado)
   toast(
     (t) => (
       <div className="flex flex-col gap-1">
@@ -683,12 +673,16 @@ const handleNuevaNovedad = useCallback((novedad) => {
     }
   );
 
-  // 4. Actualizar título del tab para llamar atención al operador
+  // 3. Actualizar título del tab para llamar atención al operador
   document.title = `🚨 Nueva Novedad — CitySecure`;
   setTimeout(() => {
     document.title = "CitySecure";
   }, 8000);
-}, []);  
+
+  // 4. Refrescar los datos completamente para obtener todos los campos
+  // Esto asegura que la tabla muestre todos los datos (fecha, tipo, usuario, etc.)
+  fetchNovedades({ nextPage: 1 });
+}, [novedades, fetchNovedades]);  
 
 // Activar el stream SSE
 useNovedadesStream(handleNuevaNovedad);
