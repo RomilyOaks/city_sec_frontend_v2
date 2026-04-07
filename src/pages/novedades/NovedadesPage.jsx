@@ -16,7 +16,7 @@
  *
  * @module src/pages/novedades/NovedadesPage.jsx
  */
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef ,useCallback  } from "react";
 import { useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { showValidationError } from "../../utils/errorUtils";
@@ -95,6 +95,8 @@ import {
   getDescripcionLocationType,
   getDescripcionFuente,
 } from "../../services/geocodingService.js";
+// Para recibir SSE (Server Send Events) cuando algun canal crea Novedad
+import { useNovedadesStream } from "../../hooks/useNovedadesStream.js";
 
 // Constantes
 const ORIGEN_LLAMADA_OPTIONS = [
@@ -627,6 +629,71 @@ export default function NovedadesPage() {
     observaciones_historial: "",
   });
 
+// ── SSE: recibir novedades en tiempo real ─────────────────────────────────────
+// Se activa cuando llega una novedad nueva desde WhatsApp, App Móvil u otro canal
+const handleNuevaNovedad = useCallback((novedad) => {
+  // 1. Insertar la novedad al inicio de la lista (más reciente primero)
+  setNovedades((prev) => {
+    // Evitar duplicados si la novedad ya existe en la lista
+    const yaExiste = prev.some((n) => n.id === novedad.id);
+    if (yaExiste) return prev;
+    return [novedad, ...prev];
+  });
+
+  // 2. Actualizar el contador de paginación
+  setPagination((prev) => ({
+    ...prev,
+    total: (prev?.total || 0) + 1,
+  }));
+
+  // 3. Toast de notificación usando react-hot-toast (ya lo tienes instalado)
+  toast(
+    (t) => (
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-2 font-semibold text-slate-800">
+          <span>🚨</span>
+          <span>Nueva Novedad Recibida</span>
+        </div>
+        <p className="text-xs text-slate-600">
+          {novedad.novedad_code} — {novedad.descripcion?.substring(0, 60)}...
+        </p>
+        <p className="text-xs text-slate-500">
+          📍 {novedad.localizacion || "Ubicación no especificada"}
+        </p>
+        <button
+          onClick={() => toast.dismiss(t.id)}
+          className="text-xs text-primary-600 hover:underline mt-1 text-left"
+        >
+          Cerrar
+        </button>
+      </div>
+    ),
+    {
+      duration: 10000,
+      icon: null,
+      style: {
+        border: novedad.prioridad_actual === "ALTA"
+          ? "2px solid #ef4444"
+          : novedad.prioridad_actual === "MEDIA"
+          ? "2px solid #f59e0b"
+          : "2px solid #22c55e",
+        padding: "12px",
+        maxWidth: "380px",
+      },
+    }
+  );
+
+  // 4. Actualizar título del tab para llamar atención al operador
+  document.title = `🚨 Nueva Novedad — CitySecure`;
+  setTimeout(() => {
+    document.title = "CitySecure";
+  }, 8000);
+}, []);  
+
+// Activar el stream SSE
+useNovedadesStream(handleNuevaNovedad);
+// ─────────────────────────────────────────────────────────────────────────────
+  
   /**
    * fetchNovedades
    * Consulta paginada de novedades desde el backend usando los filtros actuales.
