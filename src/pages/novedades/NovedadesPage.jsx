@@ -682,10 +682,8 @@ const handleNuevaNovedad = useCallback((novedad) => {
   // 4. Refrescar los datos completamente para obtener todos los campos
   // Esto asegura que la tabla muestre todos los datos (fecha, tipo, usuario, etc.)
   fetchNovedades({ nextPage: 1 });
-}, [novedades, fetchNovedades]);  
+}, [novedades]);  
 
-// Activar el stream SSE
-useNovedadesStream(handleNuevaNovedad);
 // ─────────────────────────────────────────────────────────────────────────────
   
   /**
@@ -902,6 +900,9 @@ useNovedadesStream(handleNuevaNovedad);
       }
     }
   }, [searchParams, novedades]);
+
+// Activar el stream SSE después de definir fetchNovedades
+useNovedadesStream(handleNuevaNovedad);
 
   // Atajo de teclado ALT+N para abrir formulario de creación
   // PageDown/PageUp para navegación de pestañas en el modal
