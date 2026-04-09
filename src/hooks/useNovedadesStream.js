@@ -26,21 +26,21 @@ export function useNovedadesStream(onNuevaNovedad, { enabled = true } = {}) {
     useEffect(() => {
         if (!enabled) return;
 
-        // Leer desde el store de Zustand persistido
-        let token = null;
-        try {
-            const authStorage = localStorage.getItem("auth-storage");
-            if (authStorage) {
-                const parsed = JSON.parse(authStorage);
-                token = parsed?.state?.token || null;
+        /**
+         * Obtiene un token JWT fresco desde el store de Zustand.
+         * Se llama antes de cada conexión SSE para asegurar token válido.
+         */
+        function getFreshToken() {
+            try {
+                const authStorage = localStorage.getItem("auth-storage");
+                if (authStorage) {
+                    const parsed = JSON.parse(authStorage);
+                    return parsed?.state?.token || null;
+                }
+            } catch {
+                console.warn("[SSE] Error leyendo token del storage");
             }
-        } catch {
-            console.warn("[SSE] Error leyendo token del storage");
-        }
-
-        if (!token) {
-            console.warn("[SSE] No hay token JWT disponible");
-            return;
+            return null;
         }
 
         /**
@@ -48,6 +48,13 @@ export function useNovedadesStream(onNuevaNovedad, { enabled = true } = {}) {
          * Se llama al montar el componente y cada vez que hay que reconectar.
          */
         function connect() {
+            // Obtener token fresco antes de conectar
+            const freshToken = getFreshToken();
+            if (!freshToken) {
+                console.warn("[SSE] No hay token JWT disponible");
+                return;
+            }
+
             // Cerrar conexión previa si existe
             if (eventSourceRef.current) {
                 eventSourceRef.current.close();
@@ -57,7 +64,7 @@ export function useNovedadesStream(onNuevaNovedad, { enabled = true } = {}) {
             // EventSource no soporta headers Authorization
             // Por eso el token va como query param (el backend lo acepta)
             const baseUrl = import.meta.env.VITE_API_URL || "";
-            const url = `${baseUrl}/novedades/stream?token=${token}`;
+            const url = `${baseUrl}/novedades/stream?token=${freshToken}`;
 
             console.info("[SSE] Conectando al stream de novedades...");
             const eventSource = new EventSource(url);
