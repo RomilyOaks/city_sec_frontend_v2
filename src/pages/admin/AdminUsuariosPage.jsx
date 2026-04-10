@@ -465,8 +465,67 @@ export default function AdminUsuariosPage() {
       setPage(1);
       fetchUsers({ nextPage: 1 }); // Sin await para no bloquear
     } catch (err) {
-      const backendMsg = err?.response?.data?.message;
-      toast.error(backendMsg || err?.message || "No se pudo crear el usuario");
+      // Debug: Mostrar error completo en consola
+      console.error("ERROR COMPLETO DE CREACIÓN:", err);
+      console.error("RESPONSE DATA:", err?.response?.data);
+      console.error("STATUS:", err?.response?.status);
+      console.error("HEADERS:", err?.response?.headers);
+      
+      // Extraer mensaje de error específico del backend
+      const backendError = err?.response?.data;
+      let errorMessage = "No se pudo crear el usuario";
+      
+      if (backendError) {
+        // Si hay errores de validación específicos (array de objetos)
+        if (backendError.errors && Array.isArray(backendError.errors)) {
+          const errorMessages = backendError.errors
+            .map(err => err?.msg || err?.message || 'Error de validación')
+            .filter(msg => typeof msg === 'string')
+            .join(', ');
+          if (errorMessages) {
+            errorMessage = `Error de validación: ${errorMessages}`;
+          }
+        }
+        // Si hay errores de validación específicos (objeto)
+        else if (backendError.errors && typeof backendError.errors === 'object') {
+          const errorMessages = Object.values(backendError.errors)
+            .flat()
+            .filter(msg => typeof msg === 'string')
+            .join(', ');
+          if (errorMessages) {
+            errorMessage = `Error de validación: ${errorMessages}`;
+          }
+        }
+        // Si hay un mensaje principal
+        else if (backendError.message && typeof backendError.message === 'string') {
+          // Si es un error de validación genérico, dar sugerencias
+          if (backendError.message.toLowerCase().includes('validation')) {
+            errorMessage = `${backendError.message}. Por favor, revise los campos del formulario.`;
+          } else {
+            errorMessage = backendError.message;
+          }
+        }
+        // Si hay un error específico del backend
+        else if (backendError.error && typeof backendError.error === 'string') {
+          // Si es un error de validación genérico, dar sugerencias
+          if (backendError.error.toLowerCase().includes('validation')) {
+            errorMessage = `${backendError.error}. Verifique los datos ingresados.`;
+          } else {
+            errorMessage = backendError.error;
+          }
+        }
+        // Si hay otros campos de error
+        else if (backendError.detail && typeof backendError.detail === 'string') {
+          errorMessage = backendError.detail;
+        }
+        // Si no hay nada específico, mostrar el objeto completo
+        else {
+          errorMessage = `Error del servidor: ${JSON.stringify(backendError)}`;
+        }
+      }
+      
+      console.error("MENSAJE FINAL:", errorMessage);
+      toast.error(errorMessage);
     }
   };
 
@@ -602,11 +661,60 @@ export default function AdminUsuariosPage() {
       setResetPwForm({ newPassword: "", confirmPassword: "" });
       setResetPwShow(false);
     } catch (err) {
-      toast.error(
-        err?.response?.data?.message ||
-          err?.message ||
-          "No se pudo resetear la contraseña"
-      );
+      // Extraer mensaje de error específico del backend
+      const backendError = err?.response?.data;
+      let errorMessage = "No se pudo resetear la contraseña";
+      
+      if (backendError) {
+        // Si hay errores de validación específicos (array de objetos)
+        if (backendError.errors && Array.isArray(backendError.errors)) {
+          const errorMessages = backendError.errors
+            .map(err => err?.msg || err?.message || 'Error de validación')
+            .filter(msg => typeof msg === 'string')
+            .join(', ');
+          if (errorMessages) {
+            errorMessage = `Error de validación: ${errorMessages}`;
+          }
+        }
+        // Si hay errores de validación específicos (objeto)
+        else if (backendError.errors && typeof backendError.errors === 'object') {
+          const errorMessages = Object.values(backendError.errors)
+            .flat()
+            .filter(msg => typeof msg === 'string')
+            .join(', ');
+          if (errorMessages) {
+            errorMessage = `Error de validación: ${errorMessages}`;
+          }
+        }
+        // Si hay un mensaje principal
+        else if (backendError.message && typeof backendError.message === 'string') {
+          // Si es un error de validación genérico, dar sugerencias
+          if (backendError.message.toLowerCase().includes('validation')) {
+            errorMessage = `${backendError.message}. Por favor, revise los campos del formulario.`;
+          } else {
+            errorMessage = backendError.message;
+          }
+        }
+        // Si hay un error específico del backend
+        else if (backendError.error && typeof backendError.error === 'string') {
+          // Si es un error de validación genérico, dar sugerencias
+          if (backendError.error.toLowerCase().includes('validation')) {
+            errorMessage = `${backendError.error}. Verifique los datos ingresados.`;
+          } else {
+            errorMessage = backendError.error;
+          }
+        }
+        // Si hay otros campos de error
+        else if (backendError.detail && typeof backendError.detail === 'string') {
+          errorMessage = backendError.detail;
+        }
+        // Si no hay nada específico, mostrar el objeto completo
+        else {
+          errorMessage = `Error del servidor: ${JSON.stringify(backendError)}`;
+        }
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setResetPwSaving(false);
     }
@@ -1540,11 +1648,67 @@ export default function AdminUsuariosPage() {
                       setEditingUser(null);
                       await fetchUsers({ nextPage: page });
                     } catch (err) {
-                      toast.error(
-                        err?.response?.data?.message ||
-                          err?.message ||
-                          "No se pudo actualizar"
-                      );
+                      // Debug: Mostrar error completo en consola
+                      console.error("ERROR COMPLETO DE ACTUALIZACIÓN:", err);
+                      console.error("RESPONSE DATA:", err?.response?.data);
+                      console.error("STATUS:", err?.response?.status);
+                      console.error("HEADERS:", err?.response?.headers);
+                      
+                      // Extraer mensaje de error específico del backend
+                      const backendError = err?.response?.data;
+                      let errorMessage = "No se pudo actualizar el usuario";
+                      
+                      if (backendError) {
+                        // Si hay errores de validación específicos (array de objetos)
+                        if (backendError.errors && Array.isArray(backendError.errors)) {
+                          const errorMessages = backendError.errors
+                            .map(err => err?.msg || err?.message || 'Error de validación')
+                            .filter(msg => typeof msg === 'string')
+                            .join(', ');
+                          if (errorMessages) {
+                            errorMessage = `Error de validación: ${errorMessages}`;
+                          }
+                        }
+                        // Si hay errores de validación específicos (objeto)
+                        else if (backendError.errors && typeof backendError.errors === 'object') {
+                          const errorMessages = Object.values(backendError.errors)
+                            .flat()
+                            .filter(msg => typeof msg === 'string')
+                            .join(', ');
+                          if (errorMessages) {
+                            errorMessage = `Error de validación: ${errorMessages}`;
+                          }
+                        }
+                        // Si hay un mensaje principal
+                        else if (backendError.message && typeof backendError.message === 'string') {
+                          // Si es un error de validación genérico, dar sugerencias
+                          if (backendError.message.toLowerCase().includes('validation')) {
+                            errorMessage = `${backendError.message}. Por favor, revise los campos del formulario.`;
+                          } else {
+                            errorMessage = backendError.message;
+                          }
+                        }
+                        // Si hay un error específico del backend
+                        else if (backendError.error && typeof backendError.error === 'string') {
+                          // Si es un error de validación genérico, dar sugerencias
+                          if (backendError.error.toLowerCase().includes('validation')) {
+                            errorMessage = `${backendError.error}. Verifique los datos ingresados.`;
+                          } else {
+                            errorMessage = backendError.error;
+                          }
+                        }
+                        // Si hay otros campos de error
+                        else if (backendError.detail && typeof backendError.detail === 'string') {
+                          errorMessage = backendError.detail;
+                        }
+                        // Si no hay nada específico, mostrar el objeto completo
+                        else {
+                          errorMessage = `Error del servidor: ${JSON.stringify(backendError)}`;
+                        }
+                      }
+                      
+                      console.error("MENSAJE FINAL:", errorMessage);
+                      toast.error(errorMessage);
                     } finally {
                       setEditSaving(false);
                     }
