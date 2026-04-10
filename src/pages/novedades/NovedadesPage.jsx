@@ -110,7 +110,7 @@ const ORIGEN_LLAMADA_OPTIONS = [
   },
   {
     value: "BOTON_DENUNCIA_VECINO_ALERTA",
-    label: "Botón Denuncia",
+    label: "App VECINO ALERTA",
     icon: Home,
   },
   {
@@ -166,7 +166,7 @@ const NUEVOS_ORIGEN_LLAMADA_OPTIONS = [
   },
   {
     value: "BOTON_DENUNCIA_VECINO_ALERTA",
-    label: "Botón Denuncia (App VECINO ALERTA)",
+    label: "App VECINO ALERTA",
     icon: Home,
     color: "text-orange-600",
   },
