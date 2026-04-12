@@ -6,10 +6,10 @@
  * @module src/components/catalogos/PersonalDropdown.jsx
  */
 
-import React, { useState, useCallback, useMemo } from "react";
-import { debounce } from "lodash";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
+import debounce from "lodash/debounce";
 import { Search, User, AlertCircle } from "lucide-react";
-import api from "../../services/api.js";
+import { listPersonalDisponibleParaRadioTetra } from "../../services/personalService.js";
 
 /**
  * Dropdown optimizado para búsqueda de personal
@@ -21,7 +21,7 @@ export default function PersonalDropdown({
   onSeleccionar,
   value,
   disabled = false,
-  placeholder = "Buscar personal...",
+  placeholder = "Buscar personal disponible...",
 }) {
   // Estados
   const [busqueda, setBusqueda] = useState("");
@@ -29,10 +29,35 @@ export default function PersonalDropdown({
   const [cargando, setCargando] = useState(false);
   const [mostrarResultados, setMostrarResultados] = useState(false);
   const [error, setError] = useState("");
+  const [todoPersonal, setTodoPersonal] = useState([]);
 
-  // Búsqueda optimizada con debounce
+  // Cargar personal disponible para radio TETRA al montar el componente
+  useEffect(() => {
+    const cargarPersonal = async () => {
+      try {
+        const personal = await listPersonalDisponibleParaRadioTetra();
+        
+        // Validar que personal sea un array
+        if (!Array.isArray(personal)) {
+          console.error("Error: El backend no devolvió un array:", personal);
+          setError("Error en el formato de datos del servidor");
+          setTodoPersonal([]);
+          return;
+        }
+        
+        setTodoPersonal(personal);
+      } catch (err) {
+        console.error("Error cargando personal disponible:", err);
+        setError("Error al cargar personal disponible");
+        setTodoPersonal([]);
+      }
+    };
+    cargarPersonal();
+  }, []);
+
+  // Búsqueda optimizada con debounce (ahora es local sobre personal ya filtrado)
   const buscarPersonal = useCallback(
-    debounce(async (termino) => {
+    (termino) => {
       if (termino.length < 3) {
         setResultados([]);
         setMostrarResultados(false);
@@ -43,32 +68,46 @@ export default function PersonalDropdown({
       setError("");
 
       try {
-        const response = await api.get("/personal/buscar-para-dropdown", {
-          params: {
-            q: termino,
-            limit: 20,
-          },
+        // Búsqueda local en personal ya filtrado por backend (solo disponibles)
+        const terminoLower = termino.toLowerCase();
+        const filtrados = todoPersonal.filter(personal => {
+          const nombreCompleto = `${personal.nombres} ${personal.apellido_paterno} ${personal.apellido_materno}`.toLowerCase();
+          const documento = (personal.doc_numero || '').toLowerCase();
+          
+          return nombreCompleto.includes(terminoLower) || 
+                 documento.includes(terminoLower) ||
+                 personal.apellido_paterno?.toLowerCase().includes(terminoLower) ||
+                 personal.apellido_materno?.toLowerCase().includes(terminoLower) ||
+                 personal.nombres?.toLowerCase().includes(terminoLower);
         });
 
-        setResultados(response.data.data || []);
+        setResultados(filtrados.slice(0, 20)); // Limitar a 20 resultados
         setMostrarResultados(true);
       } catch (err) {
-        console.error("Error buscando personal:", err);
+        console.error("Error en búsqueda local:", err);
         setError("Error al buscar personal");
         setResultados([]);
         setMostrarResultados(false);
       } finally {
         setCargando(false);
       }
+    },
+    [todoPersonal]
+  );
+
+  // Búsqueda con debounce
+  const debouncedBuscar = useCallback(
+    debounce((termino) => {
+      buscarPersonal(termino);
     }, 300),
-    []
+    [buscarPersonal]
   );
 
   // Manejar cambio en búsqueda
   const handleBusquedaChange = (e) => {
     const termino = e.target.value;
     setBusqueda(termino);
-    buscarPersonal(termino);
+    debouncedBuscar(termino);
   };
 
   // Manejar selección
@@ -98,7 +137,9 @@ export default function PersonalDropdown({
   // Formato de display para valor seleccionado
   const valorSeleccionadoDisplay = useMemo(() => {
     if (!value) return "";
-    return value.display_text || `${value.apellido_paterno} ${value.apellido_materno}, ${value.nombres}`;
+    return value.display_text || 
+           `${value.apellido_paterno || ''} ${value.apellido_materno || ''}, ${value.nombres || ''}`.trim() ||
+           `${value.nombres || ''} ${value.apellido_paterno || ''}`.trim();
   }, [value]);
 
   // Renderizado
@@ -181,10 +222,10 @@ export default function PersonalDropdown({
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium text-gray-900 dark:text-white">
-                        {personal.nombre_completo}
+                        {personal.nombres} {personal.apellido_paterno} {personal.apellido_materno}
                       </div>
                       <div className="text-sm text-gray-500 dark:text-gray-400">
-                        {personal.documento} • {personal.codigo_acceso}
+                        {personal.doc_tipo || 'DNI'}: {personal.doc_numero || 'N/A'}
                       </div>
                     </div>
                   </div>
