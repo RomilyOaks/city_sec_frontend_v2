@@ -141,3 +141,30 @@ export async function listPersonalSelector() {
   const res = await api.get("/personal/selector");
   return res?.data?.data || res?.data || [];
 }
+
+/**
+ * Listar personal disponible para asignar radios TETRA
+ * Endpoint especializado que filtra personal activo sin radio TETRA asignado
+ * @param {Object} [options] - Opciones de filtrado
+ * @param {boolean} [options.includeAsignados=false] - Si true, incluye personal ya asignado
+ * @returns {Promise<Array>} Lista de personal disponible para asignar radios TETRA
+ */
+export async function listPersonalDisponibleParaRadioTetra({ includeAsignados = false } = {}) {
+  try {
+    const params = {};
+    if (includeAsignados) {
+      params.includeAsignados = true;
+    }
+    
+    const res = await api.get("/personal/disponibles-para-radio-tetra", { params });
+    
+    // El backend devuelve los datos en res.data.data (no directamente en res.data)
+    const personal = res.data?.data || res.data || [];
+    return personal;
+  } catch (err) {
+    console.error("Error obteniendo personal disponible para radio TETRA:", err);
+    // Fallback: usar selector normal si el nuevo endpoint falla
+    console.warn("Usando fallback a listPersonalSelector...");
+    return await listPersonalSelector();
+  }
+}

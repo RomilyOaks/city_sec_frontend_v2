@@ -6,7 +6,7 @@
  * @module src/components/catalogos/AsignarPersonalModal.jsx
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { toast } from "react-hot-toast";
 import { X, UserPlus, Save } from "lucide-react";
 import { radioTetraService } from "../../services/radiosTetraService.js";
@@ -32,6 +32,31 @@ export default function AsignarPersonalModal({
   const [personalSeleccionado, setPersonalSeleccionado] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // Cerrar modal
+  const handleClose = useCallback(() => {
+    if (!loading) {
+      setPersonalSeleccionado(null);
+      onClose();
+    }
+  }, [loading, onClose]);
+
+  // Manejar tecla ESC para cerrar modal
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && isOpen && !loading) {
+        handleClose();
+      }
+    };
+
+    if (isOpen) {
+      window.addEventListener("keydown", handleKeyDown);
+    }
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, loading, handleClose]);
+
   // Manejar asignación
   const handleAsignar = async () => {
     if (!personalSeleccionado) {
@@ -50,19 +75,13 @@ export default function AsignarPersonalModal({
       
       if (error.response?.data?.message) {
         toast.error(error.response.data.message);
+      } else if (error.response?.data?.error) {
+        toast.error(error.response.data.error);
       } else {
         toast.error("Error al asignar personal");
       }
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Cerrar modal
-  const handleClose = () => {
-    if (!loading) {
-      setPersonalSeleccionado(null);
-      onClose();
     }
   };
 
@@ -121,7 +140,7 @@ export default function AsignarPersonalModal({
               <PersonalDropdown
                 onSeleccionar={setPersonalSeleccionado}
                 value={personalSeleccionado}
-                placeholder="Buscar por apellidos (mín. 3 caracteres)..."
+                placeholder="Buscar personal disponible para asignar..."
               />
             </div>
 
@@ -134,10 +153,10 @@ export default function AsignarPersonalModal({
                   </div>
                   <div className="flex-1">
                     <div className="text-sm font-medium text-green-800 dark:text-green-200">
-                      {personalSeleccionado.nombre_completo}
+                      {personalSeleccionado.nombres} {personalSeleccionado.apellido_paterno} {personalSeleccionado.apellido_materno}
                     </div>
                     <div className="text-sm text-green-600 dark:text-green-400">
-                      {personalSeleccionado.documento} • {personalSeleccionado.codigo_acceso}
+                      {personalSeleccionado.doc_tipo || 'DNI'}: {personalSeleccionado.doc_numero || 'N/A'}
                     </div>
                   </div>
                 </div>
