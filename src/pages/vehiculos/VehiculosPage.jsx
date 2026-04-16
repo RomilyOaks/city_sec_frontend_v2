@@ -26,6 +26,7 @@ import {
   RotateCcw,
   X,
   MapPin,
+  Fuel,
 } from "lucide-react";
 import { ConfirmModal } from "../../components/common";
 
@@ -46,6 +47,7 @@ import { canPerformAction } from "../../rbac/rbac.js";
 import useBodyScrollLock from "../../hooks/useBodyScrollLock.js";
 import cuadranteVehiculoAsignadoService from "../../services/cuadranteVehiculoAsignadoService.js";
 import VehiculoCuadrantesModal from "../../components/vehiculos/VehiculoCuadrantesModal.jsx";
+import AbastecimientoModal from "../../components/vehiculos/AbastecimientoModal.jsx";
 
 const ESTADO_OPERATIVO_OPTIONS = [
   { value: "DISPONIBLE", label: "Disponible" },
@@ -204,6 +206,8 @@ export default function VehiculosPage() {
   const [editingVehiculo, setEditingVehiculo] = useState(null);
   const [viewingVehiculo, setViewingVehiculo] = useState(null);
   const [showCuadrantesModal, setShowCuadrantesModal] = useState(null); // Para mostrar cuadrantes del vehículo
+  const [showAbastecimientoModal, setShowAbastecimientoModal] = useState(null); // Para mostrar modal de abastecimiento
+  const [selectedVehicleForFuel, setSelectedVehicleForFuel] = useState(null); // Vehículo seleccionado para abastecimiento
   const [cuadrantesCount, setCuadrantesCount] = useState({}); // Contador de cuadrantes por vehículo
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletingVehiculo, setDeletingVehiculo] = useState(null);
@@ -220,7 +224,7 @@ export default function VehiculosPage() {
   const [viewConductor, setViewConductor] = useState(null); // Conductor para el modal de consulta
 
   // Bloquear scroll del body cuando un modal está abierto
-  useBodyScrollLock(showCreateModal || !!editingVehiculo || !!viewingVehiculo);
+  useBodyScrollLock(showCreateModal || !!editingVehiculo || !!viewingVehiculo || !!showAbastecimientoModal);
 
   // Refs para mantener valores actualizados en el event listener
   const formDataRef = useRef(formData);
@@ -324,7 +328,13 @@ export default function VehiculosPage() {
 
   useEffect(() => {
     fetchVehiculos({ nextPage: page });
-  }, [page, filterEstado, filterTipo]);
+  }, [page]);
+
+  useEffect(() => {
+    if (vehiculos.length > 0) {
+      fetchCuadrantesCount();
+    }
+  }, [vehiculos]);
 
   // Debounce: buscar al tipear (300ms)
   useEffect(() => {
@@ -335,13 +345,6 @@ export default function VehiculosPage() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Cargar conteos de cuadrantes cuando se cargan los vehículos
-  useEffect(() => {
-    if (vehiculos.length > 0) {
-      fetchCuadrantesCount();
-    }
-  }, [vehiculos]);
-
   const handleSearch = () => {
     setPage(1);
     fetchVehiculos({ nextPage: 1 });
@@ -350,6 +353,11 @@ export default function VehiculosPage() {
   const handleDelete = (v) => {
     setDeletingVehiculo(v);
     setShowDeleteModal(true);
+  };
+
+  const openAbastecimientoModal = (v) => {
+    setSelectedVehicleForFuel(v);
+    setShowAbastecimientoModal(v);
   };
 
   const handleConfirmDelete = async () => {
@@ -1339,6 +1347,24 @@ export default function VehiculosPage() {
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <button
+                          onClick={() => {
+                            if (v.estado_operativo === 'INACTIVO') {
+                              toast.error('No se puede registrar abastecimiento a vehículos inactivos');
+                              return;
+                            }
+                            openAbastecimientoModal(v);
+                          }}
+                          className={`relative p-2 rounded-lg ${
+                            v.estado_operativo === 'INACTIVO'
+                              ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
+                              : 'text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20'
+                          }`}
+                          title={v.estado_operativo === 'INACTIVO' ? 'Vehículo inactivo - No se puede registrar abastecimiento' : 'Abastecimiento de combustible'}
+                          disabled={v.estado_operativo === 'INACTIVO'}
+                        >
+                          <Fuel size={14} />
+                        </button>
+                        <button
                           onClick={() => setShowCuadrantesModal(v)}
                           className="relative p-2 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                           title="Ver cuadrantes asignados"
@@ -1658,6 +1684,22 @@ export default function VehiculosPage() {
         <VehiculoCuadrantesModal
           vehiculo={showCuadrantesModal}
           onClose={() => setShowCuadrantesModal(null)}
+        />
+      )}
+
+      {/* Modal de Abastecimiento */}
+      {showAbastecimientoModal && (
+        <AbastecimientoModal
+          isOpen={showAbastecimientoModal}
+          onClose={() => {
+            setShowAbastecimientoModal(null);
+            setSelectedVehicleForFuel(null);
+          }}
+          vehicle={selectedVehicleForFuel}
+          onRefresh={() => {
+            fetchVehiculos({ nextPage: page });
+            fetchCuadrantesCount();
+          }}
         />
       )}
 
