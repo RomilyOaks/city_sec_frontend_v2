@@ -18,7 +18,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Fuel, Calendar, Filter, Plus, Edit2, Trash2 } from 'lucide-react';
+import { X, Fuel, Calendar, Filter, Plus, Edit2, Trash2, Eye } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -33,22 +33,46 @@ import {
   formatFechaHora
 } from '../../services/abastecimientosService.js';
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
+import { useAuthStore } from '../../store/useAuthStore.js';
+import { canPerformAction } from '../../rbac/rbac.js';
 
 /**
  * Modal principal para gestión de abastecimientos de combustible.
  *
  * @component
- * @param {Object}   props           - Props del componente
- * @param {boolean}  props.isOpen    - Controla si el modal está visible
- * @param {Function} props.onClose   - Callback para cerrar el modal
- * @param {Object}   props.vehicle   - Objeto del vehículo seleccionado (debe incluir `id`, `placa`, etc.)
+ * @param {Object}   props              - Props del componente
+ * @param {boolean}  props.isOpen       - Controla si el modal está visible
+ * @param {Function} props.onClose      - Callback para cerrar el modal
+ * @param {Object}   props.vehicle      - Objeto del vehículo seleccionado (debe incluir `id`, `placa`, etc.)
+ * @param {Function} props.onVehicleUpdate - Callback para actualizar datos del vehículo
  * @returns {JSX.Element|null}
  */
-export default function AbastecimientoModal({ isOpen, onClose, vehicle }) {
+export default function AbastecimientoModal({ isOpen, onClose, vehicle, onVehicleUpdate }) {
 
-  // ─── Bloqueo de scroll ───────────────────────────────────────────────────────
-  // El hook useBodyScrollLock pone overflow:hidden en el body mientras el modal esté abierto.
+  // Obtener usuario para RBAC
+  const { user } = useAuthStore();
+
+  // Verificar permisos RBAC
+  const canCreate = canPerformAction(user, 'abastecimientos_create');
+  const canUpdate = canPerformAction(user, 'abastecimientos_update');
+  const canDelete = canPerformAction(user, 'abastecimientos_delete');
+
+  // Estado para vista readonly (doble click)
+  const [viewOnlyData, setViewOnlyData] = useState(null);
+  const [showViewOnly, setShowViewOnly] = useState(false);
+
+  // Estado local para vehicle actualizado
+  const [currentVehicle, setCurrentVehicle] = useState(vehicle);
+
+  // Bloqueo de scroll del body cuando el modal está abierto
   useBodyScrollLock(isOpen);
+
+  // Actualizar currentVehicle cuando la prop vehicle cambia (pero no si ya está actualizado)
+  useEffect(() => {
+    if (vehicle && (!currentVehicle || currentVehicle.id !== vehicle.id)) {
+      setCurrentVehicle(vehicle);
+    }
+  }, [vehicle, currentVehicle]);
 
   // ─── Estados locales ─────────────────────────────────────────────────────────
   const [abastecimientos, setAbastecimientos]     = useState([]);    // Lista de registros cargados
@@ -271,27 +295,50 @@ export default function AbastecimientoModal({ isOpen, onClose, vehicle }) {
   }, [onClose]);
 
   /**
+   * Refresca los datos del vehículo para mostrar kilometraje actualizado
+   */
+  const actualizarKilometrajeVehiculo = useCallback((abastecimientoResponse) => {
+    try {
+      // Extraer km_actual del response del abastecimiento creado/editado
+      const kmActual = abastecimientoResponse?.data?.km_actual;
+      
+      if (kmActual && currentVehicle) {
+        // Actualizar el objeto vehicle con el nuevo kilometraje
+        const updatedVehicle = { 
+          ...currentVehicle, 
+          kilometraje_actual: kmActual 
+        };
+        
+        // Forzar actualización del estado para asegurar que React re-pinte
+        setCurrentVehicle(prev => {
+          const newVehicle = prev?.id === updatedVehicle.id ? updatedVehicle : prev;
+          console.log('setCurrentVehicle ejecutado, nuevo estado:', newVehicle);
+          return newVehicle;
+        });
+        
+        // Notificar al componente padre para que actualice su estado
+        if (onVehicleUpdate) {
+          onVehicleUpdate(updatedVehicle);
+        }
+        
+        console.log('Kilometraje actualizado desde response:', kmActual);
+        console.log('Vehículo actualizado:', updatedVehicle);
+      }
+    } catch (error) {
+      console.error('Error actualizando kilometraje del vehículo:', error);
+    }
+  }, [currentVehicle, onVehicleUpdate]);
+
+  /**
    * Maneja el envío del formulario (crear o actualizar).
    * Zod ya validó los campos antes de llegar aquí via handleSubmit.
    *
    * @param {Object} data - Datos validados por react-hook-form + Zod
    */
   const onSubmit = useCallback(async (data) => {
-    // Prevenir doble envío si ya hay un submit en curso
-    if (isSubmitting) return;
-
-    setIsSubmitting(true);
-
     try {
-      // Asegurar que el vehiculo_id sea el del vehículo seleccionado
-      data.vehiculo_id = vehicle.id;
-
-      // Calcular importe_total si no lo calculó Zod o el schema
-      if (!data.importe_total && data.cantidad && data.precio_unitario) {
-        data.importe_total = parseFloat(data.cantidad) * parseFloat(data.precio_unitario);
-      }
-
-      // Moneda por defecto (configurable via variable de entorno Vite)
+      setIsSubmitting(true);
+      data.vehiculo_id = currentVehicle.id;
       data.moneda = import.meta.env.VITE_DEFAULT_CURRENCY || 'PEN';
 
       console.log('[AbastecimientoModal] Datos a enviar:', data);
@@ -320,6 +367,7 @@ export default function AbastecimientoModal({ isOpen, onClose, vehicle }) {
           setEditingId(null);
           setUsarFechaActual(false);
           await cargarAbastecimientos(); // Refrescar lista
+          await actualizarKilometrajeVehiculo(response); // Actualizar kilometraje del vehículo
         } else {
           toast.error(response.message || 'Error al actualizar');
         }
@@ -333,6 +381,7 @@ export default function AbastecimientoModal({ isOpen, onClose, vehicle }) {
           setEditingId(null);
           setUsarFechaActual(false);
           await cargarAbastecimientos(); // Refrescar lista para mostrar el nuevo registro
+          await actualizarKilometrajeVehiculo(response); // Actualizar kilometraje del vehículo
         } else {
           toast.error(response.message || 'Error al crear');
         }
@@ -343,7 +392,7 @@ export default function AbastecimientoModal({ isOpen, onClose, vehicle }) {
     } finally {
       setIsSubmitting(false); // Siempre restaurar, incluso si hubo error
     }
-  }, [vehicle?.id, isSubmitting, cargarAbastecimientos, editingId, reset]);
+  }, [currentVehicle?.id, isSubmitting, cargarAbastecimientos, reset, actualizarKilometrajeVehiculo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
    * Elimina un abastecimiento tras confirmación del usuario.
@@ -387,6 +436,56 @@ export default function AbastecimientoModal({ isOpen, onClose, vehicle }) {
     setValue('observaciones',    abastecimiento.observaciones  || '');
     setShowForm(true);
   };
+
+  /**
+   * Muestra el formulario para crear un nuevo abastecimiento
+   */
+  const handleNuevoAbastecimiento = () => {
+    setEditingId(null);
+    reset(); // Limpiar formulario
+    
+    // Precargar datos del vehículo
+    setValue('vehiculo_id', currentVehicle?.id || '');
+    setValue('km_actual', currentVehicle?.kilometraje_actual || '');
+    
+    setShowForm(true);
+    setUsarFechaActual(false);
+  };
+
+  /**
+   * Muestra los datos de un abastecimiento en vista readonly (doble click)
+   *
+   * @param {Object} abastecimiento - Objeto del registro a ver
+   */
+  const handleViewOnly = (abastecimiento) => {
+    console.log('=== DEBUG DOBLE CLICK ABASTECIMIENTO ===');
+    console.log('Abastecimiento seleccionado:', abastecimiento);
+    console.log('ID:', abastecimiento.id);
+    console.log('Fecha hora:', abastecimiento.fecha_hora);
+    console.log('Tipo combustible:', abastecimiento.tipo_combustible);
+    console.log('Kilometraje:', abastecimiento.km_actual);
+    console.log('Cantidad:', abastecimiento.cantidad);
+    console.log('Precio unitario:', abastecimiento.precio_unitario);
+    console.log('Grifo nombre:', abastecimiento.grifo_nombre);
+    console.log('Grifo RUC:', abastecimiento.grifo_ruc);
+    console.log('Factura/Boleta:', abastecimiento.factura_boleta);
+    console.log('Observaciones:', abastecimiento.observaciones);
+    console.log('Vehículo ID:', abastecimiento.vehiculo_id);
+    console.log('==========================================');
+    
+    setViewOnlyData(abastecimiento);
+    setShowViewOnly(true);
+  };
+
+  /**
+   * Cierra la vista readonly
+   */
+  const handleCloseViewOnly = () => {
+    setShowViewOnly(false);
+    setViewOnlyData(null);
+  };
+
+  // Agregar onVehicleUpdate a las props del componente
 
   // ─── Helpers de rangos de fechas ─────────────────────────────────────────────
 
@@ -503,18 +602,13 @@ export default function AbastecimientoModal({ isOpen, onClose, vehicle }) {
               HEADER
               ════════════════════════════════════ */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center">
-                <Fuel size={20} className="text-orange-600 dark:text-orange-400" />
-              </div>
-              <div>
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                  Abastecimiento — {vehicle.tipoVehiculo?.nombre || 'N/A'} — {vehicle.placa}
-                </h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {vehicle.marca} {vehicle.modelo_vehiculo}
-                </p>
-              </div>
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Abastecimientos de {currentVehicle?.placa || 'Vehículo'}
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Kilometraje: {currentVehicle?.kilometraje_actual?.toLocaleString() || 'N/A'} km
+              </p>
             </div>
             <button
               onClick={onClose}
@@ -689,7 +783,8 @@ export default function AbastecimientoModal({ isOpen, onClose, vehicle }) {
                     {abastecimientos.map((ab) => (
                       <div
                         key={ab.id}
-                        className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow"
+                        className="bg-gradient-to-r from-primary-50 to-primary-100 dark:from-gray-700 dark:to-gray-600 border border-primary-200 dark:border-gray-500 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                        onDoubleClick={() => handleViewOnly(ab)}
                       >
                         {/* Fila superior: fecha + botones acción */}
                         <div className="flex items-center justify-between mb-3">
@@ -697,20 +792,32 @@ export default function AbastecimientoModal({ isOpen, onClose, vehicle }) {
                             {formatFechaHora(ab.fecha_hora)}
                           </h4>
                           <div className="flex gap-2">
-                            <button
-                              title="Editar"
-                              onClick={() => handleEdit(ab)}
-                              className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                            >
-                              <Edit2 size={16} />
-                            </button>
-                            <button
-                              title="Eliminar"
-                              onClick={() => handleDelete(ab.id)}
-                              className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                            >
-                              <Trash2 size={16} />
-                            </button>
+                            {/* Botón Editar - solo si tiene permiso de actualización */}
+                            {canUpdate && (
+                              <button
+                                title="Editar"
+                                onClick={(e) => {
+                                  e.stopPropagation(); // Evitar que se active el doble click
+                                  handleEdit(ab);
+                                }}
+                                className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                            )}
+                            {/* Botón Eliminar - solo si tiene permiso de eliminación */}
+                            {canDelete && (
+                              <button
+                                title="Eliminar"
+                                onClick={(e) => {
+                                  e.stopPropagation(); // Evitar que se active el doble click
+                                  handleDelete(ab.id);
+                                }}
+                                className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            )}
                           </div>
                         </div>
 
@@ -1031,23 +1138,233 @@ export default function AbastecimientoModal({ isOpen, onClose, vehicle }) {
                 </form>
 
               ) : (
-                /* ── Placeholder cuando el formulario está oculto ── */
+                /* Estado: placeholder cuando el formulario está oculto */
                 <div className="text-center py-8">
                   <Fuel size={36} className="mx-auto text-gray-300 mb-3" />
                   <p className="text-gray-500 text-sm mb-4">Registra un nuevo abastecimiento</p>
-                  <button
-                    onClick={() => setShowForm(true)}
-                    className="flex items-center gap-2 mx-auto px-6 py-3 bg-primary-600 text-white border border-transparent rounded-md hover:bg-primary-700"
-                  >
-                    <Plus size={20} />
-                    Nuevo Abastecimiento
-                  </button>
+                  {/* Botón de creación - solo si tiene permiso */}
+                  {canCreate && (
+                    <button
+                      onClick={handleNuevoAbastecimiento}
+                      className="flex items-center gap-2 mx-auto px-6 py-3 bg-primary-600 text-white border border-transparent rounded-md hover:bg-primary-700"
+                    >
+                      <Plus size={16} />
+                      Nuevo Abastecimiento
+                    </button>
+                  )}
+                  {!canCreate && (
+                    <p className="text-gray-400 text-xs mt-2">No tienes permisos para crear abastecimientos</p>
+                  )}
                 </div>
               )}
             </div>
 
           </div>{/* fin flex row (dos paneles) */}
         </div>{/* fin modal container */}
+      </div>
+
+      {/* Modal de vista readonly */}
+      <ViewOnlyModal
+        isOpen={showViewOnly}
+        onClose={handleCloseViewOnly}
+        abastecimiento={viewOnlyData}
+        vehicle={vehicle}
+      />
+    </div>
+  );
+}
+
+/**
+ * Modal de vista readonly para abastecimientos
+ */
+function ViewOnlyModal({ isOpen, onClose, abastecimiento, vehicle }) {
+  // Hook para cerrar con tecla ESC
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation(); // Prevenir que el ESC llegue al modal principal
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape, true); // true para capturar en fase de captura
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape, true);
+    };
+  }, [isOpen, onClose]);
+
+  if (!isOpen || !abastecimiento) return null;
+
+  // Debug para ver los datos en el modal readonly
+  console.log('=== DEBUG MODAL READONLY ===');
+  console.log('Datos recibidos en modal:', abastecimiento);
+  console.log('Vehículo:', vehicle);
+  console.log('================================');
+
+  const importeTotal = (parseFloat(abastecimiento.cantidad) * parseFloat(abastecimiento.precio_unitario)).toFixed(2);
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex items-center justify-center min-h-screen px-4">
+        {/* Backdrop */}
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+          onClick={onClose}
+        />
+
+        {/* Modal */}
+        <div className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto my-4">
+          {/* Header con información del vehículo */}
+          <div className="bg-primary-700 dark:bg-primary-800 text-white p-6 rounded-t-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                  <Fuel size={20} className="text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold">
+                    Detalles de Abastecimiento
+                  </h2>
+                  <div className="flex items-center gap-4 text-sm text-primary-100 mt-1">
+                    <span>{abastecimiento?.vehiculo?.tipo_vehiculo?.nombre || vehicle?.tipo_vehiculo?.nombre || 'Vehículo'}</span>
+                    <span className="text-primary-200">-</span>
+                    <span className="font-medium">{abastecimiento?.vehiculo?.placa || vehicle?.placa || 'N/A'}</span>
+                    <span className="text-primary-200">-</span>
+                    <span>{abastecimiento?.vehiculo?.marca || vehicle?.marca?.nombre || 'N/A'} {abastecimiento?.vehiculo?.modelo_vehiculo || vehicle?.modelo?.nombre || ''}</span>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={onClose}
+                className="text-primary-200 hover:text-white transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+          </div>
+
+          {/* Body */}
+          <div className="p-6">
+            {/* Fecha del abastecimiento */}
+            <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                <Calendar size={16} />
+                <span>Fecha y hora del abastecimiento:</span>
+                <span className="font-medium text-gray-900 dark:text-white">
+                  {formatFechaHora(abastecimiento.fecha_hora)}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Columna izquierda */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Tipo de Combustible
+                  </label>
+                  <p className="text-gray-900 dark:text-white font-medium">
+                    {abastecimiento.tipo_combustible}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Kilometraje Actual
+                  </label>
+                  <p className="text-gray-900 dark:text-white font-medium">
+                    {abastecimiento.km_actual?.toLocaleString() || 'N/A'} km
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Cantidad
+                  </label>
+                  <p className="text-gray-900 dark:text-white font-medium">
+                    {abastecimiento.cantidad} {abastecimiento.unidad || 'LITROS'}
+                    <span className="text-gray-500 dark:text-gray-400 ml-2">
+                      ({(parseFloat(abastecimiento.cantidad) * 0.264172).toFixed(2)} galones)
+                    </span>
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Precio Unitario
+                  </label>
+                  <p className="text-gray-900 dark:text-white font-medium">
+                    S/. {parseFloat(abastecimiento.precio_unitario).toFixed(2)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Columna derecha */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Grifo
+                  </label>
+                  <p className="text-gray-900 dark:text-white font-medium">
+                    {abastecimiento.grifo_nombre}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    RUC de Grifo
+                  </label>
+                  <p className="text-gray-900 dark:text-white font-medium">
+                    {abastecimiento.grifo_ruc || 'No especificado'}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Factura/Boleta
+                  </label>
+                  <p className="text-gray-900 dark:text-white font-medium">
+                    {abastecimiento.factura_boleta || 'No especificado'}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Importe Total
+                  </label>
+                  <p className="text-2xl font-bold text-primary-600 dark:text-primary-400">
+                    S/. {importeTotal}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Observaciones */}
+            {abastecimiento.observaciones && (
+              <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Observaciones
+                </label>
+                <p className="text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                  {abastecimiento.observaciones}
+                </p>
+              </div>
+            )}
+
+            {/* Botón cerrar */}
+            <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={onClose}
+                className="w-full px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -206,6 +206,12 @@ export const ACTION_PERMISSIONS = {
   "operativos.personal.novedades.update": ["operativos.personal.novedades.update"],
   "operativos.personal.novedades.delete": ["operativos.personal.novedades.delete"],
 
+  // Abastecimientos de Combustible
+  abastecimientos_create: ["vehiculos.abastecimiento.create"],
+  abastecimientos_update: ["vehiculos.abastecimiento.update"],
+  abastecimientos_delete: ["vehiculos.abastecimiento.delete"],
+  abastecimientos_read: ["vehiculos.abastecimiento.read"],
+
   // Catálogos - Unidades/Oficinas
   "catalogos.unidades.create": ["catalogos.unidades.create"],
   "catalogos.unidades.update": ["catalogos.unidades.update"],
