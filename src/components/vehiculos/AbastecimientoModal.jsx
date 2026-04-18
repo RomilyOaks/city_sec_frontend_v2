@@ -17,7 +17,7 @@
  * @module src/components/vehiculos/AbastecimientoModal.jsx
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Fuel, Calendar, Filter, Plus, Edit2, Trash2, Eye } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useForm } from 'react-hook-form';
@@ -106,14 +106,7 @@ export default function AbastecimientoModal({ isOpen, onClose, vehicle, onVehicl
   });
 
   // ─── Formulario react-hook-form + Zod ────────────────────────────────────────
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-    watch,
-    setValue
-  } = useForm({
+  const { register, handleSubmit, formState: { errors }, reset, watch, setValue } = useForm({
     resolver: zodResolver(abastecimientoSchema),
     defaultValues: {
       vehiculo_id:      vehicle?.id || null, // Pre-carga el ID del vehículo desde el inicio
@@ -1065,15 +1058,11 @@ export default function AbastecimientoModal({ isOpen, onClose, vehicle, onVehicl
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Grifo <span className="text-red-500">*</span>
                       </label>
-                      <input
-                        type="text"
-                        {...register('grifo_nombre', { required: 'Requerido' })}
-                        placeholder="Ej: Repsol, Primax"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                      <GrifoAutocomplete
+                        value={watch('grifo_nombre') || ''}
+                        onChange={(value) => setValue('grifo_nombre', value)}
+                        error={errors.grifo_nombre?.message}
                       />
-                      {errors.grifo_nombre && (
-                        <p className="text-red-500 text-xs mt-1">{errors.grifo_nombre.message}</p>
-                      )}
                     </div>
 
                     <div>
@@ -1182,6 +1171,141 @@ export default function AbastecimientoModal({ isOpen, onClose, vehicle, onVehicl
         abastecimiento={viewOnlyData}
         vehicle={vehicle}
       />
+      
+      {/* Indicador de carga */}
+      {loading && (
+        <div className="absolute right-3 top-2.5">
+          <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      )}
+
+      {error && (
+        <p className="text-red-500 text-xs mt-1">{error}</p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Componente de autocompletar para grifos
+ */
+function GrifoAutocomplete({ value, onChange, error }) {
+  const [_sugerencias, setSugerencias] = useState([]);
+  const [_isOpen, setIsOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const inputRef = useRef(null);
+  const debounceRef = useRef(null);
+
+  // Función para buscar sugerencias
+  const buscarSugerencias = async (query) => {
+    if (query.length < 2) {
+      setSugerencias([]);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { getSugerenciasGrifos } = await import('../../services/abastecimientosService.js');
+      const resultados = await getSugerenciasGrifos(query);
+      
+      // Extraer sugerencias de la estructura correcta
+      const sugerenciasExtraidas = resultados?.data?.sugerencias || resultados || [];
+      setSugerencias(sugerenciasExtraidas);
+      setIsOpen(true);
+    } catch (error) {
+      console.error('Error buscando grifos:', error);
+      setSugerencias([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Manejar cambios en el input con debounce
+  const handleChange = (e) => {
+    const valor = e.target.value.toUpperCase(); // Convertir a mayúsculas
+    onChange(valor);
+    
+    // Limpiar debounce anterior
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    
+    // Nuevo debounce
+    debounceRef.current = setTimeout(() => {
+      buscarSugerencias(valor);
+    }, 300);
+  };
+
+  // Seleccionar una sugerencia
+  const _seleccionarSugerencia = (grifo) => {
+    onChange(grifo.grifo_nombre);
+    setIsOpen(false);
+    setSugerencias([]);
+  };
+
+  // Cerrar dropdown al hacer click fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (inputRef.current && !inputRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div className="relative" ref={inputRef}>
+      <input
+        type="text"
+        value={value}
+        onChange={handleChange}
+        placeholder="Ej: REPSOL, PRIMAX"
+        className={`w-full px-3 py-2 border rounded-md focus:ring-primary-500 focus:border-primary-500 ${
+          error ? 'border-red-500' : 'border-gray-300'
+        }`}
+      />
+      
+      {/* Indicador de carga */}
+      {loading && (
+        <div className="absolute right-3 top-2.5">
+          <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      )}
+
+      {/* Dropdown de sugerencias */}
+      {_isOpen && _sugerencias.length > 0 && (
+        <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-48 overflow-y-auto">
+          {_sugerencias.map((grifo, index) => (
+            <div
+              key={grifo.id || index}
+              onClick={() => _seleccionarSugerencia(grifo)}
+              className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer flex items-center justify-between"
+            >
+              <div>
+                <div className="font-medium text-gray-900 dark:text-white">
+                  {grifo.grifo_nombre}
+                </div>
+                {grifo.grifo_ruc && (
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    RUC: {grifo.grifo_ruc}
+                  </div>
+                )}
+              </div>
+              {grifo.frecuencia_uso && (
+                <div className="text-xs text-gray-400">
+                  {grifo.frecuencia_uso} usos
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {error && (
+        <p className="text-red-500 text-xs mt-1">{error}</p>
+      )}
     </div>
   );
 }

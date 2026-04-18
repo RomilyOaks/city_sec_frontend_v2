@@ -9,6 +9,26 @@
 import api from "./api.js";
 
 /**
+ * Obtener sugerencias de grifos para autocompletar
+ * @param {string} query - Término de búsqueda (mínimo 2 caracteres)
+ * @returns {Promise<Array>} Lista de grifos sugeridos
+ */
+export async function getSugerenciasGrifos(query = '') {
+  try {
+    if (query.length < 2) return [];
+    
+    const response = await api.get('/grifos/sugerencias', {
+      params: { q: query.toUpperCase() }
+    });
+    
+    return response.data || [];
+  } catch (error) {
+    console.error('Error obteniendo sugerencias de grifos:', error);
+    return [];
+  }
+}
+
+/**
  * Listar abastecimientos con filtros opcionales
  * @param {Object} filters - Filtros de búsqueda
  * @returns {Promise<Object>} Respuesta con datos y paginación
