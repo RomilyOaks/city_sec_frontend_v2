@@ -69,10 +69,10 @@ export default function AbastecimientoModal({ isOpen, onClose, vehicle, onVehicl
 
   // Actualizar currentVehicle cuando la prop vehicle cambia (pero no si ya está actualizado)
   useEffect(() => {
-    if (vehicle && (!currentVehicle || currentVehicle.id !== vehicle.id)) {
+    if (vehicle) {
       setCurrentVehicle(vehicle);
     }
-  }, [vehicle, currentVehicle]);
+  }, [vehicle]);
 
   // ─── Estados locales ─────────────────────────────────────────────────────────
   const [abastecimientos, setAbastecimientos]     = useState([]);    // Lista de registros cargados
@@ -654,7 +654,7 @@ export default function AbastecimientoModal({ isOpen, onClose, vehicle, onVehicl
               <div>
                 <span className="font-medium text-gray-700 dark:text-gray-300">Kilometraje:</span>
                 <span className="text-gray-900 dark:text-white ml-1">
-                  {vehicle.kilometraje_actual?.toLocaleString() || 'N/A'} km
+                  {currentVehicle.kilometraje_actual?.toLocaleString() || 'N/A'} km
                 </span>
               </div>
               <div>
