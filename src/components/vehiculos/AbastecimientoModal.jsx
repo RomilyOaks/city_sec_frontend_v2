@@ -426,9 +426,29 @@ export default function AbastecimientoModal({ isOpen, onClose, vehicle, onVehicl
    * @param {Object} abastecimiento - Objeto del registro a editar
    */
   const handleEdit = (abastecimiento) => {
+    console.log('=== DEBUG EDITAR ABASTECIMIENTO ===');
+    console.log('Abastecimiento a editar:', abastecimiento);
+    console.log('fecha_hora recibida:', abastecimiento.fecha_hora);
+    console.log('Tipo de dato:', typeof abastecimiento.fecha_hora);
+    
+    // Convertir formato de backend (YYYY-MM-DD HH:MM:SS) a datetime-local (YYYY-MM-DDTHH:MM)
+    let fechaFormateada = '';
+    if (abastecimiento.fecha_hora) {
+      // Separar fecha y hora
+      const [fecha, horaCompleta] = abastecimiento.fecha_hora.split(' ');
+      if (fecha && horaCompleta) {
+        // Tomar solo HH:MM de HH:MM:SS
+        const [hora, minutos] = horaCompleta.split(':');
+        fechaFormateada = `${fecha}T${hora}:${minutos}`;
+        console.log('fecha_hora convertida:', fechaFormateada);
+      }
+    }
+    
+    console.log('================================');
+    
     setEditingId(abastecimiento.id);
     setValue('vehiculo_id',      abastecimiento.vehiculo_id);
-    setValue('fecha_hora',       abastecimiento.fecha_hora);
+    setValue('fecha_hora',       fechaFormateada);
     setValue('tipo_combustible', abastecimiento.tipo_combustible);
     setValue('km_actual',        abastecimiento.km_actual);
     setValue('cantidad',         abastecimiento.cantidad);
