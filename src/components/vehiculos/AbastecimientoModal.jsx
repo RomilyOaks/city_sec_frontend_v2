@@ -461,21 +461,6 @@ export default function AbastecimientoModal({ isOpen, onClose, vehicle, onVehicl
    * @param {Object} abastecimiento - Objeto del registro a ver
    */
   const handleViewOnly = (abastecimiento) => {
-    console.log('=== DEBUG DOBLE CLICK ABASTECIMIENTO ===');
-    console.log('Abastecimiento seleccionado:', abastecimiento);
-    console.log('ID:', abastecimiento.id);
-    console.log('Fecha hora:', abastecimiento.fecha_hora);
-    console.log('Tipo combustible:', abastecimiento.tipo_combustible);
-    console.log('Kilometraje:', abastecimiento.km_actual);
-    console.log('Cantidad:', abastecimiento.cantidad);
-    console.log('Precio unitario:', abastecimiento.precio_unitario);
-    console.log('Grifo nombre:', abastecimiento.grifo_nombre);
-    console.log('Grifo RUC:', abastecimiento.grifo_ruc);
-    console.log('Factura/Boleta:', abastecimiento.factura_boleta);
-    console.log('Observaciones:', abastecimiento.observaciones);
-    console.log('Vehículo ID:', abastecimiento.vehiculo_id);
-    console.log('==========================================');
-    
     setViewOnlyData(abastecimiento);
     setShowViewOnly(true);
   };
@@ -609,9 +594,13 @@ export default function AbastecimientoModal({ isOpen, onClose, vehicle, onVehicl
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                 Abastecimientos de {currentVehicle?.placa || 'Vehículo'}
               </h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Kilometraje: {currentVehicle?.kilometraje_actual?.toLocaleString() || 'N/A'} km
-              </p>
+              <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mt-1">
+                <span>{currentVehicle?.tipoVehiculo?.nombre || currentVehicle?.tipo_vehiculo?.nombre || 'Vehículo'}</span>
+                <span className="text-gray-400">-</span>
+                <span className="font-medium">{currentVehicle?.placa || 'N/A'}</span>
+                <span className="text-gray-400">-</span>
+                <span>{currentVehicle?.marca || 'N/A'} {currentVehicle?.modelo_vehiculo || ''}</span>
+              </div>
             </div>
             <button
               onClick={onClose}
@@ -1200,12 +1189,6 @@ function ViewOnlyModal({ isOpen, onClose, abastecimiento, vehicle }) {
   }, [isOpen, onClose]);
 
   if (!isOpen || !abastecimiento) return null;
-
-  // Debug para ver los datos en el modal readonly
-  console.log('=== DEBUG MODAL READONLY ===');
-  console.log('Datos recibidos en modal:', abastecimiento);
-  console.log('Vehículo:', vehicle);
-  console.log('================================');
 
   const importeTotal = (parseFloat(abastecimiento.cantidad) * parseFloat(abastecimiento.precio_unitario)).toFixed(2);
 
