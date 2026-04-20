@@ -554,7 +554,7 @@ function CargosPage() {
                         <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 w-12">
                           <div
                             className="bg-primary-600 h-1.5 rounded-full"
-                            style={{ width: `${(cargo.nivel_jerarquico / 10) * 100}%` }}
+                            style={{ width: `${(cargo.nivel_jerarquico / 20) * 100}%` }}
                           />
                         </div>
                         <span className="ml-2 text-sm text-gray-900 dark:text-white">

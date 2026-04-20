@@ -122,11 +122,11 @@ function CargoViewModal({ isOpen, onClose, cargo }) {
                     <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                       <div
                         className="bg-primary-600 h-2 rounded-full"
-                        style={{ width: `${(cargo.nivel_jerarquico / 10) * 100}%` }}
+                        style={{ width: `${(cargo.nivel_jerarquico / 20) * 100}%` }}
                       />
                     </div>
                     <span className="text-sm font-medium text-gray-900 dark:text-white">
-                      {cargo.nivel_jerarquico}/10
+                      {cargo.nivel_jerarquico}/20
                     </span>
                   </div>
                 </div>

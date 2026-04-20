@@ -106,8 +106,8 @@ function CargoFormModal({ isOpen, onClose, cargo, onSuccess }) {
     // Validar nivel jerárquico
     if (!formData.nivel_jerarquico) {
       newErrors.nivel_jerarquico = "El nivel jerárquico es obligatorio";
-    } else if (formData.nivel_jerarquico < 1 || formData.nivel_jerarquico > 10) {
-      newErrors.nivel_jerarquico = "El nivel jerárquico debe estar entre 1 y 10";
+    } else if (formData.nivel_jerarquico < 1 || formData.nivel_jerarquico > 20) {
+      newErrors.nivel_jerarquico = "El nivel jerárquico debe estar entre 1 y 20";
     }
 
     // Validar categoría
@@ -274,7 +274,7 @@ function CargoFormModal({ isOpen, onClose, cargo, onSuccess }) {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Nivel Jerárquico (1-10)
+                  Nivel Jerárquico (1-20)
                 </label>
                 <input
                   type="number"
@@ -282,7 +282,7 @@ function CargoFormModal({ isOpen, onClose, cargo, onSuccess }) {
                   value={formData.nivel_jerarquico}
                   onChange={handleChange}
                   min="1"
-                  max="10"
+                  max="20"
                   className={`w-full px-3 py-2 border rounded-md focus:ring-primary-500 focus:border-primary-500 text-sm ${
                     errores.nivel_jerarquico ? "border-red-500" : "border-gray-300"
                   }`}
