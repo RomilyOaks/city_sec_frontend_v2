@@ -216,6 +216,13 @@ export const ACTION_PERMISSIONS = {
   "catalogos.unidades.create": ["catalogos.unidades.create"],
   "catalogos.unidades.update": ["catalogos.unidades.update"],
   "catalogos.unidades.delete": ["catalogos.unidades.delete"],
+  "catalogos.unidades.read": ["catalogos.unidades.read"],
+
+  // Catálogos - Cargos
+  "catalogos.cargos.create": ["catalogos.cargos.create"],
+  "catalogos.cargos.update": ["catalogos.cargos.update"],
+  "catalogos.cargos.delete": ["catalogos.cargos.delete"],
+  "catalogos.cargos.read": ["catalogos.cargos.read"],
 
   // Catálogos - Radios TETRA
   "catalogos.radios_tetra.create": ["catalogos.radios_tetra.create"],
