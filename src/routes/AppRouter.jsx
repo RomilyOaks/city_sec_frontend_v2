@@ -43,6 +43,7 @@ import DireccionesEliminadasPage from "../pages/direcciones/DireccionesEliminada
 // IMPORTAR PÁGINAS DEL MÓDULO CATÁLOGOS
 // ============================================
 import UnidadesOficinaPage from "../pages/catalogos/UnidadesOficinaPage.jsx";
+import CargosPage from "../pages/catalogos/CargosPage.jsx";
 import RadiosTetraPage from "../pages/catalogos/RadiosTetraPage.jsx";
 import TiposSubtiposNovedadPage from "../pages/catalogos/TiposSubtiposNovedadPage.jsx";
 
@@ -248,6 +249,10 @@ export default function AppRouter() {
         <Route
           path="catalogos/unidades-oficinas"
           element={<UnidadesOficinaPage />}
+        />
+        <Route
+          path="catalogos/cargos"
+          element={<CargosPage />}
         />
         <Route
           path="catalogos/radios-tetra"

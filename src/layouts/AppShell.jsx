@@ -38,6 +38,7 @@ import {
   Clipboard,
   Radio,
   FileText,
+  Briefcase,
 } from "lucide-react";
 
 import ThemeToggle from "../components/common/ThemeToggle.jsx";
@@ -288,6 +289,9 @@ export default function AppShell() {
             <SidebarDropdown icon={Building2} label="Catálogos">
               <SidebarLink to="/catalogos/unidades-oficinas" icon={Building2}>
                 Unidades y Oficinas
+              </SidebarLink>
+              <SidebarLink to="/catalogos/cargos" icon={Briefcase}>
+                Cargos y Puestos
               </SidebarLink>
               <SidebarLink to="/catalogos/radios-tetra" icon={Radio}>
                 Radios Tetra
