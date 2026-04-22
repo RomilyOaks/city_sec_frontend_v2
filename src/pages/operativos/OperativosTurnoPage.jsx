@@ -60,15 +60,11 @@ const getTodayDate = () => {
   return `${year}-${month}-${day}`;
 };
 
-// Función para obtener fecha/hora actual en formato YYYY-MM-DDTHH:mm
+// Función para obtener fecha/hora actual en formato YYYY-MM-DDTHH:mm (local time)
+// Homologado con NovedadesPage.jsx para evitar problemas de timezone
 const getTodayDateTime = () => {
   const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  const hours = String(now.getHours()).padStart(2, '0');
-  const minutes = String(now.getMinutes()).padStart(2, '0');
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
+  return now.toISOString().slice(0, 16);
 };
 
 // Estado inicial del formulario
@@ -485,10 +481,10 @@ export default function OperativosTurnoPage() {
       sector_id: operativo.sector_id || "",
       fecha: operativo.fecha ? operativo.fecha.split("T")[0] : "",
       fecha_hora_inicio: operativo.fecha_hora_inicio
-        ? new Date(operativo.fecha_hora_inicio).toISOString().slice(0, 16)
+        ? new Date(operativo.fecha_hora_inicio + 'Z').toISOString().slice(0, 16)
         : "",
       fecha_hora_fin: operativo.fecha_hora_fin
-        ? new Date(operativo.fecha_hora_fin).toISOString().slice(0, 16)
+        ? new Date(operativo.fecha_hora_fin + 'Z').toISOString().slice(0, 16)
         : "",
       turno: operativo.turno || "MAÑANA",
       estado: operativo.estado === "ACTIVO" ? 1 : 0, // Convertir string a número para el checkbox
