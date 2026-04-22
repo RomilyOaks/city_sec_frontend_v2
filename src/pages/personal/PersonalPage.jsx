@@ -153,6 +153,7 @@ export default function PersonalPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
+  const [filterCargo, setFilterCargo] = useState("");
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingPersonal, setEditingPersonal] = useState(null);
@@ -294,6 +295,7 @@ export default function PersonalPage() {
     nextPage = 1,
     searchOverride,
     statusOverride,
+    cargoOverride,
   } = {}) => {
     // Si no tiene permisos, no hacer la llamada
     if (!canRead) {
@@ -312,11 +314,14 @@ export default function PersonalPage() {
         searchOverride !== undefined ? searchOverride : search;
       const statusValue =
         statusOverride !== undefined ? statusOverride : filterStatus;
+      const cargoValue =
+        cargoOverride !== undefined ? cargoOverride : filterCargo;
       const result = await listPersonal({
         page: nextPage,
         limit: 15,
         status: statusValue || undefined,
         search: searchValue || undefined,
+        cargo_id: cargoValue || undefined,
       });
       const items = result?.personal || result?.data || result || [];
       setPersonal(Array.isArray(items) ? items : []);
@@ -337,7 +342,7 @@ export default function PersonalPage() {
 
   useEffect(() => {
     fetchPersonal({ nextPage: page });
-  }, [page, filterStatus, canRead]);
+  }, [page, filterStatus, filterCargo, canRead]);
 
   const handleSearch = () => {
     setPage(1);
@@ -1192,6 +1197,21 @@ export default function PersonalPage() {
             />
           </div>
           <select
+            value={filterCargo}
+            onChange={(e) => {
+              setFilterCargo(e.target.value);
+              setPage(1);
+            }}
+            className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
+          >
+            <option value="">Todos los cargos</option>
+            {cargos.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.nombre}
+              </option>
+            ))}
+          </select>
+          <select
             value={filterStatus}
             onChange={(e) => {
               setFilterStatus(e.target.value);
@@ -1216,11 +1236,13 @@ export default function PersonalPage() {
             onClick={() => {
               setSearch("");
               setFilterStatus("");
+              setFilterCargo("");
               setPage(1);
               fetchPersonal({
                 nextPage: 1,
                 searchOverride: "",
                 statusOverride: "",
+                cargoOverride: "",
               });
             }}
             className="inline-flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800"
