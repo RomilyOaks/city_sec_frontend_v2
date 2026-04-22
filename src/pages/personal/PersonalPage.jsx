@@ -250,6 +250,7 @@ export default function PersonalPage() {
           listCargos(),
           listVehiculosDisponibles(),
         ]);
+
         setCargos(Array.isArray(cargosRes) ? cargosRes : []);
         setVehiculosDisponibles(
           Array.isArray(vehiculosRes) ? vehiculosRes : []
@@ -508,17 +509,23 @@ export default function PersonalPage() {
         doc_numero: _docNum,
         ...updateData
       } = formData;
-      if (updateData.cargo_id)
+      
+      if (updateData.cargo_id) {
         updateData.cargo_id = Number(updateData.cargo_id);
-      if (updateData.vehiculo_id)
+      }
+      if (updateData.vehiculo_id) {
         updateData.vehiculo_id = Number(updateData.vehiculo_id);
+      }
+      
       // Usar ubigeo por defecto si no hay uno especificado
       if (!updateData.ubigeo_code && defaultUbigeo?.code) {
         updateData.ubigeo_code = defaultUbigeo.code;
       }
+      
       Object.keys(updateData).forEach((k) => {
         if (updateData[k] === "") delete updateData[k];
       });
+      
       await updatePersonal(editingPersonal.id, updateData);
       toast.success("Personal actualizado");
       setEditingPersonal(null);
@@ -586,6 +593,44 @@ export default function PersonalPage() {
       default:
         return "bg-slate-100 text-slate-800";
     }
+  };
+
+  /**
+   * cargoColor
+   * Retorna el color dinámico del backend para el badge del cargo.
+   * Usa el campo color proporcionado por el backend (PersonalSeguridadCargo.color).
+   *
+   * @param {Object} cargo - Objeto cargo con campo color
+   * @returns {string} - Color en formato hexadecimal o color por defecto
+   */
+  const cargoColor = (cargo) => {
+    // Usar color dinámico del backend, o color por defecto si no existe
+    return cargo?.color || "#6B7280"; // Color gris por defecto
+  };
+
+  /**
+   * cargoTextColor
+   * Determina el color de texto apropiado para el fondo del cargo.
+   * Calcula si el texto debe ser blanco o negro según el color de fondo.
+   *
+   * @param {string} backgroundColor - Color de fondo en formato hexadecimal
+   * @returns {string} - Color de texto (#FFFFFF o #000000)
+   */
+  const cargoTextColor = (backgroundColor) => {
+    // Si no hay color, usar texto oscuro
+    if (!backgroundColor) return "#000000";
+    
+    // Convertir hex a RGB para calcular luminosidad
+    const hex = backgroundColor.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    
+    // Calcular luminosidad relativa (WCAG formula)
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    
+    // Si luminosidad > 0.5, usar texto oscuro; si no, texto blanco
+    return luminance > 0.5 ? "#000000" : "#FFFFFF";
   };
 
   /**
@@ -1073,9 +1118,9 @@ export default function PersonalPage() {
               </label>
               <select
                 value={formData.vehiculo_id}
-                onChange={(e) =>
-                  setFormData({ ...formData, vehiculo_id: e.target.value })
-                }
+                onChange={(e) => {
+                  setFormData({ ...formData, vehiculo_id: e.target.value });
+                }}
                 className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
               >
                 <option value="">— Sin vehículo asignado —</option>
@@ -1235,9 +1280,11 @@ export default function PersonalPage() {
                 personal.map((p) => (
                   <tr
                     key={p.id}
-                    className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
+                    onDoubleClick={() => setViewingPersonal(p)}
+                    className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer ${
                       p.deleted_at ? "opacity-50" : ""
                     }`}
+                    title="Doble clic para ver detalles"
                   >
                     <td className="px-4 py-3 text-slate-700 dark:text-slate-200">
                       <span className="text-xs text-slate-500">
@@ -1249,10 +1296,20 @@ export default function PersonalPage() {
                     <td className="px-4 py-3 text-slate-900 dark:text-slate-50 font-medium">
                       {p.apellido_paterno} {p.apellido_materno}, {p.nombres}
                     </td>
-                    <td className="px-4 py-3 text-slate-700 dark:text-slate-200">
-                      {p.PersonalSeguridadCargo?.nombre ||
-                        p.cargo?.nombre ||
-                        "—"}
+                    <td className="px-4 py-3">
+                      {p.PersonalSeguridadCargo || p.cargo ? (
+                        <span
+                          className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium transition-all duration-200 hover:transform hover:translate-y-[-1px] hover:shadow-md"
+                          style={{
+                            backgroundColor: cargoColor(p.PersonalSeguridadCargo || p.cargo),
+                            color: cargoTextColor(cargoColor(p.PersonalSeguridadCargo || p.cargo))
+                          }}
+                        >
+                          {p.PersonalSeguridadCargo?.nombre || p.cargo?.nombre}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <span
@@ -1278,13 +1335,6 @@ export default function PersonalPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => setViewingPersonal(p)}
-                          className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                          title="Ver detalle"
-                        >
-                          <Eye size={14} />
-                        </button>
                         {canEdit && !p.deleted_at && (
                           <button
                             onClick={() => openEditModal(p)}
