@@ -59,6 +59,14 @@ export async function getTurnosParaReporte() {
 export async function buildReporteData(params) {
   const { fecha_inicio, fecha_fin, turno, sector_id, tipo_recurso } = params;
 
+  console.log("=== DEBUGGING BUILD REPORTE DATA ===");
+  console.log("Parámetros recibidos:", params);
+  console.log("fecha_inicio:", fecha_inicio);
+  console.log("fecha_fin:", fecha_fin);
+  console.log("turno:", turno);
+  console.log("sector_id:", sector_id);
+  console.log("tipo_recurso:", tipo_recurso);
+
   // 1. Obtener turnos operativos en el rango de fechas
   const queryParams = new URLSearchParams();
   queryParams.append("limit", "1000");
@@ -67,8 +75,16 @@ export async function buildReporteData(params) {
   if (turno && turno !== "todos") queryParams.append("turno", turno);
   if (sector_id && sector_id !== "todos") queryParams.append("sector_id", sector_id);
 
-  const turnosResponse = await api.get(`/operativos?${queryParams.toString()}`);
+  const queryString = queryParams.toString();
+  console.log("Query string enviada al backend:", queryString);
+  console.log("URL completa:", `/operativos?${queryString}`);
+
+  const turnosResponse = await api.get(`/operativos?${queryString}`);
   const turnosData = turnosResponse.data?.data?.items || turnosResponse.data?.data || turnosResponse.data || [];
+  
+  console.log("Respuesta del backend (cruda):", turnosResponse.data);
+  console.log("Turnos data extraída:", turnosData);
+  console.log("Cantidad de turnos recibidos:", turnosData.length);
 
   // 2. Para cada turno, obtener vehículos y/o personal según tipo_recurso
   const reporteData = [];
@@ -242,7 +258,91 @@ export async function buildReporteData(params) {
     }
   }
 
-  return {
+  // Extraer datos originales de turnos para la pestaña Sectores
+  const turnosOriginales = turnosData.map(turno => ({
+    id: turno.id,
+    fecha: turno.fecha,
+    turno: turno.turno,
+    sector: turno.sector?.nombre || turno.sector_nombre || "-",
+    operador: turno.operador
+      ? `${turno.operador.nombres || ""} ${turno.operador.apellido_paterno || ""}`.trim()
+      : "-",
+    supervisor: turno.supervisor
+      ? `${turno.supervisor.nombres || ""} ${turno.supervisor.apellido_paterno || ""}`.trim()
+      : "-",
+    fecha_hora_inicio: turno.fecha_hora_inicio,
+    fecha_hora_fin: turno.fecha_hora_fin,
+    estado: turno.estado,
+    observaciones: turno.observaciones,
+    operador_id: turno.operador_id,
+    sector_id: turno.sector_id,
+    supervisor_id: turno.supervisor_id
+  }));
+
+  // NOTA: El backend debe incorporar las novedades en la estructura de datos de los turnos
+  // Las novedades deben venir dentro de cada cuadrante en: recurso.cuadrantes[].novedades[]
+  // Por ahora, dejamos el array vacío hasta que backend implemente esta funcionalidad
+  
+  console.log("=== ESPERANDO NOVEDADES DESDE BACKEND ===");
+  console.log("El backend debe incorporar novedades en la estructura de cuadrantes");
+  console.log("Estructura esperada: recurso.cuadrantes[].novedades[]");
+  
+  const allNovedades = [];
+  
+  // Procesar novedades desde la estructura de turnos (cuando backend las incorpore)
+  for (const turnoInfo of reporteData) {
+    console.log("Procesando turnoInfo para novedades:", turnoInfo.turno_id, "-", turnoInfo.turno);
+    
+    for (const recurso of turnoInfo.recursos) {
+      if (recurso.cuadrantes && recurso.cuadrantes.length > 0) {
+        for (const cuadrante of recurso.cuadrantes) {
+          // Cuando backend incorpore novedades, vendrán en: cuadrante.novedades
+          if (cuadrante.novedades && cuadrante.novedades.length > 0) {
+            for (const novedad of cuadrante.novedades) {
+              allNovedades.push({
+                fecha_ocurrencia: novedad.fecha_hora_ocurrencia || novedad.fecha_ocurrencia || turnoInfo.fecha,
+                turno: turnoInfo.turno,
+                sector: turnoInfo.sector,
+                operador: turnoInfo.operador,
+                supervisor: turnoInfo.supervisor,
+                tipo_recurso: recurso.tipo,
+                recurso_nombre: recurso.personal_nombre || recurso.vehiculo_placa || "-",
+                cuadrante_codigo: cuadrante.cuadrante_code || cuadrante.codigo || "-",
+                cuadrante_nombre: cuadrante.cuadrante_nombre || cuadrante.nombre || "-",
+                tipo_novedad: novedad.tipo_novedad?.nombre || novedad.tipo_novedad || "-",
+                descripcion: novedad.descripcion || novedad.detalle || "-",
+                hora_ingreso: cuadrante.hora_ingreso,
+                hora_salida: cuadrante.hora_salida,
+                estado: novedad.estado || "REPORTADA",
+                novedad_id: novedad.id
+              });
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  console.log("Total de novedades encontradas (desde backend):", allNovedades.length);
+  
+  // Filtrar novedades por rango de fechas si se especifica
+  let novedadesFiltradas = allNovedades;
+  if (fecha_inicio || fecha_fin) {
+    console.log("Aplicando filtro de fechas a novedades del backend:");
+    console.log("fecha_inicio:", fecha_inicio);
+    console.log("fecha_fin:", fecha_fin);
+    
+    novedadesFiltradas = allNovedades.filter(nov => {
+      if (!nov.fecha_ocurrencia) return false;
+      const fechaNov = new Date(nov.fecha_ocurrencia).toISOString().split('T')[0];
+      if (fecha_inicio && fechaNov < fecha_inicio) return false;
+      if (fecha_fin && fechaNov > fecha_fin) return false;
+      return true;
+    });
+    console.log("Novedades después de filtrar por fecha:", novedadesFiltradas.length);
+  }
+
+  const resultado = {
     filtros: params,
     generado_en: new Date().toISOString(),
     total_turnos: reporteData.length,
@@ -256,7 +356,20 @@ export async function buildReporteData(params) {
       0
     ),
     data: reporteData,
+    turnos: turnosOriginales, // Agregar turnos originales para pestaña Sectores
+    novedades: novedadesFiltradas, // Agregar novedades para pestaña Novedades
   };
+
+  console.log("=== DEBUGGING RETORNO FINAL ===");
+  console.log("total_turnos:", resultado.total_turnos);
+  console.log("total_recursos:", resultado.total_recursos);
+  console.log("total_cuadrantes:", resultado.total_cuadrantes);
+  console.log("total_novedades:", resultado.total_novedades);
+  console.log("turnos.length:", resultado.turnos?.length || 0);
+  console.log("novedades.length:", resultado.novedades?.length || 0);
+  console.log("Estructura completa del resultado:", resultado);
+
+  return resultado;
 }
 
 export default {

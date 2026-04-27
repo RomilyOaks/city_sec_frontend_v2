@@ -296,7 +296,47 @@ export function canAccessRoute(user, routeKey) {
   return userRoles.some((r) => allowedRoles.includes(r));
 }
 
+// Funciones helper para acceso a localStorage
+function getStoredUser() {
+  try {
+    const authData = localStorage.getItem('auth-storage');
+    if (authData) {
+      const parsed = JSON.parse(authData);
+      return parsed.state?.user || null;
+    }
+  } catch (error) {
+    console.error('Error parsing stored user:', error);
+  }
+  return null;
+}
+
+function hasAnyRole(user, allowedRoles) {
+  const userRoles = getUserRoleSlugs(user);
+  return userRoles.some((role) => allowedRoles.includes(role));
+}
+
 // Verificar si puede realizar una acción específica
+/**
+ * Verifica si el usuario actual puede acceder a una ruta específica
+ * @param {string} routeKey - Clave de la ruta definida en ROUTE_ACCESS
+ * @returns {boolean} - True si tiene acceso, false si no
+ */
+export function canAccess(routeKey) {
+  const user = getStoredUser();
+  if (!user) {
+    return false;
+  }
+
+  const allowedRoles = ROUTE_ACCESS[routeKey];
+  if (!allowedRoles) {
+    return true; // Si no hay restricción, permitir acceso
+  }
+
+  const hasAccess = hasAnyRole(user, allowedRoles);
+  
+  return hasAccess;
+}
+
 export function canPerformAction(user, actionKey) {
   // super_admin siempre puede
   if (isSuperAdmin(user)) return true;

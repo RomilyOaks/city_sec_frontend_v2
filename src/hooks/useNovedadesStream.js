@@ -5,7 +5,7 @@
  * cada vez que llega una novedad nueva desde WhatsApp, App Móvil o cualquier canal.
  */
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef } from "react";
 
 const RECONNECT_DELAY_MS = 5000; // Reconectar tras 5s si se pierde conexión
 
@@ -20,8 +20,13 @@ export function useNovedadesStream(onNuevaNovedad, { enabled = true } = {}) {
     const eventSourceRef = useRef(null);
     const reconnectTimerRef = useRef(null);
 
-    // Estabilizar el callback para no re-conectar si el padre re-renderiza
-    const onNuevaNovedad_stable = useCallback(onNuevaNovedad, []); // eslint-disable-line
+    // Guardar el callback en un ref para que el EventSource siempre llame
+    // a la versión MÁS RECIENTE, sin necesidad de reconectar.
+    // useCallback con [] congelaría el closure y nunca leería justCreatedNovedad actualizado.
+    const callbackRef = useRef(onNuevaNovedad);
+    useEffect(() => {
+        callbackRef.current = onNuevaNovedad;
+    }); // sin deps → se actualiza en cada render
 
     useEffect(() => {
         if (!enabled) return;
@@ -85,7 +90,7 @@ export function useNovedadesStream(onNuevaNovedad, { enabled = true } = {}) {
                 try {
                     const novedad = JSON.parse(e.data);
                     console.info(`[SSE] 🚨 Nueva novedad: ${novedad.novedad_code}`);
-                    onNuevaNovedad_stable(novedad);
+                    callbackRef.current(novedad); // ← siempre llama la versión más reciente
                 } catch (error) {
                     console.error("[SSE] Error parseando nueva_novedad:", error);
                 }
@@ -116,5 +121,5 @@ export function useNovedadesStream(onNuevaNovedad, { enabled = true } = {}) {
             }
             console.info("[SSE] 🔌 Desconectado del stream");
         };
-    }, [enabled, onNuevaNovedad_stable]);
+    }, [enabled]); // callbackRef no necesita estar en deps — es siempre el mismo ref
 }

@@ -27,7 +27,7 @@ import { persist } from "zustand/middleware";
  * const { state, action } = useAuthStore();
  */
 
-import { ACTION_PERMISSIONS } from "../rbac/rbac.js";
+import { ACTION_PERMISSIONS, ROUTE_PERMISSIONS } from "../rbac/rbac.js";
 
 export const useAuthStore = create(
   persist(
@@ -97,6 +97,30 @@ export const useAuthStore = create(
         return requiredPermisos.every((p) => userPermisos.includes(p));
       },
 
+      // Helper para verificar permisos de lectura (alias para usar con ROUTE_PERMISSIONS)
+      canRead: (routeKey) => {
+        const user = get().user;
+
+        // super_admin tiene todos los permisos
+        const roles = user?.roles || [];
+        const isSuperAdmin = roles.some((r) => r?.slug === "super_admin");
+        if (isSuperAdmin) return true;
+
+        // Importar ROUTE_PERMISSIONS para verificar
+        const requiredPermisos = ROUTE_PERMISSIONS[routeKey];
+
+        if (!requiredPermisos || requiredPermisos.length === 0) return true;
+
+        const userPermisos = user?.permisos || [];
+        
+        // Extraer slugs de permisos (userPermisos es array de objetos)
+        const userPermisosSlugs = userPermisos.map(p => p?.slug || p).filter(Boolean);
+        
+        const hasPermission = requiredPermisos.some((p) => userPermisosSlugs.includes(p));
+        
+        return hasPermission;
+      },
+
       // Helper para verificar permisos de acción (alias para usar con ACTION_PERMISSIONS)
       can: (actionKey) => {
         const user = get().user;
@@ -112,7 +136,10 @@ export const useAuthStore = create(
         if (!requiredPermisos || requiredPermisos.length === 0) return true;
 
         const userPermisos = user?.permisos || [];
-        return requiredPermisos.some((p) => userPermisos.includes(p));
+        
+        const hasPermission = requiredPermisos.some((p) => userPermisos.includes(p));
+        
+        return hasPermission;
       },
     }),
     {
