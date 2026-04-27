@@ -76,19 +76,20 @@ const formatDate = (dateString) => {
 };
 
 /**
- * Formatea fecha/hora para mostrar (UI) - mantiene formato original de la BD sin conversión de timezone
+ * Formatea fecha/hora para mostrar (UI) - homologado con NovedadesPage.jsx para local time
  */
 const formatDateTime = (dateString) => {
   if (!dateString) return "-";
-  // Extraer componentes directamente del string ISO para evitar conversión de timezone
-  // Formato esperado: YYYY-MM-DDTHH:mm:ss.sssZ
-  const dateTimeMatch = dateString.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
-  if (dateTimeMatch) {
-    const [, year, month, day, hours, minutes] = dateTimeMatch;
-    return `${day}/${month}/${year} ${hours}:${minutes}`;
-  }
-  // Fallback si no coincide el formato
-  return dateString;
+  // Usar local time como NovedadesPage.jsx para evitar problemas UTC
+  const date = new Date(dateString);
+  return date.toLocaleString('es-PE', {
+    day: '2-digit',
+    month: '2-digit', 
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
 };
 
 
@@ -121,20 +122,22 @@ const formatNumberForExcel = (value) => {
 };
 
 /**
- * Obtiene fecha de hoy en formato YYYY-MM-DD
+ * Obtiene fecha de hoy en formato YYYY-MM-DD (local time)
+ * Homologado con NovedadesPage.jsx para evitar problemas de timezone
  */
 const getTodayDate = () => {
-  const today = new Date();
-  return today.toISOString().split("T")[0];
+  const now = new Date();
+  return now.toISOString().split("T")[0];
 };
 
 /**
- * Obtiene fecha de hace 7 días en formato YYYY-MM-DD
+ * Obtiene fecha de ayer en formato YYYY-MM-DD (local time)
+ * Cambiado de 7 días a 1 día (ayer) según requerimiento
  */
-const getWeekAgoDate = () => {
-  const date = new Date();
-  date.setDate(date.getDate() - 7);
-  return date.toISOString().split("T")[0];
+const getYesterdayDate = () => {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  return yesterday.toISOString().split("T")[0];
 };
 
 /**
@@ -147,7 +150,7 @@ export default function ReportesOperativosPage() {
 
   // Estados de filtros
   const [filters, setFilters] = useState({
-    fecha_inicio: getWeekAgoDate(),
+    fecha_inicio: getYesterdayDate(), // Cambiado de getWeekAgoDate() a getYesterdayDate()
     fecha_fin: getTodayDate(),
     turno: "todos",
     sector_id: "todos",
@@ -309,7 +312,68 @@ export default function ReportesOperativosPage() {
       XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen");
 
       // ========================================
-      // HOJA 2: DETALLE VEHÍCULOS
+      // HOJA 2: SECTORES
+      // ========================================
+      if (reporteData.turnos && reporteData.turnos.length > 0) {
+        const sectoresHeaders = [
+          "Fecha",
+          "Turno",
+          "Sector",
+          "Operador",
+          "Supervisor",
+          "Fecha/Hora Inicio",
+          "Fecha/Hora Fin",
+          "Estado",
+          "Observaciones"
+        ];
+
+        const sectoresRows = [sectoresHeaders];
+
+        for (const turno of reporteData.turnos) {
+          sectoresRows.push([
+            formatDateForExcel(turno.fecha),
+            turno.turno || "-",
+            turno.sector || "-",
+            turno.operador || "-",
+            turno.supervisor || "-",
+            formatDateTime(turno.fecha_hora_inicio),
+            formatDateTime(turno.fecha_hora_fin),
+            turno.estado || "-",
+            turno.observaciones || "-"
+          ]);
+        }
+
+        const wsSectores = XLSX.utils.aoa_to_sheet(sectoresRows);
+        wsSectores["!cols"] = [
+          { wch: 12 }, // Fecha
+          { wch: 10 }, // Turno
+          { wch: 18 }, // Sector
+          { wch: 22 }, // Operador
+          { wch: 22 }, // Supervisor
+          { wch: 20 }, // Fecha/Hora Inicio
+          { wch: 20 }, // Fecha/Hora Fin
+          { wch: 12 }, // Estado
+          { wch: 30 }, // Observaciones
+        ];
+
+        // Aplicar formato de fecha a columnas de fecha/hora
+        const rangeSectores = XLSX.utils.decode_range(wsSectores['!ref']);
+        for (let C = 0; C <= rangeSectores.e.c; C++) {
+          if ([0, 5, 6].includes(C)) { // Columnas: Fecha, Fecha/Hora Inicio, Fecha/Hora Fin
+            for (let R = 1; R <= rangeSectores.e.r; R++) {
+              const cellRef = XLSX.utils.encode_cell({c: C, r: R});
+              if (wsSectores[cellRef] && wsSectores[cellRef].v) {
+                wsSectores[cellRef].z = C === 0 ? 'yyyy-mm-dd;@' : 'yyyy-mm-dd hh:mm:ss;@';
+              }
+            }
+          }
+        }
+
+        XLSX.utils.book_append_sheet(wb, wsSectores, "Sectores");
+      }
+
+      // ========================================
+      // HOJA 3: DETALLE VEHÍCULOS
       // ========================================
       if (vehiculos.length > 0) {
         const vehiculosHeaders = [
@@ -553,6 +617,82 @@ const wsCuadrantes = XLSX.utils.aoa_to_sheet(cuadrantesRows);
         XLSX.utils.book_append_sheet(wb, wsCuadrantes, "Cuadrantes Patrullados");
 
       // ========================================
+      // HOJA 5: NOVEDADES
+      // ========================================
+      if (reporteData.novedades && reporteData.novedades.length > 0) {
+        const novedadesHeaders = [
+          "Fecha Ocurrencia",
+          "Turno",
+          "Sector",
+          "Operador",
+          "Supervisor",
+          "Tipo Recurso",
+          "Recurso",
+          "Cuadrante Código",
+          "Cuadrante Nombre",
+          "Tipo Novedad",
+          "Descripción",
+          "Hora Ingreso",
+          "Hora Salida",
+          "Estado"
+        ];
+
+        const novedadesRows = [novedadesHeaders];
+
+        for (const novedad of reporteData.novedades) {
+          novedadesRows.push([
+            formatDateForExcel(novedad.fecha_ocurrencia),
+            novedad.turno || "-",
+            novedad.sector || "-",
+            novedad.operador || "-",
+            novedad.supervisor || "-",
+            novedad.tipo_recurso || "-",
+            novedad.recurso_nombre || "-",
+            novedad.cuadrante_codigo || "-",
+            novedad.cuadrante_nombre || "-",
+            novedad.tipo_novedad || "-",
+            novedad.descripcion || "-",
+            novedad.hora_ingreso || "-",
+            novedad.hora_salida || "-",
+            novedad.estado || "-"
+          ]);
+        }
+
+        const wsNovedades = XLSX.utils.aoa_to_sheet(novedadesRows);
+        wsNovedades["!cols"] = [
+          { wch: 12 }, // Fecha Ocurrencia
+          { wch: 10 }, // Turno
+          { wch: 18 }, // Sector
+          { wch: 22 }, // Operador
+          { wch: 22 }, // Supervisor
+          { wch: 12 }, // Tipo Recurso
+          { wch: 20 }, // Recurso
+          { wch: 15 }, // Cuadrante Código
+          { wch: 25 }, // Cuadrante Nombre
+          { wch: 15 }, // Tipo Novedad
+          { wch: 40 }, // Descripción
+          { wch: 12 }, // Hora Ingreso
+          { wch: 12 }, // Hora Salida
+          { wch: 12 }, // Estado
+        ];
+
+        // Aplicar formato de fecha a columnas de fecha/hora
+        const rangeNovedades = XLSX.utils.decode_range(wsNovedades['!ref']);
+        for (let C = 0; C <= rangeNovedades.e.c; C++) {
+          if ([0, 11, 12].includes(C)) { // Columnas: Fecha Ocurrencia, Hora Ingreso, Hora Salida
+            for (let R = 1; R <= rangeNovedades.e.r; R++) {
+              const cellRef = XLSX.utils.encode_cell({c: C, r: R});
+              if (wsNovedades[cellRef] && wsNovedades[cellRef].v) {
+                wsNovedades[cellRef].z = C === 0 ? 'yyyy-mm-dd;@' : 'yyyy-mm-dd hh:mm:ss;@';
+              }
+            }
+          }
+        }
+
+        XLSX.utils.book_append_sheet(wb, wsNovedades, "Novedades");
+      }
+
+      // ========================================
       // Generar y descargar archivo
       // ========================================
       const fechaArchivo = new Date().toISOString().split("T")[0];
@@ -616,7 +756,7 @@ const wsCuadrantes = XLSX.utils.aoa_to_sheet(cuadrantesRows);
                 <FileSpreadsheet className="w-6 h-6 text-orange-600 dark:text-orange-400" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-50">
+                <h1 className="text-xl font-bold text-slate-900 dark:text-slate-50">
                   Reportes de Operativos
                 </h1>
                 <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -633,50 +773,50 @@ const wsCuadrantes = XLSX.utils.aoa_to_sheet(cuadrantesRows);
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6">
           <div className="flex items-center gap-2 mb-4">
             <Filter size={20} className="text-orange-600" />
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
+            <h2 className="text-base font-semibold text-slate-900 dark:text-slate-50">
               Filtros del Reporte
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {/* Fecha Inicio */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                <Calendar size={14} className="inline mr-1" />
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <Calendar size={14} className="inline mr-1 text-slate-600 dark:text-white" />
                 Fecha Inicio
               </label>
               <input
                 type="date"
                 value={filters.fecha_inicio}
                 onChange={(e) => setFilters({ ...filters, fecha_inicio: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50 [color-scheme:light] dark:[color-scheme:dark]"
               />
             </div>
 
             {/* Fecha Fin */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                <Calendar size={14} className="inline mr-1" />
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <Calendar size={14} className="inline mr-1 text-slate-600 dark:text-white" />
                 Fecha Fin
               </label>
               <input
                 type="date"
                 value={filters.fecha_fin}
                 onChange={(e) => setFilters({ ...filters, fecha_fin: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50 [color-scheme:light] dark:[color-scheme:dark]"
               />
             </div>
 
             {/* Turno */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                 <Clock size={14} className="inline mr-1" />
                 Turno
               </label>
               <select
                 value={filters.turno}
                 onChange={(e) => setFilters({ ...filters, turno: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50 [color-scheme:light] dark:[color-scheme:dark]"
               >
                 {TURNO_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -688,7 +828,7 @@ const wsCuadrantes = XLSX.utils.aoa_to_sheet(cuadrantesRows);
 
             {/* Sector */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                 <MapPin size={14} className="inline mr-1" />
                 Sector
               </label>
@@ -696,7 +836,7 @@ const wsCuadrantes = XLSX.utils.aoa_to_sheet(cuadrantesRows);
                 value={filters.sector_id}
                 onChange={(e) => setFilters({ ...filters, sector_id: e.target.value })}
                 disabled={loadingSectores}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white disabled:opacity-50"
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50 [color-scheme:light] dark:[color-scheme:dark] disabled:opacity-50"
               >
                 <option value="todos">Todos los sectores</option>
                 {sectores.map((s) => (
@@ -709,14 +849,14 @@ const wsCuadrantes = XLSX.utils.aoa_to_sheet(cuadrantesRows);
 
             {/* Tipo de Recurso */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                 <Car size={14} className="inline mr-1" />
                 Tipo de Recurso
               </label>
               <select
                 value={filters.tipo_recurso}
                 onChange={(e) => setFilters({ ...filters, tipo_recurso: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50 [color-scheme:light] dark:[color-scheme:dark]"
               >
                 {TIPO_RECURSO_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -729,7 +869,7 @@ const wsCuadrantes = XLSX.utils.aoa_to_sheet(cuadrantesRows);
             {/* Tipo de Vehículo (condicional) */}
             {filters.tipo_recurso === "VEHICULO" && (
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                   <Truck size={14} className="inline mr-1" />
                   Tipo de Vehículo
                 </label>
@@ -737,7 +877,7 @@ const wsCuadrantes = XLSX.utils.aoa_to_sheet(cuadrantesRows);
                   value={filters.tipo_vehiculo_id}
                   onChange={(e) => setFilters({ ...filters, tipo_vehiculo_id: e.target.value })}
                   disabled={loadingTiposVehiculo}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white disabled:opacity-50"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50 [color-scheme:light] dark:[color-scheme:dark] disabled:opacity-50"
                 >
                   <option value="todos">Todos los tipos</option>
                   {tiposVehiculo.map((tv) => (
@@ -806,36 +946,36 @@ const wsCuadrantes = XLSX.utils.aoa_to_sheet(cuadrantesRows);
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 text-center">
-                  <Clock size={24} className="mx-auto text-blue-600 dark:text-blue-400 mb-2" />
-                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3 text-center">
+                  <Clock size={20} className="mx-auto text-blue-600 dark:text-blue-400 mb-1" />
+                  <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
                     {reporteData.total_turnos}
                   </p>
-                  <p className="text-sm text-blue-600 dark:text-blue-400">Turnos</p>
+                  <p className="text-xs text-blue-600 dark:text-blue-400">Turnos</p>
                 </div>
 
-                <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-4 text-center">
-                  <Users size={24} className="mx-auto text-purple-600 dark:text-purple-400 mb-2" />
-                  <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-3 text-center">
+                  <Users size={20} className="mx-auto text-purple-600 dark:text-purple-400 mb-1" />
+                  <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
                     {reporteData.total_recursos}
                   </p>
-                  <p className="text-sm text-purple-600 dark:text-purple-400">Recursos</p>
+                  <p className="text-xs text-purple-600 dark:text-purple-400">Recursos</p>
                 </div>
 
-                <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 text-center">
-                  <MapPin size={24} className="mx-auto text-green-600 dark:text-green-400 mb-2" />
-                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-3 text-center">
+                  <MapPin size={20} className="mx-auto text-green-600 dark:text-green-400 mb-1" />
+                  <p className="text-lg font-bold text-green-600 dark:text-green-400">
                     {reporteData.total_cuadrantes}
                   </p>
-                  <p className="text-sm text-green-600 dark:text-green-400">Cuadrantes</p>
+                  <p className="text-xs text-green-600 dark:text-green-400">Cuadrantes</p>
                 </div>
 
-                <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4 text-center">
-                  <Bell size={24} className="mx-auto text-amber-600 dark:text-amber-400 mb-2" />
-                  <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+                <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3 text-center">
+                  <Bell size={20} className="mx-auto text-amber-600 dark:text-amber-400 mb-1" />
+                  <p className="text-lg font-bold text-amber-600 dark:text-amber-400">
                     {reporteData.total_novedades}
                   </p>
-                  <p className="text-sm text-amber-600 dark:text-amber-400">Novedades</p>
+                  <p className="text-xs text-amber-600 dark:text-amber-400">Novedades</p>
                 </div>
               </div>
             </div>

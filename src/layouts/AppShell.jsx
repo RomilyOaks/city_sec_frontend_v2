@@ -39,6 +39,7 @@ import {
   Radio,
   FileText,
   Briefcase,
+  BarChart3,
 } from "lucide-react";
 
 import ThemeToggle from "../components/common/ThemeToggle.jsx";
@@ -255,6 +256,26 @@ export default function AppShell() {
               <SidebarLink to="/operativos/turnos" icon={Clipboard}>
                 Operativos de Patrullaje
               </SidebarLink>
+            )}
+
+            {/* ============================================
+                REPORTES V2.0 - NUEVO SISTEMA DE REPORTES
+                ============================================ */}
+            {canAccess("operativos_turnos") && (
+              <SidebarDropdown icon={FileText} label="Reportes v2">
+                <SidebarLink to="/reportes-operativos" icon={BarChart3}>
+                  Dashboard Reportes
+                </SidebarLink>
+                <SidebarLink to="/reportes-operativos/vehiculares" icon={Car}>
+                  Operativos Vehiculares
+                </SidebarLink>
+                <SidebarLink to="/reportes-operativos/pie" icon={Users}>
+                  Operativos a Pie
+                </SidebarLink>
+                <SidebarLink to="/reportes-operativos/no-atendidas" icon={AlertTriangle}>
+                  Novedades No Atendidas
+                </SidebarLink>
+              </SidebarDropdown>
             )}
 
             {/* ============================================

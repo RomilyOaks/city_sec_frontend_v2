@@ -440,7 +440,7 @@ export default function OperativosTurnoPage() {
         sector_id: Number(formData.sector_id),
         fecha: formData.fecha,
         turno: formData.turno,
-        estado: formData.estado === "ACTIVO" || formData.estado === 1 || formData.estado === true ? "ACTIVO" : "INACTIVO",
+        estado: formData.estado === 1 || formData.estado === true ? "ACTIVO" : "CERRADO",
       };
 
       // Agregar campos opcionales solo si tienen valor
@@ -866,7 +866,7 @@ export default function OperativosTurnoPage() {
               setFilterFecha(e.target.value);
               setPage(1);
             }}
-            className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 [color-scheme:light] dark:[color-scheme:dark]"
+            className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-xs text-slate-900 dark:text-slate-50 [color-scheme:light] dark:[color-scheme:dark]"
           />
 
           {/* Filtro Turno */}
@@ -876,7 +876,7 @@ export default function OperativosTurnoPage() {
               setFilterTurno(e.target.value);
               setPage(1);
             }}
-            className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+            className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-xs text-slate-900 dark:text-slate-50"
           >
             <option value="">Todos los turnos</option>
             {TURNO_OPTIONS.map((t) => (
@@ -893,7 +893,7 @@ export default function OperativosTurnoPage() {
               setFilterSector(e.target.value);
               setPage(1);
             }}
-            className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+            className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-xs text-slate-900 dark:text-slate-50"
           >
             <option value="">Todos los sectores</option>
             {sectores.map((s) => (
@@ -913,7 +913,7 @@ export default function OperativosTurnoPage() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Supervisor/Operador..."
-              className="w-full pl-10 pr-10 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50 placeholder:text-slate-400"
+              className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-xs text-slate-900 dark:text-slate-50 placeholder:text-slate-400"
             />
             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
               {isSearching && (
@@ -944,7 +944,7 @@ export default function OperativosTurnoPage() {
               setFilterEstado(e.target.value);
               setPage(1);
             }}
-            className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"
+            className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-xs text-slate-900 dark:text-slate-50"
           >
             <option value="">Todos</option>
             <option value="ACTIVO">Activo</option>
@@ -1046,10 +1046,12 @@ export default function OperativosTurnoPage() {
                         className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
                           op.estado === "ACTIVO"
                             ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300"
-                            : "bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300"
+                            : op.estado === "CERRADO"
+                            ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
+                            : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
                         }`}
                       >
-                        {op.estado === "ACTIVO" ? "Activo" : "Inactivo"}
+                        {op.estado === "ACTIVO" ? "Activo" : op.estado === "CERRADO" ? "Cerrado" : "Anulado"}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -1316,10 +1318,12 @@ export default function OperativosTurnoPage() {
                     className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
                       viewingOperativo.estado === "ACTIVO"
                         ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300"
-                        : "bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300"
+                        : viewingOperativo.estado === "CERRADO"
+                        ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
+                        : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
                     }`}
                   >
-                    {viewingOperativo.estado === "ACTIVO" ? "Activo" : "Inactivo"}
+                    {viewingOperativo.estado === "ACTIVO" ? "Activo" : viewingOperativo.estado === "CERRADO" ? "Cerrado" : "Anulado"}
                   </span>
                 </div>
               </div>

@@ -56,6 +56,14 @@ import CuadrantesPorVehiculo from "../pages/operativos/vehiculos/CuadrantesPorVe
 import NovedadesPorCuadrante from "../pages/operativos/vehiculos/NovedadesPorCuadrante.jsx";
 import ReportesOperativosPage from "../pages/operativos/ReportesOperativosPage.jsx";
 
+// ============================================
+// IMPORTAR PÁGINAS DEL MÓDULO REPORTES V2.0
+// ============================================
+import ReportesOperativosDashboardPage from "../pages/reportes-operativos/ReportesOperativosDashboardPage.jsx";
+import OperativosVehicularesPage from "../pages/reportes-operativos/OperativosVehicularesPage.jsx";
+import OperativosPiePage from "../pages/reportes-operativos/OperativosPiePage.jsx";
+import NovedadesNoAtendidasPage from "../pages/reportes-operativos/NovedadesNoAtendidasPage.jsx";
+
 /**
  * AppRouter - Router principal con rutas públicas y protegidas
  *
@@ -187,6 +195,42 @@ export default function AppRouter() {
           element={
             <ProtectedRoute routeKey="operativos_turnos">
               <ReportesOperativosPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ============================================
+            MÓDULO REPORTES V2.0 - NUEVO SISTEMA
+            ============================================ */}
+        <Route
+          path="reportes-operativos"
+          element={
+            <ProtectedRoute routeKey="operativos_turnos">
+              <ReportesOperativosDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="reportes-operativos/vehiculares"
+          element={
+            <ProtectedRoute routeKey="operativos_turnos">
+              <OperativosVehicularesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="reportes-operativos/pie"
+          element={
+            <ProtectedRoute routeKey="operativos_turnos">
+              <OperativosPiePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="reportes-operativos/no-atendidas"
+          element={
+            <ProtectedRoute routeKey="operativos_turnos">
+              <NovedadesNoAtendidasPage />
             </ProtectedRoute>
           }
         />

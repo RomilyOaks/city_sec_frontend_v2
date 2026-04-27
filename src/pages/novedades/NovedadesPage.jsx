@@ -16,7 +16,7 @@
  *
  * @module src/pages/novedades/NovedadesPage.jsx
  */
-import { useEffect, useState, useRef ,useCallback  } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { showValidationError } from "../../utils/errorUtils";
@@ -363,15 +363,15 @@ const formatDireccionManual = (formData, callesList) => {
  */
 const abreviarNombreTipo = (tipoNombre) => {
   if (!tipoNombre) return "—";
-  
+
   // Buscar primer slash en el tipo
   const primerSlashIndex = tipoNombre.indexOf("/");
-  
+
   if (primerSlashIndex === -1) {
     // Si no hay slash, devolver tipo completo
     return tipoNombre;
   }
-  
+
   // Tomar desde el inicio hasta el primer slash (excluyendo el slash)
   return tipoNombre.substring(0, primerSlashIndex).trim();
 };
@@ -507,6 +507,8 @@ export default function NovedadesPage() {
   const [deletingNovedad, setDeletingNovedad] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const justCreatedNovedad = useRef(null); // ID de novedad recién creada (post-creación)
+  const isCreatingManually = useRef(false); // true DURANTE el await createNovedad → bloquea SSE
   const [viewingFromTruck, setViewingFromTruck] = useState(false); // Track si se abrió desde Truck o Eye
   const [gpsEnabled, setGpsEnabled] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
@@ -629,63 +631,74 @@ export default function NovedadesPage() {
     observaciones_historial: "",
   });
 
-// ── SSE: recibir novedades en tiempo real ─────────────────────────────────────
-// Se activa cuando llega una novedad nueva desde WhatsApp, App Móvil u otro canal
-const handleNuevaNovedad = useCallback((novedad) => {
-  // 1. Evitar duplicados si la novedad ya existe en la lista
-  const yaExiste = novedades.some((n) => n.id === novedad.id);
-  if (yaExiste) return;
+  // ── SSE: recibir novedades en tiempo real ─────────────────────────────────────
+  // Se activa cuando llega una novedad nueva desde WhatsApp, App Móvil u otro canal
+  const handleNuevaNovedad = useCallback((novedad) => {
+    // 1. Evitar duplicados si la novedad ya existe en la lista
+    const yaExiste = novedades.some((n) => n.id === novedad.id);
+    if (yaExiste) return;
 
-  // 2. Toast de notificación usando react-hot-toast (ya lo tienes instalado)
-  toast(
-    (t) => (
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-2 font-semibold text-slate-800">
-          <span>🚨</span>
-          <span>Nueva Novedad Recibida</span>
-        </div>
-        <p className="text-xs text-slate-600">
-          {novedad.novedad_code} — {novedad.descripcion?.substring(0, 60)}...
-        </p>
-        <p className="text-xs text-slate-500">
-          📍 {novedad.localizacion || "Ubicación no especificada"}
-        </p>
-        <button
-          onClick={() => toast.dismiss(t.id)}
-          className="text-xs text-primary-600 hover:underline mt-1 text-left"
-        >
-          Cerrar
-        </button>
-      </div>
-    ),
-    {
-      duration: 10000,
-      icon: null,
-      style: {
-        border: novedad.prioridad_actual === "ALTA"
-          ? "2px solid #ef4444"
-          : novedad.prioridad_actual === "MEDIA"
-          ? "2px solid #f59e0b"
-          : "2px solid #22c55e",
-        padding: "12px",
-        maxWidth: "380px",
-      },
+    // 2. Evitar mostrar toast SSE si la novedad fue creada manualmente hace menos de 10 segundos
+    // justCreatedNovedad es useRef → siempre lee el valor más reciente sin depender de re-renders
+    const creada = justCreatedNovedad.current;
+    if (creada && creada.id === novedad.id) {
+      const tiempoTranscurrido = Date.now() - creada.timestamp;
+      if (tiempoTranscurrido < 10000) {
+        console.log("[SSE] Ignorando novedad recién creada manualmente:", novedad.id);
+        return;
+      }
     }
-  );
 
-  // 3. Actualizar título del tab para llamar atención al operador
-  document.title = `🚨 Nueva Novedad — CitySecure`;
-  setTimeout(() => {
-    document.title = "CitySecure";
-  }, 8000);
+    // 3. Toast de notificación usando react-hot-toast (ya lo tienes instalado)
+    toast(
+      (t) => (
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2 font-semibold text-slate-800">
+            <span>🚨</span>
+            <span>Nueva Novedad Recibida</span>
+          </div>
+          <p className="text-xs text-slate-600">
+            {novedad.novedad_code} — {novedad.descripcion?.substring(0, 60)}...
+          </p>
+          <p className="text-xs text-slate-500">
+            📍 {novedad.localizacion || "Ubicación no especificada"}
+          </p>
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="text-xs text-primary-600 hover:underline mt-1 text-left"
+          >
+            Cerrar
+          </button>
+        </div>
+      ),
+      {
+        duration: 5000, // Cambiado de 10000 a 5000 (5 segundos)
+        icon: null,
+        style: {
+          border: novedad.prioridad_actual === "ALTA"
+            ? "2px solid #ef4444"
+            : novedad.prioridad_actual === "MEDIA"
+              ? "2px solid #f59e0b"
+              : "2px solid #22c55e",
+          padding: "12px",
+          maxWidth: "380px",
+        },
+      }
+    );
 
-  // 4. Refrescar los datos completamente para obtener todos los campos
-  // Esto asegura que la tabla muestre todos los datos (fecha, tipo, usuario, etc.)
-  fetchNovedades({ nextPage: 1 });
-}, [novedades]);  
+    // 3. Actualizar título del tab para llamar atención al operador
+    document.title = `¡Nueva Novedad! ${novedad.novedad_code} - CitySecure`;
+    setTimeout(() => {
+      document.title = "CitySecure";
+    }, 5000); // Cambiado de 8000 a 5000 para coincidir con el toast
 
-// ─────────────────────────────────────────────────────────────────────────────
-  
+    // 4. Refrescar los datos completamente para obtener todos los campos
+    // Esto asegura que la tabla muestre todos los datos (fecha, tipo, usuario, etc.)
+    fetchNovedades({ nextPage: 1 });
+  }, [novedades]); // justCreatedNovedad es useRef → no va en deps
+
+  // ─────────────────────────────────────────────────────────────────────────────
+
   /**
    * fetchNovedades
    * Consulta paginada de novedades desde el backend usando los filtros actuales.
@@ -901,8 +914,8 @@ const handleNuevaNovedad = useCallback((novedad) => {
     }
   }, [searchParams, novedades]);
 
-// Activar el stream SSE después de definir fetchNovedades
-useNovedadesStream(handleNuevaNovedad);
+  // Activar el stream SSE después de definir fetchNovedades
+  useNovedadesStream(handleNuevaNovedad);
 
   // Atajo de teclado ALT+N para abrir formulario de creación
   // PageDown/PageUp para navegación de pestañas en el modal
@@ -1120,9 +1133,9 @@ useNovedadesStream(handleNuevaNovedad);
           });
           setCuadrantesRegistro(
             cuadrantesData?.items ||
-              cuadrantesData?.data ||
-              cuadrantesData ||
-              [],
+            cuadrantesData?.data ||
+            cuadrantesData ||
+            [],
           );
         } catch (error) {
           console.error("Error al cargar cuadrantes:", error);
@@ -1352,7 +1365,8 @@ useNovedadesStream(handleNuevaNovedad);
           : formData.descripcion;
       const observacionesHistorial = `Novedad creada: ${nombreTipo} / ${nombreSubtipo} - ${descripcionCorta}`;
 
-      await createNovedad({
+      isCreatingManually.current = true; // 🔒 Bloquear SSE antes de llamar al backend
+      const response = await createNovedad({
         tipo_novedad_id: Number(formData.tipo_novedad_id),
         subtipo_novedad_id: Number(formData.subtipo_novedad_id),
         fecha_hora_ocurrencia: toBackendDatetime(
@@ -1383,7 +1397,15 @@ useNovedadesStream(handleNuevaNovedad);
         observaciones_historial: observacionesHistorial,
       });
 
-      toast.success("Novedad creada exitosamente");
+      // Registrar novedad creada manualmente para evitar duplicación SSE
+      // createNovedad retorna res.data → { success, data: { id, novedad_code } }
+      justCreatedNovedad.current = {
+        id: response?.data?.id ?? response?.id,
+        timestamp: Date.now()
+      };
+      console.log("[SSE guard] Novedad manual registrada, id:", justCreatedNovedad.current.id);
+
+      // Eliminado toast verde redundante - ahora solo se muestra el modal SSE
       setShowCreateForm(false);
       resetForm();
       setPage(1);
@@ -1392,6 +1414,8 @@ useNovedadesStream(handleNuevaNovedad);
       toast.error(err?.response?.data?.message || "Error al crear novedad");
     } finally {
       setSaving(false);
+      // 🔓 Desbloquear SSE tras 3s extra de margen (por si el SSE llega tarde)
+      setTimeout(() => { isCreatingManually.current = false; }, 3000);
     }
   };
 
@@ -1453,10 +1477,10 @@ useNovedadesStream(handleNuevaNovedad);
     try {
       // Guardar estado original ANTES de cargar datos completos
       const estadoOriginalId = novedad.estado_novedad_id;
-      
+
       // Obtener datos completos de la novedad para tener usuarioDespacho
       const novedadCompleta = await getNovedadById(novedad.id);
-      
+
       // Restaurar estado original en la novedad completa para el historial
       novedadCompleta.estado_novedad_id = estadoOriginalId;
       // Validar que solo el usuario que despachó puede atender (excepto supervisor)
@@ -1484,8 +1508,8 @@ useNovedadesStream(handleNuevaNovedad);
         fecha_despacho: novedadCompleta.fecha_despacho
           ? new Date(novedadCompleta.fecha_despacho).toISOString().slice(0, 16)
           : new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-              .toISOString()
-              .slice(0, 16),
+            .toISOString()
+            .slice(0, 16),
         turno: novedadCompleta.turno || "",
         tiempo_respuesta_minutos:
           novedadCompleta.tiempo_respuesta_minutos || "",
@@ -1502,8 +1526,8 @@ useNovedadesStream(handleNuevaNovedad);
         km_final: novedadCompleta.km_final || "",
         fecha_proxima_revision: novedadCompleta.fecha_proxima_revision
           ? new Date(novedadCompleta.fecha_proxima_revision)
-              .toISOString()
-              .slice(0, 10)
+            .toISOString()
+            .slice(0, 10)
           : "",
         perdidas_materiales_estimadas:
           novedadCompleta.perdidas_materiales_estimadas || "",
@@ -1511,8 +1535,8 @@ useNovedadesStream(handleNuevaNovedad);
         observaciones_historial: "",
         usar_fecha_cierre_actual: false, // Siempre inicia sin marcar
       });
-      
-            setAtencionTab(0);
+
+      setAtencionTab(0);
       setHistorialEstados([]);
       setShowAtencionModal(true);
       // Cargar catálogos si no están cargados
@@ -1597,10 +1621,10 @@ useNovedadesStream(handleNuevaNovedad);
           : {}),
         ...(seguimientoData.personal_seguridad2_id
           ? {
-              personal_seguridad2_id: Number(
-                seguimientoData.personal_seguridad2_id,
-              ),
-            }
+            personal_seguridad2_id: Number(
+              seguimientoData.personal_seguridad2_id,
+            ),
+          }
           : {}),
 
         // Fechas y kilometraje (sin Z, backend interpreta como hora local Peru)
@@ -1711,7 +1735,7 @@ useNovedadesStream(handleNuevaNovedad);
 
     setSaving(true);
     try {
-      
+
       const payload = {
         unidad_oficina_id: atencionData.unidad_oficina_id
           ? Number(atencionData.unidad_oficina_id)
@@ -1779,8 +1803,8 @@ useNovedadesStream(handleNuevaNovedad);
         );
         const vehiculoDesc = vehiculoSel
           ? [vehiculoSel.tipoVehiculo?.nombre, vehiculoSel.placa]
-              .filter(Boolean)
-              .join(" - ")
+            .filter(Boolean)
+            .join(" - ")
           : null;
         const personalSel = personalSeguridad.find(
           (p) => p.id === Number(atencionData.personal_cargo_id),
@@ -1793,7 +1817,7 @@ useNovedadesStream(handleNuevaNovedad);
         if (personalDesc) partes.push(`Personal: ${personalDesc}`);
         if (atencionData.observaciones)
           partes.push(`Obs: ${atencionData.observaciones}`);
-        
+
         // Para estados RESUELTA (6) o superior, usar solo observaciones_historial si existen
         let obsHistorial;
         if (nuevoEstadoId >= 6 && atencionData.observaciones_historial?.trim()) {
@@ -1811,7 +1835,7 @@ useNovedadesStream(handleNuevaNovedad);
         // Usar getLocalDatetime() igual que en operativos para consistencia
         const fechaLocal = getLocalDatetime();
 
-                
+
         await crearHistorialNovedad(
           selectedNovedad.id,
           obsHistorial,
@@ -1941,7 +1965,7 @@ useNovedadesStream(handleNuevaNovedad);
     }));
     setCalleSearchText(
       calle.nombre_completo ||
-        `${calle.tipo_via?.abreviatura || ""} ${calle.nombre_via}`.trim(),
+      `${calle.tipo_via?.abreviatura || ""} ${calle.nombre_via}`.trim(),
     );
     setShowCalleDropdown(false);
     setCallesFiltered([]);
@@ -2391,7 +2415,14 @@ useNovedadesStream(handleNuevaNovedad);
         observaciones_historial: observacionesHistorial,
       };
 
+      isCreatingManually.current = true; // 🔒 Bloquear SSE antes de llamar al backend
       const res = await createNovedad(novedadPayload);
+      
+      // ✅ Registrar la novedad creada para que el hook SSE la ignore
+      // createNovedad retorna res.data → { success, data: { id, novedad_code } }
+      const novedadId = res?.data?.id ?? res?.id;
+      justCreatedNovedad.current = { id: novedadId, timestamp: Date.now() };
+      console.log("[SSE guard] Novedad manual registrada, id:", novedadId);
 
       toast.success(
         `Novedad ${res?.data?.novedad_code || "creada"} exitosamente`,
@@ -2409,6 +2440,8 @@ useNovedadesStream(handleNuevaNovedad);
       showValidationError(error, toast, "Error al crear novedad");
     } finally {
       setSaving(false);
+      // 🔓 Desbloquear SSE tras 3s extra de margen
+      setTimeout(() => { isCreatingManually.current = false; }, 3000);
     }
   };
 
@@ -2425,8 +2458,7 @@ useNovedadesStream(handleNuevaNovedad);
     } catch (error) {
       console.error("Error al cargar cuadrantes del sector:", error);
       toast.error(
-        `Error al cargar cuadrantes del sector: ${
-          error.response?.data?.message || error.message
+        `Error al cargar cuadrantes del sector: ${error.response?.data?.message || error.message
         }`,
       );
     }
@@ -2631,11 +2663,10 @@ useNovedadesStream(handleNuevaNovedad);
         <div className="flex border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
           <button
             onClick={() => setPageTab(PAGE_TABS.LISTADO)}
-            className={`flex-1 sm:flex-none px-6 py-3 text-sm font-medium transition-colors ${
-              pageTab === PAGE_TABS.LISTADO
+            className={`flex-1 sm:flex-none px-6 py-3 text-sm font-medium transition-colors ${pageTab === PAGE_TABS.LISTADO
                 ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 border-b-2 border-primary-600 dark:border-primary-400"
                 : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
-            }`}
+              }`}
           >
             <div className="flex items-center gap-2">
               <FileText size={18} />
@@ -2648,11 +2679,10 @@ useNovedadesStream(handleNuevaNovedad);
                 setPageTab(PAGE_TABS.REGISTRO);
                 resetRegistroForm();
               }}
-              className={`flex-1 sm:flex-none px-6 py-3 text-sm font-medium transition-colors ${
-                pageTab === PAGE_TABS.REGISTRO
+              className={`flex-1 sm:flex-none px-6 py-3 text-sm font-medium transition-colors ${pageTab === PAGE_TABS.REGISTRO
                   ? "bg-white dark:bg-slate-900 text-primary-600 dark:text-primary-400 border-b-2 border-primary-600 dark:border-primary-400"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
-              }`}
+                }`}
             >
               <div className="flex items-center gap-2">
                 <Plus size={18} />
@@ -2860,9 +2890,8 @@ useNovedadesStream(handleNuevaNovedad);
                         <tr
                           key={n.id}
                           onClick={() => openViewingModal(n)}
-                          className={`cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
-                            n.deleted_at ? "opacity-50" : ""
-                          }`}
+                          className={`cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 ${n.deleted_at ? "opacity-50" : ""
+                            }`}
                         >
                           <td className="px-2 py-2 text-slate-700 dark:text-slate-200">
                             <OrigenLlamadaCell
@@ -2967,11 +2996,10 @@ useNovedadesStream(handleNuevaNovedad);
                           </td>
                           <td className="px-3 py-2">
                             <span
-                              className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                                typeof estadoColor(n.novedadEstado) === "string"
+                              className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium ${typeof estadoColor(n.novedadEstado) === "string"
                                   ? estadoColor(n.novedadEstado)
                                   : ""
-                              }`}
+                                }`}
                               style={
                                 typeof estadoColor(n.novedadEstado) === "object"
                                   ? estadoColor(n.novedadEstado)
@@ -3289,11 +3317,10 @@ useNovedadesStream(handleNuevaNovedad);
                           readOnly={
                             registroFormData.origen_llamada === "RADIO_TETRA"
                           }
-                          className={`w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 uppercase ${
-                            registroFormData.origen_llamada === "RADIO_TETRA"
+                          className={`w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 uppercase ${registroFormData.origen_llamada === "RADIO_TETRA"
                               ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
                               : "bg-white dark:bg-slate-900"
-                          }`}
+                            }`}
                         />
                       </div>
                       <div>
@@ -3311,11 +3338,10 @@ useNovedadesStream(handleNuevaNovedad);
                           disabled={
                             registroFormData.origen_llamada === "RADIO_TETRA"
                           }
-                          className={`w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 ${
-                            registroFormData.origen_llamada === "RADIO_TETRA"
+                          className={`w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 ${registroFormData.origen_llamada === "RADIO_TETRA"
                               ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
                               : "bg-white dark:bg-slate-900"
-                          }`}
+                            }`}
                         >
                           {TIPO_DOCUMENTO_OPTIONS.map((opt) => (
                             <option key={opt.value} value={opt.value}>
@@ -3341,11 +3367,10 @@ useNovedadesStream(handleNuevaNovedad);
                           readOnly={
                             registroFormData.origen_llamada === "RADIO_TETRA"
                           }
-                          className={`w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 ${
-                            registroFormData.origen_llamada === "RADIO_TETRA"
+                          className={`w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 ${registroFormData.origen_llamada === "RADIO_TETRA"
                               ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
                               : "bg-white dark:bg-slate-900"
-                          }`}
+                            }`}
                         />
                       </div>
                     </div>
@@ -3386,11 +3411,10 @@ useNovedadesStream(handleNuevaNovedad);
                         }}
                         readOnly={!!direccionMatch}
                         placeholder="Escriba para buscar una dirección..."
-                        className={`w-full px-3 py-2 rounded-lg border text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 ${
-                          direccionMatch
+                        className={`w-full px-3 py-2 rounded-lg border text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 ${direccionMatch
                             ? "border-green-500 bg-green-50 dark:bg-green-900/20 cursor-not-allowed"
                             : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900"
-                        }`}
+                          }`}
                       />
                       {searchingDireccion && (
                         <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -3816,11 +3840,10 @@ useNovedadesStream(handleNuevaNovedad);
                               }
                             }}
                             disabled={autoPopulatedFromCalle}
-                            className={`w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary-500 ${
-                              autoPopulatedFromCalle
+                            className={`w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary-500 ${autoPopulatedFromCalle
                                 ? "border-green-400 dark:border-green-600 bg-green-50 dark:bg-green-900/20 text-slate-700 dark:text-slate-300 cursor-not-allowed"
                                 : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
-                            }`}
+                              }`}
                           >
                             <option value="">Seleccionar sector</option>
                             {sectoresRegistro.map((s) => (
@@ -3853,11 +3876,10 @@ useNovedadesStream(handleNuevaNovedad);
                               !registroFormData.sector_id ||
                               autoPopulatedFromCalle
                             }
-                            className={`w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary-500 disabled:opacity-50 ${
-                              autoPopulatedFromCalle
+                            className={`w-full px-3 py-2 rounded-lg border focus:ring-2 focus:ring-primary-500 disabled:opacity-50 ${autoPopulatedFromCalle
                                 ? "border-green-400 dark:border-green-600 bg-green-50 dark:bg-green-900/20 text-slate-700 dark:text-slate-300 cursor-not-allowed"
                                 : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
-                            }`}
+                              }`}
                           >
                             <option value="">Seleccionar cuadrante</option>
                             {cuadrantesRegistro.map((c) => (
@@ -4009,11 +4031,10 @@ useNovedadesStream(handleNuevaNovedad);
                           }
                         }}
                         readOnly={!!direccionMatch}
-                        className={`w-full rounded-lg border px-3 py-2 text-slate-900 dark:text-slate-50 ${
-                          direccionMatch
+                        className={`w-full rounded-lg border px-3 py-2 text-slate-900 dark:text-slate-50 ${direccionMatch
                             ? "border-green-500 bg-green-50 dark:bg-green-900/20 cursor-not-allowed"
                             : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40"
-                        }`}
+                          }`}
                         placeholder="-12.0464"
                       />
                     </div>
@@ -4038,11 +4059,10 @@ useNovedadesStream(handleNuevaNovedad);
                           }
                         }}
                         readOnly={!!direccionMatch}
-                        className={`w-full rounded-lg border px-3 py-2 text-slate-900 dark:text-slate-50 ${
-                          direccionMatch
+                        className={`w-full rounded-lg border px-3 py-2 text-slate-900 dark:text-slate-50 ${direccionMatch
                             ? "border-green-500 bg-green-50 dark:bg-green-900/20 cursor-not-allowed"
                             : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40"
-                        }`}
+                          }`}
                         placeholder="-77.0428"
                       />
                     </div>
@@ -4067,11 +4087,10 @@ useNovedadesStream(handleNuevaNovedad);
                           }
                         }}
                         readOnly={!!direccionMatch}
-                        className={`w-full rounded-lg border px-3 py-2 text-slate-900 dark:text-slate-50 ${
-                          direccionMatch
+                        className={`w-full rounded-lg border px-3 py-2 text-slate-900 dark:text-slate-50 ${direccionMatch
                             ? "border-green-500 bg-green-50 dark:bg-green-900/20 cursor-not-allowed"
                             : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40"
-                        }`}
+                          }`}
                         placeholder="150101"
                       />
                       {registroUbigeoInfo && (
@@ -4219,13 +4238,12 @@ useNovedadesStream(handleNuevaNovedad);
                               </span>
                               {st.prioridad && (
                                 <span
-                                  className={`ml-2 text-xs px-1.5 py-0.5 rounded ${
-                                    st.prioridad === "ALTA"
+                                  className={`ml-2 text-xs px-1.5 py-0.5 rounded ${st.prioridad === "ALTA"
                                       ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
                                       : st.prioridad === "MEDIA"
                                         ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
                                         : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                                  }`}
+                                    }`}
                                 >
                                   {st.prioridad}
                                 </span>
@@ -4372,11 +4390,10 @@ useNovedadesStream(handleNuevaNovedad);
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                      activeTab === tab.id
+                    className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.id
                         ? "border-primary-600 text-primary-600 dark:text-primary-400"
                         : "border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-                    }`}
+                      }`}
                   >
                     <Icon size={16} />
                     <span className="hidden sm:inline">{tab.label}</span>
@@ -4475,11 +4492,10 @@ useNovedadesStream(handleNuevaNovedad);
                                 origen_llamada: opt.value,
                               })
                             }
-                            className={`flex flex-col items-center gap-1 p-3 rounded-lg border text-xs font-medium transition-colors ${
-                              isSelected
+                            className={`flex flex-col items-center gap-1 p-3 rounded-lg border text-xs font-medium transition-colors ${isSelected
                                 ? "border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
                                 : "border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
-                            }`}
+                              }`}
                           >
                             <Icon size={20} />
                             <span className="text-center">{opt.label}</span>
@@ -4669,11 +4685,10 @@ useNovedadesStream(handleNuevaNovedad);
                           setFormData({ ...formData, latitud: e.target.value })
                         }
                         readOnly={gpsEnabled}
-                        className={`mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 ${
-                          gpsEnabled
+                        className={`mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 ${gpsEnabled
                             ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
                             : ""
-                        }`}
+                          }`}
                         placeholder="-12.0464"
                       />
                     </div>
@@ -4689,11 +4704,10 @@ useNovedadesStream(handleNuevaNovedad);
                           setFormData({ ...formData, longitud: e.target.value })
                         }
                         readOnly={gpsEnabled}
-                        className={`mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 ${
-                          gpsEnabled
+                        className={`mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 ${gpsEnabled
                             ? "bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
                             : ""
-                        }`}
+                          }`}
                         placeholder="-77.0428"
                       />
                     </div>
@@ -4985,52 +4999,51 @@ useNovedadesStream(handleNuevaNovedad);
                     {(() => {
                       const tipoNombre = selectedNovedad.novedadTipoNovedad?.nombre || "";
                       const subtipoNombre = selectedNovedad.novedadSubtipoNovedad?.nombre || "";
-                      
+
                       if (!tipoNombre) return "Novedad";
                       if (!subtipoNombre) return tipoNombre;
-                      
+
                       const primerSlashIndex = tipoNombre.indexOf("/");
                       if (primerSlashIndex === -1) {
                         return `${tipoNombre} / ${subtipoNombre}`;
                       }
-                      
+
                       const tipoAbreviado = tipoNombre.substring(0, primerSlashIndex).trim();
                       return `${tipoAbreviado} / ${subtipoNombre}`;
                     })()}
                   </h3>
                   {(selectedNovedad.localizacion ||
                     selectedNovedad.referencia_ubicacion) && (
-                    <p
-                      className="text-xs font-semibold text-amber-700 dark:text-amber-300 mt-0.5 truncate max-w-lg"
-                      title={
-                        selectedNovedad.localizacion
+                      <p
+                        className="text-xs font-semibold text-amber-700 dark:text-amber-300 mt-0.5 truncate max-w-lg"
+                        title={
+                          selectedNovedad.localizacion
+                            ? selectedNovedad.referencia_ubicacion
+                              ? `${selectedNovedad.localizacion} (${selectedNovedad.referencia_ubicacion})`
+                              : selectedNovedad.localizacion
+                            : selectedNovedad.referencia_ubicacion || "—"
+                        }
+                      >
+                        <MapPin size={11} className="inline mr-1" />
+                        {selectedNovedad.localizacion
                           ? selectedNovedad.referencia_ubicacion
                             ? `${selectedNovedad.localizacion} (${selectedNovedad.referencia_ubicacion})`
                             : selectedNovedad.localizacion
-                          : selectedNovedad.referencia_ubicacion || "—"
-                      }
-                    >
-                      <MapPin size={11} className="inline mr-1" />
-                      {selectedNovedad.localizacion
-                        ? selectedNovedad.referencia_ubicacion
-                          ? `${selectedNovedad.localizacion} (${selectedNovedad.referencia_ubicacion})`
-                          : selectedNovedad.localizacion
-                        : selectedNovedad.referencia_ubicacion}
-                    </p>
-                  )}
+                          : selectedNovedad.referencia_ubicacion}
+                      </p>
+                    )}
                   <div className="flex items-center gap-2 flex-wrap mt-1">
                     <span className="font-mono text-xs text-slate-500 dark:text-slate-400">
                       #{selectedNovedad.novedad_code}
                     </span>
                     {selectedNovedad.prioridad_actual && (
                       <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                          selectedNovedad.prioridad_actual === "ALTA"
+                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${selectedNovedad.prioridad_actual === "ALTA"
                             ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
                             : selectedNovedad.prioridad_actual === "MEDIA"
                               ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
                               : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
-                        }`}
+                          }`}
                       >
                         {selectedNovedad.prioridad_actual}
                       </span>
@@ -5041,9 +5054,9 @@ useNovedadesStream(handleNuevaNovedad);
                         style={
                           selectedNovedad.novedadEstado.color_hex
                             ? {
-                                backgroundColor: `${selectedNovedad.novedadEstado.color_hex}25`,
-                                color: selectedNovedad.novedadEstado.color_hex,
-                              }
+                              backgroundColor: `${selectedNovedad.novedadEstado.color_hex}25`,
+                              color: selectedNovedad.novedadEstado.color_hex,
+                            }
                             : {}
                         }
                       >
@@ -5068,22 +5081,20 @@ useNovedadesStream(handleNuevaNovedad);
             <div className="flex border-b border-slate-200 dark:border-slate-700">
               <button
                 onClick={() => setAtencionTab(0)}
-                className={`flex-1 px-4 py-3 text-sm font-medium ${
-                  atencionTab === 0
+                className={`flex-1 px-4 py-3 text-sm font-medium ${atencionTab === 0
                     ? "text-primary-600 border-b-2 border-primary-600"
                     : "text-slate-500 hover:text-slate-700"
-                }`}
+                  }`}
               >
                 <Users size={16} className="inline mr-2" />
                 Recursos Asignados
               </button>
               <button
                 onClick={() => setAtencionTab(1)}
-                className={`flex-1 px-4 py-3 text-sm font-medium ${
-                  atencionTab === 1
+                className={`flex-1 px-4 py-3 text-sm font-medium ${atencionTab === 1
                     ? "text-primary-600 border-b-2 border-primary-600"
                     : "text-slate-500 hover:text-slate-700"
-                }`}
+                  }`}
               >
                 <Clock size={16} className="inline mr-2" />
                 Seguimiento
@@ -5098,7 +5109,7 @@ useNovedadesStream(handleNuevaNovedad);
                 const isCerrada = estadoOriginalId >= 7;
                 const isAllReadonly = isCerrada;
                 const isFieldsReadonly = true; // Siempre true para estos campos
-                
+
                 const clsEditable =
                   "mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50";
                 const clsReadonly =
@@ -5106,80 +5117,80 @@ useNovedadesStream(handleNuevaNovedad);
 
                 return (
                   <div className="space-y-4">
-                  {/* Fila 1: Vehículo + Personal a pie */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-                        Vehículo para operativo
-                      </label>
-                      <select
-                        value={atencionData.vehiculo_id}
-                        onChange={(e) =>
-                          setAtencionData({
-                            ...atencionData,
-                            vehiculo_id: e.target.value,
-                          })
-                        }
-                        disabled={isFieldsReadonly}
-                        className={isAllReadonly ? clsReadonly : clsEditable}
-                      >
-                        <option value="">Seleccione vehículo...</option>
-                        {vehiculos.map((v) => (
-                          <option key={v.id} value={v.id}>
-                            {[
-                              v.tipoVehiculo?.nombre,
-                              v.placa,
-                              v.marca,
-                              v.modelo_vehiculo || v.modelo,
-                            ]
-                              .filter(Boolean)
-                              .join(" - ")}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-                        Personal para operativo a pie
-                      </label>
-                      <select
-                        value={atencionData.personal_cargo_id}
-                        onChange={(e) =>
-                          setAtencionData({
-                            ...atencionData,
-                            personal_cargo_id: e.target.value,
-                          })
-                        }
-                        disabled={isFieldsReadonly}
-                        className={isAllReadonly ? clsReadonly : clsEditable}
-                      >
-                        <option value="">Seleccione personal...</option>
-                        {personalSeguridad.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {[p.doc_tipo, p.doc_numero]
-                              .filter(Boolean)
-                              .join(" ") || p.codigo}{" "}
-                            - {p.nombres} {p.apellido_paterno}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Fila 2: Auditoría del Despacho — fila completa con Turno y Tiempo Respuesta */}
-                  <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                    <span className="text-xs font-medium text-blue-600 dark:text-blue-400 flex items-center gap-1 mb-3">
-                      <Clock size={13} />
-                      Auditoría del Despacho
-                    </span>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {/* Fila 1: Vehículo + Personal a pie */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <span className="text-xs text-slate-500 dark:text-slate-400">
-                          Fecha Despacho
-                        </span>
-                        <p className="text-sm font-medium text-slate-900 dark:text-slate-50 mt-0.5">
-                          {selectedNovedad?.fecha_despacho
-                            ? new Date(
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                          Vehículo para operativo
+                        </label>
+                        <select
+                          value={atencionData.vehiculo_id}
+                          onChange={(e) =>
+                            setAtencionData({
+                              ...atencionData,
+                              vehiculo_id: e.target.value,
+                            })
+                          }
+                          disabled={isFieldsReadonly}
+                          className={isAllReadonly ? clsReadonly : clsEditable}
+                        >
+                          <option value="">Seleccione vehículo...</option>
+                          {vehiculos.map((v) => (
+                            <option key={v.id} value={v.id}>
+                              {[
+                                v.tipoVehiculo?.nombre,
+                                v.placa,
+                                v.marca,
+                                v.modelo_vehiculo || v.modelo,
+                              ]
+                                .filter(Boolean)
+                                .join(" - ")}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                          Personal para operativo a pie
+                        </label>
+                        <select
+                          value={atencionData.personal_cargo_id}
+                          onChange={(e) =>
+                            setAtencionData({
+                              ...atencionData,
+                              personal_cargo_id: e.target.value,
+                            })
+                          }
+                          disabled={isFieldsReadonly}
+                          className={isAllReadonly ? clsReadonly : clsEditable}
+                        >
+                          <option value="">Seleccione personal...</option>
+                          {personalSeguridad.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {[p.doc_tipo, p.doc_numero]
+                                .filter(Boolean)
+                                .join(" ") || p.codigo}{" "}
+                              - {p.nombres} {p.apellido_paterno}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Fila 2: Auditoría del Despacho — fila completa con Turno y Tiempo Respuesta */}
+                    <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                      <span className="text-xs font-medium text-blue-600 dark:text-blue-400 flex items-center gap-1 mb-3">
+                        <Clock size={13} />
+                        Auditoría del Despacho
+                      </span>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div>
+                          <span className="text-xs text-slate-500 dark:text-slate-400">
+                            Fecha Despacho
+                          </span>
+                          <p className="text-sm font-medium text-slate-900 dark:text-slate-50 mt-0.5">
+                            {selectedNovedad?.fecha_despacho
+                              ? new Date(
                                 selectedNovedad.fecha_despacho,
                               ).toLocaleString("es-PE", {
                                 day: "2-digit",
@@ -5188,201 +5199,199 @@ useNovedadesStream(handleNuevaNovedad);
                                 hour: "2-digit",
                                 minute: "2-digit",
                               })
-                            : "—"}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-xs text-slate-500 dark:text-slate-400">
-                          Despachado por
-                        </span>
-                        <p className="text-sm font-medium text-slate-900 dark:text-slate-50 mt-0.5">
-                          {selectedNovedad?.usuarioDespacho?.username ||
-                            selectedNovedad?.usuarioDespacho?.email ||
-                            "—"}
-                        </p>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-slate-500 dark:text-slate-400 mb-0.5">
-                          Turno
-                        </label>
-                        <select
-                          value={atencionData.turno}
-                          onChange={(e) =>
-                            setAtencionData({
-                              ...atencionData,
-                              turno: e.target.value,
-                            })
-                          }
-                          disabled={isFieldsReadonly || !isSupervisor()}
-                          className={`w-full rounded-lg border px-2 py-1.5 text-sm text-slate-900 dark:text-slate-50 ${
-                            !isSupervisor()
-                              ? "border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
-                              : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
-                          }`}
-                        >
-                          <option value="">— Turno —</option>
-                          <option value="MAÑANA">Mañana</option>
-                          <option value="TARDE">Tarde</option>
-                          <option value="NOCHE">Noche</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-slate-500 dark:text-slate-400 mb-0.5">
-                          Tiempo Respuesta (min)
-                        </label>
-                        <input
-                          type="number"
-                          value={atencionData.tiempo_respuesta_minutos}
-                          onChange={(e) =>
-                            setAtencionData({
-                              ...atencionData,
-                              tiempo_respuesta_minutos: e.target.value,
-                            })
-                          }
-                          readOnly={!isSupervisor()}
-                          className={`w-full rounded-lg border px-2 py-1.5 text-sm text-slate-900 dark:text-slate-50 ${
-                            !isSupervisor()
-                              ? "border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
-                              : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
-                          }`}
-                          placeholder="min"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Fila 4: Observaciones */}
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-                      Observaciones
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={atencionData.observaciones}
-                      onChange={(e) =>
-                        setAtencionData({
-                          ...atencionData,
-                          observaciones: e.target.value,
-                        })
-                      }
-                      disabled={isFieldsReadonly}
-                      className={isFieldsReadonly ? clsReadonly : "mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"}
-                      placeholder="Observaciones de la atención..."
-                    />
-                  </div>
-
-                  {/* Fila 5: Personal Seguridad Adicional (Opcional) */}
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-slate-700 dark:text-slate-200">
-                      Personal Adicional (Opcional)
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">
-                          Personal Seguridad #2
-                        </label>
-                        <select
-                          value={atencionData.personal_seguridad2_id}
-                          onChange={(e) =>
-                            setAtencionData({
-                              ...atencionData,
-                              personal_seguridad2_id: e.target.value,
-                            })
-                          }
-                          disabled={isFieldsReadonly}
-                          className={isFieldsReadonly ? clsReadonly : "w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 text-sm"}
-                        >
-                          <option value="">Seleccione personal...</option>
-                          {personalSeguridad.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {[p.doc_tipo, p.doc_numero]
-                                .filter(Boolean)
-                                .join(" ") || p.codigo}{" "}
-                              - {p.nombres} {p.apellido_paterno}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">
-                          Personal Seguridad #3
-                        </label>
-                        <select
-                          value={atencionData.personal_seguridad3_id}
-                          onChange={(e) =>
-                            setAtencionData({
-                              ...atencionData,
-                              personal_seguridad3_id: e.target.value,
-                            })
-                          }
-                          disabled={isFieldsReadonly}
-                          className={isFieldsReadonly ? clsReadonly : "w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 text-sm"}
-                        >
-                          <option value="">Seleccione personal...</option>
-                          {personalSeguridad.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {[p.doc_tipo, p.doc_numero]
-                                .filter(Boolean)
-                                .join(" ") || p.codigo}{" "}
-                              - {p.nombres} {p.apellido_paterno}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">
-                          Personal Seguridad #4
-                        </label>
-                        <select
-                          value={atencionData.personal_seguridad4_id}
-                          onChange={(e) =>
-                            setAtencionData({
-                              ...atencionData,
-                              personal_seguridad4_id: e.target.value,
-                            })
-                          }
-                          disabled={isFieldsReadonly}
-                          className={isFieldsReadonly ? clsReadonly : "w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 text-sm"}
-                        >
-                          <option value="">Seleccione personal...</option>
-                          {personalSeguridad.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {[p.doc_tipo, p.doc_numero]
-                                .filter(Boolean)
-                                .join(" ") || p.codigo}{" "}
-                              - {p.nombres} {p.apellido_paterno}
-                            </option>
-                          ))}
-                        </select>
+                              : "—"}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-xs text-slate-500 dark:text-slate-400">
+                            Despachado por
+                          </span>
+                          <p className="text-sm font-medium text-slate-900 dark:text-slate-50 mt-0.5">
+                            {selectedNovedad?.usuarioDespacho?.username ||
+                              selectedNovedad?.usuarioDespacho?.email ||
+                              "—"}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-slate-500 dark:text-slate-400 mb-0.5">
+                            Turno
+                          </label>
+                          <select
+                            value={atencionData.turno}
+                            onChange={(e) =>
+                              setAtencionData({
+                                ...atencionData,
+                                turno: e.target.value,
+                              })
+                            }
+                            disabled={isFieldsReadonly || !isSupervisor()}
+                            className={`w-full rounded-lg border px-2 py-1.5 text-sm text-slate-900 dark:text-slate-50 ${!isSupervisor()
+                                ? "border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
+                                : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
+                              }`}
+                          >
+                            <option value="">— Turno —</option>
+                            <option value="MAÑANA">Mañana</option>
+                            <option value="TARDE">Tarde</option>
+                            <option value="NOCHE">Noche</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-slate-500 dark:text-slate-400 mb-0.5">
+                            Tiempo Respuesta (min)
+                          </label>
+                          <input
+                            type="number"
+                            value={atencionData.tiempo_respuesta_minutos}
+                            onChange={(e) =>
+                              setAtencionData({
+                                ...atencionData,
+                                tiempo_respuesta_minutos: e.target.value,
+                              })
+                            }
+                            readOnly={!isSupervisor()}
+                            className={`w-full rounded-lg border px-2 py-1.5 text-sm text-slate-900 dark:text-slate-50 ${!isSupervisor()
+                                ? "border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 cursor-not-allowed"
+                                : "border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
+                              }`}
+                            placeholder="min"
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Fila 6: Unidad/Oficina */}
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-                      Unidad/Oficina
-                    </label>
-                    <select
-                      value={atencionData.unidad_oficina_id}
-                      onChange={(e) =>
-                        setAtencionData({
-                          ...atencionData,
-                          unidad_oficina_id: e.target.value,
-                        })
-                      }
-                      disabled={isFieldsReadonly}
-                      className={isAllReadonly ? clsReadonly : clsEditable}
-                    >
-                      <option value="">Seleccione unidad...</option>
-                      {unidadesOficina.map((u) => (
-                        <option key={u.id} value={u.id}>
-                          {u.nombre}
-                        </option>
-                      ))}
-                    </select>
+                    {/* Fila 4: Observaciones */}
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                        Observaciones
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={atencionData.observaciones}
+                        onChange={(e) =>
+                          setAtencionData({
+                            ...atencionData,
+                            observaciones: e.target.value,
+                          })
+                        }
+                        disabled={isFieldsReadonly}
+                        className={isFieldsReadonly ? clsReadonly : "mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50"}
+                        placeholder="Observaciones de la atención..."
+                      />
+                    </div>
+
+                    {/* Fila 5: Personal Seguridad Adicional (Opcional) */}
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                        Personal Adicional (Opcional)
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">
+                            Personal Seguridad #2
+                          </label>
+                          <select
+                            value={atencionData.personal_seguridad2_id}
+                            onChange={(e) =>
+                              setAtencionData({
+                                ...atencionData,
+                                personal_seguridad2_id: e.target.value,
+                              })
+                            }
+                            disabled={isFieldsReadonly}
+                            className={isFieldsReadonly ? clsReadonly : "w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 text-sm"}
+                          >
+                            <option value="">Seleccione personal...</option>
+                            {personalSeguridad.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {[p.doc_tipo, p.doc_numero]
+                                  .filter(Boolean)
+                                  .join(" ") || p.codigo}{" "}
+                                - {p.nombres} {p.apellido_paterno}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">
+                            Personal Seguridad #3
+                          </label>
+                          <select
+                            value={atencionData.personal_seguridad3_id}
+                            onChange={(e) =>
+                              setAtencionData({
+                                ...atencionData,
+                                personal_seguridad3_id: e.target.value,
+                              })
+                            }
+                            disabled={isFieldsReadonly}
+                            className={isFieldsReadonly ? clsReadonly : "w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 text-sm"}
+                          >
+                            <option value="">Seleccione personal...</option>
+                            {personalSeguridad.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {[p.doc_tipo, p.doc_numero]
+                                  .filter(Boolean)
+                                  .join(" ") || p.codigo}{" "}
+                                - {p.nombres} {p.apellido_paterno}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">
+                            Personal Seguridad #4
+                          </label>
+                          <select
+                            value={atencionData.personal_seguridad4_id}
+                            onChange={(e) =>
+                              setAtencionData({
+                                ...atencionData,
+                                personal_seguridad4_id: e.target.value,
+                              })
+                            }
+                            disabled={isFieldsReadonly}
+                            className={isFieldsReadonly ? clsReadonly : "w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 text-sm"}
+                          >
+                            <option value="">Seleccione personal...</option>
+                            {personalSeguridad.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {[p.doc_tipo, p.doc_numero]
+                                  .filter(Boolean)
+                                  .join(" ") || p.codigo}{" "}
+                                - {p.nombres} {p.apellido_paterno}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Fila 6: Unidad/Oficina */}
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                        Unidad/Oficina
+                      </label>
+                      <select
+                        value={atencionData.unidad_oficina_id}
+                        onChange={(e) =>
+                          setAtencionData({
+                            ...atencionData,
+                            unidad_oficina_id: e.target.value,
+                          })
+                        }
+                        disabled={isFieldsReadonly}
+                        className={isAllReadonly ? clsReadonly : clsEditable}
+                      >
+                        <option value="">Seleccione unidad...</option>
+                        {unidadesOficina.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.nombre}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
-                </div>
                 );
               })()}
 
@@ -5390,7 +5399,7 @@ useNovedadesStream(handleNuevaNovedad);
               {atencionTab === 1 &&
                 (() => {
                   const requiereSeg = atencionData.requiere_seguimiento;
-                                    const estadoOriginalId = Number(selectedNovedad.estado_novedad_id);
+                  const estadoOriginalId = Number(selectedNovedad.estado_novedad_id);
                   const isCerrada = estadoOriginalId >= 7;
                   const isAllReadonly = isCerrada;
                   const fechaLlegadaVacia = !atencionData.fecha_llegada;
@@ -5543,66 +5552,66 @@ useNovedadesStream(handleNuevaNovedad);
                             )}
                           </label>
                           <div className="space-y-2">
-                          <div className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              id="usar_fecha_cierre_actual"
-                              checked={atencionData.usar_fecha_cierre_actual}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  const fechaActual = getLocalDatetime();
-                                  setAtencionData({
-                                    ...atencionData,
-                                    fecha_cierre: fechaActual,
-                                    usar_fecha_cierre_actual: true,
-                                  });
-                                } else {
-                                  setAtencionData({
-                                    ...atencionData,
-                                    fecha_cierre: "",
-                                    usar_fecha_cierre_actual: false,
-                                  });
-                                }
-                              }}
-                              disabled={isAllReadonly || !isSupervisor()}
-                              className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-slate-300 rounded"
-                            />
-                            <label
-                              htmlFor="usar_fecha_cierre_actual"
-                              className="text-sm text-slate-700 dark:text-slate-200"
-                            >
-                              Usar fecha y hora actual
-                            </label>
-                          </div>
-                          <input
-                            type="datetime-local"
-                            value={atencionData.fecha_cierre || ""}
-                            onChange={(e) =>
-                              setAtencionData({
-                                ...atencionData,
-                                fecha_cierre: e.target.value,
-                                usar_fecha_cierre_actual: false,
-                              })
-                            }
-                            disabled={isAllReadonly || !isSupervisor() || atencionData.usar_fecha_cierre_actual}
-                            className={
-                              !isAllReadonly && isSupervisor() && isCerrada && !atencionData.usar_fecha_cierre_actual
-                                ? clsEditable
-                                : clsReadonly
-                            }
-                          />
-                          {atencionData.fecha_cierre && (
-                            <div className="text-xs text-slate-500 dark:text-slate-400">
-                              Fecha actual: {new Date(atencionData.fecha_cierre).toLocaleString('es-PE', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                id="usar_fecha_cierre_actual"
+                                checked={atencionData.usar_fecha_cierre_actual}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    const fechaActual = getLocalDatetime();
+                                    setAtencionData({
+                                      ...atencionData,
+                                      fecha_cierre: fechaActual,
+                                      usar_fecha_cierre_actual: true,
+                                    });
+                                  } else {
+                                    setAtencionData({
+                                      ...atencionData,
+                                      fecha_cierre: "",
+                                      usar_fecha_cierre_actual: false,
+                                    });
+                                  }
+                                }}
+                                disabled={isAllReadonly || !isSupervisor()}
+                                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-slate-300 rounded"
+                              />
+                              <label
+                                htmlFor="usar_fecha_cierre_actual"
+                                className="text-sm text-slate-700 dark:text-slate-200"
+                              >
+                                Usar fecha y hora actual
+                              </label>
                             </div>
-                          )}
-                        </div>
+                            <input
+                              type="datetime-local"
+                              value={atencionData.fecha_cierre || ""}
+                              onChange={(e) =>
+                                setAtencionData({
+                                  ...atencionData,
+                                  fecha_cierre: e.target.value,
+                                  usar_fecha_cierre_actual: false,
+                                })
+                              }
+                              disabled={isAllReadonly || !isSupervisor() || atencionData.usar_fecha_cierre_actual}
+                              className={
+                                !isAllReadonly && isSupervisor() && isCerrada && !atencionData.usar_fecha_cierre_actual
+                                  ? clsEditable
+                                  : clsReadonly
+                              }
+                            />
+                            {atencionData.fecha_cierre && (
+                              <div className="text-xs text-slate-500 dark:text-slate-400">
+                                Fecha actual: {new Date(atencionData.fecha_cierre).toLocaleString('es-PE', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
 
@@ -5671,7 +5680,7 @@ useNovedadesStream(handleNuevaNovedad);
                             className={!isAllReadonly && !isCerrada ? clsEditable : clsReadonly}
                           />
                         </div>
-                        </div>
+                      </div>
                     </div>
                   );
 
@@ -5740,9 +5749,8 @@ useNovedadesStream(handleNuevaNovedad);
                                 }
                               }}
                               disabled={isAllReadonly}
-                              className={`w-5 h-5 rounded border-slate-300 text-primary-600 focus:ring-primary-500 ${
-                                isAllReadonly ? "opacity-50 cursor-not-allowed" : ""
-                              }`}
+                              className={`w-5 h-5 rounded border-slate-300 text-primary-600 focus:ring-primary-500 ${isAllReadonly ? "opacity-50 cursor-not-allowed" : ""
+                                }`}
                             />
                             <label
                               htmlFor="requiere_seguimiento"
@@ -5755,7 +5763,7 @@ useNovedadesStream(handleNuevaNovedad);
                       </div>
 
                       {requiereSeg && datosSeguimientoBlock}
-                      
+
                       {/* Campo Observaciones para estados RESUELTA (6) o superior */}
                       {estadoOriginalId >= 6 && (
                         <div className="p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
@@ -5780,7 +5788,7 @@ useNovedadesStream(handleNuevaNovedad);
                           </p>
                         </div>
                       )}
-                      
+
                       {historialBlock}
                     </div>
                   );
@@ -5801,7 +5809,7 @@ useNovedadesStream(handleNuevaNovedad);
               {(() => {
                 const estadoOriginalId = Number(selectedNovedad.estado_novedad_id);
                 const isCerrada = estadoOriginalId >= 7;
-                
+
                 return !isCerrada && (
                   <button
                     id="btn_guardar_atencion"
