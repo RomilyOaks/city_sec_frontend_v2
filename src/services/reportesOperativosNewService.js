@@ -307,7 +307,6 @@ class ReportesOperativosNewService {
     if (filters.personal_id) params.personal_id = parseInt(filters.personal_id);
     if (filters.cargo_id) params.cargo_id = parseInt(filters.cargo_id);
     
-    console.log('🔧 Parámetros construidos:', params);
     return params;
   }
 
