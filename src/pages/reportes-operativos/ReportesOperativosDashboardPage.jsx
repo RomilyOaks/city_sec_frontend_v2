@@ -40,16 +40,8 @@ const ReportesOperativosDashboardPage = () => {
   const navigate = useNavigate();
   const { canRead } = useAuthStore();
   
-  // 🐛 DEBUGGING: Mostrar información de permisos
-  console.log('🔍 DEBUGGING - ReportesOperativosDashboardPage');
-  console.log('🔍 DEBUGGING - canRead:', canRead);
-  console.log('🔍 DEBUGGING - user:', useAuthStore.getState().user);
-  console.log('🔍 DEBUGGING - user roles:', useAuthStore.getState().user?.roles || []);
-  console.log('🔍 DEBUGGING - user permisos:', useAuthStore.getState().user?.permisos || []);
-  
   // 🐛 DEBUGGING: Verificar canRead con el routeKey correcto
   const hasReadAccess = canRead("operativos_turnos");
-  console.log('🔍 DEBUGGING - hasReadAccess (operativos_turnos):', hasReadAccess);
   
   // Estados principales
   const [loading, setLoading] = useState(true);
