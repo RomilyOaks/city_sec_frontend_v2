@@ -77,6 +77,7 @@ const NovedadesNoAtendidasPage = () => {
   
   // Estados de UI
   const [showFilters, setShowFilters] = useState(false);
+  const [activeQuickFilter, setActiveQuickFilter] = useState('');
   const [selectedNovedad, setSelectedNovedad] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -167,10 +168,30 @@ const NovedadesNoAtendidasPage = () => {
   }, [filters]);
 
   /**
+   * ⚡ Filtros rápidos
+   */
+  const handleQuickFilter = useCallback((days) => {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(endDate.getDate() - days);
+    
+    const newFilters = {
+      ...filters,
+      fecha_inicio: startDate.toISOString().split('T')[0],
+      fecha_fin: endDate.toISOString().split('T')[0]
+    };
+    
+    setFilters(newFilters);
+    setActiveQuickFilter(days);
+    setPagination(prev => ({ ...prev, page: 1 }));
+  }, [filters]);
+
+  /**
    * 🔍 Aplicar filtros
    */
   const handleApplyFilters = useCallback((newFilters) => {
     setFilters(newFilters);
+    setActiveQuickFilter(''); // Limpiar filtro rápido activo
     setPagination(prev => ({ ...prev, page: 1 })); // Resetear a primera página
   }, []);
 
@@ -190,6 +211,7 @@ const NovedadesNoAtendidasPage = () => {
       order: 'DESC'
     };
     setFilters(defaultFilters);
+    setActiveQuickFilter(''); // Limpiar filtro rápido activo
     setPagination(prev => ({ ...prev, page: 1 }));
   }, []);
 
@@ -461,6 +483,30 @@ const NovedadesNoAtendidasPage = () => {
               >
                 <SlidersHorizontal className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
               </button>
+              
+              {/* Filtros Rápidos */}
+              <div className="flex gap-1 border border-slate-300 dark:border-slate-600 rounded-lg overflow-hidden">
+                <button
+                  onClick={() => handleQuickFilter(7)}
+                  className={`px-3 py-2 text-sm font-medium transition-colors ${
+                    activeQuickFilter === 7 
+                      ? 'bg-primary-700 text-white shadow-md transform scale-105' 
+                      : 'bg-white text-slate-700 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  Últimos 7 días
+                </button>
+                <button
+                  onClick={() => handleQuickFilter(30)}
+                  className={`px-3 py-2 text-sm font-medium transition-colors ${
+                    activeQuickFilter === 30 
+                      ? 'bg-primary-700 text-white shadow-md transform scale-105' 
+                      : 'bg-white text-slate-700 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  Últimos 30 días
+                </button>
+              </div>
               
               <div className="flex border border-slate-300 dark:border-slate-600 rounded-lg overflow-hidden">
                 <button
