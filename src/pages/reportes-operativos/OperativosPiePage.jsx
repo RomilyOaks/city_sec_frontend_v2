@@ -78,6 +78,7 @@ const OperativosPiePage = () => {
   const [selectedOperativo, setSelectedOperativo] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeQuickFilter, setActiveQuickFilter] = useState('');
 
   // Cargar filtros desde navegación
   useEffect(() => {
@@ -94,7 +95,7 @@ const OperativosPiePage = () => {
       setLoading(true);
       setError(null);
       
-      console.log('🚶 Cargando operativos a pie página:', page);
+      console.log('🚶 Obteniendo operativos a pie:', page);
       
       // Construir parámetros para API
       const params = reportesOperativosNewService.buildParams({
@@ -102,6 +103,8 @@ const OperativosPiePage = () => {
         page,
         limit: pagination.limit
       });
+      
+      console.log('🚶 Obteniendo operativos a pie:', params);
       
       // Obtener datos y resumen en paralelo
       const [operativosResponse, resumenResponse] = await Promise.all([
@@ -117,7 +120,7 @@ const OperativosPiePage = () => {
       
       if (resumenResponse.success) {
         setResumen(resumenResponse.data);
-        console.log('✅ Resumen operativos a pie cargado:', resumenResponse.data);
+        console.log('📊 Obteniendo resumen operativos a pie:', resumenResponse.data);
       }
     } catch (err) {
       console.error('❌ Error cargando operativos a pie:', err);
@@ -150,11 +153,11 @@ const OperativosPiePage = () => {
         formato
       });
       
-      const response = await reportesOperativosNewService.exportarOperativosPie(params);
+      const response = await reportesOperativosNewService.getOperativosPie(params);
       
       if (response.success) {
-        console.log('📤 Exportación operativos a pie preparada:', response.data);
-        toast.success(`Reporte operativos a pie ${formato.toUpperCase()} preparado`);
+        console.log('📤 Datos para exportación:', response.data);
+        toast.success(`Reporte ${formato.toUpperCase()} preparado para descarga`);
         
         // TODO: Implementar descarga real del archivo
       }
@@ -165,35 +168,7 @@ const OperativosPiePage = () => {
   }, [filters]);
 
   /**
-   * 🔍 Aplicar filtros
-   */
-  const handleApplyFilters = useCallback((newFilters) => {
-    setFilters(newFilters);
-    setPagination(prev => ({ ...prev, page: 1 })); // Resetear a primera página
-  }, []);
-
-  /**
-   * 🔄 Resetear filtros
-   */
-  const handleResetFilters = useCallback(() => {
-    const defaultFilters = {
-      fecha_inicio: new Date().toISOString().split('T')[0],
-      fecha_fin: new Date().toISOString().split('T')[0],
-      turno: '',
-      sector_id: '',
-      prioridad: '',
-      personal_id: '',
-      cargo_id: '',
-      search: '',
-      sort: 'fecha_hora_ocurrencia',
-      order: 'DESC'
-    };
-    setFilters(defaultFilters);
-    setPagination(prev => ({ ...prev, page: 1 }));
-  }, []);
-
-  /**
-   * 📄 Cambiar de página
+   * � Cambiar de página
    */
   const handlePageChange = useCallback((newPage) => {
     setPagination(prev => ({ ...prev, page: newPage }));
@@ -217,6 +192,55 @@ const OperativosPiePage = () => {
     setSelectedOperativo(operativo);
     setShowDetailModal(true);
   }, []);
+
+  /**
+   * 🎯 Aplicar filtros rápidos
+   */
+  const handleQuickFilter = useCallback((days) => {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(endDate.getDate() - days);
+    
+    const newFilters = {
+      ...filters,
+      fecha_inicio: startDate.toISOString().split('T')[0],
+      fecha_fin: endDate.toISOString().split('T')[0]
+    };
+    
+    setFilters(newFilters);
+    setActiveQuickFilter(days);
+    fetchOperativosPie(1);
+  }, [filters, fetchOperativosPie]);
+
+  /**
+   * 🔍 Aplicar filtros
+   */
+  const handleApplyFilters = useCallback((newFilters) => {
+    setFilters(newFilters);
+    setActiveQuickFilter('');
+    setPagination(prev => ({ ...prev, page: 1 }));
+  }, [fetchOperativosPie]);
+
+  /**
+   * 🔄 Resetear filtros
+   */
+  const handleResetFilters = useCallback(() => {
+    const defaultFilters = {
+      fecha_inicio: new Date().toISOString().split('T')[0],
+      fecha_fin: new Date().toISOString().split('T')[0],
+      turno: '',
+      sector_id: '',
+      prioridad: '',
+      personal_id: '',
+      cargo_id: '',
+      search: '',
+      sort: 'fecha_hora_ocurrencia',
+      order: 'DESC'
+    };
+    setFilters(defaultFilters);
+    setActiveQuickFilter('');
+    setPagination(prev => ({ ...prev, page: 1 }));
+  }, [fetchOperativosPie]);
 
   /**
    * 📊 Columnas para la tabla
@@ -446,49 +470,51 @@ const OperativosPiePage = () => {
                 <h1 className="text-xl font-bold text-slate-900 dark:text-slate-50">
                   🚶 Operativos a Pie
                 </h1>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Listado completo de operativos con personal asignado
-                </p>
               </div>
             </div>
-            
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowFilters(!showFilters)}
                 className={`p-2 rounded-lg border ${
                   showFilters 
-                    ? 'bg-primary-100 border-primary-300 text-primary-700 dark:bg-primary-900/30 dark:border-primary-700 dark:text-primary-300'
+                    ? 'bg-red-100 border-red-300 text-red-700 dark:bg-red-900/30 dark:border-red-700 dark:text-red-300'
                     : 'border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
                 }`}
               >
                 <Filter className="w-4 h-4" />
               </button>
               
-              <button
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="p-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50"
-              >
-                <SlidersHorizontal className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-              </button>
-              
-              <div className="flex border border-slate-300 dark:border-slate-600 rounded-lg overflow-hidden">
+              {/* Filtros Rápidos */}
+              <div className="flex gap-1 border border-slate-300 dark:border-slate-600 rounded-lg overflow-hidden">
                 <button
-                  onClick={() => handleExport('excel')}
-                  className="px-3 py-2 bg-green-600 text-white hover:bg-green-700 flex items-center gap-2"
+                  onClick={() => handleQuickFilter(7)}
+                  className={`px-3 py-2 text-sm font-medium transition-colors ${
+                    activeQuickFilter === 7 
+                      ? 'bg-primary-700 text-white shadow-md transform scale-105' 
+                      : 'bg-white text-slate-700 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+                  }`}
                 >
-                  <Download className="w-4 h-4" />
-                  Excel
+                  Últimos 7 días
                 </button>
                 <button
-                  onClick={() => handleExport('csv')}
-                  className="px-3 py-2 bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-2"
+                  onClick={() => handleQuickFilter(30)}
+                  className={`px-3 py-2 text-sm font-medium transition-colors ${
+                    activeQuickFilter === 30 
+                      ? 'bg-primary-700 text-white shadow-md transform scale-105' 
+                      : 'bg-white text-slate-700 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+                  }`}
                 >
-                  <Download className="w-4 h-4" />
-                  CSV
+                  Últimos 30 días
                 </button>
               </div>
-            </div>
+              
+              <button
+                onClick={() => handleExport('csv')}
+                className="px-3 py-2 bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                CSV
+              </button>
           </div>
         </div>
       </div>
@@ -704,6 +730,7 @@ const OperativosPiePage = () => {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 };

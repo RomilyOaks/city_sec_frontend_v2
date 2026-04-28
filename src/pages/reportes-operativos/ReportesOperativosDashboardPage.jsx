@@ -60,6 +60,7 @@ const ReportesOperativosDashboardPage = () => {
   // Estados de UI
   const [showFilters, setShowFilters] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeQuickFilter, setActiveQuickFilter] = useState('');
 
   /**
    * 🔄 Cargar datos del dashboard
@@ -129,6 +130,7 @@ const ReportesOperativosDashboardPage = () => {
    */
   const handleApplyFilters = useCallback((newFilters) => {
     setFilters(newFilters);
+    setActiveQuickFilter(''); // Limpiar filtro rápido activo
   }, []);
 
   /**
@@ -143,7 +145,26 @@ const ReportesOperativosDashboardPage = () => {
       prioridad: ''
     };
     setFilters(defaultFilters);
+    setActiveQuickFilter(''); // Limpiar filtro rápido activo
   }, []);
+
+  /**
+   * ⚡ Filtros rápidos
+   */
+  const handleQuickFilter = useCallback((days) => {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(endDate.getDate() - days);
+    
+    const newFilters = {
+      ...filters,
+      fecha_inicio: startDate.toISOString().split('T')[0],
+      fecha_fin: endDate.toISOString().split('T')[0]
+    };
+    
+    setFilters(newFilters);
+    setActiveQuickFilter(days);
+  }, [filters]);
 
   /**
    * 🎯 Navegación a páginas específicas
@@ -210,6 +231,30 @@ const ReportesOperativosDashboardPage = () => {
               >
                 <Filter className="w-4 h-4" />
               </button>
+              
+              {/* Botones de filtro rápido */}
+              <div className="flex gap-1">
+                <button
+                  onClick={() => handleQuickFilter(7)}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    activeQuickFilter === 7 
+                      ? 'bg-primary-600 text-white border-primary-700 shadow-lg transform scale-105'
+                      : 'border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  Últimos 7 días
+                </button>
+                <button
+                  onClick={() => handleQuickFilter(30)}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    activeQuickFilter === 30 
+                      ? 'bg-primary-600 text-white border-primary-700 shadow-lg transform scale-105'
+                      : 'border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  Últimos 30 días
+                </button>
+              </div>
               
               <button
                 onClick={handleRefresh}

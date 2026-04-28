@@ -76,6 +76,7 @@ const OperativosVehicularesPage = () => {
   const [selectedOperativo, setSelectedOperativo] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeQuickFilter, setActiveQuickFilter] = useState('');
 
   // Cargar filtros desde navegación
   useEffect(() => {
@@ -101,6 +102,8 @@ const OperativosVehicularesPage = () => {
         limit: pagination.limit
       });
       
+      console.log('🔧 Parámetros construidos:', params);
+      
       // Obtener datos y resumen en paralelo
       const [operativosResponse, resumenResponse] = await Promise.all([
         reportesOperativosNewService.getOperativosVehiculares(params),
@@ -110,12 +113,10 @@ const OperativosVehicularesPage = () => {
       if (operativosResponse.success) {
         setOperativosVehiculares(operativosResponse.data || []);
         setPagination(operativosResponse.pagination || pagination);
-        console.log('✅ Operativos vehiculares cargados:', operativosResponse.data?.length || 0);
       }
       
       if (resumenResponse.success) {
         setResumen(resumenResponse.data);
-        console.log('✅ Resumen vehicular cargado:', resumenResponse.data);
       }
     } catch (err) {
       console.error('❌ Error cargando operativos vehiculares:', err);
@@ -148,19 +149,12 @@ const OperativosVehicularesPage = () => {
         formato
       });
       
-      const response = await reportesOperativosNewService.exportarOperativosVehiculares(params);
+      const response = await reportesOperativosNewService.getOperativosVehiculares(params);
       
       if (response.success) {
-        console.log('📤 Exportación vehicular preparada:', response.data);
-        toast.success(`Reporte vehicular ${formato.toUpperCase()} preparado`);
-        
         // TODO: Implementar descarga real del archivo
-        // const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        // const url = window.URL.createObjectURL(blob);
-        // const a = document.createElement('a');
-        // a.href = url;
-        // a.download = `operativos_vehiculares_${new Date().toISOString().split('T')[0]}.${formato}`;
-        // a.click();
+        console.log('📤 Datos para exportación:', response.data);
+        toast.success(`Reporte ${formato.toUpperCase()} preparado para descarga`);
       }
     } catch (err) {
       console.error('❌ Error exportando:', err);
@@ -173,6 +167,7 @@ const OperativosVehicularesPage = () => {
    */
   const handleApplyFilters = useCallback((newFilters) => {
     setFilters(newFilters);
+    setActiveQuickFilter('');
     setPagination(prev => ({ ...prev, page: 1 })); // Resetear a primera página
   }, []);
 
@@ -193,8 +188,28 @@ const OperativosVehicularesPage = () => {
       order: 'DESC'
     };
     setFilters(defaultFilters);
+    setActiveQuickFilter('');
     setPagination(prev => ({ ...prev, page: 1 }));
   }, []);
+
+  /**
+   * ⚡ Filtros rápidos
+   */
+  const handleQuickFilter = useCallback((days) => {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(endDate.getDate() - days);
+    
+    const newFilters = {
+      ...filters,
+      fecha_inicio: startDate.toISOString().split('T')[0],
+      fecha_fin: endDate.toISOString().split('T')[0]
+    };
+    
+    setFilters(newFilters);
+    setActiveQuickFilter(days);
+    setPagination(prev => ({ ...prev, page: 1 }));
+  }, [filters]);
 
   /**
    * 📄 Cambiar de página
@@ -429,6 +444,29 @@ const OperativosVehicularesPage = () => {
                 <Filter className="w-4 h-4" />
               </button>
               
+              {/* Botones de filtro rápido */}
+              <div className="flex gap-1">
+                <button
+                  onClick={() => handleQuickFilter(7)}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    activeQuickFilter === 7 
+                      ? 'bg-primary-600 text-white border-primary-700 shadow-lg transform scale-105'
+                      : 'border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                    }`}
+                >
+                  Últimos 7 días
+                </button>
+                <button
+                  onClick={() => handleQuickFilter(30)}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    activeQuickFilter === 30 
+                      ? 'bg-primary-600 text-white border-primary-700 shadow-lg transform scale-105'
+                      : 'border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                    }`}
+                >
+                  Últimos 30 días
+                </button>
+              </div>
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
@@ -436,23 +474,20 @@ const OperativosVehicularesPage = () => {
               >
                 <SlidersHorizontal className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
               </button>
-              
-              <div className="flex border border-slate-300 dark:border-slate-600 rounded-lg overflow-hidden">
-                <button
-                  onClick={() => handleExport('excel')}
-                  className="px-3 py-2 bg-green-600 text-white hover:bg-green-700 flex items-center gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  Excel
-                </button>
-                <button
-                  onClick={() => handleExport('csv')}
-                  className="px-3 py-2 bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  CSV
-                </button>
-              </div>
+              <button
+                onClick={() => handleExport('excel')}
+                className="px-3 py-2 bg-green-600 text-white hover:bg-green-700 flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Excel
+              </button>
+              <button
+                onClick={() => handleExport('csv')}
+                className="px-3 py-2 bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                CSV
+              </button>
             </div>
           </div>
         </div>
