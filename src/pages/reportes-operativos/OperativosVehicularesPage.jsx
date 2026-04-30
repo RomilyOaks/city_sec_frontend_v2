@@ -32,7 +32,7 @@ import {
 import { toast } from 'react-hot-toast';
 
 import reportesOperativosNewService from '../../services/reportesOperativosNewService';
-import { useAuthStore } from '../../store/useAuthStore';
+import { useReportesPermissions } from '../../hooks/useReportesPermissions';
 
 // Componentes
 import FiltrosReportes from './components/FiltrosReportes';
@@ -41,7 +41,11 @@ import TablaOperativos from './components/TablaOperativos';
 const OperativosVehicularesPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { canRead } = useAuthStore();
+  const permissions = useReportesPermissions();
+  
+  // 🎯 Nuevos permisos específicos para operativos vehiculares
+  const canReadVehiculares = permissions.vehiculares.read;
+  const canExportVehiculares = permissions.vehiculares.export;
   
   // Estados principales
   const [loading, setLoading] = useState(true);
@@ -93,8 +97,7 @@ const OperativosVehicularesPage = () => {
       setLoading(true);
       setError(null);
       
-      console.log('🚗 Cargando operativos vehiculares página:', page);
-      
+            
       // Construir parámetros para API
       const params = reportesOperativosNewService.buildParams({
         ...filters,
@@ -102,8 +105,7 @@ const OperativosVehicularesPage = () => {
         limit: pagination.limit
       });
       
-      console.log('🔧 Parámetros construidos:', params);
-      
+            
       // Obtener datos y resumen en paralelo
       const [operativosResponse, resumenResponse] = await Promise.all([
         reportesOperativosNewService.getOperativosVehiculares(params),
@@ -140,27 +142,53 @@ const OperativosVehicularesPage = () => {
    * 📤 Exportar datos
    */
   const handleExport = useCallback(async (formato = 'excel') => {
+    // Validar permisos de exportación
+    if (!canExportVehiculares) {
+      toast.error('No tienes permisos para exportar operativos vehiculares');
+      return;
+    }
+
     try {
       toast.loading(`Preparando exportación ${formato.toUpperCase()}...`);
       
       const params = reportesOperativosNewService.buildParams({
         ...filters,
-        limit: 10000, // Exportar sin límite
+        limit: 1000, // Exportar sin límite (máximo permitido)
         formato
       });
       
-      const response = await reportesOperativosNewService.getOperativosVehiculares(params);
+      const response = await reportesOperativosNewService.exportarOperativosVehiculares(params);
       
       if (response.success) {
-        // TODO: Implementar descarga real del archivo
-        console.log('📤 Datos para exportación:', response.data);
-        toast.success(`Reporte ${formato.toUpperCase()} preparado para descarga`);
+        try {
+          // Descargar archivo Excel
+          const blob = new Blob([response.data], { 
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+          });
+          
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `reportes-operativos-vehiculares-${new Date().toISOString().split('T')[0]}.xlsx`;
+          
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+          
+          toast.success(`Reporte ${formato.toUpperCase()} descargado exitosamente`);
+          toast.dismiss(); // Limpiar toasts
+        } catch (downloadError) {
+          console.error('❌ Error descargando archivo:', downloadError);
+          toast.error('Error al descargar el archivo');
+          toast.dismiss();
+        }
       }
     } catch (err) {
       console.error('❌ Error exportando:', err);
       toast.error('Error al exportar reporte');
     }
-  }, [filters]);
+  }, [canExportVehiculares, filters]);
 
   /**
    * 🔍 Aplicar filtros
@@ -387,13 +415,13 @@ const OperativosVehicularesPage = () => {
 
   // Cargar datos al montar y cuando cambian los filtros o paginación
   useEffect(() => {
-    if (canRead) {
-      fetchOperativosVehiculares(pagination.page);
+    if (canReadVehiculares) {
+      fetchOperativosVehiculares();
     }
-  }, [fetchOperativosVehiculares, pagination.page, canRead]);
+  }, [fetchOperativosVehiculares, pagination.page, canReadVehiculares]);
 
   // Sin permisos
-  if (!canRead) {
+  if (!canReadVehiculares) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
         <div className="text-center">
@@ -474,20 +502,15 @@ const OperativosVehicularesPage = () => {
               >
                 <SlidersHorizontal className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
               </button>
-              <button
-                onClick={() => handleExport('excel')}
-                className="px-3 py-2 bg-green-600 text-white hover:bg-green-700 flex items-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                Excel
-              </button>
-              <button
-                onClick={() => handleExport('csv')}
-                className="px-3 py-2 bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                CSV
-              </button>
+              {canExportVehiculares && (
+                <button
+                  onClick={() => handleExport('excel')}
+                  className="px-3 py-2 bg-green-600 text-white hover:bg-green-700 flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Excel
+                </button>
+              )}
             </div>
           </div>
         </div>

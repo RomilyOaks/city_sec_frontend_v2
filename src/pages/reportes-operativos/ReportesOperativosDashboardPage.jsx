@@ -10,26 +10,26 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  TrendingUp, 
-  Users, 
-  Car, 
-  AlertTriangle, 
-  Clock, 
-  CheckCircle,
-  XCircle,
-  Activity,
-  Download,
-  Calendar,
-  Filter,
-  BarChart3,
-  PieChart,
-  LineChart
-} from 'lucide-react';
 import { toast } from 'react-hot-toast';
-
+import { 
+  BarChart3, 
+  Download, 
+  Calendar, 
+  TrendingUp,
+  Users,
+  Car,
+  AlertTriangle,
+  RefreshCw,
+  Filter,
+  FileText,
+  Activity,
+  Clock,
+  CheckCircle,
+  XCircle
+} from 'lucide-react';
+import * as XLSX from 'xlsx';
 import reportesOperativosNewService from '../../services/reportesOperativosNewService';
-import { useAuthStore } from '../../store/useAuthStore';
+import { useReportesPermissions } from '../../hooks/useReportesPermissions';
 
 // Componentes
 import KPIsDashboard from './components/KPIsDashboard';
@@ -38,10 +38,11 @@ import GraficosOperativos from './components/GraficosOperativos';
 
 const ReportesOperativosDashboardPage = () => {
   const navigate = useNavigate();
-  const { canRead } = useAuthStore();
+  const permissions = useReportesPermissions();
   
-  // 🐛 DEBUGGING: Verificar canRead con el routeKey correcto
-  const hasReadAccess = canRead("operativos_turnos");
+  // 🎯 Nuevos permisos específicos para dashboard
+  const canReadDashboard = permissions.dashboard.read;
+  const canExportDashboard = permissions.dashboard.export;
   
   // Estados principales
   const [loading, setLoading] = useState(true);
@@ -103,27 +104,64 @@ const ReportesOperativosDashboardPage = () => {
    * 📤 Exportar reporte completo
    */
   const handleExport = useCallback(async (formato = 'excel') => {
+    // Validar permisos de exportación
+    if (!canExportDashboard) {
+      toast.error('No tienes permisos para exportar reportes del dashboard');
+      return;
+    }
+
     try {
       toast.loading(`Preparando exportación ${formato.toUpperCase()}...`);
       
       const params = reportesOperativosNewService.buildParams({
         ...filters,
-        limit: 10000, // Exportar sin límite de paginación
+        limit: 1000, // Exportar sin límite de paginación (máximo permitido)
         formato
       });
       
-      const response = await reportesOperativosNewService.getReportesCombinados(params);
+      const response = await reportesOperativosNewService.exportarReportesCombinados(params);
       
       if (response.success) {
-        // TODO: Implementar descarga real del archivo
-        console.log('📤 Datos para exportación:', response.data);
-        toast.success(`Reporte ${formato.toUpperCase()} preparado para descarga`);
+        // Descargar archivo Excel
+        
+        try {
+          // El backend devuelve el archivo directamente en response.data
+          const blob = new Blob([response.data], { 
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+          });
+          
+          // Crear URL de descarga
+          const url = window.URL.createObjectURL(blob);
+          
+          // Crear enlace temporal y hacer clic
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `reportes-operativos-dashboard-${new Date().toISOString().split('T')[0]}.xlsx`;
+          
+          // Simular clic y limpiar
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+          
+          toast.success(`Reporte ${formato.toUpperCase()} descargado exitosamente`);
+          toast.dismiss(); // Limpiar todos los toasts
+        } catch {
+          toast.error('Error al descargar el archivo');
+          toast.dismiss(); // Limpiar todos los toasts
+        }
+      } else {
+        // Manejo específico para "sin datos"
+        if (response.message?.includes('No hay datos para exportar')) {
+          toast.warning('No hay datos disponibles para exportar con los filtros seleccionados');
+        } else {
+          toast.error('Error en la respuesta del servidor');
+        }
       }
-    } catch (err) {
-      console.error('❌ Error exportando:', err);
+    } catch {
       toast.error('Error al exportar reporte');
     }
-  }, [filters]);
+  }, [canExportDashboard, filters]);
 
   /**
    * 🔍 Aplicar filtros
@@ -175,13 +213,13 @@ const ReportesOperativosDashboardPage = () => {
 
   // Cargar datos al montar y cuando cambian los filtros
   useEffect(() => {
-    if (hasReadAccess) {
+    if (canReadDashboard) {
       fetchDashboardData();
     }
-  }, [fetchDashboardData, hasReadAccess]);
+  }, [fetchDashboardData, canReadDashboard]);
 
   // Sin permisos
-  if (!hasReadAccess) {
+  if (!canReadDashboard) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
         <div className="text-center">
@@ -265,20 +303,15 @@ const ReportesOperativosDashboardPage = () => {
               </button>
               
               <div className="flex border border-slate-300 dark:border-slate-600 rounded-lg overflow-hidden">
-                <button
-                  onClick={() => handleExport('excel')}
-                  className="px-3 py-2 bg-green-600 text-white hover:bg-green-700 flex items-center gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  Excel
-                </button>
-                <button
-                  onClick={() => handleExport('csv')}
-                  className="px-3 py-2 bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  CSV
-                </button>
+                {canExportDashboard && (
+                  <button
+                    onClick={() => handleExport('excel')}
+                    className="px-3 py-2 bg-green-600 text-white hover:bg-green-700 flex items-center gap-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    Excel
+                  </button>
+                )}
               </div>
             </div>
           </div>

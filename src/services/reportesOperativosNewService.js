@@ -110,7 +110,6 @@ class ReportesOperativosNewService {
     const queryString = new URLSearchParams(params).toString();
     const endpoint = `/vehiculares/resumen${queryString ? `?${queryString}` : ''}`;
     
-    console.log('📊 Obteniendo resumen vehicular:', params);
     return this.request(endpoint);
   }
 
@@ -122,10 +121,42 @@ class ReportesOperativosNewService {
    */
   async exportarOperativosVehiculares(params = {}) {
     const queryString = new URLSearchParams(params).toString();
-    const endpoint = `/vehiculares/exportar${queryString ? `?${queryString}` : ''}`;
+    const url = `${this.baseURL}/vehiculares/exportar${queryString ? `?${queryString}` : ''}`;
     
-    console.log('📤 Exportando operativos vehiculares:', params);
-    return this.request(endpoint);
+    try {
+      const config = {
+        headers: this.getHeaders(),
+        timeout: this.defaultTimeout,
+        responseType: 'blob' // Importante para archivos binarios
+      };
+
+      const response = await api(url, config);
+      
+      // Verificar si es un archivo Excel o un error JSON
+      const contentType = response.headers['content-type'];
+      
+      if (contentType?.includes('application/json')) {
+        // Es una respuesta JSON (probablemente un error)
+        const text = await response.data.text();
+        return JSON.parse(text);
+      } else if (contentType?.includes('application/vnd.openxmlformats')) {
+        // Es un archivo Excel
+        return {
+          success: true,
+          data: response.data,
+          filename: `reportes-operativos-vehiculares-${new Date().toISOString().split('T')[0]}.xlsx`
+        };
+      } else {
+        // Intentar procesar como blob
+        return {
+          success: true,
+          data: response.data,
+          filename: `reportes-operativos-vehiculares-${new Date().toISOString().split('T')[0]}.xlsx`
+        };
+      }
+    } catch (error) {
+      this.handleApiError(error, '/vehiculares/exportar');
+    }
   }
 
   // ========================================
@@ -142,7 +173,6 @@ class ReportesOperativosNewService {
     const queryString = new URLSearchParams(params).toString();
     const endpoint = `/pie${queryString ? `?${queryString}` : ''}`;
     
-    console.log('🚶 Obteniendo operativos a pie:', params);
     return this.request(endpoint);
   }
 
@@ -156,7 +186,6 @@ class ReportesOperativosNewService {
     const queryString = new URLSearchParams(params).toString();
     const endpoint = `/pie/resumen${queryString ? `?${queryString}` : ''}`;
     
-    console.log('📊 Obteniendo resumen operativos a pie:', params);
     return this.request(endpoint);
   }
 
@@ -170,7 +199,6 @@ class ReportesOperativosNewService {
     const queryString = new URLSearchParams(params).toString();
     const endpoint = `/pie/exportar${queryString ? `?${queryString}` : ''}`;
     
-    console.log('📤 Exportando operativos a pie:', params);
     return this.request(endpoint);
   }
 
@@ -188,7 +216,6 @@ class ReportesOperativosNewService {
     const queryString = new URLSearchParams(params).toString();
     const endpoint = `/no-atendidas${queryString ? `?${queryString}` : ''}`;
     
-    console.log('⚠️ Obteniendo novedades no atendidas:', params);
     return this.request(endpoint);
   }
 
@@ -202,7 +229,6 @@ class ReportesOperativosNewService {
     const queryString = new URLSearchParams(params).toString();
     const endpoint = `/no-atendidas/resumen${queryString ? `?${queryString}` : ''}`;
     
-    console.log('📊 Obteniendo resumen novedades no atendidas:', params);
     return this.request(endpoint);
   }
 
@@ -216,7 +242,6 @@ class ReportesOperativosNewService {
     const queryString = new URLSearchParams(params).toString();
     const endpoint = `/no-atendidas/exportar${queryString ? `?${queryString}` : ''}`;
     
-    console.log('📤 Exportando novedades no atendidas:', params);
     return this.request(endpoint);
   }
 
@@ -234,12 +259,57 @@ class ReportesOperativosNewService {
     const queryString = new URLSearchParams(params).toString();
     const endpoint = `/combinados${queryString ? `?${queryString}` : ''}`;
     
-    console.log('🔄 Obteniendo reportes combinados:', params);
     return this.request(endpoint);
   }
 
   /**
-   * 📊 Obtener Dashboard con KPIs
+   * 📤 Exportar Reportes Combinados
+   * 
+   * @param {Object} params - Parámetros de filtrado y formato
+   * @returns {Promise<Object>} Información de exportación
+   */
+  async exportarReportesCombinados(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    const url = `${this.baseURL}/combinados/exportar${queryString ? `?${queryString}` : ''}`;
+    
+    try {
+      const config = {
+        headers: this.getHeaders(),
+        timeout: this.defaultTimeout,
+        responseType: 'blob' // Importante para archivos binarios
+      };
+
+      const response = await api(url, config);
+      
+      // Verificar si es un archivo Excel o un error JSON
+      const contentType = response.headers['content-type'];
+      
+      if (contentType?.includes('application/json')) {
+        // Es una respuesta JSON (probablemente un error)
+        const text = await response.data.text();
+        return JSON.parse(text);
+      } else if (contentType?.includes('application/vnd.openxmlformats')) {
+        // Es un archivo Excel
+        return {
+          success: true,
+          data: response.data,
+          filename: `reportes-operativos-dashboard-${new Date().toISOString().split('T')[0]}.xlsx`
+        };
+      } else {
+        // Intentar procesar como blob
+        return {
+          success: true,
+          data: response.data,
+          filename: `reportes-operativos-dashboard-${new Date().toISOString().split('T')[0]}.xlsx`
+        };
+      }
+    } catch (error) {
+      this.handleApiError(error, '/combinados/exportar');
+    }
+  }
+
+  /**
+   * �🔄 Obtener Dashboard Operativos
    * 
    * @param {Object} params - Parámetros de filtrado
    * @returns {Promise<Object>} KPIs y métricas completas
@@ -248,7 +318,6 @@ class ReportesOperativosNewService {
     const queryString = new URLSearchParams(params).toString();
     const endpoint = `/dashboard${queryString ? `?${queryString}` : ''}`;
     
-    console.log('📊 Obteniendo dashboard operativos:', params);
     return this.request(endpoint);
   }
 

@@ -34,7 +34,7 @@ import {
 import { toast } from 'react-hot-toast';
 
 import reportesOperativosNewService from '../../services/reportesOperativosNewService';
-import { useAuthStore } from '../../store/useAuthStore';
+import { useReportesPermissions } from '../../hooks/useReportesPermissions';
 
 // Componentes
 import FiltrosReportes from './components/FiltrosReportes';
@@ -43,7 +43,11 @@ import TablaOperativos from './components/TablaOperativos';
 const OperativosPiePage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { canRead } = useAuthStore();
+  const permissions = useReportesPermissions();
+  
+  // 🎯 Nuevos permisos específicos para operativos a pie
+  const canReadOperativosPie = permissions.operativosPie.read;
+  const canExportOperativosPie = permissions.operativosPie.export;
   
   // Estados principales
   const [loading, setLoading] = useState(true);
@@ -77,7 +81,6 @@ const OperativosPiePage = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedOperativo, setSelectedOperativo] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
   const [activeQuickFilter, setActiveQuickFilter] = useState('');
 
   // Cargar filtros desde navegación
@@ -95,8 +98,7 @@ const OperativosPiePage = () => {
       setLoading(true);
       setError(null);
       
-      console.log('🚶 Obteniendo operativos a pie:', page);
-      
+            
       // Construir parámetros para API
       const params = reportesOperativosNewService.buildParams({
         ...filters,
@@ -104,8 +106,7 @@ const OperativosPiePage = () => {
         limit: pagination.limit
       });
       
-      console.log('🚶 Obteniendo operativos a pie:', params);
-      
+            
       // Obtener datos y resumen en paralelo
       const [operativosResponse, resumenResponse] = await Promise.all([
         reportesOperativosNewService.getOperativosPie(params),
@@ -115,20 +116,17 @@ const OperativosPiePage = () => {
       if (operativosResponse.success) {
         setOperativosPie(operativosResponse.data || []);
         setPagination(operativosResponse.pagination || pagination);
-        console.log('✅ Operativos a pie cargados:', operativosResponse.data?.length || 0);
-      }
+              }
       
       if (resumenResponse.success) {
         setResumen(resumenResponse.data);
-        console.log('📊 Obteniendo resumen operativos a pie:', resumenResponse.data);
-      }
+              }
     } catch (err) {
       console.error('❌ Error cargando operativos a pie:', err);
       setError(err.message);
       toast.error(err.message);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   }, [filters, pagination.limit]);
 
@@ -136,7 +134,6 @@ const OperativosPiePage = () => {
    * 🔄 Refrescar datos
    */
   const handleRefresh = useCallback(() => {
-    setRefreshing(true);
     fetchOperativosPie(pagination.page);
   }, [fetchOperativosPie, pagination.page]);
 
@@ -144,28 +141,53 @@ const OperativosPiePage = () => {
    * 📤 Exportar datos
    */
   const handleExport = useCallback(async (formato = 'excel') => {
+    // Validar permisos de exportación
+    if (!canExportOperativosPie) {
+      toast.error('No tienes permisos para exportar operativos a pie');
+      return;
+    }
+
     try {
       toast.loading(`Preparando exportación ${formato.toUpperCase()}...`);
       
       const params = reportesOperativosNewService.buildParams({
         ...filters,
-        limit: 10000, // Exportar sin límite
+        limit: 1000, // Exportar sin límite (máximo permitido)
         formato
       });
       
-      const response = await reportesOperativosNewService.getOperativosPie(params);
+      const response = await reportesOperativosNewService.exportarOperativosPie(params);
       
       if (response.success) {
-        console.log('📤 Datos para exportación:', response.data);
-        toast.success(`Reporte ${formato.toUpperCase()} preparado para descarga`);
-        
-        // TODO: Implementar descarga real del archivo
+        try {
+          // Descargar archivo
+          const blob = new Blob([response.data], { 
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+          });
+          
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `reportes-operativos-pie-${new Date().toISOString().split('T')[0]}.xlsx`;
+          
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+          
+          toast.success(`Reporte ${formato.toUpperCase()} descargado exitosamente`);
+          toast.dismiss(); // Limpiar toasts
+        } catch (downloadError) {
+          console.error('❌ Error descargando archivo:', downloadError);
+          toast.error('Error al descargar el archivo');
+          toast.dismiss();
+        }
       }
     } catch (err) {
       console.error('❌ Error exportando:', err);
       toast.error('Error al exportar reporte');
     }
-  }, [filters]);
+  }, [canExportOperativosPie, filters]);
 
   /**
    * � Cambiar de página
@@ -431,13 +453,13 @@ const OperativosPiePage = () => {
 
   // Cargar datos al montar y cuando cambian los filtros o paginación
   useEffect(() => {
-    if (canRead) {
-      fetchOperativosPie(pagination.page);
+    if (canReadOperativosPie) {
+      fetchOperativosPie();
     }
-  }, [fetchOperativosPie, pagination.page, canRead]);
+  }, [fetchOperativosPie, pagination.page, canReadOperativosPie]);
 
   // Sin permisos
-  if (!canRead) {
+  if (!canReadOperativosPie) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
         <div className="text-center">
@@ -514,6 +536,14 @@ const OperativosPiePage = () => {
               >
                 <Download className="w-4 h-4" />
                 CSV
+              </button>
+              
+              <button
+                onClick={() => handleExport('excel')}
+                className="px-3 py-2 bg-green-600 text-white hover:bg-green-700 flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Excel
               </button>
           </div>
         </div>
