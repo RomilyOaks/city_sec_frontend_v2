@@ -37,7 +37,7 @@ import {
 import { toast } from 'react-hot-toast';
 
 import reportesOperativosNewService from '../../services/reportesOperativosNewService';
-import { useAuthStore } from '../../store/useAuthStore';
+import { useReportesPermissions } from '../../hooks/useReportesPermissions';
 
 // Componentes
 import FiltrosReportes from './components/FiltrosReportes';
@@ -46,7 +46,11 @@ import TablaOperativos from './components/TablaOperativos';
 const NovedadesNoAtendidasPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { canRead } = useAuthStore();
+  const permissions = useReportesPermissions();
+  
+  // 🎯 Nuevos permisos específicos para novedades no atendidas
+  const canReadNoAtendidas = permissions.noAtendidas.read;
+  const canExportNoAtendidas = permissions.noAtendidas.export;
   
   // Estados principales
   const [loading, setLoading] = useState(true);
@@ -97,8 +101,7 @@ const NovedadesNoAtendidasPage = () => {
       setLoading(true);
       setError(null);
       
-      console.log('⚠️ Cargando novedades no atendidas página:', page);
-      
+            
       // Construir parámetros para API
       const params = reportesOperativosNewService.buildParams({
         ...filters,
@@ -115,13 +118,11 @@ const NovedadesNoAtendidasPage = () => {
       if (novedadesResponse.success) {
         setNovedadesNoAtendidas(novedadesResponse.data || []);
         setPagination(novedadesResponse.pagination || pagination);
-        console.log('✅ Novedades no atendidas cargadas:', novedadesResponse.data?.length || 0);
-      }
+              }
       
       if (resumenResponse.success) {
         setResumen(resumenResponse.data);
-        console.log('✅ Resumen novedades no atendidas cargado:', resumenResponse.data);
-      }
+              }
     } catch (err) {
       console.error('❌ Error cargando novedades no atendidas:', err);
       setError(err.message);
@@ -144,28 +145,53 @@ const NovedadesNoAtendidasPage = () => {
    * 📤 Exportar datos
    */
   const handleExport = useCallback(async (formato = 'excel') => {
+    // Validar permisos de exportación
+    if (!canExportNoAtendidas) {
+      toast.error('No tienes permisos para exportar novedades no atendidas');
+      return;
+    }
+
     try {
       toast.loading(`Preparando exportación ${formato.toUpperCase()}...`);
       
       const params = reportesOperativosNewService.buildParams({
         ...filters,
-        limit: 10000, // Exportar sin límite
+        limit: 1000, // Exportar sin límite (máximo permitido)
         formato
       });
       
       const response = await reportesOperativosNewService.exportarNovedadesNoAtendidas(params);
       
       if (response.success) {
-        console.log('📤 Exportación novedades no atendidas preparada:', response.data);
-        toast.success(`Reporte novedades no atendidas ${formato.toUpperCase()} preparado`);
-        
-        // TODO: Implementar descarga real del archivo
+        try {
+          // Descargar archivo
+          const blob = new Blob([response.data], { 
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+          });
+          
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `reportes-novedades-no-atendidas-${new Date().toISOString().split('T')[0]}.xlsx`;
+          
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+          
+          toast.success(`Reporte novedades no atendidas ${formato.toUpperCase()} descargado exitosamente`);
+          toast.dismiss(); // Limpiar toasts
+        } catch (downloadError) {
+          console.error('❌ Error descargando archivo:', downloadError);
+          toast.error('Error al descargar el archivo');
+          toast.dismiss();
+        }
       }
     } catch (err) {
       console.error('❌ Error exportando:', err);
       toast.error('Error al exportar reporte');
     }
-  }, [filters]);
+  }, [canExportNoAtendidas, filters]);
 
   /**
    * ⚡ Filtros rápidos
@@ -418,13 +444,13 @@ const NovedadesNoAtendidasPage = () => {
 
   // Cargar datos al montar y cuando cambian los filtros o paginación
   useEffect(() => {
-    if (canRead) {
-      fetchNovedadesNoAtendidas(pagination.page);
+    if (canReadNoAtendidas) {
+      fetchNovedadesNoAtendidas();
     }
-  }, [fetchNovedadesNoAtendidas, pagination.page, canRead]);
+  }, [fetchNovedadesNoAtendidas, pagination.page, canReadNoAtendidas]);
 
   // Sin permisos
-  if (!canRead) {
+  if (!canReadNoAtendidas) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
         <div className="text-center">
