@@ -57,6 +57,7 @@ const NovedadesNoAtendidasPage = () => {
   const [loading, setLoading] = useState(true);
   const [novedadesNoAtendidas, setNovedadesNoAtendidas] = useState([]);
   const [resumen, setResumen] = useState(null);
+  const [estadisticasPrioridades, setEstadisticasPrioridades] = useState(null);
   const [error, setError] = useState(null);
   
   // Estado para modal de detalle
@@ -123,6 +124,11 @@ const NovedadesNoAtendidasPage = () => {
       if (novedadesResponse.success) {
         setNovedadesNoAtendidas(novedadesResponse.data || []);
         setPagination(novedadesResponse.pagination || pagination);
+        
+        // Extraer estadísticas de prioridades si vienen en la respuesta
+        if (novedadesResponse.estadisticas_prioridades) {
+          setEstadisticasPrioridades(novedadesResponse.estadisticas_prioridades);
+        }
               }
       
       if (resumenResponse.success) {
@@ -600,6 +606,85 @@ const NovedadesNoAtendidasPage = () => {
                 </div>
                 <div className="text-xs text-purple-700 dark:text-purple-300">Total Únicas</div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Estadísticas por Prioridades */}
+      {estadisticasPrioridades && (
+        <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+              📊 Estadísticas por Prioridades
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {Object.entries(estadisticasPrioridades).map(([prioridad, data]) => {
+                const total = Object.values(estadisticasPrioridades).reduce((sum, item) => sum + item.count, 0);
+                const porcentaje = ((data.count / total) * 100).toFixed(1);
+                
+                const colorClasses = {
+                  'rojo': {
+                    border: 'border-red-600 bg-red-50',
+                    title: 'text-red-700',
+                    count: 'text-red-600',
+                    percentage: 'text-red-600'
+                  },
+                  'ambar': {
+                    border: 'border-amber-600 bg-amber-50',
+                    title: 'text-amber-700',
+                    count: 'text-amber-600',
+                    percentage: 'text-amber-600'
+                  },
+                  'verde': {
+                    border: 'border-green-600 bg-green-50',
+                    title: 'text-green-700',
+                    count: 'text-green-600',
+                    percentage: 'text-green-600'
+                  },
+                  'gris': {
+                    border: 'border-gray-600 bg-gray-50',
+                    title: 'text-gray-700',
+                    count: 'text-gray-600',
+                    percentage: 'text-gray-600'
+                  }
+                };
+                
+                const colors = colorClasses[data.color] || colorClasses.gris;
+                
+                return (
+                  <div 
+                    key={prioridad}
+                    className={`p-4 rounded-lg border-2 ${colors.border} hover:shadow-md transform transition-transform duration-200 hover:scale-105`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <h3 className={`font-bold text-lg ${colors.title}`}>
+                        {prioridad}
+                      </h3>
+                      <span className={`text-2xl font-bold ${colors.count}`}>
+                        {data.count}
+                      </span>
+                    </div>
+                    <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                      {porcentaje}% del total
+                    </div>
+                    <div className="mt-3">
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full transition-all duration-500 ${
+                            data.color === 'rojo' ? 'bg-red-600' :
+                            data.color === 'ambar' ? 'bg-amber-600' :
+                            data.color === 'verde' ? 'bg-green-600' :
+                            'bg-gray-600'
+                          }`}
+                          style={{ width: `${porcentaje}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
