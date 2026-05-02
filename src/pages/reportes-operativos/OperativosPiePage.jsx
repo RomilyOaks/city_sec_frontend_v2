@@ -540,8 +540,8 @@ const OperativosPiePage = () => {
                   Últimos 30 días
                 </button>
               </div>
-              
-              {canExportOperativosPie && (
+                            
+              {canExportOperativosPie && operativosPie.length > 0 && !loading && (
                 <button
                   onClick={() => handleExport('excel')}
                   className="px-3 py-2 bg-green-600 text-white hover:bg-green-700 flex items-center gap-2"
