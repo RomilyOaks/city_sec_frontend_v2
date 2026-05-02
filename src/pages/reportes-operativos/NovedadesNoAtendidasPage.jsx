@@ -172,7 +172,7 @@ const NovedadesNoAtendidasPage = () => {
           const url = window.URL.createObjectURL(blob);
           const link = document.createElement('a');
           link.href = url;
-          link.download = `reportes-novedades-no-atendidas-${new Date().toISOString().split('T')[0]}.xlsx`;
+          link.download = `reportes-novedades-no-atendidas-${new Date().toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')}.xlsx`;
           
           document.body.appendChild(link);
           link.click();
@@ -535,20 +535,15 @@ const NovedadesNoAtendidasPage = () => {
               </div>
               
               <div className="flex border border-slate-300 dark:border-slate-600 rounded-lg overflow-hidden">
-                <button
-                  onClick={() => handleExport('excel')}
-                  className="px-3 py-2 bg-green-600 text-white hover:bg-green-700 flex items-center gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  Excel
-                </button>
-                <button
-                  onClick={() => handleExport('csv')}
-                  className="px-3 py-2 bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-2"
-                >
-                  <Download className="w-4 h-4" />
-                  CSV
-                </button>
+                {canExportNoAtendidas && (
+                  <button
+                    onClick={() => handleExport('excel')}
+                    className="px-3 py-2 bg-green-600 text-white hover:bg-green-700 flex items-center gap-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    Excel
+                  </button>
+                )}
               </div>
             </div>
           </div>

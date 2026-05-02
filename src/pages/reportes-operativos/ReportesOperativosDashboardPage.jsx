@@ -136,7 +136,7 @@ const ReportesOperativosDashboardPage = () => {
           // Crear enlace temporal y hacer clic
           const link = document.createElement('a');
           link.href = url;
-          link.download = `reportes-operativos-dashboard-${new Date().toISOString().split('T')[0]}.xlsx`;
+          link.download = `reportes-operativos-dashboard-${new Date().toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')}.xlsx`;
           
           // Simular clic y limpiar
           document.body.appendChild(link);

@@ -168,7 +168,7 @@ const OperativosPiePage = () => {
           const url = window.URL.createObjectURL(blob);
           const link = document.createElement('a');
           link.href = url;
-          link.download = `reportes-operativos-pie-${new Date().toISOString().split('T')[0]}.xlsx`;
+          link.download = `reportes-operativos-pie-${new Date().toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')}.xlsx`;
           
           document.body.appendChild(link);
           link.click();
@@ -530,21 +530,15 @@ const OperativosPiePage = () => {
                 </button>
               </div>
               
-              <button
-                onClick={() => handleExport('csv')}
-                className="px-3 py-2 bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                CSV
-              </button>
-              
-              <button
-                onClick={() => handleExport('excel')}
-                className="px-3 py-2 bg-green-600 text-white hover:bg-green-700 flex items-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                Excel
-              </button>
+              {canExportOperativosPie && (
+                <button
+                  onClick={() => handleExport('excel')}
+                  className="px-3 py-2 bg-green-600 text-white hover:bg-green-700 flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Excel
+                </button>
+              )}
           </div>
         </div>
       </div>

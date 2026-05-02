@@ -144,14 +144,14 @@ class ReportesOperativosNewService {
         return {
           success: true,
           data: response.data,
-          filename: `reportes-operativos-vehiculares-${new Date().toISOString().split('T')[0]}.xlsx`
+          filename: `reportes-operativos-vehiculares-${new Date().toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')}.xlsx`
         };
       } else {
         // Intentar procesar como blob
         return {
           success: true,
           data: response.data,
-          filename: `reportes-operativos-vehiculares-${new Date().toISOString().split('T')[0]}.xlsx`
+          filename: `reportes-operativos-vehiculares-${new Date().toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')}.xlsx`
         };
       }
     } catch (error) {
@@ -197,9 +197,42 @@ class ReportesOperativosNewService {
    */
   async exportarOperativosPie(params = {}) {
     const queryString = new URLSearchParams(params).toString();
-    const endpoint = `/pie/exportar${queryString ? `?${queryString}` : ''}`;
+    const url = `${this.baseURL}/pie/exportar${queryString ? `?${queryString}` : ''}`;
     
-    return this.request(endpoint);
+    try {
+      const config = {
+        headers: this.getHeaders(),
+        timeout: this.defaultTimeout,
+        responseType: 'blob' // Importante para archivos binarios
+      };
+
+      const response = await api(url, config);
+      
+      // Verificar si es un archivo Excel o un error JSON
+      const contentType = response.headers['content-type'];
+      
+      if (contentType?.includes('application/json')) {
+        // Es una respuesta JSON (probablemente un error)
+        const text = await response.data.text();
+        return JSON.parse(text);
+      } else if (contentType?.includes('application/vnd.openxmlformats')) {
+        // Es un archivo Excel
+        return {
+          success: true,
+          data: response.data,
+          filename: `reportes-operativos-pie-${new Date().toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')}.xlsx`
+        };
+      } else {
+        // Intentar procesar como blob
+        return {
+          success: true,
+          data: response.data,
+          filename: `reportes-operativos-pie-${new Date().toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')}.xlsx`
+        };
+      }
+    } catch (error) {
+      this.handleApiError(error, '/pie/exportar');
+    }
   }
 
   // ========================================
@@ -240,9 +273,42 @@ class ReportesOperativosNewService {
    */
   async exportarNovedadesNoAtendidas(params = {}) {
     const queryString = new URLSearchParams(params).toString();
-    const endpoint = `/no-atendidas/exportar${queryString ? `?${queryString}` : ''}`;
+    const url = `${this.baseURL}/novedades-no-atendidas/exportar${queryString ? `?${queryString}` : ''}`;
     
-    return this.request(endpoint);
+    try {
+      const config = {
+        headers: this.getHeaders(),
+        timeout: this.defaultTimeout,
+        responseType: 'blob' // Importante para archivos binarios
+      };
+
+      const response = await api(url, config);
+      
+      // Verificar si es un archivo Excel o un error JSON
+      const contentType = response.headers['content-type'];
+      
+      if (contentType?.includes('application/json')) {
+        // Es una respuesta JSON (probablemente un error)
+        const text = await response.data.text();
+        return JSON.parse(text);
+      } else if (contentType?.includes('application/vnd.openxmlformats')) {
+        // Es un archivo Excel
+        return {
+          success: true,
+          data: response.data,
+          filename: `reportes-novedades-no-atendidas-${new Date().toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')}.xlsx`
+        };
+      } else {
+        // Intentar procesar como blob
+        return {
+          success: true,
+          data: response.data,
+          filename: `reportes-novedades-no-atendidas-${new Date().toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')}.xlsx`
+        };
+      }
+    } catch (error) {
+      this.handleApiError(error, '/novedades-no-atendidas/exportar');
+    }
   }
 
   // ========================================
@@ -293,14 +359,14 @@ class ReportesOperativosNewService {
         return {
           success: true,
           data: response.data,
-          filename: `reportes-operativos-dashboard-${new Date().toISOString().split('T')[0]}.xlsx`
+          filename: `reportes-operativos-dashboard-${new Date().toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')}.xlsx`
         };
       } else {
         // Intentar procesar como blob
         return {
           success: true,
           data: response.data,
-          filename: `reportes-operativos-dashboard-${new Date().toISOString().split('T')[0]}.xlsx`
+          filename: `reportes-operativos-dashboard-${new Date().toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')}.xlsx`
         };
       }
     } catch (error) {
