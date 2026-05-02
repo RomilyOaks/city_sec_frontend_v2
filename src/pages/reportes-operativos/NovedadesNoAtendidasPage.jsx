@@ -136,7 +136,7 @@ const NovedadesNoAtendidasPage = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [filters, pagination.limit]);
+  }, [filters]);
 
   /**
    * 🔄 Refrescar datos
@@ -556,7 +556,7 @@ const NovedadesNoAtendidasPage = () => {
               </div>
               
               <div className="flex border border-slate-300 dark:border-slate-600 rounded-lg overflow-hidden">
-                {canExportNoAtendidas && (
+                {canExportNoAtendidas && novedadesNoAtendidas.length > 0 && !loading && (
                   <button
                     onClick={() => handleExport('excel')}
                     className="px-3 py-2 bg-green-600 text-white hover:bg-green-700 flex items-center gap-2"

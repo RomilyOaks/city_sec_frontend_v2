@@ -133,7 +133,7 @@ const OperativosVehicularesPage = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [filters, pagination.limit]);
+  }, [filters]);
 
   /**
    * 🔄 Refrescar datos
@@ -527,7 +527,7 @@ const OperativosVehicularesPage = () => {
               >
                 <SlidersHorizontal className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
               </button>
-              {canExportVehiculares && (
+              {canExportVehiculares && operativosVehiculares.length > 0 && !loading && (
                 <button
                   onClick={() => handleExport('excel')}
                   className="px-3 py-2 bg-green-600 text-white hover:bg-green-700 flex items-center gap-2"
