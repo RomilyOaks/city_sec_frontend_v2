@@ -169,7 +169,7 @@ const OperativosVehicularesPage = () => {
           const url = window.URL.createObjectURL(blob);
           const link = document.createElement('a');
           link.href = url;
-          link.download = `reportes-operativos-vehiculares-${new Date().toISOString().split('T')[0]}.xlsx`;
+          link.download = `reportes-operativos-vehiculares-${new Date().toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')}.xlsx`;
           
           document.body.appendChild(link);
           link.click();

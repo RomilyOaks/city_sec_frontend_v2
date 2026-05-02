@@ -31,6 +31,7 @@ const TablaOperativos = ({
   currentOrder 
 }) => {
   const [hoveredRow, setHoveredRow] = useState(null);
+  const [keyCounter, setKeyCounter] = useState(0);
 
   /**
    * 🔢 Calcular páginas a mostrar
@@ -179,7 +180,7 @@ const TablaOperativos = ({
             ) : (
               data.map((row, index) => (
                 <tr
-                  key={row.id || index}
+                  key={`row-${row.id || 'no-id'}-${index}-${crypto.randomUUID()}`}
                   className={`border-b border-slate-100 dark:border-slate-800 transition-colors ${
                     hoveredRow === index ? 'bg-slate-50 dark:bg-slate-900/50' : ''
                   }`}
@@ -247,7 +248,7 @@ const TablaOperativos = ({
               {/* Números de página */}
               <div className="flex items-center gap-1">
                 {getVisiblePages().map((page, index) => (
-                  <div key={index}>
+                  <div key={`${page}-${index}`}>
                     {page === '...' ? (
                       <span className="px-2 py-1 text-slate-500">...</span>
                     ) : (
