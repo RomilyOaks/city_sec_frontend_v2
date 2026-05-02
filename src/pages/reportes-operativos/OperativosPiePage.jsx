@@ -8,7 +8,7 @@
  * @author CitySec Frontend Team
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Users, 
@@ -39,6 +39,7 @@ import { useReportesPermissions } from '../../hooks/useReportesPermissions';
 // Componentes
 import FiltrosReportes from './components/FiltrosReportes';
 import TablaOperativos from './components/TablaOperativos';
+import NovedadDetalleModal from '../../components/NovedadDetalleModal';
 
 const OperativosPiePage = () => {
   const navigate = useNavigate();
@@ -54,6 +55,10 @@ const OperativosPiePage = () => {
   const [operativosPie, setOperativosPie] = useState([]);
   const [resumen, setResumen] = useState(null);
   const [error, setError] = useState(null);
+  
+  // Estado para modal de detalle
+  const [selectedNovedadId, setSelectedNovedadId] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
   // Estados de paginación
   const [pagination, setPagination] = useState({
@@ -79,9 +84,11 @@ const OperativosPiePage = () => {
   
   // Estados de UI
   const [showFilters, setShowFilters] = useState(false);
-  const [selectedOperativo, setSelectedOperativo] = useState(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
   const [activeQuickFilter, setActiveQuickFilter] = useState('');
+  
+  // Ref para evitar bucles con pagination
+  const paginationRef = useRef(pagination);
+  paginationRef.current = pagination;
 
   // Cargar filtros desde navegación
   useEffect(() => {
@@ -103,7 +110,7 @@ const OperativosPiePage = () => {
       const params = reportesOperativosNewService.buildParams({
         ...filters,
         page,
-        limit: pagination.limit
+        limit: paginationRef.current.limit
       });
       
             
@@ -115,7 +122,7 @@ const OperativosPiePage = () => {
       
       if (operativosResponse.success) {
         setOperativosPie(operativosResponse.data || []);
-        setPagination(operativosResponse.pagination || pagination);
+        setPagination(prev => ({ ...prev, ...operativosResponse.pagination }));
               }
       
       if (resumenResponse.success) {
@@ -128,7 +135,7 @@ const OperativosPiePage = () => {
     } finally {
       setLoading(false);
     }
-  }, [filters, pagination.limit]);
+  }, [filters]);
 
   /**
    * 🔄 Refrescar datos
@@ -208,11 +215,23 @@ const OperativosPiePage = () => {
   }, [filters]);
 
   /**
-   * 👁️ Ver detalles de operativo
+   *  Manejar clic en fila para ver detalle
    */
-  const handleViewDetails = useCallback((operativo) => {
-    setSelectedOperativo(operativo);
-    setShowDetailModal(true);
+  const handleRowClick = useCallback((operativo) => {
+    if (operativo.novedad_id) {
+      setSelectedNovedadId(operativo.novedad_id);
+      setIsModalOpen(true);
+    } else {
+      toast.warning('Este operativo no tiene una novedad asociada');
+    }
+  }, []);
+
+  /**
+   * 🚫 Cerrar modal de detalle
+   */
+  const handleCloseModal = useCallback(() => {
+    setIsModalOpen(false);
+    setSelectedNovedadId(null);
   }, []);
 
   /**
@@ -241,7 +260,7 @@ const OperativosPiePage = () => {
     setFilters(newFilters);
     setActiveQuickFilter('');
     setPagination(prev => ({ ...prev, page: 1 }));
-  }, [fetchOperativosPie]);
+  }, []);
 
   /**
    * 🔄 Resetear filtros
@@ -262,7 +281,7 @@ const OperativosPiePage = () => {
     setFilters(defaultFilters);
     setActiveQuickFilter('');
     setPagination(prev => ({ ...prev, page: 1 }));
-  }, [fetchOperativosPie]);
+  }, []);
 
   /**
    * 📊 Columnas para la tabla
@@ -433,30 +452,22 @@ const OperativosPiePage = () => {
           </span>
         );
       }
-    },
-    {
-      key: 'acciones',
-      label: 'Acciones',
-      sortable: false,
-      width: '80px',
-      render: (row) => (
-        <button
-          onClick={() => handleViewDetails(row)}
-          className="p-1.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
-          title="Ver detalles"
-        >
-          <Eye className="w-4 h-4" />
-        </button>
-      )
     }
-  ], [handleViewDetails]);
+  ], []);
 
   // Cargar datos al montar y cuando cambian los filtros o paginación
   useEffect(() => {
     if (canReadOperativosPie) {
       fetchOperativosPie();
     }
-  }, [fetchOperativosPie, pagination.page, canReadOperativosPie]);
+  }, [pagination.page, canReadOperativosPie, fetchOperativosPie]);
+
+  // Cargar datos cuando cambian los filtros
+  useEffect(() => {
+    if (canReadOperativosPie) {
+      fetchOperativosPie(1); // Resetear a primera página cuando cambian filtros
+    }
+  }, [filters, canReadOperativosPie, fetchOperativosPie]);
 
   // Sin permisos
   if (!canReadOperativosPie) {
@@ -539,6 +550,7 @@ const OperativosPiePage = () => {
                   Excel
                 </button>
               )}
+            </div>
           </div>
         </div>
       </div>
@@ -620,141 +632,43 @@ const OperativosPiePage = () => {
           onSort={handleSort}
           currentSort={filters.sort}
           currentOrder={filters.order}
+          onRowClick={handleRowClick}
         />
-      </div>
 
-      {/* Modal de Detalles */}
-      {showDetailModal && selectedOperativo && (
+      {/* Modal de Detalles - TODO */}
+      {isModalOpen && selectedNovedadId && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
+          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-slate-900 dark:text-slate-50">
                 Detalles del Operativo a Pie
               </h2>
               <button
-                onClick={() => setShowDetailModal(false)}
+                onClick={() => setIsModalOpen(false)}
                 className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
               >
                 <XCircle className="w-5 h-5" />
               </button>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Información Personal */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-slate-900 dark:text-slate-50 flex items-center gap-2">
-                  <UserCheck className="w-4 h-4" />
-                  Información Personal
-                </h3>
-                <div className="space-y-2 text-sm">
-                  <div><strong>Nombre:</strong> {selectedOperativo.personal_asignado}</div>
-                  <div><strong>Documento:</strong> {selectedOperativo.doc_tipo} {selectedOperativo.doc_numero}</div>
-                  <div><strong>Cargo:</strong> {selectedOperativo.cargo_personal_asignado}</div>
-                  <div><strong>Nacionalidad:</strong> {selectedOperativo.nacionalidad}</div>
-                  <div><strong>Régimen:</strong> {selectedOperativo.regimen}</div>
-                  <div><strong>Estado:</strong> {selectedOperativo.estado_personal_asignado}</div>
-                </div>
-              </div>
-              
-              {/* Información del Turno */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-slate-900 dark:text-slate-50 flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
-                  Información del Turno
-                </h3>
-                <div className="space-y-2 text-sm">
-                  <div><strong>Fecha:</strong> {selectedOperativo.fecha_turno}</div>
-                  <div><strong>Turno:</strong> {selectedOperativo.turno}</div>
-                  <div><strong>Horario:</strong> {selectedOperativo.turno_horario_inicio} - {selectedOperativo.turno_horario_fin}</div>
-                  <div><strong>N° Orden:</strong> {selectedOperativo.nro_orden_turno}</div>
-                  <div><strong>Observaciones:</strong> {selectedOperativo.observaciones_turno || '-'}</div>
-                </div>
-              </div>
-              
-              {/* Información del Sector */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-slate-900 dark:text-slate-50 flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  Información del Sector
-                </h3>
-                <div className="space-y-2 text-sm">
-                  <div><strong>Sector:</strong> {selectedOperativo.nombre_sector}</div>
-                  <div><strong>Código Sector:</strong> {selectedOperativo.sector_code}</div>
-                  <div><strong>Supervisor:</strong> {selectedOperativo.supervisor_sector}</div>
-                  <div><strong>Cargo Supervisor:</strong> {selectedOperativo.cargo_supervisor}</div>
-                </div>
-              </div>
-              
-              {/* Información del Cuadrante */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-slate-900 dark:text-slate-50 flex items-center gap-2">
-                  <Map className="w-4 h-4" />
-                  Información del Cuadrante
-                </h3>
-                <div className="space-y-2 text-sm">
-                  <div><strong>Cuadrante:</strong> {selectedOperativo.nombre_cuadrante}</div>
-                  <div><strong>Código:</strong> {selectedOperativo.cuadrante_code}</div>
-                  <div><strong>Zona:</strong> {selectedOperativo.zona_code}</div>
-                  <div><strong>Hora Ingreso:</strong> {selectedOperativo.hora_ingreso}</div>
-                  <div><strong>Hora Salida:</strong> {selectedOperativo.hora_salida}</div>
-                  <div><strong>Tiempo:</strong> {selectedOperativo.tiempo_minutos} minutos</div>
-                  <div><strong>Incidentes:</strong> {selectedOperativo.incidentes_reportados}</div>
-                </div>
-              </div>
-              
-              {/* Equipamiento */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-slate-900 dark:text-slate-50 flex items-center gap-2">
-                  <Shield className="w-4 h-4" />
-                  Equipamiento
-                </h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Radio className={`w-4 h-4 ${selectedOperativo.radio_tetra_code ? 'text-green-600' : 'text-red-600'}`} />
-                    <strong>Radio TETRA:</strong> {selectedOperativo.radio_tetra_code || 'No asignado'}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Shield className={`w-4 h-4 ${selectedOperativo.chaleco_balistico ? 'text-green-600' : 'text-red-600'}`} />
-                    <strong>Chaleco Balístico:</strong> {selectedOperativo.chaleco_balistico ? 'Sí' : 'No'}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className={`w-4 h-4 ${selectedOperativo.porra_policial ? 'text-green-600' : 'text-red-600'}`} />
-                    <strong>Porra Policial:</strong> {selectedOperativo.porra_policial ? 'Sí' : 'No'}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className={`w-4 h-4 ${selectedOperativo.esposas ? 'text-green-600' : 'text-red-600'}`} />
-                    <strong>Esposas:</strong> {selectedOperativo.esposas ? 'Sí' : 'No'}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className={`w-4 h-4 ${selectedOperativo.linterna ? 'text-green-600' : 'text-red-600'}`} />
-                    <strong>Linterna:</strong> {selectedOperativo.linterna ? 'Sí' : 'No'}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className={`w-4 h-4 ${selectedOperativo.kit_primeros_auxilios ? 'text-green-600' : 'text-red-600'}`} />
-                    <strong>Kit Primeros Auxilios:</strong> {selectedOperativo.kit_primeros_auxilios ? 'Sí' : 'No'}
-                  </div>
-                </div>
-              </div>
-              
-              {/* Información del Patrullaje */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-slate-900 dark:text-slate-50 flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  Información del Patrullaje
-                </h3>
-                <div className="space-y-2 text-sm">
-                  <div><strong>Tipo Patrullaje:</strong> {selectedOperativo.tipo_patrullaje}</div>
-                  <div><strong>Hora Inicio:</strong> {selectedOperativo.hora_inicio_operativo}</div>
-                  <div><strong>Hora Fin:</strong> {selectedOperativo.hora_fin_operativo}</div>
-                  <div><strong>Estado:</strong> {selectedOperativo.estado_patrullaje_pie}</div>
-                  <div><strong>Observaciones:</strong> {selectedOperativo.observaciones_operativo_pie || '-'}</div>
-                </div>
-              </div>
+            {/* TODO: Implementar contenido del modal */}
+            <div className="text-center py-8">
+              <p className="text-slate-600 dark:text-slate-400">
+                Contenido del modal en desarrollo...
+              </p>
             </div>
           </div>
         </div>
       )}
-    </div>
+
+      {/* Modal de Detalle de Novedad */}
+      <NovedadDetalleModal
+        isOpen={isModalOpen}
+        novedadId={selectedNovedadId}
+        onClose={handleCloseModal}
+        showDespacharButton={true}
+      />
+      </div>
     </div>
   );
 };

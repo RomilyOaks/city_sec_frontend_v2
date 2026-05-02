@@ -37,6 +37,7 @@ import { useReportesPermissions } from '../../hooks/useReportesPermissions';
 // Componentes
 import FiltrosReportes from './components/FiltrosReportes';
 import TablaOperativos from './components/TablaOperativos';
+import NovedadDetalleModal from '../../components/NovedadDetalleModal';
 
 const OperativosVehicularesPage = () => {
   const navigate = useNavigate();
@@ -52,6 +53,10 @@ const OperativosVehicularesPage = () => {
   const [operativosVehiculares, setOperativosVehiculares] = useState([]);
   const [resumen, setResumen] = useState(null);
   const [error, setError] = useState(null);
+  
+  // Estado para modal de detalle
+  const [selectedNovedadId, setSelectedNovedadId] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
   // Estados de paginación
   const [pagination, setPagination] = useState({
@@ -218,6 +223,26 @@ const OperativosVehicularesPage = () => {
     setFilters(defaultFilters);
     setActiveQuickFilter('');
     setPagination(prev => ({ ...prev, page: 1 }));
+  }, []);
+
+  /**
+   * 👆 Manejar clic en fila para ver detalle
+   */
+  const handleRowClick = useCallback((operativo) => {
+    if (operativo.novedad_id) {
+      setSelectedNovedadId(operativo.novedad_id);
+      setIsModalOpen(true);
+    } else {
+      toast.warning('Este operativo no tiene una novedad asociada');
+    }
+  }, []);
+
+  /**
+   * 🚫 Cerrar modal de detalle
+   */
+  const handleCloseModal = useCallback(() => {
+    setIsModalOpen(false);
+    setSelectedNovedadId(null);
   }, []);
 
   /**
@@ -593,6 +618,7 @@ const OperativosVehicularesPage = () => {
           onSort={handleSort}
           currentSort={filters.sort}
           currentOrder={filters.order}
+          onRowClick={handleRowClick}
         />
       </div>
 
@@ -637,6 +663,14 @@ const OperativosVehicularesPage = () => {
           </div>
         </div>
       )}
+
+      {/* Modal de Detalle de Novedad */}
+      <NovedadDetalleModal
+        isOpen={isModalOpen}
+        novedadId={selectedNovedadId}
+        onClose={handleCloseModal}
+        showDespacharButton={false}
+      />
     </div>
   );
 };
