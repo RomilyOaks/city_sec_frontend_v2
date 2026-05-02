@@ -28,7 +28,8 @@ const TablaOperativos = ({
   onPageChange, 
   onSort,
   currentSort,
-  currentOrder 
+  currentOrder,
+  onRowClick 
 }) => {
   const [hoveredRow, setHoveredRow] = useState(null);
   const [keyCounter, setKeyCounter] = useState(0);
@@ -181,11 +182,12 @@ const TablaOperativos = ({
               data.map((row, index) => (
                 <tr
                   key={`row-${row.id || 'no-id'}-${index}-${crypto.randomUUID()}`}
-                  className={`border-b border-slate-100 dark:border-slate-800 transition-colors ${
+                  className={`border-b border-slate-100 dark:border-slate-800 transition-colors cursor-pointer ${
                     hoveredRow === index ? 'bg-slate-50 dark:bg-slate-900/50' : ''
                   }`}
                   onMouseEnter={() => setHoveredRow(index)}
                   onMouseLeave={() => setHoveredRow(null)}
+                  onClick={() => onRowClick && onRowClick(row)}
                 >
                   {columns.map((column) => (
                     <td

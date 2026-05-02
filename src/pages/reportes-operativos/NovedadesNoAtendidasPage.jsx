@@ -42,6 +42,7 @@ import { useReportesPermissions } from '../../hooks/useReportesPermissions';
 // Componentes
 import FiltrosReportes from './components/FiltrosReportes';
 import TablaOperativos from './components/TablaOperativos';
+import NovedadDetalleModal from '../../components/NovedadDetalleModal';
 
 const NovedadesNoAtendidasPage = () => {
   const navigate = useNavigate();
@@ -57,6 +58,10 @@ const NovedadesNoAtendidasPage = () => {
   const [novedadesNoAtendidas, setNovedadesNoAtendidas] = useState([]);
   const [resumen, setResumen] = useState(null);
   const [error, setError] = useState(null);
+  
+  // Estado para modal de detalle
+  const [selectedNovedadId, setSelectedNovedadId] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
   // Estados de paginación
   const [pagination, setPagination] = useState({
@@ -192,6 +197,22 @@ const NovedadesNoAtendidasPage = () => {
       toast.error('Error al exportar reporte');
     }
   }, [canExportNoAtendidas, filters]);
+
+  /**
+   * 👆 Manejar clic en fila para ver detalle
+   */
+  const handleRowClick = useCallback((novedad) => {
+    setSelectedNovedadId(novedad.id);
+    setIsModalOpen(true);
+  }, []);
+
+  /**
+   * 🚫 Cerrar modal de detalle
+   */
+  const handleCloseModal = useCallback(() => {
+    setIsModalOpen(false);
+    setSelectedNovedadId(null);
+  }, []);
 
   /**
    * ⚡ Filtros rápidos
@@ -627,6 +648,7 @@ const NovedadesNoAtendidasPage = () => {
           onSort={handleSort}
           currentSort={filters.sort}
           currentOrder={filters.order}
+          onRowClick={handleRowClick}
         />
       </div>
 
@@ -762,6 +784,14 @@ const NovedadesNoAtendidasPage = () => {
           </div>
         </div>
       )}
+
+      {/* Modal de Detalle de Novedad */}
+      <NovedadDetalleModal
+        isOpen={isModalOpen}
+        novedadId={selectedNovedadId}
+        onClose={handleCloseModal}
+        showDespacharButton={true}
+      />
     </div>
   );
 };
