@@ -1,0 +1,10 @@
+<div><strong>Prioridad:</strong> 
+                    <span className={`ml-2 px-2 py-1 text-xs rounded-full ${
+                      selectedNovedad.prioridad_actual === 'CRÍTICA' ? 'bg-red-100 text-red-800' :
+                      selectedNovedad.prioridad_actual === 'ALTA' ? 'bg-orange-100 text-orange-800' :
+                      selectedNovedad.prioridad_actual === 'MEDIA' ? 'bg-amber-100 text-amber-800' :
+                      'bg-green-100 text-green-800'
+                    }`}>
+                      {selectedNovedad.prioridad_actual}
+                    </span>
+                  </div>

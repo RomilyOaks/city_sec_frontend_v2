@@ -414,21 +414,30 @@ class ReportesOperativosNewService {
     if (filters.fecha_inicio) params.fecha_inicio = filters.fecha_inicio;
     if (filters.fecha_fin) params.fecha_fin = filters.fecha_fin;
     
-    // Turnos
-    if (filters.turno && filters.turno !== 'todos') params.turno = filters.turno;
-    
     // Sectores
-    if (filters.sector_id && filters.sector_id !== 'todos') params.sector_id = parseInt(filters.sector_id);
+    if (filters.sector_id && filters.sector_id !== '') params.sector_id = parseInt(filters.sector_id);
     
     // Prioridades
-    if (filters.prioridad && filters.prioridad !== 'todos') params.prioridad = filters.prioridad;
+    if (filters.prioridad && filters.prioridad !== '') params.prioridad = filters.prioridad;
+    
+    // Cuadrante
+    if (filters.cuadrante_id && filters.cuadrante_id !== '') params.cuadrante_id = parseInt(filters.cuadrante_id);
+    
+    // Turnos
+    if (filters.turno && filters.turno !== '') params.turno = filters.turno;
+    
+    // Estado de Novedad
+    if (filters.estado_novedad_id && filters.estado_novedad_id !== '') params.estado_novedad_id = parseInt(filters.estado_novedad_id);
+    
+    // Origen Llamada
+    if (filters.origen_llamada && filters.origen_llamada !== '') params.origen_llamada = filters.origen_llamada;
+    
+    // Búsqueda Genérica (según documentación backend)
+    if (filters.generico && filters.generico !== '') params.generico = filters.generico;
     
     // Paginación
     if (filters.page) params.page = parseInt(filters.page);
     if (filters.limit) params.limit = parseInt(filters.limit);
-    
-    // Búsqueda
-    if (filters.search) params.search = filters.search;
     
     // Ordenamiento
     if (filters.sort) params.sort = filters.sort;
