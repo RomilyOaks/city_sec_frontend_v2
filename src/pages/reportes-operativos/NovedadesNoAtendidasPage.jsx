@@ -56,8 +56,7 @@ const NovedadesNoAtendidasPage = () => {
   // Estados principales
   const [loading, setLoading] = useState(true);
   const [novedadesNoAtendidas, setNovedadesNoAtendidas] = useState([]);
-  const [resumen, setResumen] = useState(null);
-  const [estadisticasPrioridades, setEstadisticasPrioridades] = useState(null);
+    const [estadisticasPrioridades, setEstadisticasPrioridades] = useState(null);
   const [error, setError] = useState(null);
   
   // Estado para modal de detalle
@@ -88,9 +87,7 @@ const NovedadesNoAtendidasPage = () => {
   // Estados de UI
   const [showFilters, setShowFilters] = useState(false);
   const [activeQuickFilter, setActiveQuickFilter] = useState('');
-  const [selectedNovedad, setSelectedNovedad] = useState(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
 
   // Cargar filtros desde navegación
   useEffect(() => {
@@ -115,11 +112,8 @@ const NovedadesNoAtendidasPage = () => {
         limit: pagination.limit
       });
       
-      // Obtener datos y resumen en paralelo
-      const [novedadesResponse, resumenResponse] = await Promise.all([
-        reportesOperativosNewService.getNovedadesNoAtendidas(params),
-        reportesOperativosNewService.getResumenNovedadesNoAtendidas(params)
-      ]);
+      // Obtener datos de novedades
+      const novedadesResponse = await reportesOperativosNewService.getNovedadesNoAtendidas(params);
       
       if (novedadesResponse.success) {
         setNovedadesNoAtendidas(novedadesResponse.data || []);
@@ -129,10 +123,6 @@ const NovedadesNoAtendidasPage = () => {
         if (novedadesResponse.estadisticas_prioridades) {
           setEstadisticasPrioridades(novedadesResponse.estadisticas_prioridades);
         }
-              }
-      
-      if (resumenResponse.success) {
-        setResumen(resumenResponse.data);
               }
     } catch (err) {
       console.error('❌ Error cargando novedades no atendidas:', err);
@@ -286,28 +276,24 @@ const NovedadesNoAtendidasPage = () => {
     setPagination(prev => ({ ...prev, page: 1 }));
   }, [filters]);
 
-  /**
-   * 👁️ Ver detalles de novedad
-   */
-  const handleViewDetails = useCallback((novedad) => {
-    setSelectedNovedad(novedad);
-    setShowDetailModal(true);
-  }, []);
-
+  
   /**
    * 📊 Columnas para la tabla
    */
   const columns = useMemo(() => [
     {
-      key: 'novedad_code',
-      label: 'Código',
+      key: 'prioridad_actual',
+      label: 'Prioridad',
       sortable: true,
-      width: '120px',
-      render: (row) => (
-        <span className="font-mono text-xs bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 px-2 py-1 rounded">
-          {row.novedad_code}
-        </span>
-      )
+      width: '100px',
+      render: (row) => {
+        const colorClass = reportesOperativosNewService.getPriorityColor(row.prioridad_actual);
+        return (
+          <span className={`inline-flex px-2 py-1 text-xs rounded-full font-medium ${colorClass.bg} ${colorClass.text} ${colorClass.border}`}>
+            {row.prioridad_actual}
+          </span>
+        );
+      }
     },
     {
       key: 'fecha_hora_ocurrencia',
@@ -329,40 +315,15 @@ const NovedadesNoAtendidasPage = () => {
       )
     },
     {
-      key: 'tipo_novedad_nombre',
-      label: 'Tipo Novedad',
+      key: 'tipo_subtipo_novedad',
+      label: 'Tipo-Subtipo Novedad',
       sortable: false,
-      width: '140px',
+      width: '200px',
       render: (row) => {
         const colorClass = reportesOperativosNewService.getPriorityColor(row.prioridad_actual);
         return (
           <span className={`inline-flex px-2 py-1 text-xs rounded-full ${colorClass.bg} ${colorClass.text}`}>
-            {row.tipo_novedad_nombre}
-          </span>
-        );
-      }
-    },
-    {
-      key: 'subtipo_novedad_nombre',
-      label: 'Subtipo',
-      sortable: false,
-      width: '120px',
-      render: (row) => (
-        <span className="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 px-2 py-1 rounded">
-          {row.subtipo_novedad_nombre}
-        </span>
-      )
-    },
-    {
-      key: 'prioridad_actual',
-      label: 'Prioridad',
-      sortable: true,
-      width: '100px',
-      render: (row) => {
-        const colorClass = reportesOperativosNewService.getPriorityColor(row.prioridad_actual);
-        return (
-          <span className={`inline-flex px-2 py-1 text-xs rounded-full font-medium ${colorClass.bg} ${colorClass.text} ${colorClass.border}`}>
-            {row.prioridad_actual}
+            {row.tipo_subtipo_novedad}
           </span>
         );
       }
@@ -406,29 +367,7 @@ const NovedadesNoAtendidasPage = () => {
         </div>
       )
     },
-    {
-      key: 'tipo_atencion_faltante',
-      label: 'Atención Requerida',
-      sortable: false,
-      width: '160px',
-      render: (row) => (
-        <div className="space-y-1">
-          {Array.isArray(row.tipo_atencion_faltante) ? 
-            row.tipo_atencion_faltante.map((tipo, index) => (
-              <span key={index} className="inline-flex px-2 py-1 text-xs rounded bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 mr-1">
-                {tipo === 'PATRULLAJE_VEHICULAR' && <Car className="w-3 h-3 mr-1" />}
-                {tipo === 'PATRULLAJE_A_PIE' && <Users className="w-3 h-3 mr-1" />}
-                {tipo.replace('_', ' ')}
-              </span>
-            ))
-            : (
-              <span className="text-xs text-slate-600 dark:text-slate-400">No especificado</span>
-            )
-          }
-        </div>
-      )
-    },
-    {
+        {
       key: 'tiempo_espera',
       label: 'Tiempo Espera',
       sortable: true,
@@ -452,22 +391,7 @@ const NovedadesNoAtendidasPage = () => {
         );
       }
     },
-    {
-      key: 'acciones',
-      label: 'Acciones',
-      sortable: false,
-      width: '80px',
-      render: (row) => (
-        <button
-          onClick={() => handleViewDetails(row)}
-          className="p-1.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
-          title="Ver detalles"
-        >
-          <Eye className="w-4 h-4" />
-        </button>
-      )
-    }
-  ], [handleViewDetails]);
+    ], []);
 
   // Cargar datos al montar y cuando cambian los filtros o paginación
   useEffect(() => {
@@ -577,40 +501,7 @@ const NovedadesNoAtendidasPage = () => {
         </div>
       </div>
 
-      {/* Resumen Estadístico */}
-      {resumen && (
-        <div className="bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-                  {resumen.total_novedades_no_atendidas || 0}
-                </div>
-                <div className="text-xs text-red-700 dark:text-red-300">Total No Atendidas</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                  {resumen.no_atendidas_pie || 0}
-                </div>
-                <div className="text-xs text-orange-700 dark:text-orange-300">No Atendidas Pie</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-                  {resumen.no_atendidas_vehiculos || 0}
-                </div>
-                <div className="text-xs text-amber-700 dark:text-amber-300">No Atendidas Vehículos</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                  {resumen.total_unicas || 0}
-                </div>
-                <div className="text-xs text-purple-700 dark:text-purple-300">Total Únicas</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
+      
       {/* Estadísticas por Prioridades */}
       {estadisticasPrioridades && (
         <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
@@ -620,7 +511,8 @@ const NovedadesNoAtendidasPage = () => {
             </h3>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {Object.entries(estadisticasPrioridades).map(([prioridad, data]) => {
+              {['ALTA', 'MEDIA', 'BAJA'].filter(prioridad => estadisticasPrioridades[prioridad]).map(prioridad => {
+                const data = estadisticasPrioridades[prioridad];
                 const total = Object.values(estadisticasPrioridades).reduce((sum, item) => sum + item.count, 0);
                 const porcentaje = ((data.count / total) * 100).toFixed(1);
                 
@@ -736,139 +628,6 @@ const NovedadesNoAtendidasPage = () => {
           onRowClick={handleRowClick}
         />
       </div>
-
-      {/* Modal de Detalles */}
-      {showDetailModal && selectedNovedad && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-slate-50 flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
-                Detalles de Novedad No Atendida
-              </h2>
-              <button
-                onClick={() => setShowDetailModal(false)}
-                className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
-              >
-                <XCircle className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Información General */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-slate-900 dark:text-slate-50 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4" />
-                  Información General
-                </h3>
-                <div className="space-y-2 text-sm">
-                  <div><strong>Código:</strong> {selectedNovedad.novedad_code}</div>
-                  <div><strong>Fecha Ocurrencia:</strong> {reportesOperativosNewService.formatDate(selectedNovedad.fecha_hora_ocurrencia, true)}</div>
-                  <div><strong>Fecha Reporte:</strong> {reportesOperativosNewService.formatDate(selectedNovedad.fecha_hora_reporte, true)}</div>
-                  <div><strong>Tipo:</strong> {selectedNovedad.tipo_novedad_nombre}</div>
-                  <div><strong>Subtipo:</strong> {selectedNovedad.subtipo_novedad_nombre}</div>
-                  <div><strong>Prioridad:</strong> 
-                    <span className={`ml-2 px-2 py-1 text-xs rounded-full ${
-                      selectedNovedad.prioridad_actual === 'CRÍTICA' ? 'bg-red-100 text-red-800' :
-                      selectedNovedad.prioridad_actual === 'ALTA' ? 'bg-orange-100 text-orange-800' :
-                      selectedNovedad.prioridad_actual === 'MEDIA' ? 'bg-amber-100 text-amber-800' :
-                      'bg-green-100 text-green-800'
-                    }`}>
-                      {selectedNovedad.prioridad_actual}
-                    </span>
-                  </div>
-                  <div><strong>Descripción:</strong> {selectedNovedad.descripcion}</div>
-                  <div><strong>Observaciones:</strong> {selectedNovedad.observaciones || '-'}</div>
-                </div>
-              </div>
-              
-              {/* Información de Ubicación */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-slate-900 dark:text-slate-50 flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  Información de Ubicación
-                </h3>
-                <div className="space-y-2 text-sm">
-                  <div><strong>Ubicación:</strong> {selectedNovedad.localizacion}</div>
-                  <div><strong>Referencia:</strong> {selectedNovedad.referencia_ubicacion || '-'}</div>
-                  <div><strong>Dirección ID:</strong> {selectedNovedad.direccion_id || '-'}</div>
-                  <div><strong>Latitud:</strong> {selectedNovedad.latitud || '-'}</div>
-                  <div><strong>Longitud:</strong> {selectedNovedad.longitud || '-'}</div>
-                  <div><strong>Ajustado en Mapa:</strong> {selectedNovedad.ajustado_en_mapa ? 'Sí' : 'No'}</div>
-                  <div><strong>Ubigeo:</strong> {selectedNovedad.ubigeo_code || '-'}</div>
-                </div>
-              </div>
-              
-              {/* Información del Reportante */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-slate-900 dark:text-slate-50 flex items-center gap-2">
-                  <User className="w-4 h-4" />
-                  Información del Reportante
-                </h3>
-                <div className="space-y-2 text-sm">
-                  <div><strong>Nombre:</strong> {selectedNovedad.es_anonimo ? 'ANÓNIMO' : selectedNovedad.reportante_nombre}</div>
-                  <div><strong>Teléfono:</strong> {selectedNovedad.reportante_telefono || '-'}</div>
-                  <div><strong>Documento:</strong> {selectedNovedad.reportante_doc_identidad || '-'}</div>
-                  <div><strong>Origen Llamada:</strong> {selectedNovedad.origen_llamada || '-'}</div>
-                  <div><strong>Radio TETRA ID:</strong> {selectedNovedad.radio_tetra_id || '-'}</div>
-                  <div><strong>Es Anónimo:</strong> {selectedNovedad.es_anonimo ? 'Sí' : 'No'}</div>
-                </div>
-              </div>
-              
-              {/* Información de Recursos */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-slate-900 dark:text-slate-50 flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  Recursos Asignados
-                </h3>
-                <div className="space-y-2 text-sm">
-                  <div><strong>Usuario Registro:</strong> {selectedNovedad.usuario_registro || '-'}</div>
-                  <div><strong>Unidad Oficina:</strong> {selectedNovedad.unidad_oficina_id || '-'}</div>
-                  <div><strong>Vehículo ID:</strong> {selectedNovedad.vehiculo_id || '-'}</div>
-                  <div><strong>Personal Cargo:</strong> {selectedNovedad.personal_cargo_id || '-'}</div>
-                  <div><strong>Personal Seguridad 2:</strong> {selectedNovedad.personal_seguridad2_id || '-'}</div>
-                  <div><strong>Personal Seguridad 3:</strong> {selectedNovedad.personal_seguridad3_id || '-'}</div>
-                  <div><strong>Personal Seguridad 4:</strong> {selectedNovedad.personal_seguridad4_id || '-'}</div>
-                </div>
-              </div>
-              
-              {/* Timeline del Incidente */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-slate-900 dark:text-slate-50 flex items-center gap-2">
-                  <Clock3 className="w-4 h-4" />
-                  Timeline del Incidente
-                </h3>
-                <div className="space-y-2 text-sm">
-                  <div><strong>Fecha Despacho:</strong> {selectedNovedad.fecha_despacho ? reportesOperativosNewService.formatDate(selectedNovedad.fecha_despacho, true) : '-'}</div>
-                  <div><strong>Usuario Despacho:</strong> {selectedNovedad.usuario_despacho || '-'}</div>
-                  <div><strong>Fecha Llegada:</strong> {selectedNovedad.fecha_llegada ? reportesOperativosNewService.formatDate(selectedNovedad.fecha_llegada, true) : '-'}</div>
-                  <div><strong>Fecha Cierre:</strong> {selectedNovedad.fecha_cierre ? reportesOperativosNewService.formatDate(selectedNovedad.fecha_cierre, true) : '-'}</div>
-                  <div><strong>Usuario Cierre:</strong> {selectedNovedad.usuario_cierre || '-'}</div>
-                  <div><strong>Turno:</strong> {selectedNovedad.turno || '-'}</div>
-                </div>
-              </div>
-              
-              {/* Información Adicional */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-slate-900 dark:text-slate-50 flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4" />
-                  Información Adicional
-                </h3>
-                <div className="space-y-2 text-sm">
-                  <div><strong>KM Inicial:</strong> {selectedNovedad.km_inicial || '-'}</div>
-                  <div><strong>KM Final:</strong> {selectedNovedad.km_final || '-'}</div>
-                  <div><strong>Tiempo Respuesta:</strong> {selectedNovedad.tiempo_respuesta_min || '-'} minutos</div>
-                  <div><strong>Tiempo Resp. Operativo:</strong> {selectedNovedad.tiempo_respuesta_min_operativo || '-'} minutos</div>
-                  <div><strong>Requiere Seguimiento:</strong> {selectedNovedad.requiere_seguimiento ? 'Sí' : 'No'}</div>
-                  <div><strong>Próxima Revisión:</strong> {selectedNovedad.fecha_proxima_revision ? reportesOperativosNewService.formatDate(selectedNovedad.fecha_proxima_revision) : '-'}</div>
-                  <div><strong>Personas Afectadas:</strong> {selectedNovedad.num_personas_afectadas || '0'}</div>
-                  <div><strong>Pérdidas Estimadas:</strong> {selectedNovedad.perdidas_materiales_estimadas || 'S/ 0.00'}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Modal de Detalle de Novedad */}
       <NovedadDetalleModal
