@@ -16,7 +16,8 @@ import {
   AlertTriangle, 
   Filter,
   X,
-  Search
+  Search,
+  Phone
 } from 'lucide-react';
 
 const FiltrosReportes = ({ 
@@ -264,21 +265,84 @@ const FiltrosReportes = ({
           </select>
         </div>
 
-        {/* Búsqueda */}
+        {/* Búsqueda Genérica */}
         <div>
           <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
             <Search className="inline w-3 h-3 mr-1 text-slate-600 dark:text-white" />
-            Búsqueda
+            Búsqueda Genérica
           </label>
           <input
             type="text"
-            value={localFilters.search || ''}
-            onChange={(e) => handleFilterChange('search', e.target.value)}
-            placeholder="Código, descripción..."
+            value={localFilters.generico || ''}
+            onChange={(e) => handleFilterChange('generico', e.target.value)}
+            placeholder="Descripción, ubicación o reportante..."
             className="w-full px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-xs text-slate-900 dark:text-slate-50 [color-scheme:light] dark:[color-scheme:dark]"
           />
         </div>
       </div>
+
+        {/* Filtros Combinados - Cuadrante, Estado Novedad, Origen Llamada */}
+        <div className="xl:col-span-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {/* Cuadrante */}
+            <div>
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <MapPin className="inline w-3 h-3 mr-1 text-slate-600 dark:text-white" />
+                Cuadrante
+              </label>
+              <input
+                type="number"
+                value={localFilters.cuadrante_id || ''}
+                onChange={(e) => handleFilterChange('cuadrante_id', e.target.value)}
+                placeholder="ID del cuadrante"
+                className="w-full px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-xs text-slate-900 dark:text-slate-50 [color-scheme:light] dark:[color-scheme:dark]"
+              />
+            </div>
+
+            {/* Estado Novedad */}
+            <div>
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <AlertTriangle className="inline w-3 h-3 mr-1 text-slate-600 dark:text-white" />
+                Estado Novedad
+              </label>
+              <select
+                value={localFilters.estado_novedad_id || ''}
+                onChange={(e) => handleFilterChange('estado_novedad_id', e.target.value)}
+                className="w-full px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-xs text-slate-900 dark:text-slate-50 [color-scheme:light] dark:[color-scheme:dark]"
+              >
+                <option value="">Todos los estados</option>
+                <option value="1">📝 Pendiente de Registro</option>
+                <option value="2">🚒 Despachada</option>
+                <option value="3">🚗 En Ruta</option>
+                <option value="4">📍 En Lugar</option>
+                <option value="5">⚕️ En Atención</option>
+                <option value="6">✅ Atendida</option>
+                <option value="7">🔒 Cerrada</option>
+                <option value="8">❌ Cancelada</option>
+                <option value="9">📋 Por Validar</option>
+                <option value="10">🔄 Reabierta</option>
+              </select>
+            </div>
+
+            {/* Origen Llamada */}
+            <div>
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <Phone className="inline w-3 h-3 mr-1 text-slate-600 dark:text-white" />
+                Origen Llamada
+              </label>
+              <select
+                value={localFilters.origen_llamada || ''}
+                onChange={(e) => handleFilterChange('origen_llamada', e.target.value)}
+                className="w-full px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-xs text-slate-900 dark:text-slate-50 [color-scheme:light] dark:[color-scheme:dark]"
+              >
+                <option value="">Todos los orígenes</option>
+                <option value="TELEFONO_107">📞 Teléfono 107</option>
+                <option value="RADIO_TETRA">📻 Radio Tetra</option>
+                <option value="PERSONAL">👤 Personal</option>
+              </select>
+            </div>
+          </div>
+        </div>
 
       {/* Botones de Acción */}
       <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-700">

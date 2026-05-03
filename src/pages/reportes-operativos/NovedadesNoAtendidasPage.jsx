@@ -43,6 +43,7 @@ import { useReportesPermissions } from '../../hooks/useReportesPermissions';
 import FiltrosReportes from './components/FiltrosReportes';
 import TablaOperativos from './components/TablaOperativos';
 import NovedadDetalleModal from '../../components/NovedadDetalleModal';
+import OrigenLlamadaCell from '../../components/novedades/OrigenLlamadaCell';
 
 const NovedadesNoAtendidasPage = () => {
   const navigate = useNavigate();
@@ -78,8 +79,10 @@ const NovedadesNoAtendidasPage = () => {
     turno: '',
     sector_id: '',
     prioridad: '',
-    tipo_novedad_id: '',
-    search: '',
+    cuadrante_id: '',
+    estado_novedad_id: '',
+    origen_llamada: '',
+    generico: '', // Cambiado de 'search' a 'generico' según documentación backend
     sort: 'fecha_hora_ocurrencia',
     order: 'DESC'
   });
@@ -248,8 +251,10 @@ const NovedadesNoAtendidasPage = () => {
       turno: '',
       sector_id: '',
       prioridad: '',
-      tipo_novedad_id: '',
-      search: '',
+      cuadrante_id: '',
+      estado_novedad_id: '',
+      origen_llamada: '',
+      generico: '', // Cambiado de 'search' a 'generico' según documentación backend
       sort: 'fecha_hora_ocurrencia',
       order: 'DESC'
     };
@@ -312,6 +317,19 @@ const NovedadesNoAtendidasPage = () => {
             })}
           </div>
         </div>
+      )
+    },
+    {
+      key: 'origen_llamada',
+      label: 'Origen',
+      sortable: false,
+      width: '80px',
+      render: (row) => (
+        <OrigenLlamadaCell
+          origen={row.origen_llamada}
+          showLabel={false}
+          size="sm"
+        />
       )
     },
     {
@@ -440,7 +458,6 @@ const NovedadesNoAtendidasPage = () => {
                 </p>
               </div>
             </div>
-            
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowFilters(!showFilters)}
@@ -449,6 +466,7 @@ const NovedadesNoAtendidasPage = () => {
                     ? 'bg-red-100 border-red-300 text-red-700 dark:bg-red-900/30 dark:border-red-700 dark:text-red-300'
                     : 'border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
                 }`}
+                title="Filtros de búsquedas"
               >
                 <Filter className="w-4 h-4" />
               </button>

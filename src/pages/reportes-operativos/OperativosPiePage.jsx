@@ -514,7 +514,7 @@ const OperativosPiePage = () => {
                     : 'border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
                 }`}
               >
-                <Filter className="w-4 h-4" />
+                <Filter className="w-4 h-4" title="Filtros de búsquedas" />
               </button>
               
               {/* Filtros Rápidos */}

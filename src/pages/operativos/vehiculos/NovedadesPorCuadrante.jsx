@@ -828,7 +828,7 @@ export default function NovedadesPorCuadrante() {
         {/* Filtros */}
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 mb-6">
           <div className="flex items-center gap-2 mb-3">
-            <Filter size={18} className="text-slate-600 dark:text-slate-300" />
+            <Filter size={18} className="text-slate-600 dark:text-slate-300" title="Filtros de búsquedas" />
             <h3 className="text-sm font-medium text-slate-900 dark:text-slate-50">
               Filtros
             </h3>
