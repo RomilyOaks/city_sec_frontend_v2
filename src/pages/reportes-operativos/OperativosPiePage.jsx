@@ -80,6 +80,7 @@ const OperativosPiePage = () => {
     cargo_id: '',
     cuadrante_id: '',
     estado_novedad_id: '',
+    tipo_novedad_id: '', // Agregado según homologación backend
     origen_llamada: '',
     generico: '', // Cambiado de 'search' a 'generico' según documentación backend
     sort: 'fecha_hora_ocurrencia',
@@ -255,46 +256,74 @@ const OperativosPiePage = () => {
     const newFilters = {
       ...filters,
       fecha_inicio: startDate.toISOString().split('T')[0],
-      fecha_fin: endDate.toISOString().split('T')[0]
+      fecha_fin: endDate.toISOString().split('T')[0],
+      page: 1
     };
     
     setFilters(newFilters);
     setActiveQuickFilter(days);
-    fetchOperativosPie(1);
-  }, [filters, fetchOperativosPie]);
+    setPagination(prev => ({ ...prev, page: 1 }));
+    
+    // El useEffect se encargará de cargar los datos cuando cambien los filtros
+  }, [filters, activeQuickFilter]);
 
   /**
    * 🔍 Aplicar filtros
    */
   const handleApplyFilters = useCallback((newFilters) => {
     setFilters(newFilters);
-    setActiveQuickFilter('');
+    // NO resetear activeQuickFilter para mantener el filtro rápido activo
     setPagination(prev => ({ ...prev, page: 1 }));
-  }, []);
+  }, [filters, activeQuickFilter]);
 
   /**
    * 🔄 Resetear filtros
    */
   const handleResetFilters = useCallback(() => {
-    const defaultFilters = {
-      fecha_inicio: new Date().toISOString().split('T')[0],
-      fecha_fin: new Date().toISOString().split('T')[0],
-      turno: '',
-      sector_id: '',
-      prioridad: '',
-      personal_id: '',
-      cargo_id: '',
-      cuadrante_id: '',
-      estado_novedad_id: '',
-      origen_llamada: '',
-      generico: '', // Cambiado de 'search' a 'generico' según documentación backend
-      sort: 'fecha_hora_ocurrencia',
-      order: 'DESC'
-    };
-    setFilters(defaultFilters);
-    setActiveQuickFilter('');
+    let resetFilters;
+    
+    // Si hay un filtro rápido activo, mantener las fechas actuales
+    if (activeQuickFilter === 7 || activeQuickFilter === 30) {
+      resetFilters = {
+        ...filters, // Mantener fechas y otros valores actuales
+        turno: '',
+        sector_id: '',
+        prioridad: '',
+        personal_id: '',
+        cargo_id: '',
+        cuadrante_id: '',
+        estado_novedad_id: '',
+        tipo_novedad_id: '',
+        origen_llamada: '',
+        generico: '',
+        sort: 'fecha_hora_ocurrencia',
+        order: 'DESC'
+      };
+      // NO resetear activeQuickFilter para mantener el filtro rápido activo
+    } else {
+      const today = new Date().toISOString().split('T')[0];
+      resetFilters = {
+        fecha_inicio: today,
+        fecha_fin: today,
+        turno: '',
+        sector_id: '',
+        prioridad: '',
+        personal_id: '',
+        cargo_id: '',
+        cuadrante_id: '',
+        estado_novedad_id: '',
+        tipo_novedad_id: '',
+        origen_llamada: '',
+        generico: '',
+        sort: 'fecha_hora_ocurrencia',
+        order: 'DESC'
+      };
+      setActiveQuickFilter(''); // Resetear filtro rápido si no estaba activo
+    }
+    
+    setFilters(resetFilters);
     setPagination(prev => ({ ...prev, page: 1 }));
-  }, []);
+  }, [filters, activeQuickFilter]);
 
   /**
    * 📊 Columnas para la tabla
@@ -489,14 +518,7 @@ const OperativosPiePage = () => {
     if (canReadOperativosPie) {
       fetchOperativosPie();
     }
-  }, [pagination.page, canReadOperativosPie, fetchOperativosPie]);
-
-  // Cargar datos cuando cambian los filtros
-  useEffect(() => {
-    if (canReadOperativosPie) {
-      fetchOperativosPie(1); // Resetear a primera página cuando cambian filtros
-    }
-  }, [filters, canReadOperativosPie, fetchOperativosPie]);
+  }, [fetchOperativosPie, pagination.page, canReadOperativosPie, filters]);
 
   // Sin permisos
   if (!canReadOperativosPie) {
@@ -542,8 +564,10 @@ const OperativosPiePage = () => {
                     ? 'bg-red-100 border-red-300 text-red-700 dark:bg-red-900/30 dark:border-red-700 dark:text-red-300'
                     : 'border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
                 }`}
+                title={showFilters ? "Ocultar filtros de búsqueda" : "Mostrar filtros de búsqueda"}
+                aria-label={showFilters ? "Ocultar filtros de búsqueda" : "Mostrar filtros de búsqueda"}
               >
-                <Filter className="w-4 h-4" title="Filtros de búsquedas" />
+                <Filter className="w-4 h-4" />
               </button>
               
               {/* Filtros Rápidos */}
@@ -673,6 +697,7 @@ const OperativosPiePage = () => {
               onApplyFilters={handleApplyFilters}
               onResetFilters={handleResetFilters}
               loading={loading}
+              activeQuickFilter={activeQuickFilter}
             />
           </div>
         </div>

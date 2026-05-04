@@ -184,7 +184,7 @@ class ReportesOperativosNewService {
    */
   async getResumenPie(params = {}) {
     const queryString = new URLSearchParams(params).toString();
-    const endpoint = `/pie/resumen${queryString ? `?${queryString}` : ''}`;
+    const endpoint = `/pie${queryString ? `?${queryString}` : ''}`;
     
     return this.request(endpoint);
   }
@@ -428,6 +428,9 @@ class ReportesOperativosNewService {
     
     // Estado de Novedad
     if (filters.estado_novedad_id && filters.estado_novedad_id !== '') params.estado_novedad_id = parseInt(filters.estado_novedad_id);
+    
+    // Tipo de Novedad (homologado según documentación backend)
+    if (filters.tipo_novedad_id && filters.tipo_novedad_id !== '') params.tipo_novedad_id = parseInt(filters.tipo_novedad_id);
     
     // Origen Llamada
     if (filters.origen_llamada && filters.origen_llamada !== '') params.origen_llamada = filters.origen_llamada;
