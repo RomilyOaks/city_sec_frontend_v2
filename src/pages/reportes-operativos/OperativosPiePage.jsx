@@ -119,26 +119,18 @@ const OperativosPiePage = () => {
       });
       
             
-      // Obtener datos y resumen en paralelo
-      const [operativosResponse, resumenResponse] = await Promise.all([
-        reportesOperativosNewService.getOperativosPie(params),
-        reportesOperativosNewService.getResumenPie(params)
-      ]);
+      // Obtener datos de operativos
+      const operativosResponse = await reportesOperativosNewService.getOperativosPie(params);
       
       if (operativosResponse.success) {
         setOperativosPie(operativosResponse.data || []);
         setPagination(prev => ({ ...prev, ...operativosResponse.pagination }));
-              }
-      
-      if (resumenResponse.success) {
-        // Convertir resumen a formato de estadísticas de prioridades
-        const estadisticasAdaptadas = {
-          'ALTA': { count: resumenResponse.data?.prioridad_alta || 0, color: 'rojo' },
-          'MEDIA': { count: resumenResponse.data?.prioridad_media || 0, color: 'ambar' },
-          'BAJA': { count: resumenResponse.data?.prioridad_baja || 0, color: 'verde' }
-        };
-        setEstadisticasPrioridades(estadisticasAdaptadas);
-              }
+        
+        // Extraer estadísticas de prioridades si vienen en la respuesta (como Novedades No Atendidas)
+        if (operativosResponse.estadisticas_prioridades) {
+          setEstadisticasPrioridades(operativosResponse.estadisticas_prioridades);
+        }
+      }
     } catch (err) {
       console.error('❌ Error cargando operativos a pie:', err);
       setError(err.message);
