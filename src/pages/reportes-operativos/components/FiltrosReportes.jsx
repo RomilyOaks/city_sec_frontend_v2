@@ -4,7 +4,7 @@
  * Panel de filtros unificado para todos los tipos de reportes
  * con validación y persistencia
  * 
- * @version 2.0.0
+ * @version 2.1.0
  * @author CitySec Frontend Team
  */
 
@@ -17,34 +17,49 @@ import {
   Filter,
   X,
   Search,
-  Phone
+  Phone,
+  Car,
+  User
 } from 'lucide-react';
+
+import { useDropdownsData } from '../../../hooks/useDropdownsData';
 
 const FiltrosReportes = ({ 
   filters, 
   onApplyFilters, 
   onResetFilters, 
   loading = false,
-  showTitle = true 
+  showTitle = true,
+  activeQuickFilter = ''
 }) => {
+  // Hook para datos de dropdowns
+  const { data: dropdownsData, loading: dropdownsLoading, errors: dropdownsErrors } = useDropdownsData();
+
   // Estados locales para los filtros
   const [localFilters, setLocalFilters] = useState(filters);
   const [errors, setErrors] = useState({});
 
-  // Opciones para selects
-  const TURNOS = [
-    { value: '', label: 'Todos los turnos' },
-    { value: 'MAÑANA', label: 'Mañana (06:00-14:00)' },
-    { value: 'TARDE', label: 'Tarde (14:00-22:00)' },
-    { value: 'NOCHE', label: 'Noche (22:00-06:00)' }
-  ];
-
+  // Opciones estáticas para selects
   const PRIORIDADES = [
     { value: '', label: 'Todas las prioridades' },
-    { value: 'BAJA', label: 'Baja' },
-    { value: 'MEDIA', label: 'Media' },
-    { value: 'ALTA', label: 'Alta' },
-    { value: 'CRÍTICA', label: 'Crítica' }
+    { value: 'BAJA', label: '🟢 Baja' },
+    { value: 'MEDIA', label: '🟡 Media' },
+    { value: 'ALTA', label: '🔴 Alta' },
+    { value: 'CRÍTICA', label: '🟣 Crítica' }
+  ];
+
+  // Opciones dinámicas para Origen Llamada
+  const ORIGEN_LLAMADA_OPTIONS = [
+    { value: '', label: 'Todos los orígenes' },
+    { value: 'TELEFONO_107', label: '📞 Teléfono 107' },
+    { value: 'RADIO_TETRA', label: '📻 Radio Tetra' },
+    { value: 'REDES_SOCIALES', label: '📱 Redes Sociales' },
+    { value: 'BOTON_EMERGENCIA_ALERTA', label: '🚨 Botón Emergencia' },
+    { value: 'BOTON_DENUNCIA_VECINO_ALERTA', label: '🏠 App VECINO ALERTA' },
+    { value: 'INTERVENCION_DIRECTA', label: '👮 Intervención Directa' },
+    { value: 'PERSONAL', label: '👤 Personal' },
+    { value: 'SISTEMA_ELECTRONICO', label: '💻 Sistema Electrónico' },
+    { value: 'OTROS', label: '📋 Otros' }
   ];
 
   // Sincronizar filtros locales con props
@@ -108,14 +123,44 @@ const FiltrosReportes = ({
    * 🔄 Resetear filtros
    */
   const handleReset = () => {
-    setLocalFilters({
-      fecha_inicio: new Date().toISOString().split('T')[0],
-      fecha_fin: new Date().toISOString().split('T')[0],
-      turno: '',
-      sector_id: '',
-      prioridad: '',
-      search: ''
-    });
+    let resetFilters;
+    
+    // Si hay un filtro rápido activo, mantener las fechas actuales
+    if (activeQuickFilter === 7 || activeQuickFilter === 30) {
+      resetFilters = {
+        ...localFilters,
+        turno: '',
+        sector_id: '',
+        prioridad: '',
+        vehiculo_id: '',
+        conductor_id: '',
+        cuadrante_id: '',
+        estado_novedad_id: '',
+        origen_llamada: '',
+        generico: '',
+        sort: 'fecha_hora_ocurrencia',
+        order: 'DESC'
+      };
+    } else {
+      const today = new Date().toISOString().split('T')[0];
+      resetFilters = {
+        fecha_inicio: today,
+        fecha_fin: today,
+        turno: '',
+        sector_id: '',
+        prioridad: '',
+        vehiculo_id: '',
+        conductor_id: '',
+        cuadrante_id: '',
+        estado_novedad_id: '',
+        origen_llamada: '',
+        generico: '',
+        sort: 'fecha_hora_ocurrencia',
+        order: 'DESC'
+      };
+    }
+    
+    setLocalFilters(resetFilters);
     setErrors({});
     onResetFilters();
   };
@@ -212,17 +257,28 @@ const FiltrosReportes = ({
             <Clock className="inline w-3 h-3 mr-1 text-slate-600 dark:text-white" />
             Turno
           </label>
-          <select
-            value={localFilters.turno}
-            onChange={(e) => handleFilterChange('turno', e.target.value)}
-            className="w-full px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-xs text-slate-900 dark:text-slate-50 [color-scheme:light] dark:[color-scheme:dark]"
-          >
-            {TURNOS.map((turno) => (
-              <option key={turno.value} value={turno.value}>
-                {turno.label}
-              </option>
-            ))}
-          </select>
+          {dropdownsLoading.turnos ? (
+            <div className="w-full px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-xs text-slate-500">
+              Cargando turnos...
+            </div>
+          ) : dropdownsErrors.turnos ? (
+            <div className="w-full px-2 py-1.5 rounded-lg border border-red-300 dark:border-red-600 bg-red-50 dark:bg-red-900/20 text-xs text-red-600 dark:text-red-400">
+              Error: {dropdownsErrors.turnos}
+            </div>
+          ) : (
+            <select
+              value={localFilters.turno}
+              onChange={(e) => handleFilterChange('turno', e.target.value)}
+              className="w-full px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-xs text-slate-900 dark:text-slate-50 [color-scheme:light] dark:[color-scheme:dark]"
+            >
+              <option value="">Todos los turnos</option>
+              {dropdownsData.turnos.map((turno) => (
+                <option key={turno.value} value={turno.value}>
+                  {turno.label}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         {/* Sector */}
@@ -231,19 +287,28 @@ const FiltrosReportes = ({
             <MapPin className="inline w-3 h-3 mr-1 text-slate-600 dark:text-white" />
             Sector
           </label>
-          <select
-            value={localFilters.sector_id}
-            onChange={(e) => handleFilterChange('sector_id', e.target.value)}
-            className="w-full px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-xs text-slate-900 dark:text-slate-50 [color-scheme:light] dark:[color-scheme:dark]"
-          >
-            <option value="">Todos los sectores</option>
-            {/* TODO: Cargar sectores desde API */}
-            <option value="1">CENTRO</option>
-            <option value="2">NORTE</option>
-            <option value="3">SUR</option>
-            <option value="4">ESTE</option>
-            <option value="5">OESTE</option>
-          </select>
+          {dropdownsLoading.sectores ? (
+            <div className="w-full px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-xs text-slate-500">
+              Cargando sectores...
+            </div>
+          ) : dropdownsErrors.sectores ? (
+            <div className="w-full px-2 py-1.5 rounded-lg border border-red-300 dark:border-red-600 bg-red-50 dark:bg-red-900/20 text-xs text-red-600 dark:text-red-400">
+              Error: {dropdownsErrors.sectores}
+            </div>
+          ) : (
+            <select
+              value={localFilters.sector_id}
+              onChange={(e) => handleFilterChange('sector_id', e.target.value)}
+              className="w-full px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-xs text-slate-900 dark:text-slate-50 [color-scheme:light] dark:[color-scheme:dark]"
+            >
+              <option value="">Todos los sectores</option>
+              {dropdownsData.sectores.map((sector) => (
+                <option key={sector.value} value={sector.value}>
+                  {sector.label}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         {/* Prioridad */}
@@ -305,23 +370,28 @@ const FiltrosReportes = ({
                 <AlertTriangle className="inline w-3 h-3 mr-1 text-slate-600 dark:text-white" />
                 Estado Novedad
               </label>
-              <select
-                value={localFilters.estado_novedad_id || ''}
-                onChange={(e) => handleFilterChange('estado_novedad_id', e.target.value)}
-                className="w-full px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-xs text-slate-900 dark:text-slate-50 [color-scheme:light] dark:[color-scheme:dark]"
-              >
-                <option value="">Todos los estados</option>
-                <option value="1">📝 Pendiente de Registro</option>
-                <option value="2">🚒 Despachada</option>
-                <option value="3">🚗 En Ruta</option>
-                <option value="4">📍 En Lugar</option>
-                <option value="5">⚕️ En Atención</option>
-                <option value="6">✅ Atendida</option>
-                <option value="7">🔒 Cerrada</option>
-                <option value="8">❌ Cancelada</option>
-                <option value="9">📋 Por Validar</option>
-                <option value="10">🔄 Reabierta</option>
-              </select>
+              {dropdownsLoading.estadosNovedad ? (
+                <div className="w-full px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-xs text-slate-500">
+                  Cargando estados...
+                </div>
+              ) : dropdownsErrors.estadosNovedad ? (
+                <div className="w-full px-2 py-1.5 rounded-lg border border-red-300 dark:border-red-600 bg-red-50 dark:bg-red-900/20 text-xs text-red-600 dark:text-red-400">
+                  Error: {dropdownsErrors.estadosNovedad}
+                </div>
+              ) : (
+                <select
+                  value={localFilters.estado_novedad_id || ''}
+                  onChange={(e) => handleFilterChange('estado_novedad_id', e.target.value)}
+                  className="w-full px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-xs text-slate-900 dark:text-slate-50 [color-scheme:light] dark:[color-scheme:dark]"
+                >
+                  <option value="">Todos los estados</option>
+                  {dropdownsData.estadosNovedad.map((estado) => (
+                    <option key={estado.value} value={estado.value}>
+                      {estado.label}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             {/* Origen Llamada */}
@@ -335,14 +405,52 @@ const FiltrosReportes = ({
                 onChange={(e) => handleFilterChange('origen_llamada', e.target.value)}
                 className="w-full px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-xs text-slate-900 dark:text-slate-50 [color-scheme:light] dark:[color-scheme:dark]"
               >
-                <option value="">Todos los orígenes</option>
-                <option value="TELEFONO_107">📞 Teléfono 107</option>
-                <option value="RADIO_TETRA">📻 Radio Tetra</option>
-                <option value="PERSONAL">👤 Personal</option>
+                {ORIGEN_LLAMADA_OPTIONS.map((opcion) => (
+                  <option key={opcion.value} value={opcion.value}>
+                    {opcion.label}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
         </div>
+
+        {/* Filtros Específicos para Operativos Vehiculares */}
+        {localFilters.vehiculo_id !== undefined && (
+          <div className="xl:col-span-3">
+            <div className="grid grid-cols-1 gap-3 mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+              {/* Vehículo */}
+              <div>
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  <Car className="inline w-3 h-3 mr-1 text-slate-600 dark:text-white" />
+                  Vehículo
+                </label>
+                {dropdownsLoading.vehiculos ? (
+                  <div className="w-full px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-xs text-slate-500">
+                    Cargando vehículos...
+                  </div>
+                ) : dropdownsErrors.vehiculos ? (
+                  <div className="w-full px-2 py-1.5 rounded-lg border border-red-300 dark:border-red-600 bg-red-50 dark:bg-red-900/20 text-xs text-red-600 dark:text-red-400">
+                    Error: {dropdownsErrors.vehiculos}
+                  </div>
+                ) : (
+                  <select
+                    value={localFilters.vehiculo_id || ''}
+                    onChange={(e) => handleFilterChange('vehiculo_id', e.target.value)}
+                    className="w-full px-2 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-xs text-slate-900 dark:text-slate-50 [color-scheme:light] dark:[color-scheme:dark]"
+                  >
+                    <option value="">Todos los vehículos</option>
+                    {dropdownsData.vehiculos.map((vehiculo) => (
+                      <option key={vehiculo.value} value={vehiculo.value}>
+                        {vehiculo.label}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
       {/* Botones de Acción */}
       <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-700">

@@ -38,6 +38,7 @@ import { useReportesPermissions } from '../../hooks/useReportesPermissions';
 import FiltrosReportes from './components/FiltrosReportes';
 import TablaOperativos from './components/TablaOperativos';
 import NovedadDetalleModal from '../../components/NovedadDetalleModal';
+import OrigenLlamadaCell from '../../components/novedades/OrigenLlamadaCell';
 
 const OperativosVehicularesPage = () => {
   const navigate = useNavigate();
@@ -75,7 +76,10 @@ const OperativosVehicularesPage = () => {
     prioridad: '',
     vehiculo_id: '',
     conductor_id: '',
-    search: '',
+    cuadrante_id: '',
+    estado_novedad_id: '',
+    origen_llamada: '',
+    generico: '', // Cambiado de 'search' a 'generico' según documentación backend
     sort: 'fecha_hora_ocurrencia',
     order: 'DESC'
   });
@@ -200,30 +204,55 @@ const OperativosVehicularesPage = () => {
    */
   const handleApplyFilters = useCallback((newFilters) => {
     setFilters(newFilters);
-    setActiveQuickFilter('');
-    setPagination(prev => ({ ...prev, page: 1 })); // Resetear a primera página
-  }, []);
+    setPagination(prev => ({ ...prev, page: 1 }));
+  }, [filters, activeQuickFilter]);
 
   /**
    * 🔄 Resetear filtros
    */
   const handleResetFilters = useCallback(() => {
-    const defaultFilters = {
-      fecha_inicio: new Date().toISOString().split('T')[0],
-      fecha_fin: new Date().toISOString().split('T')[0],
-      turno: '',
-      sector_id: '',
-      prioridad: '',
-      vehiculo_id: '',
-      conductor_id: '',
-      search: '',
-      sort: 'fecha_hora_ocurrencia',
-      order: 'DESC'
-    };
-    setFilters(defaultFilters);
-    setActiveQuickFilter('');
+    let resetFilters;
+    
+    // Si hay un filtro rápido activo, mantener las fechas actuales
+    if (activeQuickFilter === 7 || activeQuickFilter === 30) {
+      resetFilters = {
+        ...filters, // Mantener fechas y otros valores actuales
+        turno: '',
+        sector_id: '',
+        prioridad: '',
+        vehiculo_id: '',
+        conductor_id: '',
+        cuadrante_id: '',
+        estado_novedad_id: '',
+        origen_llamada: '',
+        generico: '',
+        sort: 'fecha_hora_ocurrencia',
+        order: 'DESC'
+      };
+      // NO resetear activeQuickFilter para mantener el filtro rápido activo
+    } else {
+      const today = new Date().toISOString().split('T')[0];
+      resetFilters = {
+        fecha_inicio: today,
+        fecha_fin: today,
+        turno: '',
+        sector_id: '',
+        prioridad: '',
+        vehiculo_id: '',
+        conductor_id: '',
+        cuadrante_id: '',
+        estado_novedad_id: '',
+        origen_llamada: '',
+        generico: '',
+        sort: 'fecha_hora_ocurrencia',
+        order: 'DESC'
+      };
+      setActiveQuickFilter(''); // Resetear filtro rápido si no estaba activo
+    }
+    
+    setFilters(resetFilters);
     setPagination(prev => ({ ...prev, page: 1 }));
-  }, []);
+  }, [filters, activeQuickFilter]);
 
   /**
    * 👆 Manejar clic en fila para ver detalle
@@ -246,26 +275,27 @@ const OperativosVehicularesPage = () => {
   }, []);
 
   /**
-   * ⚡ Filtros rápidos
+   * Manejar filtros rápidos
    */
   const handleQuickFilter = useCallback((days) => {
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(endDate.getDate() - days);
+    const today = new Date();
+    const startDate = new Date(today);
+    startDate.setDate(today.getDate() - days);
     
     const newFilters = {
       ...filters,
       fecha_inicio: startDate.toISOString().split('T')[0],
-      fecha_fin: endDate.toISOString().split('T')[0]
+      fecha_fin: today.toISOString().split('T')[0],
+      page: 1
     };
     
     setFilters(newFilters);
     setActiveQuickFilter(days);
     setPagination(prev => ({ ...prev, page: 1 }));
-  }, [filters]);
+  }, [filters, activeQuickFilter]);
 
   /**
-   * 📄 Cambiar de página
+   * Cambiar de página
    */
   const handlePageChange = useCallback((newPage) => {
     setPagination(prev => ({ ...prev, page: newPage }));
@@ -295,15 +325,18 @@ const OperativosVehicularesPage = () => {
    */
   const columns = useMemo(() => [
     {
-      key: 'novedad_code',
-      label: 'Código',
+      key: 'prioridad_actual',
+      label: 'Prioridad',
       sortable: true,
-      width: '120px',
-      render: (row) => (
-        <span className="font-mono text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
-          {row.novedad_code}
-        </span>
-      )
+      width: '100px',
+      render: (row) => {
+        const colorClass = reportesOperativosNewService.getPriorityColor(row.prioridad_actual);
+        return (
+          <span className={`inline-flex px-2 py-1 text-xs rounded-full font-medium ${colorClass.bg} ${colorClass.text} ${colorClass.border}`}>
+            {row.prioridad_actual}
+          </span>
+        );
+      }
     },
     {
       key: 'fecha_hora_ocurrencia',
@@ -325,10 +358,23 @@ const OperativosVehicularesPage = () => {
       )
     },
     {
-      key: 'tipo_novedad',
-      label: 'Tipo Novedad',
+      key: 'origen_llamada',
+      label: 'Origen',
       sortable: false,
-      width: '140px',
+      width: '80px',
+      render: (row) => (
+        <OrigenLlamadaCell
+          origen={row.origen_llamada}
+          showLabel={false}
+          size="sm"
+        />
+      )
+    },
+    {
+      key: 'tipo_novedad',
+      label: 'Tipo-Subtipo Novedad',
+      sortable: false,
+      width: '200px',
       render: (row) => {
         const colorClass = reportesOperativosNewService.getPriorityColor(row.prioridad_actual);
         return (
@@ -443,7 +489,7 @@ const OperativosVehicularesPage = () => {
     if (canReadVehiculares) {
       fetchOperativosVehiculares();
     }
-  }, [fetchOperativosVehiculares, pagination.page, canReadVehiculares]);
+  }, [fetchOperativosVehiculares, pagination.page, canReadVehiculares, filters, activeQuickFilter]);
 
   // Sin permisos
   if (!canReadVehiculares) {
@@ -493,8 +539,9 @@ const OperativosVehicularesPage = () => {
                     ? 'bg-primary-100 border-primary-300 text-primary-700 dark:bg-primary-900/30 dark:border-primary-700 dark:text-primary-300'
                     : 'border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
                 }`}
+                title="Filtros de búsquedas"
               >
-                <Filter className="w-4 h-4" title="Filtros de búsquedas" />
+                <Filter className="w-4 h-4" />
               </button>
               
               {/* Botones de filtro rápido */}
@@ -584,6 +631,7 @@ const OperativosVehicularesPage = () => {
               onApplyFilters={handleApplyFilters}
               onResetFilters={handleResetFilters}
               loading={loading}
+              activeQuickFilter={activeQuickFilter}
             />
           </div>
         </div>
