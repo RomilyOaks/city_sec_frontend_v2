@@ -237,31 +237,52 @@ const NovedadesNoAtendidasPage = () => {
    */
   const handleApplyFilters = useCallback((newFilters) => {
     setFilters(newFilters);
-    setActiveQuickFilter(''); // Limpiar filtro rápido activo
+    // NO resetear activeQuickFilter para mantener el filtro rápido activo
     setPagination(prev => ({ ...prev, page: 1 })); // Resetear a primera página
-  }, []);
+  }, [filters, activeQuickFilter]);
 
   /**
    * 🔄 Resetear filtros
    */
   const handleResetFilters = useCallback(() => {
-    const defaultFilters = {
-      fecha_inicio: new Date().toISOString().split('T')[0],
-      fecha_fin: new Date().toISOString().split('T')[0],
-      turno: '',
-      sector_id: '',
-      prioridad: '',
-      cuadrante_id: '',
-      estado_novedad_id: '',
-      origen_llamada: '',
-      generico: '', // Cambiado de 'search' a 'generico' según documentación backend
-      sort: 'fecha_hora_ocurrencia',
-      order: 'DESC'
-    };
-    setFilters(defaultFilters);
-    setActiveQuickFilter(''); // Limpiar filtro rápido activo
+    let resetFilters;
+    
+    // Si hay un filtro rápido activo, mantener las fechas actuales
+    if (activeQuickFilter === 7 || activeQuickFilter === 30) {
+      resetFilters = {
+        ...filters, // Mantener fechas y otros valores actuales
+        turno: '',
+        sector_id: '',
+        prioridad: '',
+        cuadrante_id: '',
+        estado_novedad_id: '',
+        origen_llamada: '',
+        generico: '',
+        sort: 'fecha_hora_ocurrencia',
+        order: 'DESC'
+      };
+      // NO resetear activeQuickFilter para mantener el filtro rápido activo
+    } else {
+      const today = new Date().toISOString().split('T')[0];
+      resetFilters = {
+        fecha_inicio: today,
+        fecha_fin: today,
+        turno: '',
+        sector_id: '',
+        prioridad: '',
+        cuadrante_id: '',
+        estado_novedad_id: '',
+        origen_llamada: '',
+        generico: '',
+        sort: 'fecha_hora_ocurrencia',
+        order: 'DESC'
+      };
+      setActiveQuickFilter(''); // Resetear filtro rápido si no estaba activo
+    }
+    
+    setFilters(resetFilters);
     setPagination(prev => ({ ...prev, page: 1 }));
-  }, []);
+  }, [filters, activeQuickFilter]);
 
   /**
    * 📄 Cambiar de página
@@ -416,7 +437,7 @@ const NovedadesNoAtendidasPage = () => {
     if (canReadNoAtendidas) {
       fetchNovedadesNoAtendidas();
     }
-  }, [fetchNovedadesNoAtendidas, pagination.page, canReadNoAtendidas]);
+  }, [fetchNovedadesNoAtendidas, pagination.page, canReadNoAtendidas, filters]);
 
   // Sin permisos
   if (!canReadNoAtendidas) {
@@ -609,6 +630,7 @@ const NovedadesNoAtendidasPage = () => {
               onApplyFilters={handleApplyFilters}
               onResetFilters={handleResetFilters}
               loading={loading}
+              activeQuickFilter={activeQuickFilter}
             />
           </div>
         </div>
