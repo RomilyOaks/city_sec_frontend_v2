@@ -433,7 +433,17 @@ class ReportesOperativosNewService {
     if (filters.origen_llamada && filters.origen_llamada !== '') params.origen_llamada = filters.origen_llamada;
     
     // Búsqueda Genérica (según documentación backend)
-    if (filters.generico && filters.generico !== '') params.generico = filters.generico;
+    if (filters.generico && filters.generico !== '') {
+      // Sanitización básica para prevenir SQL Injection
+      const sanitized = filters.generico
+        .trim()
+        .replace(/[<>'";]/g, '') // Remover caracteres peligrosos
+        .replace(/--/g, '') // Remover comentarios SQL
+        .replace(/\s+/g, ' ') // Normalizar espacios
+        .substring(0, 255); // Limitar longitud
+      
+      params.generico = sanitized;
+    }
     
     // Paginación
     if (filters.page) params.page = parseInt(filters.page);
@@ -446,6 +456,12 @@ class ReportesOperativosNewService {
     // Filtros específicos para vehiculares
     if (filters.vehiculo_id) params.vehiculo_id = parseInt(filters.vehiculo_id);
     if (filters.conductor_id) params.conductor_id = parseInt(filters.conductor_id);
+    
+    // Nuevos filtros según documentación backend
+    if (filters.cuadrante_id && filters.cuadrante_id !== '') params.cuadrante_id = parseInt(filters.cuadrante_id);
+    if (filters.estado_novedad_id && filters.estado_novedad_id !== '') params.estado_novedad_id = parseInt(filters.estado_novedad_id);
+    if (filters.origen_llamada && filters.origen_llamada !== '') params.origen_llamada = filters.origen_llamada;
+    if (filters.generico && filters.generico !== '') params.generico = filters.generico; // Cambiado de 'search' a 'generico'
     
     // Filtros específicos para personal
     if (filters.personal_id) params.personal_id = parseInt(filters.personal_id);

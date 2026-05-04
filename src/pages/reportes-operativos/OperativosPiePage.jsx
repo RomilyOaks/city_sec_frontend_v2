@@ -40,6 +40,7 @@ import { useReportesPermissions } from '../../hooks/useReportesPermissions';
 import FiltrosReportes from './components/FiltrosReportes';
 import TablaOperativos from './components/TablaOperativos';
 import NovedadDetalleModal from '../../components/NovedadDetalleModal';
+import OrigenLlamadaCell from '../../components/novedades/OrigenLlamadaCell';
 
 const OperativosPiePage = () => {
   const navigate = useNavigate();
@@ -53,7 +54,7 @@ const OperativosPiePage = () => {
   // Estados principales
   const [loading, setLoading] = useState(true);
   const [operativosPie, setOperativosPie] = useState([]);
-  const [resumen, setResumen] = useState(null);
+  const [estadisticasPrioridades, setEstadisticasPrioridades] = useState(null);
   const [error, setError] = useState(null);
   
   // Estado para modal de detalle
@@ -77,7 +78,10 @@ const OperativosPiePage = () => {
     prioridad: '',
     personal_id: '',
     cargo_id: '',
-    search: '',
+    cuadrante_id: '',
+    estado_novedad_id: '',
+    origen_llamada: '',
+    generico: '', // Cambiado de 'search' a 'generico' según documentación backend
     sort: 'fecha_hora_ocurrencia',
     order: 'DESC'
   });
@@ -126,7 +130,13 @@ const OperativosPiePage = () => {
               }
       
       if (resumenResponse.success) {
-        setResumen(resumenResponse.data);
+        // Convertir resumen a formato de estadísticas de prioridades
+        const estadisticasAdaptadas = {
+          'ALTA': { count: resumenResponse.data?.prioridad_alta || 0, color: 'rojo' },
+          'MEDIA': { count: resumenResponse.data?.prioridad_media || 0, color: 'ambar' },
+          'BAJA': { count: resumenResponse.data?.prioridad_baja || 0, color: 'verde' }
+        };
+        setEstadisticasPrioridades(estadisticasAdaptadas);
               }
     } catch (err) {
       console.error('❌ Error cargando operativos a pie:', err);
@@ -274,7 +284,10 @@ const OperativosPiePage = () => {
       prioridad: '',
       personal_id: '',
       cargo_id: '',
-      search: '',
+      cuadrante_id: '',
+      estado_novedad_id: '',
+      origen_llamada: '',
+      generico: '', // Cambiado de 'search' a 'generico' según documentación backend
       sort: 'fecha_hora_ocurrencia',
       order: 'DESC'
     };
@@ -288,15 +301,18 @@ const OperativosPiePage = () => {
    */
   const columns = useMemo(() => [
     {
-      key: 'novedad_code',
-      label: 'Código',
+      key: 'prioridad_actual',
+      label: 'Prioridad',
       sortable: true,
-      width: '120px',
-      render: (row) => (
-        <span className="font-mono text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
-          {row.novedad_code}
-        </span>
-      )
+      width: '100px',
+      render: (row) => {
+        const colorClass = reportesOperativosNewService.getPriorityColor(row.prioridad_actual);
+        return (
+          <span className={`inline-flex px-2 py-1 text-xs rounded-full font-medium ${colorClass.bg} ${colorClass.text} ${colorClass.border}`}>
+            {row.prioridad_actual}
+          </span>
+        );
+      }
     },
     {
       key: 'fecha_hora_ocurrencia',
@@ -318,10 +334,23 @@ const OperativosPiePage = () => {
       )
     },
     {
-      key: 'tipo_novedad',
-      label: 'Tipo Novedad',
+      key: 'origen_llamada',
+      label: 'Origen',
       sortable: false,
-      width: '140px',
+      width: '80px',
+      render: (row) => (
+        <OrigenLlamadaCell
+          origen={row.origen_llamada}
+          showLabel={false}
+          size="sm"
+        />
+      )
+    },
+    {
+      key: 'tipo_subtipo_novedad',
+      label: 'Tipo-Subtipo Novedad',
+      sortable: false,
+      width: '200px',
       render: (row) => {
         const colorClass = reportesOperativosNewService.getPriorityColor(row.prioridad_actual);
         return (
@@ -555,35 +584,81 @@ const OperativosPiePage = () => {
         </div>
       </div>
 
-      {/* Resumen Estadístico */}
-      {resumen && (
+      {/* Estadísticas por Prioridades */}
+      {estadisticasPrioridades && (
         <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {resumen.total_novedades || 0}
-                </div>
-                <div className="text-xs text-slate-600 dark:text-slate-400">Total Novedades</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                  {resumen.personal_activo || 0}
-                </div>
-                <div className="text-xs text-slate-600 dark:text-slate-400">Personal Activo</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-                  {resumen.equipamiento_completo || 0}
-                </div>
-                <div className="text-xs text-slate-600 dark:text-slate-400">Equipamiento Completo</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                  {resumen.eficiencia_patrullaje || 0}%
-                </div>
-                <div className="text-xs text-slate-600 dark:text-slate-400">Eficiencia Patrullaje</div>
-              </div>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+              📊 Estadísticas por Prioridades
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {['ALTA', 'MEDIA', 'BAJA'].filter(prioridad => estadisticasPrioridades[prioridad]).map(prioridad => {
+                const data = estadisticasPrioridades[prioridad];
+                const total = Object.values(estadisticasPrioridades).reduce((sum, item) => sum + item.count, 0);
+                const porcentaje = ((data.count / total) * 100).toFixed(1);
+                
+                const colorClasses = {
+                  'rojo': {
+                    border: 'border-red-600 bg-red-50',
+                    title: 'text-red-700',
+                    count: 'text-red-600',
+                    percentage: 'text-red-600'
+                  },
+                  'ambar': {
+                    border: 'border-amber-600 bg-amber-50',
+                    title: 'text-amber-700',
+                    count: 'text-amber-600',
+                    percentage: 'text-amber-600'
+                  },
+                  'verde': {
+                    border: 'border-green-600 bg-green-50',
+                    title: 'text-green-700',
+                    count: 'text-green-600',
+                    percentage: 'text-green-600'
+                  },
+                  'gris': {
+                    border: 'border-gray-600 bg-gray-50',
+                    title: 'text-gray-700',
+                    count: 'text-gray-600',
+                    percentage: 'text-gray-600'
+                  }
+                };
+                
+                const colors = colorClasses[data.color] || colorClasses.gris;
+                
+                return (
+                  <div 
+                    key={prioridad}
+                    className={`p-4 rounded-lg border-2 ${colors.border} hover:shadow-md transform transition-transform duration-200 hover:scale-105`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <h3 className={`font-bold text-lg ${colors.title}`}>
+                        {prioridad}
+                      </h3>
+                      <span className={`text-2xl font-bold ${colors.count}`}>
+                        {data.count}
+                      </span>
+                    </div>
+                    <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                      {porcentaje}% del total
+                    </div>
+                    <div className="mt-3">
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full transition-all duration-500 ${
+                            data.color === 'rojo' ? 'bg-red-600' :
+                            data.color === 'ambar' ? 'bg-amber-600' :
+                            data.color === 'verde' ? 'bg-green-600' :
+                            'bg-gray-600'
+                          }`}
+                          style={{ width: `${porcentaje}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
