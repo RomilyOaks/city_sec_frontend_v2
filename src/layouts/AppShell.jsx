@@ -118,7 +118,53 @@ export default function AppShell() {
   const logout = useAuthStore((s) => s.logout);
   const [showChangePassword, setShowChangePassword] = useState(false);
 
-  const canAccess = (routeKey) => canAccessRoute(user, routeKey);
+  const canAccess = (routeKey) => {
+    // Para super_admin, siempre dar acceso
+    if (user?.roles?.some(role => role?.slug === 'super_admin')) {
+      return true;
+    }
+    
+    // Para rutas específicas de reportes operativos, usar slugs específicos
+    const reportesOperativosSlugs = {
+      'operativos_dashboard': 'reportes.operativos_dashboard.read',
+      'operativos_vehiculares': 'reportes.operativos_vehiculares.read',
+      'operativos_personales': 'reportes.operativos_personales.read',
+      'novedades_no_atendidas': 'reportes.novedades_no_atendidas.read'
+    };
+    
+    // Si es una ruta de reportes operativos, verificar el slug específico
+    if (reportesOperativosSlugs[routeKey]) {
+      return user?.permisos?.some(permiso => 
+        permiso?.slug === reportesOperativosSlugs[routeKey]
+      ) || false;
+    }
+    
+    // Para otras rutas, usar la lógica normal
+    return canAccessRoute(user, routeKey);
+  };
+
+  /**
+   * Verifica si el usuario tiene acceso a CUALQUIER módulo de Reportes Operativos
+   * @returns {boolean}
+   */
+  const canAccessAnyReportesOperativos = () => {
+    // Si es super_admin, siempre tiene acceso
+    if (user?.roles?.some(role => role?.slug === 'super_admin')) {
+      return true;
+    }
+    
+    // Verificar si tiene ALGÚN permiso de reportes operativos
+    const requiredSlugs = [
+      'reportes.operativos_dashboard.read',
+      'reportes.operativos_vehiculares.read',
+      'reportes.operativos_personales.read',
+      'reportes.novedades_no_atendidas.read'
+    ];
+    
+    return user?.permisos?.some(permiso => 
+      requiredSlugs.includes(permiso?.slug)
+    ) || false;
+  };
 
   const displayName =
     user?.nombre ||
@@ -259,22 +305,30 @@ export default function AppShell() {
             )}
 
             {/* ============================================
-                REPORTES V2.0 - NUEVO SISTEMA DE REPORTES
+                REPORTES DE OPERATIVOS - VALIDACIÓN DE PERMISOS ESPECÍFICOS
                 ============================================ */}
-            {canAccess("operativos_turnos") && (
-              <SidebarDropdown icon={FileText} label="Reportes v2">
-                <SidebarLink to="/reportes-operativos" icon={BarChart3}>
-                  Dashboard Reportes
-                </SidebarLink>
-                <SidebarLink to="/reportes-operativos/vehiculares" icon={Car}>
-                  Operativos Vehiculares
-                </SidebarLink>
-                <SidebarLink to="/reportes-operativos/pie" icon={Users}>
-                  Operativos a Pie
-                </SidebarLink>
-                <SidebarLink to="/reportes-operativos/no-atendidas" icon={AlertTriangle}>
-                  Novedades No Atendidas
-                </SidebarLink>
+            {canAccessAnyReportesOperativos() && (
+              <SidebarDropdown icon={FileText} label="Reportes de Operativos">
+                {canAccess("operativos_dashboard") && (
+                  <SidebarLink to="/reportes-operativos" icon={BarChart3}>
+                    Dashboard Reportes
+                  </SidebarLink>
+                )}
+                {canAccess("operativos_vehiculares") && (
+                  <SidebarLink to="/reportes-operativos/vehiculares" icon={Car}>
+                    Operativos Vehiculares
+                  </SidebarLink>
+                )}
+                {canAccess("operativos_personales") && (
+                  <SidebarLink to="/reportes-operativos/pie" icon={Users}>
+                    Operativos a Pie
+                  </SidebarLink>
+                )}
+                {canAccess("novedades_no_atendidas") && (
+                  <SidebarLink to="/reportes-operativos/no-atendidas" icon={AlertTriangle}>
+                    Novedades No Atendidas
+                  </SidebarLink>
+                )}
               </SidebarDropdown>
             )}
 
