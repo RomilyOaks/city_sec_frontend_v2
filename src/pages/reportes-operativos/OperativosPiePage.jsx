@@ -374,9 +374,29 @@ const OperativosPiePage = () => {
       width: '200px',
       render: (row) => {
         const colorClass = reportesOperativosNewService.getPriorityColor(row.prioridad_actual);
+        
+        // Aplicar misma lógica que NovedadDetalleModal para abreviar
+        const tipoNombre = row.tipo_novedad_nombre || '';
+        const subtipoNombre = row.sub_tipo_novedad_nombre || '';
+        
+        let tipoSubtipo = 'SIN DATO';
+        if (tipoNombre) {
+          if (!subtipoNombre) {
+            tipoSubtipo = tipoNombre;
+          } else {
+            const primerSlashIndex = tipoNombre.indexOf("/");
+            if (primerSlashIndex === -1) {
+              tipoSubtipo = `${tipoNombre} / ${subtipoNombre}`;
+            } else {
+              const tipoAbreviado = tipoNombre.substring(0, primerSlashIndex).trim();
+              tipoSubtipo = `${tipoAbreviado} / ${subtipoNombre}`;
+            }
+          }
+        }
+        
         return (
           <span className={`inline-flex px-2 py-1 text-xs rounded-full ${colorClass.bg} ${colorClass.text}`}>
-            {row.tipo_novedad}
+            {tipoSubtipo}
           </span>
         );
       }
@@ -390,7 +410,7 @@ const OperativosPiePage = () => {
         <div>
           <div className="font-medium text-sm flex items-center gap-1">
             <UserCheck className="w-3 h-3 text-green-600" />
-            {row.personal_asignado}
+            {row.Personal_asignado || 'SIN DATO'}
           </div>
           <div className="text-xs text-slate-600 dark:text-slate-400">
             {row.cargo_personal_asignado}
@@ -421,6 +441,57 @@ const OperativosPiePage = () => {
       )
     },
     {
+      key: 'estado_novedad_actual',
+      label: 'Estado',
+      sortable: true,
+      width: '120px',
+      render: (row) => {
+        const isActive = row.estado_novedad_actual === 'ABIERTA' || 
+                       row.estado_novedad_actual === 'EN PROCESO' ||
+                       row.estado_novedad_actual === 'ASIGNADA';
+        return (
+          <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
+            isActive 
+              ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' 
+              : 'bg-slate-100 dark:bg-slate-900/30 text-slate-800 dark:text-slate-300'
+          }`}>
+            {row.estado_novedad_actual || 'SIN DATO'}
+          </span>
+        );
+      }
+    },
+    {
+      key: 'tiempo_respuesta_min_operativo',
+      label: 'Tiempo Resp.',
+      sortable: true,
+      width: '100px',
+      render: (row) => {
+        const tiempo = row.tiempo_respuesta_min_operativo;
+        const baseTiempo = row.Base_Tiempo_Minimo;
+        
+        let colorClass = 'text-slate-600'; // default color
+        
+        if (tiempo && baseTiempo) {
+          if (tiempo > baseTiempo) {
+            colorClass = 'text-red-600 font-bold'; // ROJO - mayor que base
+          } else if (tiempo === baseTiempo) {
+            colorClass = 'text-amber-600 font-semibold'; // ÁMBAR - igual a base
+          } else {
+            colorClass = 'text-green-600'; // VERDE - menor que base
+          }
+        }
+        
+        return (
+          <div className="text-center">
+            <div className={`font-medium text-sm ${colorClass}`}>
+              {tiempo || '-'}
+            </div>
+            <div className="text-xs text-slate-600 dark:text-slate-400">min</div>
+          </div>
+        );
+      }
+    },
+    {
       key: 'sector_nombre',
       label: 'Sector',
       sortable: true,
@@ -443,20 +514,6 @@ const OperativosPiePage = () => {
           <div className="text-xs text-slate-600 dark:text-slate-400">
             {row.cuadrante_code}
           </div>
-        </div>
-      )
-    },
-    {
-      key: 'tiempo_minutos',
-      label: 'Tiempo',
-      sortable: true,
-      width: '100px',
-      render: (row) => (
-        <div className="text-center">
-          <div className="font-medium text-sm">
-            {row.tiempo_minutos || '-'}
-          </div>
-          <div className="text-xs text-slate-600 dark:text-slate-400">minutos</div>
         </div>
       )
     },
@@ -484,25 +541,6 @@ const OperativosPiePage = () => {
         );
       }
     },
-    {
-      key: 'estado_patrullaje_pie',
-      label: 'Estado',
-      sortable: true,
-      width: '120px',
-      render: (row) => {
-        const isActive = row.estado_patrullaje_pie === 'EN_SERVICIO' || 
-                       row.estado_patrullaje_pie === 'COMPLETADO';
-        return (
-          <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
-            isActive 
-              ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' 
-              : 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300'
-          }`}>
-            {row.estado_patrullaje_pie}
-          </span>
-        );
-      }
-    }
   ], []);
 
   // Cargar datos al montar y cuando cambian los filtros o paginación
