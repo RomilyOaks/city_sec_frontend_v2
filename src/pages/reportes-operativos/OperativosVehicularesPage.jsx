@@ -366,11 +366,30 @@ const OperativosVehicularesPage = () => {
       width: '200px',
       render: (row) => {
         const colorClass = reportesOperativosNewService.getPriorityColor(row.prioridad_actual);
-        const value = row.subtipo_novedad || 'SIN DATO';
+        
+        // Concatenar tipo y subtipo, aplicando abreviado como Operativos a Pie
+        const tipoNombre = row.tipo_novedad_nombre || '';
+        const subtipoNombre = row.subtipo_novedad || '';
+        
+        let tipoSubtipo = 'SIN DATO';
+        if (tipoNombre && subtipoNombre) {
+          // Aplicar misma lógica que Operativos a Pie
+          const primerSlashIndex = tipoNombre.indexOf("/");
+          if (primerSlashIndex === -1) {
+            // Si no hay slash en el tipo, concatenar completo
+            tipoSubtipo = `${tipoNombre} / ${subtipoNombre}`;
+          } else {
+            // Si hay slash, abreviar el tipo hasta el primer slash y concatenar con subtipo
+            const tipoAbreviado = tipoNombre.substring(0, primerSlashIndex).trim();
+            tipoSubtipo = `${tipoAbreviado} / ${subtipoNombre}`;
+          }
+        } else if (tipoNombre) {
+          tipoSubtipo = tipoNombre;
+        }
         
         return (
           <span className={`inline-flex px-2 py-1 text-xs rounded-full ${colorClass.bg} ${colorClass.text}`}>
-            {value}
+            {tipoSubtipo}
           </span>
         );
       }
@@ -428,27 +447,28 @@ const OperativosVehicularesPage = () => {
       label: 'Tiempo Resp.',
       sortable: true,
       width: '100px',
-      render: (row) => (
-        <div className="text-center">
-          <div className="font-medium text-sm">
-            {row.tiempo_respuesta_min || '-'}
-          </div>
-          <div className="text-xs text-slate-600 dark:text-slate-400">min</div>
-        </div>
-      )
-    },
-    {
-      key: 'sector_nombre',
-      label: 'Sector',
-      sortable: true,
-      width: '120px',
       render: (row) => {
-        const sectorValue = row.nombre_sector || row.sector_nombre || 'SIN DATO';
+        const tiempo = row.tiempo_respuesta_min;
+        const baseTiempo = row.Base_Tiempo_Minimo;
+        
+        let colorClass = 'text-slate-600'; // default color
+        
+        if (tiempo && baseTiempo) {
+          if (tiempo > baseTiempo) {
+            colorClass = 'text-red-600 font-bold'; // ROJO - mayor que base
+          } else if (tiempo === baseTiempo) {
+            colorClass = 'text-amber-600 font-semibold'; // ÁMBAR - igual a base
+          } else {
+            colorClass = 'text-green-600'; // VERDE - menor que base
+          }
+        }
         
         return (
-          <div className="flex items-center gap-1">
-            <MapPin className="w-3 h-3 text-slate-400" />
-            <span className="text-sm">{sectorValue}</span>
+          <div className="text-center">
+            <div className={`font-medium text-sm ${colorClass}`}>
+              {tiempo || '-'}
+            </div>
+            <div className="text-xs text-slate-600 dark:text-slate-400">min</div>
           </div>
         );
       }
@@ -474,7 +494,23 @@ const OperativosVehicularesPage = () => {
         );
       }
     },
-    ], []);
+    {
+      key: 'sector_nombre',
+      label: 'Sector',
+      sortable: true,
+      width: '120px',
+      render: (row) => {
+        const sectorValue = row.nombre_sector || row.sector_nombre || 'SIN DATO';
+        
+        return (
+          <div className="flex items-center gap-1">
+            <MapPin className="w-3 h-3 text-slate-400" />
+            <span className="text-sm">{sectorValue}</span>
+          </div>
+        );
+      }
+    }
+  ], []);
 
   // Cargar datos al montar y cuando cambian los filtros o paginación
   useEffect(() => {
