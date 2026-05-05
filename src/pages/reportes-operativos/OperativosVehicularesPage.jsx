@@ -52,7 +52,7 @@ const OperativosVehicularesPage = () => {
   // Estados principales
   const [loading, setLoading] = useState(true);
   const [operativosVehiculares, setOperativosVehiculares] = useState([]);
-  const [resumen, setResumen] = useState(null);
+  const [estadisticasPrioridades, setEstadisticasPrioridades] = useState(null);
   const [error, setError] = useState(null);
   
   // Estado para modal de detalle
@@ -86,8 +86,6 @@ const OperativosVehicularesPage = () => {
   
   // Estados de UI
   const [showFilters, setShowFilters] = useState(false);
-  const [selectedOperativo, setSelectedOperativo] = useState(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [activeQuickFilter, setActiveQuickFilter] = useState('');
 
@@ -115,19 +113,17 @@ const OperativosVehicularesPage = () => {
       });
       
             
-      // Obtener datos y resumen en paralelo
-      const [operativosResponse, resumenResponse] = await Promise.all([
-        reportesOperativosNewService.getOperativosVehiculares(params),
-        reportesOperativosNewService.getResumenVehicular(params)
-      ]);
+      // Obtener datos de operativos vehiculares
+      const operativosResponse = await reportesOperativosNewService.getOperativosVehiculares(params);
       
       if (operativosResponse.success) {
         setOperativosVehiculares(operativosResponse.data || []);
-        setPagination(operativosResponse.pagination || pagination);
-      }
-      
-      if (resumenResponse.success) {
-        setResumen(resumenResponse.data);
+        setPagination(prev => ({ ...prev, ...operativosResponse.pagination }));
+        
+        // Extraer estadísticas de prioridades si vienen en la respuesta (como Operativos a Pie)
+        if (operativosResponse.estadisticas_prioridades) {
+          setEstadisticasPrioridades(operativosResponse.estadisticas_prioridades);
+        }
       }
     } catch (err) {
       console.error('❌ Error cargando operativos vehiculares:', err);
@@ -312,14 +308,7 @@ const OperativosVehicularesPage = () => {
     setPagination(prev => ({ ...prev, page: 1 }));
   }, [filters]);
 
-  /**
-   * 👁️ Ver detalles de operativo
-   */
-  const handleViewDetails = useCallback((operativo) => {
-    setSelectedOperativo(operativo);
-    setShowDetailModal(true);
-  }, []);
-
+  
   /**
    * 📊 Columnas para la tabla
    */
@@ -371,15 +360,17 @@ const OperativosVehicularesPage = () => {
       )
     },
     {
-      key: 'tipo_novedad',
+      key: 'tipo_subtipo_novedad',
       label: 'Tipo-Subtipo Novedad',
       sortable: false,
       width: '200px',
       render: (row) => {
         const colorClass = reportesOperativosNewService.getPriorityColor(row.prioridad_actual);
+        const value = row.subtipo_novedad || 'SIN DATO';
+        
         return (
           <span className={`inline-flex px-2 py-1 text-xs rounded-full ${colorClass.bg} ${colorClass.text}`}>
-            {row.tipo_novedad}
+            {value}
           </span>
         );
       }
@@ -403,37 +394,34 @@ const OperativosVehicularesPage = () => {
       label: 'Conductor',
       sortable: true,
       width: '160px',
-      render: (row) => (
-        <div>
-          <div className="font-medium text-sm">{row.conductor_nombre}</div>
-          <div className="text-xs text-slate-600 dark:text-slate-400">
-            {row.doc_tipo} {row.doc_numero}
+      render: (row) => {
+        // Buscar nombre del conductor en diferentes campos posibles
+        const conductorName = row.Nombres_conductor || row.conductor_nombre || row.nombre_conductor || row.conductor || 'No asignado';
+        
+        return (
+          <div>
+            <div className="font-medium text-sm">{conductorName}</div>
+            <div className="text-xs text-slate-600 dark:text-slate-400">
+              {row.doc_tipo} {row.doc_numero}
+            </div>
           </div>
-        </div>
-      )
+        );
+      }
     },
     {
       key: 'turno_nombre',
       label: 'Turno',
       sortable: true,
       width: '100px',
-      render: (row) => (
-        <span className="inline-flex px-2 py-1 text-xs rounded bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
-          {row.turno_nombre}
-        </span>
-      )
-    },
-    {
-      key: 'sector_nombre',
-      label: 'Sector',
-      sortable: true,
-      width: '120px',
-      render: (row) => (
-        <div className="flex items-center gap-1">
-          <MapPin className="w-3 h-3 text-slate-400" />
-          <span className="text-sm">{row.sector_nombre}</span>
-        </div>
-      )
+      render: (row) => {
+        const turnoValue = row.turno || row.turno_nombre || 'SIN DATO';
+        
+        return (
+          <span className="inline-flex px-2 py-1 text-xs rounded bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
+            {turnoValue}
+          </span>
+        );
+      }
     },
     {
       key: 'tiempo_respuesta_min',
@@ -450,39 +438,43 @@ const OperativosVehicularesPage = () => {
       )
     },
     {
+      key: 'sector_nombre',
+      label: 'Sector',
+      sortable: true,
+      width: '120px',
+      render: (row) => {
+        const sectorValue = row.nombre_sector || row.sector_nombre || 'SIN DATO';
+        
+        return (
+          <div className="flex items-center gap-1">
+            <MapPin className="w-3 h-3 text-slate-400" />
+            <span className="text-sm">{sectorValue}</span>
+          </div>
+        );
+      }
+    },
+    {
       key: 'estado_operativo',
       label: 'Estado',
       sortable: true,
       width: '120px',
       render: (row) => {
-        const isActive = row.estado_operativo === 'EN_SERVICIO' || row.estado_operativo === 'COMPLETADO';
+        const estadoValue = row.estado_novedad_actual || 'SIN DATO';
+        
+        const isActive = estadoValue === 'ABIERTA' || estadoValue === 'EN PROCESO' || estadoValue === 'ASIGNADA';
+        
         return (
           <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
             isActive 
               ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' 
-              : 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300'
+              : 'bg-slate-100 dark:bg-slate-900/30 text-slate-800 dark:text-slate-300'
           }`}>
-            {row.estado_operativo}
+            {estadoValue}
           </span>
         );
       }
     },
-    {
-      key: 'acciones',
-      label: 'Acciones',
-      sortable: false,
-      width: '80px',
-      render: (row) => (
-        <button
-          onClick={() => handleViewDetails(row)}
-          className="p-1.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
-          title="Ver detalles"
-        >
-          <Eye className="w-4 h-4" />
-        </button>
-      )
-    }
-  ], [handleViewDetails]);
+    ], []);
 
   // Cargar datos al montar y cuando cambian los filtros o paginación
   useEffect(() => {
@@ -588,35 +580,61 @@ const OperativosVehicularesPage = () => {
         </div>
       </div>
 
-      {/* Resumen Estadístico */}
-      {resumen && (
+      {/* Estadísticas por Prioridades */}
+      {estadisticasPrioridades && (
         <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {resumen.total_novedades || 0}
-                </div>
-                <div className="text-xs text-slate-600 dark:text-slate-400">Total Novedades</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                  {resumen.vehiculos_activos || 0}
-                </div>
-                <div className="text-xs text-slate-600 dark:text-slate-400">Vehículos Activos</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-                  {resumen.conductores_disponibles || 0}
-                </div>
-                <div className="text-xs text-slate-600 dark:text-slate-400">Conductores Disponibles</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                  {resumen.tiempo_promedio_respuesta || 0}
-                </div>
-                <div className="text-xs text-slate-600 dark:text-slate-400">Tiempo Prom. (min)</div>
-              </div>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+              📊 Estadísticas por Prioridades
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {['ALTA', 'MEDIA', 'BAJA'].filter(prioridad => estadisticasPrioridades[prioridad]).map(prioridad => {
+                const data = estadisticasPrioridades[prioridad];
+                const total = Object.values(estadisticasPrioridades).reduce((sum, item) => sum + item.count, 0);
+                const porcentaje = ((data.count / total) * 100).toFixed(1);
+                
+                // Colores homologados con Operativos a Pie y Novedades No Atendidas
+                const colorClasses = {
+                  'rojo': {
+                    border: 'border-red-600 bg-red-50',
+                    title: 'text-red-700',
+                    count: 'text-red-600',
+                    percentage: 'text-red-600'
+                  },
+                  'ambar': {
+                    border: 'border-amber-600 bg-amber-50',
+                    title: 'text-amber-700',
+                    count: 'text-amber-600',
+                    percentage: 'text-amber-600'
+                  },
+                  'verde': {
+                    border: 'border-green-600 bg-green-50',
+                    title: 'text-green-700',
+                    count: 'text-green-600',
+                    percentage: 'text-green-600'
+                  }
+                };
+                
+                const colors = colorClasses[data.color] || colorClasses.rojo;
+                
+                return (
+                  <div key={prioridad} className={`p-4 rounded-lg border ${colors.border}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={`text-sm font-medium ${colors.title}`}>{prioridad}</span>
+                      <AlertTriangle className={`w-4 h-4 ${colors.count}`} />
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                      <span className={`text-2xl font-bold ${colors.count}`}>
+                        {data.count}
+                      </span>
+                    </div>
+                    <div className={`mt-2 text-sm text-gray-600 dark:text-gray-400`}>
+                      {porcentaje}% del total
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -669,48 +687,6 @@ const OperativosVehicularesPage = () => {
           onRowClick={handleRowClick}
         />
       </div>
-
-      {/* Modal de Detalles - TODO */}
-      {showDetailModal && selectedOperativo && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-slate-50">
-                Detalles del Operativo Vehicular
-              </h2>
-              <button
-                onClick={() => setShowDetailModal(false)}
-                className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
-              >
-                <XCircle className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* TODO: Implementar vista detallada */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-slate-900 dark:text-slate-50">Información General</h3>
-                <div className="space-y-2 text-sm">
-                  <div><strong>Código:</strong> {selectedOperativo.novedad_code}</div>
-                  <div><strong>Fecha:</strong> {reportesOperativosNewService.formatDate(selectedOperativo.fecha_hora_ocurrencia, true)}</div>
-                  <div><strong>Tipo:</strong> {selectedOperativo.tipo_novedad}</div>
-                  <div><strong>Prioridad:</strong> {selectedOperativo.prioridad_actual}</div>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <h3 className="font-semibold text-slate-900 dark:text-slate-50">Información Vehicular</h3>
-                <div className="space-y-2 text-sm">
-                  <div><strong>Placa:</strong> {selectedOperativo.placa_vehiculo}</div>
-                  <div><strong>Marca:</strong> {selectedOperativo.marca_vehiculo}</div>
-                  <div><strong>Modelo:</strong> {selectedOperativo.modelo_vehiculo}</div>
-                  <div><strong>Año:</strong> {selectedOperativo.anio_vehiculo}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Modal de Detalle de Novedad */}
       <NovedadDetalleModal
