@@ -30,6 +30,7 @@ import {
 import * as XLSX from 'xlsx';
 import reportesOperativosNewService from '../../services/reportesOperativosNewService';
 import { useReportesPermissions } from '../../hooks/useReportesPermissions';
+import api from '../../services/api';
 
 // Componentes
 import KPIsDashboard from './components/KPIsDashboard';
@@ -113,53 +114,55 @@ const ReportesOperativosDashboardPage = () => {
     try {
       toast.loading(`Preparando exportación ${formato.toUpperCase()}...`);
       
-      const params = reportesOperativosNewService.buildParams({
-        ...filters,
-        limit: 1000, // Exportar sin límite de paginación (máximo permitido)
-        formato
+      // 🎯 CORRECCIÓN: Usar exactamente el ejemplo del backend
+      const response = await api.get('/reportes-operativos/combinados/exportar', {
+        params: {
+          fecha_inicio: filters.fecha_inicio || new Date().toISOString().split('T')[0],
+          fecha_fin: filters.fecha_fin || new Date().toISOString().split('T')[0],
+          formato: formato,
+          limit: 1000
+        },
+        responseType: 'blob' // IMPORTANTE
       });
       
-      const response = await reportesOperativosNewService.exportarReportesCombinados(params);
+      // 🎉 Descargar archivo - Con rango de fechas
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
       
-      if (response.success) {
-        // Descargar archivo Excel
-        
-        try {
-          // El backend devuelve el archivo directamente en response.data
-          const blob = new Blob([response.data], { 
-            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
-          });
-          
-          // Crear URL de descarga
-          const url = window.URL.createObjectURL(blob);
-          
-          // Crear enlace temporal y hacer clic
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `reportes-operativos-dashboard-${new Date().toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')}.xlsx`;
-          
-          // Simular clic y limpiar
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          window.URL.revokeObjectURL(url);
-          
-          toast.success(`Reporte ${formato.toUpperCase()} descargado exitosamente`);
-          toast.dismiss(); // Limpiar todos los toasts
-        } catch {
-          toast.error('Error al descargar el archivo');
-          toast.dismiss(); // Limpiar todos los toasts
-        }
+      // 📅 Generar nombre con rango de fechas
+      const fechaInicio = filters.fecha_inicio || new Date().toISOString().split('T')[0];
+      const fechaFin = filters.fecha_fin || new Date().toISOString().split('T')[0];
+      
+      // Formatear fechas: DD-MM-YYYY
+      const formatearFecha = (fechaStr) => {
+        const [year, month, day] = fechaStr.split('-');
+        return `${day}-${month}-${year}`;
+      };
+      
+      const nombreArchivo = `reportes-combinados-operativos-del-${formatearFecha(fechaInicio)}-al-${formatearFecha(fechaFin)}.xlsx`;
+      link.setAttribute('download', nombreArchivo);
+      
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      
+      toast.success(`Reporte ${formato.toUpperCase()} descargado exitosamente`);
+      toast.dismiss(); // Limpiar todos los toasts
+      
+    } catch (error) {
+      console.error('Error en exportación:', error);
+      
+      // Manejo específico según documentación del backend
+      if (error.response?.status === 401) {
+        toast.error('Sesión expirada. Por favor inicie sesión nuevamente.');
+      } else if (error.response?.status === 403) {
+        toast.error('No tienes permisos para exportar reportes.');
+      } else if (error.response?.status === 404) {
+        toast.error('Endpoint no encontrado. Reinicie el servidor y limpie caché.');
       } else {
-        // Manejo específico para "sin datos"
-        if (response.message?.includes('No hay datos para exportar')) {
-          toast.warning('No hay datos disponibles para exportar con los filtros seleccionados');
-        } else {
-          toast.error('Error en la respuesta del servidor');
-        }
+        toast.error('Error al exportar reporte. Intente nuevamente.');
       }
-    } catch {
-      toast.error('Error al exportar reporte');
     }
   }, [canExportDashboard, filters]);
 

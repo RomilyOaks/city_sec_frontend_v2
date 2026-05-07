@@ -32,7 +32,6 @@ const TablaOperativos = ({
   onRowClick 
 }) => {
   const [hoveredRow, setHoveredRow] = useState(null);
-  const [keyCounter, setKeyCounter] = useState(0);
 
   /**
    * 🔢 Calcular páginas a mostrar
