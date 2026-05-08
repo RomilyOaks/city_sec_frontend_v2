@@ -178,6 +178,7 @@ const GraficosOperativos = ({ data, filters = {} }) => {
   const barChartRef = useRef(null);
   const barDetailsRef = useRef(null);
   const pieChartRef = useRef(null);
+  const pieDetailsRef = useRef(null);
   const lineChartRef = useRef(null);
   const areaChartRef = useRef(null);
 
@@ -321,7 +322,13 @@ const GraficosOperativos = ({ data, filters = {} }) => {
         const fechaFinFormateada = new Date(fechaFin).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
         return `analisis-por-turnos-del-${fechaInicioFormateada}-al-${fechaFinFormateada}`;
       },
-      'prioridad': 'analisis-por-prioridad',
+      'prioridad': () => {
+        const fechaInicio = filters.fecha_inicio || new Date().toISOString().split('T')[0];
+        const fechaFin = filters.fecha_fin || new Date().toISOString().split('T')[0];
+        const fechaInicioFormateada = new Date(fechaInicio).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
+        const fechaFinFormateada = new Date(fechaFin).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
+        return `analisis-por-prioridad-del-${fechaInicioFormateada}-al-${fechaFinFormateada}`;
+      },
       'tendencias': 'tendencias-temporales',
       'area': 'tendencias-acumuladas'
     };
@@ -341,7 +348,13 @@ const GraficosOperativos = ({ data, filters = {} }) => {
         const fechaFinFormateada = new Date(fechaFin).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
         return `Distribución de novedades por turno operativo del ${fechaInicioFormateada} al ${fechaFinFormateada}`;
       },
-      'prioridad': () => 'Distribución de novedades por nivel de prioridad',
+      'prioridad': () => {
+        const fechaInicio = filters.fecha_inicio || new Date().toISOString().split('T')[0];
+        const fechaFin = filters.fecha_fin || new Date().toISOString().split('T')[0];
+        const fechaInicioFormateada = new Date(fechaInicio).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        const fechaFinFormateada = new Date(fechaFin).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        return `Distribución de novedades por nivel de prioridad del ${fechaInicioFormateada} al ${fechaFinFormateada}`;
+      },
       'tendencias': () => 'Evolución de novedades en el tiempo',
       'area': () => 'Acumulado de novedades en el tiempo'
     };
@@ -352,7 +365,9 @@ const GraficosOperativos = ({ data, filters = {} }) => {
     const subtitle = chartSubtitles[chartType];
 
     if (ref && name && title && typeof subtitle === 'function') {
-      const detailsRef = chartType === 'turnos' ? barDetailsRef : null;
+      const detailsRef = chartType === 'turnos' ? barDetailsRef 
+                      : chartType === 'prioridad' ? pieDetailsRef 
+                      : null;
       exportChartAsImage(ref, name, title, subtitle(), detailsRef);
     } else {
       console.error(`Tipo de gráfico no soportado: ${chartType}`);
@@ -469,14 +484,7 @@ const GraficosOperativos = ({ data, filters = {} }) => {
           
           <div className="flex items-center gap-2">
             <button
-              onClick={() => handleFilter('prioridades', filters)}
-              className="p-2 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
-              title="Aplicar filtros"
-            >
-              <Filter className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-            </button>
-            <button
-              onClick={() => handleExportChart('prioridades')}
+              onClick={() => handleExportChart('prioridad')}
               className="p-2 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
               title="Exportar gráfico"
             >
@@ -520,7 +528,7 @@ const GraficosOperativos = ({ data, filters = {} }) => {
           </div>
           
           {/* Estadísticas Detalladas */}
-          <div className="space-y-3">
+          <div className="space-y-3 mb-4" ref={pieDetailsRef}>
             <h4 className="text-md font-medium text-slate-900 dark:text-slate-50">
               Detalle por Prioridad
             </h4>
