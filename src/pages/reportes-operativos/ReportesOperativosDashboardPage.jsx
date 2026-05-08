@@ -435,6 +435,7 @@ const ReportesOperativosDashboardPage = () => {
               data={dashboardData}
               loading={loading}
               onExport={handleExport}
+              filters={filters}
             />
 
             {/* Métricas de Rendimiento */}

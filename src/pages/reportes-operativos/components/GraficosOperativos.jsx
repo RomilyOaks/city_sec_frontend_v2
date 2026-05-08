@@ -8,7 +8,8 @@
  * @author CitySec Frontend Team
  */
 
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useRef } from 'react';
+import toast from 'react-hot-toast';
 import { 
   BarChart3, 
   PieChart, 
@@ -37,6 +38,7 @@ import {
   Cell,
   ReferenceLine
 } from 'recharts';
+import html2canvas from 'html2canvas';
 
 // Colores profesionales consistentes con la identidad visual
 const COLORS = {
@@ -112,10 +114,25 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
   );
 };
 
-const GraficosOperativos = ({ data, onExport, filters = {} }) => {
+const GraficosOperativos = ({ data, filters = {} }) => {
   // Memoizar datos procesados para optimización
   const processedData = useMemo(() => {
     if (!data) return {};
+    
+    console.log('🔍 Datos procesados:', {
+      analisisTurnos: data?.analisis_turnos || [],
+      totalNovedades: data?.total_novedades || 0,
+      analisisPrioridad: data?.analisis_prioridad || [],
+      tendencias: data?.tendencias || [],
+      acumulados: data?.tendencias?.map((item, index) => ({
+        ...item,
+        fecha: new Date(item.fecha).toLocaleDateString('es-PE', { 
+          day: '2-digit', 
+          month: 'short' 
+        }),
+        acumulado: data.tendencias.slice(0, index + 1).reduce((sum, t) => sum + t.cantidad, 0)
+      })) || []
+    });
     
     return {
       analisisTurnos: data.analisis_turnos?.map(item => ({
@@ -126,17 +143,17 @@ const GraficosOperativos = ({ data, onExport, filters = {} }) => {
         ...item,
         color: item.prioridad === 'BAJA' ? COLORS.chart.green :
                item.prioridad === 'MEDIA' ? COLORS.chart.amber :
-               item.prioridad === 'ALTA' ? COLORS.chart.orange :
-               item.prioridad === 'CRÍTICA' ? COLORS.chart.red : COLORS.chart.slate
+               item.prioridad === 'ALTA' ? COLORS.chart.red : COLORS.chart.slate
       })) || [],
-      tendencias: data.tendencias?.map(item => ({
+      tendencias: data?.tendencias?.map((item, index) => ({
         ...item,
         fecha: new Date(item.fecha).toLocaleDateString('es-PE', { 
           day: '2-digit', 
           month: 'short' 
-        })
+        }),
+        acumulado: data.tendencias.slice(0, index + 1).reduce((sum, t) => sum + t.cantidad, 0)
       })) || [],
-      acumulados: data.tendencias?.map((item, index) => ({
+      acumulados: data?.tendencias?.map((item, index) => ({
         ...item,
         fecha: new Date(item.fecha).toLocaleDateString('es-PE', { 
           day: '2-digit', 
@@ -147,22 +164,201 @@ const GraficosOperativos = ({ data, onExport, filters = {} }) => {
     };
   }, [data]);
 
-  // Memoizar colores para gráficos
+  // Memoizar colores para gráficos - Colores completamente diferentes
   const chartColors = useMemo(() => [
-    COLORS.primary[600],
-    COLORS.primary[500],
-    COLORS.primary[700],
-    COLORS.primary[800],
-    COLORS.chart.blue,
-    COLORS.chart.purple
+    COLORS.chart.blue,      // Azul para MAÑANA
+    COLORS.chart.amber,     // Ámbar para TARDE  
+    COLORS.chart.purple,    // Púrpura para NOCHE
+    COLORS.chart.green,     // Verde como adicional
+    COLORS.chart.orange,    // Naranja como adicional
+    COLORS.chart.red        // Rojo como adicional
   ], []);
+
+  // Refs para capturar gráficos
+  const barChartRef = useRef(null);
+  const barDetailsRef = useRef(null);
+  const pieChartRef = useRef(null);
+  const lineChartRef = useRef(null);
+  const areaChartRef = useRef(null);
+
+  // 🎯 Exportar gráfico como imagen
+  // 🎯 Exportar gráfico como imagen
+  const exportChartAsImage = useCallback(async (chartRef, chartName, title, subtitle, detailsRef = null) => {
+    if (!chartRef.current) {
+      console.error(`Referencia del gráfico ${chartName} no encontrada`);
+      return;
+    }
+
+    try {
+      const toastId = toast.loading(`Capturando gráfico ${chartName}...`);
+
+      const SCALE    = 2;
+      const HEADER_H = 70;  // px lógicos reservados para título + subtítulo
+      const GAP      =  8;  // px lógicos entre gráfico y detalles
+      const PAD      = 16;  // padding exterior horizontal del canvas final
+
+      // ── 1. Capturar gráfico principal ──────────────────────────────────────
+      // Buscar el wrapper real de Recharts (tiene el ancho exacto del SVG,
+      // sin el espacio vacío que deja el div contenedor del grid).
+      const rechartsWrapper = chartRef.current.querySelector('.recharts-wrapper') || chartRef.current;
+      const chartCanvas = await html2canvas(rechartsWrapper, {
+        backgroundColor: '#ffffff',
+        scale: SCALE,
+        logging: false,
+        useCORS: true,
+        allowTaint: true,
+      });
+
+      // ── 2. Capturar panel de detalles con ancho natural (no el del grid) ───
+      let detailsCanvas = null;
+      if (detailsRef && detailsRef.current) {
+        const el = detailsRef.current;
+        // Guardar estilos originales
+        const prevWidth    = el.style.width;
+        const prevMinWidth = el.style.minWidth;
+        const prevMaxWidth = el.style.maxWidth;
+
+        // Forzar ancho compacto: deja que el contenido dicte el ancho
+        el.style.width    = 'fit-content';
+        el.style.minWidth = '220px';
+        el.style.maxWidth = '280px';
+
+        detailsCanvas = await html2canvas(el, {
+          backgroundColor: '#ffffff',
+          scale: SCALE,
+          logging: false,
+          useCORS: true,
+          allowTaint: true,
+        });
+
+        // Restaurar estilos
+        el.style.width    = prevWidth;
+        el.style.minWidth = prevMinWidth;
+        el.style.maxWidth = prevMaxWidth;
+      }
+
+      // ── 3. Componer canvas final side-by-side ──────────────────────────────
+      const finalCanvas = document.createElement('canvas');
+
+      const totalW = PAD * SCALE
+        + chartCanvas.width
+        + (detailsCanvas ? GAP * SCALE + detailsCanvas.width : 0)
+        + PAD * SCALE;
+
+      const contentH = detailsCanvas
+        ? Math.max(chartCanvas.height, detailsCanvas.height)
+        : chartCanvas.height;
+
+      finalCanvas.width  = totalW;
+      finalCanvas.height = contentH + HEADER_H * SCALE;
+
+      const ctx = finalCanvas.getContext('2d');
+
+      // Fondo blanco
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+
+      // Título
+      ctx.fillStyle = '#1e293b';
+      ctx.font = `bold ${20 * SCALE}px Arial, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText(title, finalCanvas.width / 2, 26 * SCALE);
+
+      // Subtítulo
+      ctx.fillStyle = '#64748b';
+      ctx.font = `${12 * SCALE}px Arial, sans-serif`;
+      ctx.fillText(subtitle, finalCanvas.width / 2, 48 * SCALE);
+
+      // Gráfico (con padding izquierdo)
+      ctx.drawImage(chartCanvas, PAD * SCALE, HEADER_H * SCALE);
+
+      // Panel de detalles centrado verticalmente a la derecha del gráfico
+      if (detailsCanvas) {
+        const detailsX = PAD * SCALE + chartCanvas.width + GAP * SCALE;
+        const detailsY = HEADER_H * SCALE + Math.round((contentH - detailsCanvas.height) / 2);
+        ctx.drawImage(detailsCanvas, detailsX, detailsY);
+      }
+
+      // ── 4. Descargar ───────────────────────────────────────────────────────
+      finalCanvas.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `grafico-${chartName}.png`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          toast.success(`Gráfico ${chartName} exportado exitosamente`, { id: toastId });
+        } else {
+          toast.error('Error al generar la imagen del gráfico', { id: toastId });
+        }
+      }, 'image/png');
+
+    } catch (error) {
+      console.error(`Error exportando gráfico ${chartName}:`, error);
+      toast.error(`Error al exportar gráfico ${chartName}`);
+    }
+  }, []);
+
+
 
   // Handlers para exportación
   const handleExportChart = useCallback((chartType) => {
-    if (onExport) {
-      onExport(chartType);
+    const chartRefs = {
+      'turnos': barChartRef,
+      'prioridad': pieChartRef,
+      'tendencias': lineChartRef,
+      'area': areaChartRef
+    };
+
+    const chartNames = {
+      'turnos': () => {
+        const fechaInicio = filters.fecha_inicio || new Date().toISOString().split('T')[0];
+        const fechaFin = filters.fecha_fin || new Date().toISOString().split('T')[0];
+        const fechaInicioFormateada = new Date(fechaInicio).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
+        const fechaFinFormateada = new Date(fechaFin).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
+        return `analisis-por-turnos-del-${fechaInicioFormateada}-al-${fechaFinFormateada}`;
+      },
+      'prioridad': 'analisis-por-prioridad',
+      'tendencias': 'tendencias-temporales',
+      'area': 'tendencias-acumuladas'
+    };
+
+    const chartTitles = {
+      'turnos': 'Análisis por Turnos',
+      'prioridad': 'Análisis por Prioridad',
+      'tendencias': 'Tendencias Temporales',
+      'area': 'Tendencias Acumuladas'
+    };
+
+    const chartSubtitles = {
+      'turnos': () => {
+        const fechaInicio = filters.fecha_inicio || new Date().toISOString().split('T')[0];
+        const fechaFin = filters.fecha_fin || new Date().toISOString().split('T')[0];
+        const fechaInicioFormateada = new Date(fechaInicio).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        const fechaFinFormateada = new Date(fechaFin).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        return `Distribución de novedades por turno operativo del ${fechaInicioFormateada} al ${fechaFinFormateada}`;
+      },
+      'prioridad': () => 'Distribución de novedades por nivel de prioridad',
+      'tendencias': () => 'Evolución de novedades en el tiempo',
+      'area': () => 'Acumulado de novedades en el tiempo'
+    };
+
+    const ref = chartRefs[chartType];
+    const name = typeof chartNames[chartType] === 'function' ? chartNames[chartType]() : chartNames[chartType];
+    const title = chartTitles[chartType];
+    const subtitle = chartSubtitles[chartType];
+
+    if (ref && name && title && typeof subtitle === 'function') {
+      const detailsRef = chartType === 'turnos' ? barDetailsRef : null;
+      exportChartAsImage(ref, name, title, subtitle(), detailsRef);
+    } else {
+      console.error(`Tipo de gráfico no soportado: ${chartType}`);
+      toast.error('Tipo de gráfico no soportado para exportación');
     }
-  }, [onExport]);
+  }, [exportChartAsImage, filters]);
 
   // Handler para filtros
   const handleFilter = useCallback((chartType, filters) => {
@@ -187,13 +383,6 @@ const GraficosOperativos = ({ data, onExport, filters = {} }) => {
           
           <div className="flex items-center gap-2">
             <button
-              onClick={() => handleFilter('turnos', filters)}
-              className="p-2 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
-              title="Aplicar filtros"
-            >
-              <Filter className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-            </button>
-            <button
               onClick={() => handleExportChart('turnos')}
               className="p-2 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
               title="Exportar gráfico"
@@ -205,7 +394,7 @@ const GraficosOperativos = ({ data, onExport, filters = {} }) => {
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Gráfico de Barras */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2" ref={barChartRef}>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={processedData.analisisTurnos}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -221,16 +410,19 @@ const GraficosOperativos = ({ data, onExport, filters = {} }) => {
                 <Tooltip content={<CustomTooltip />} />
                 <Bar 
                   dataKey="cantidad" 
-                  fill={COLORS.primary[600]}
                   radius={[8, 8, 0, 0]}
                   animationDuration={1000}
-                />
+                >
+                  {processedData.analisisTurnos.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
           
           {/* Estadísticas Detalladas */}
-          <div className="space-y-3">
+          <div className="space-y-3" ref={barDetailsRef}>
             <h4 className="text-md font-medium text-slate-900 dark:text-slate-50">
               Detalle por Turno
             </h4>
@@ -295,7 +487,7 @@ const GraficosOperativos = ({ data, onExport, filters = {} }) => {
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Gráfico Circular */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2" ref={pieChartRef}>
             <ResponsiveContainer width="100%" height={300}>
               <RePieChart>
                 <Pie
@@ -398,7 +590,7 @@ const GraficosOperativos = ({ data, onExport, filters = {} }) => {
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Gráfico de Líneas */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1" ref={lineChartRef}>
             <ResponsiveContainer width="100%" height={300}>
               <ReLineChart data={processedData.tendencias}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -432,7 +624,7 @@ const GraficosOperativos = ({ data, onExport, filters = {} }) => {
           </div>
           
           {/* Gráfico de Área Acumulada */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1" ref={areaChartRef}>
             <ResponsiveContainer width="100%" height={300}>
               <AreaChart data={processedData.acumulados}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
