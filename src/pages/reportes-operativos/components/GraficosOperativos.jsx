@@ -444,7 +444,7 @@ const GraficosOperativos = ({ data, filters = {} }) => {
             {processedData.analisisTurnos.map((turno, index) => (
               <div 
                 key={turno.turno} 
-                className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700"
+                className="flex items-center justify-between p-3 bg-white dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 shadow-sm"
               >
                 <div className="flex items-center gap-3">
                   <div 
@@ -518,7 +518,7 @@ const GraficosOperativos = ({ data, filters = {} }) => {
                   verticalAlign="bottom" 
                   height={36}
                   formatter={(value, entry) => (
-                    <span className="text-sm text-slate-700 dark:text-slate-300">
+                    <span style={{ color: '#1e293b', fontSize: '12px', fontWeight: '500' }}>
                       {entry.payload.prioridad} ({entry.payload.cantidad})
                     </span>
                   )}
@@ -528,7 +528,7 @@ const GraficosOperativos = ({ data, filters = {} }) => {
           </div>
           
           {/* Estadísticas Detalladas */}
-          <div className="space-y-3 mb-4" ref={pieDetailsRef}>
+          <div className="space-y-3 pb-4" ref={pieDetailsRef}>
             <h4 className="text-md font-medium text-slate-900 dark:text-slate-50">
               Detalle por Prioridad
             </h4>
@@ -539,7 +539,7 @@ const GraficosOperativos = ({ data, filters = {} }) => {
               return (
                 <div 
                   key={prioridad.prioridad} 
-                  className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-700"
+                  className="flex items-center justify-between p-3 bg-white dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 shadow-sm"
                 >
                   <div className="flex items-center gap-3">
                     <div 
