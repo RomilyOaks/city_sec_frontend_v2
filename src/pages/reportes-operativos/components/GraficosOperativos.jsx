@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 📈 Componente Gráficos Operativos - Reportes Operativos v2.0
  * 
  * Componente placeholder para gráficos interactivos
@@ -17,7 +17,6 @@ import {
   TrendingUp,
   Download,
   Settings,
-  Filter,
   Maximize2
 } from 'lucide-react';
 import {
@@ -181,6 +180,12 @@ const GraficosOperativos = ({ data, filters = {} }) => {
   const pieDetailsRef = useRef(null);
   const lineChartRef = useRef(null);
   const areaChartRef = useRef(null);
+  const tendenciasContainerRef = useRef(null);
+  const tendenciasStatsRef = useRef(null);
+  const statCard1Ref = useRef(null);
+  const statCard2Ref = useRef(null);
+  const statCard3Ref = useRef(null);
+  const statCard4Ref = useRef(null);
 
   // 🎯 Exportar gráfico como imagen
   // 🎯 Exportar gráfico como imagen
@@ -194,96 +199,165 @@ const GraficosOperativos = ({ data, filters = {} }) => {
       const toastId = toast.loading(`Capturando gráfico ${chartName}...`);
 
       const SCALE    = 2;
-      const HEADER_H = 70;  // px lógicos reservados para título + subtítulo
-      const GAP      =  8;  // px lógicos entre gráfico y detalles
-      const PAD      = 16;  // padding exterior horizontal del canvas final
+      const HEADER_H = 70;
+      const GAP      = 8;
+      const PAD      = 16;
 
-      // ── 1. Capturar gráfico principal ──────────────────────────────────────
-      // Buscar el wrapper real de Recharts (tiene el ancho exacto del SVG,
-      // sin el espacio vacío que deja el div contenedor del grid).
-      const rechartsWrapper = chartRef.current.querySelector('.recharts-wrapper') || chartRef.current;
-      const chartCanvas = await html2canvas(rechartsWrapper, {
-        backgroundColor: '#ffffff',
-        scale: SCALE,
-        logging: false,
-        useCORS: true,
-        allowTaint: true,
-      });
-
-      // ── 2. Capturar panel de detalles con ancho natural (no el del grid) ───
-      let detailsCanvas = null;
-      if (detailsRef && detailsRef.current) {
-        const el = detailsRef.current;
-        // Guardar estilos originales
-        const prevWidth    = el.style.width;
-        const prevMinWidth = el.style.minWidth;
-        const prevMaxWidth = el.style.maxWidth;
-
-        // Forzar ancho compacto: deja que el contenido dicte el ancho
-        el.style.width    = 'fit-content';
-        el.style.minWidth = '220px';
-        el.style.maxWidth = '280px';
-
-        detailsCanvas = await html2canvas(el, {
+      const captureNode = async (node) => {
+        if (!node) return null;
+        return html2canvas(node, {
           backgroundColor: '#ffffff',
           scale: SCALE,
           logging: false,
           useCORS: true,
           allowTaint: true,
         });
+      };
 
-        // Restaurar estilos
-        el.style.width    = prevWidth;
-        el.style.minWidth = prevMinWidth;
-        el.style.maxWidth = prevMaxWidth;
+      // ── Caso especial: Tendencias = line + area (lado a lado) + stats (abajo) ──
+      // ── Caso especial: Tendencias = line + area (lado a lado) + 4 cards (abajo horizontal) ──
+      if (chartName.includes('tendencias-temporales') && lineChartRef.current && areaChartRef.current) {
+        const cardRefs = [statCard1Ref, statCard2Ref, statCard3Ref, statCard4Ref];
+
+        // Capturar gráficos primero para calcular el ancho total disponible
+        const [lineCanvas, areaCanvas] = await Promise.all([
+          captureNode(lineChartRef.current.querySelector('.recharts-wrapper') || lineChartRef.current),
+          captureNode(areaChartRef.current.querySelector('.recharts-wrapper') || areaChartRef.current),
+        ]);
+
+        // Dimensiones fila de gráficos
+        const chartsW = lineCanvas.width + GAP * SCALE + areaCanvas.width;
+        const chartsH = Math.max(lineCanvas.height, areaCanvas.height);
+
+        // Calcular ancho de cada card: repartir chartsW entre 4 cards con sus gaps
+        const cardGap      = 8 * SCALE;
+        const numCards     = cardRefs.filter(r => r.current).length;
+        const cardTargetW  = numCards > 0
+          ? Math.floor((chartsW - cardGap * (numCards - 1)) / numCards)
+          : 0;
+
+        // Forzar ancho en cada card antes de capturar, luego restaurar
+        const cardCanvases = await Promise.all(
+          cardRefs.map(async (r) => {
+            if (!r.current) return null;
+            const el = r.current;
+            const prevW = el.style.width;
+            el.style.width = `${cardTargetW / SCALE}px`;
+            const canvas = await captureNode(el);
+            el.style.width = prevW;
+            return canvas;
+          })
+        );
+
+        const validCards = cardCanvases.filter(Boolean);
+
+        // Dimensiones fila de cards
+        const cardsRowW = validCards.reduce((s, c) => s + c.width, 0) + cardGap * (validCards.length - 1);
+        const cardsRowH = validCards.length > 0 ? Math.max(...validCards.map(c => c.height)) : 0;
+
+        const totalW = Math.max(chartsW, cardsRowW) + PAD * SCALE * 2;
+        const totalH = HEADER_H * SCALE + chartsH + (cardsRowH > 0 ? GAP * SCALE + cardsRowH : 0);
+
+        const finalCanvas = document.createElement('canvas');
+        finalCanvas.width  = totalW;
+        finalCanvas.height = totalH;
+        const ctx = finalCanvas.getContext('2d');
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, totalW, totalH);
+
+        // Título
+        ctx.fillStyle = '#1e293b';
+        ctx.font = `bold ${20 * SCALE}px Arial, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText(title, totalW / 2, 26 * SCALE);
+
+        // Subtítulo
+        ctx.fillStyle = '#64748b';
+        ctx.font = `${12 * SCALE}px Arial, sans-serif`;
+        ctx.fillText(subtitle, totalW / 2, 48 * SCALE);
+
+        // Gráficos lado a lado (centrados si son más estrechos que los cards)
+        const chartsOffsetX = PAD * SCALE + Math.round((Math.max(chartsW, cardsRowW) - chartsW) / 2);
+        ctx.drawImage(lineCanvas, chartsOffsetX, HEADER_H * SCALE);
+        ctx.drawImage(areaCanvas, chartsOffsetX + lineCanvas.width + GAP * SCALE, HEADER_H * SCALE);
+
+        // Cards horizontales debajo de los gráficos
+        if (validCards.length > 0) {
+          const cardsOffsetX = PAD * SCALE + Math.round((Math.max(chartsW, cardsRowW) - cardsRowW) / 2);
+          const cardsY = HEADER_H * SCALE + chartsH + GAP * SCALE;
+          let curX = cardsOffsetX;
+          validCards.forEach(card => {
+            ctx.drawImage(card, curX, cardsY);
+            curX += card.width + cardGap;
+          });
+        }
+
+        finalCanvas.toBlob((blob) => {
+          if (blob) {
+            const url  = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `grafico-${chartName}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            toast.success(`Gráfico exportado exitosamente`, { id: toastId });
+          } else {
+            toast.error('Error al generar la imagen', { id: toastId });
+          }
+        }, 'image/png');
+        return;
       }
 
-      // ── 3. Componer canvas final side-by-side ──────────────────────────────
+
+      // ── Caso general: gráfico simple (turnos, prioridad, area) ───────────────
+      const rechartsWrapper = chartRef.current.querySelector('.recharts-wrapper') || chartRef.current;
+      const chartCanvas = await captureNode(rechartsWrapper);
+
+      let detailsCanvas = null;
+      if (detailsRef && detailsRef.current) {
+        const el = detailsRef.current;
+        const pw = el.style.width, pmn = el.style.minWidth, pmx = el.style.maxWidth;
+        el.style.width = 'fit-content';
+        el.style.minWidth = '220px';
+        el.style.maxWidth = '280px';
+        detailsCanvas = await captureNode(el);
+        el.style.width = pw; el.style.minWidth = pmn; el.style.maxWidth = pmx;
+      }
+
       const finalCanvas = document.createElement('canvas');
-
-      const totalW = PAD * SCALE
-        + chartCanvas.width
-        + (detailsCanvas ? GAP * SCALE + detailsCanvas.width : 0)
-        + PAD * SCALE;
-
-      const contentH = detailsCanvas
-        ? Math.max(chartCanvas.height, detailsCanvas.height)
-        : chartCanvas.height;
-
+      const totalW  = PAD * SCALE + chartCanvas.width + (detailsCanvas ? GAP * SCALE + detailsCanvas.width : 0) + PAD * SCALE;
+      const contentH = detailsCanvas ? Math.max(chartCanvas.height, detailsCanvas.height) : chartCanvas.height;
       finalCanvas.width  = totalW;
       finalCanvas.height = contentH + HEADER_H * SCALE;
 
       const ctx = finalCanvas.getContext('2d');
-
-      // Fondo blanco
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
 
-      // Título
       ctx.fillStyle = '#1e293b';
       ctx.font = `bold ${20 * SCALE}px Arial, sans-serif`;
       ctx.textAlign = 'center';
       ctx.fillText(title, finalCanvas.width / 2, 26 * SCALE);
 
-      // Subtítulo
       ctx.fillStyle = '#64748b';
       ctx.font = `${12 * SCALE}px Arial, sans-serif`;
       ctx.fillText(subtitle, finalCanvas.width / 2, 48 * SCALE);
 
-      // Gráfico (con padding izquierdo)
       ctx.drawImage(chartCanvas, PAD * SCALE, HEADER_H * SCALE);
 
-      // Panel de detalles centrado verticalmente a la derecha del gráfico
       if (detailsCanvas) {
-        const detailsX = PAD * SCALE + chartCanvas.width + GAP * SCALE;
-        const detailsY = HEADER_H * SCALE + Math.round((contentH - detailsCanvas.height) / 2);
-        ctx.drawImage(detailsCanvas, detailsX, detailsY);
+        ctx.drawImage(detailsCanvas,
+          PAD * SCALE + chartCanvas.width + GAP * SCALE,
+          HEADER_H * SCALE + Math.round((contentH - detailsCanvas.height) / 2)
+        );
       }
 
-      // ── 4. Descargar ───────────────────────────────────────────────────────
       finalCanvas.toBlob((blob) => {
         if (blob) {
-          const url = URL.createObjectURL(blob);
+          const url  = URL.createObjectURL(blob);
           const link = document.createElement('a');
           link.href = url;
           link.download = `grafico-${chartName}.png`;
@@ -291,9 +365,9 @@ const GraficosOperativos = ({ data, filters = {} }) => {
           link.click();
           document.body.removeChild(link);
           URL.revokeObjectURL(url);
-          toast.success(`Gráfico ${chartName} exportado exitosamente`, { id: toastId });
+          toast.success(`Gráfico exportado exitosamente`, { id: toastId });
         } else {
-          toast.error('Error al generar la imagen del gráfico', { id: toastId });
+          toast.error('Error al generar la imagen', { id: toastId });
         }
       }, 'image/png');
 
@@ -301,7 +375,8 @@ const GraficosOperativos = ({ data, filters = {} }) => {
       console.error(`Error exportando gráfico ${chartName}:`, error);
       toast.error(`Error al exportar gráfico ${chartName}`);
     }
-  }, []);
+  }, [lineChartRef, areaChartRef, statCard1Ref, statCard2Ref, statCard3Ref, statCard4Ref]);
+
 
 
 
@@ -310,7 +385,7 @@ const GraficosOperativos = ({ data, filters = {} }) => {
     const chartRefs = {
       'turnos': barChartRef,
       'prioridad': pieChartRef,
-      'tendencias': lineChartRef,
+      'tendencias': tendenciasContainerRef,
       'area': areaChartRef
     };
 
@@ -329,7 +404,12 @@ const GraficosOperativos = ({ data, filters = {} }) => {
         const fechaFinFormateada = new Date(fechaFin).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
         return `analisis-por-prioridad-del-${fechaInicioFormateada}-al-${fechaFinFormateada}`;
       },
-      'tendencias': 'tendencias-temporales',
+      'tendencias': () => {
+        const fi = filters.fecha_inicio || new Date().toISOString().split('T')[0];
+        const ff = filters.fecha_fin    || new Date().toISOString().split('T')[0];
+        const slug = (iso) => new Date(iso).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
+        return `tendencias-temporales-del-${slug(fi)}-al-${slug(ff)}`;
+      },
       'area': 'tendencias-acumuladas'
     };
 
@@ -355,7 +435,12 @@ const GraficosOperativos = ({ data, filters = {} }) => {
         const fechaFinFormateada = new Date(fechaFin).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
         return `Distribución de novedades por nivel de prioridad del ${fechaInicioFormateada} al ${fechaFinFormateada}`;
       },
-      'tendencias': () => 'Evolución de novedades en el tiempo',
+      'tendencias': () => {
+        const fi = filters.fecha_inicio || new Date().toISOString().split('T')[0];
+        const ff = filters.fecha_fin || new Date().toISOString().split('T')[0];
+        const fmt = (iso) => new Date(iso).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        return `Evolución de novedades en el tiempo del ${fmt(fi)} al ${fmt(ff)}`;
+      },
       'area': () => 'Acumulado de novedades en el tiempo'
     };
 
@@ -375,11 +460,6 @@ const GraficosOperativos = ({ data, filters = {} }) => {
     }
   }, [exportChartAsImage, filters]);
 
-  // Handler para filtros
-  const handleFilter = useCallback((chartType, filters) => {
-    console.log(`Aplicando filtros a ${chartType}:`, filters);
-    // Implementar lógica de filtros aquí
-  }, []);
 
   return (
     <div className="space-y-6">
@@ -578,24 +658,16 @@ const GraficosOperativos = ({ data, filters = {} }) => {
             </p>
           </div>
           
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => handleFilter('tendencias', filters)}
-              className="p-2 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
-              title="Aplicar filtros"
-            >
-              <Filter className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-            </button>
-            <button
+          <button
               onClick={() => handleExportChart('tendencias')}
               className="p-2 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
               title="Exportar gráfico"
             >
               <Download className="w-4 h-4 text-slate-600 dark:text-slate-400" />
             </button>
-          </div>
         </div>
         
+        <div ref={tendenciasContainerRef}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Gráfico de Líneas */}
           <div className="lg:col-span-1" ref={lineChartRef}>
@@ -661,15 +733,15 @@ const GraficosOperativos = ({ data, filters = {} }) => {
         </div>
         
         {/* Estadísticas de Tendencias */}
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
+        <div className="mt-6 mb-2 grid grid-cols-1 md:grid-cols-4 gap-4" ref={tendenciasStatsRef}>
+          <div ref={statCard1Ref} className="bg-white dark:bg-slate-700 p-4 rounded-lg border border-slate-200 dark:border-slate-600 shadow-sm">
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Total Período</p>
             <p className="text-2xl font-bold text-slate-900 dark:text-slate-50">
               {processedData.tendencias.reduce((sum, t) => sum + t.cantidad, 0)}
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-500">novedades</p>
           </div>
-          <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
+          <div ref={statCard2Ref} className="bg-white dark:bg-slate-700 p-4 rounded-lg border border-slate-200 dark:border-slate-600 shadow-sm">
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Promedio Diario</p>
             <p className="text-2xl font-bold text-slate-900 dark:text-slate-50">
               {processedData.tendencias.length > 0 ? 
@@ -677,7 +749,7 @@ const GraficosOperativos = ({ data, filters = {} }) => {
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-500">por día</p>
           </div>
-          <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
+          <div ref={statCard3Ref} className="bg-white dark:bg-slate-700 p-4 rounded-lg border border-slate-200 dark:border-slate-600 shadow-sm">
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Pico Máximo</p>
             <p className="text-2xl font-bold text-slate-900 dark:text-slate-50">
               {processedData.tendencias.length > 0 ? 
@@ -685,7 +757,7 @@ const GraficosOperativos = ({ data, filters = {} }) => {
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-500">novedades</p>
           </div>
-          <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
+          <div ref={statCard4Ref} className="bg-white dark:bg-slate-700 p-4 rounded-lg border border-slate-200 dark:border-slate-600 shadow-sm">
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Tendencia</p>
             <p className="text-2xl font-bold text-slate-900 dark:text-slate-50">
               {processedData.tendencias.length > 1 ? (
@@ -698,6 +770,7 @@ const GraficosOperativos = ({ data, filters = {} }) => {
           </div>
         </div>
       </div>
+        </div>
 
       {/* Panel de Configuración y Exportación */}
       <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
