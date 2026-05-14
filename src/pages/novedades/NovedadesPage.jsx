@@ -638,7 +638,15 @@ export default function NovedadesPage() {
     const yaExiste = novedades.some((n) => n.id === novedad.id);
     if (yaExiste) return;
 
-    // 2. Evitar mostrar toast SSE si la novedad fue creada manualmente hace menos de 10 segundos
+    // 2. Guard race condition: si el form completo está en proceso de crear → suprimir toast SSE
+    // isCreatingManually se activa ANTES del await, por lo que cubre el caso donde el SSE
+    // llega antes que la respuesta HTTP (race condition)
+    if (isCreatingManually.current) {
+      console.log("[SSE] Creación manual en curso - suprimiendo toast SSE:", novedad.id);
+      return;
+    }
+
+    // 3. Evitar mostrar toast SSE si la novedad fue creada manualmente hace menos de 10 segundos
     // justCreatedNovedad es useRef → siempre lee el valor más reciente sin depender de re-renders
     const creada = justCreatedNovedad.current;
     if (creada && creada.id === novedad.id) {
@@ -1365,7 +1373,6 @@ export default function NovedadesPage() {
           : formData.descripcion;
       const observacionesHistorial = `Novedad creada: ${nombreTipo} / ${nombreSubtipo} - ${descripcionCorta}`;
 
-      isCreatingManually.current = true; // 🔒 Bloquear SSE antes de llamar al backend
       const response = await createNovedad({
         tipo_novedad_id: Number(formData.tipo_novedad_id),
         subtipo_novedad_id: Number(formData.subtipo_novedad_id),
@@ -1414,8 +1421,6 @@ export default function NovedadesPage() {
       toast.error(err?.response?.data?.message || "Error al crear novedad");
     } finally {
       setSaving(false);
-      // 🔓 Desbloquear SSE tras 3s extra de margen (por si el SSE llega tarde)
-      setTimeout(() => { isCreatingManually.current = false; }, 3000);
     }
   };
 
