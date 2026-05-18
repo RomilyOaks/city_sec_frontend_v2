@@ -253,11 +253,9 @@ export default function NovedadDetalleModal({
     const handleKeyDown = (e) => {
       if (!isOpen) return;
 
-      // ESC para cerrar
+      // ESC para cerrar — cede el control al FotoViewerModal si está abierto
       if (e.key === "Escape") {
-        const fotoOpen = document.body.getAttribute("data-foto-viewer-open") === "true";
-        console.log("[DetalleModal] Escape capturado, data-foto-viewer-open=", fotoOpen);
-        if (fotoOpen) return;
+        if (document.body.getAttribute("data-foto-viewer-open") === "true") return;
         onClose();
       }
 

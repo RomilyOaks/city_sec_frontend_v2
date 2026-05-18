@@ -977,9 +977,7 @@ export default function NovedadesPage() {
           setSelectedNovedad(null);
         }
         if (viewingNovedad) {
-          const fotoOpen = document.body.getAttribute("data-foto-viewer-open") === "true";
-          console.log("[NovedadesPage] Escape con viewingNovedad, data-foto-viewer-open=", fotoOpen);
-          if (fotoOpen) return;
+          if (document.body.getAttribute("data-foto-viewer-open") === "true") return;
           setViewingNovedad(null);
         }
       }
@@ -4932,7 +4930,6 @@ export default function NovedadesPage() {
         isOpen={!!viewingNovedad}
         novedad={viewingNovedad}
         onClose={() => {
-          console.log("[NovedadesPage] onClose NovedadDetalleModal llamado desde:", new Error().stack?.split("\n").slice(1, 4).join(" | "));
           setViewingNovedad(null);
           setViewingFromTruck(false);
         }}

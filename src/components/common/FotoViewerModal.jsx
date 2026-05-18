@@ -27,21 +27,14 @@ export default function FotoViewerModal({ fotos = [], currentIndex = 0, onChange
   useEffect(() => {
     if (isOpen) {
       document.body.setAttribute("data-foto-viewer-open", "true");
-      console.log("[FotoViewer] abierto → data-foto-viewer-open=true");
     }
-    return () => {
-      document.body.removeAttribute("data-foto-viewer-open");
-      console.log("[FotoViewer] cerrado → data-foto-viewer-open eliminado");
-    };
+    return () => document.body.removeAttribute("data-foto-viewer-open");
   }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (e) => {
-      if (e.key === "Escape") {
-        console.log("[FotoViewer] Escape capturado → cerrando visor");
-        onClose();
-      }
+      if (e.key === "Escape") onClose();
       if (e.key === "ArrowLeft" && total > 1) handlePrev();
       if (e.key === "ArrowRight" && total > 1) handleNext();
     };
