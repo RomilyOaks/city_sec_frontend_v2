@@ -4932,6 +4932,7 @@ export default function NovedadesPage() {
         isOpen={!!viewingNovedad}
         novedad={viewingNovedad}
         onClose={() => {
+          console.log("[NovedadesPage] onClose NovedadDetalleModal llamado desde:", new Error().stack?.split("\n").slice(1, 4).join(" | "));
           setViewingNovedad(null);
           setViewingFromTruck(false);
         }}
