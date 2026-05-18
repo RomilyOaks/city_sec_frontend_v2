@@ -253,8 +253,9 @@ export default function NovedadDetalleModal({
     const handleKeyDown = (e) => {
       if (!isOpen) return;
 
-      // ESC para cerrar
+      // ESC para cerrar — si el visor de fotos está abierto, lo cierra él mismo
       if (e.key === "Escape") {
+        if (fotoViewerOpen) return;
         onClose();
       }
 
@@ -287,7 +288,7 @@ export default function NovedadDetalleModal({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose, activeTab, showDespacharButton, novedad, onDespachar]);
+  }, [isOpen, onClose, activeTab, showDespacharButton, novedad, onDespachar, fotoViewerOpen]);
 
   if (!isOpen) return null;
 
