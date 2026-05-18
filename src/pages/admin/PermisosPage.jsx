@@ -10,6 +10,7 @@ import {
   Search,
   Plus,
   Edit,
+  Eye,
   Trash2,
   Shield,
   ShieldOff,
@@ -26,6 +27,7 @@ import {
 } from "../../services/permisosService.js";
 import CrearPermisoModal from "../../components/admin/permisos/CrearPermisoModal.jsx";
 import EditarPermisoModal from "../../components/admin/permisos/EditarPermisoModal.jsx";
+import VerPermisoModal from "../../components/admin/permisos/VerPermisoModal.jsx";
 
 /**
  * PermisosPage - Página de gestión de permisos
@@ -46,6 +48,7 @@ export default function PermisosPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedPermiso, setSelectedPermiso] = useState(null);
+  const [viewingPermiso, setViewingPermiso] = useState(null);
 
   // Cargar permisos
   const loadPermisos = useCallback(async () => {
@@ -220,7 +223,7 @@ export default function PermisosPage() {
         <div className="flex items-center gap-2 mt-4">
           <button
             onClick={handleClearFilters}
-            className="inline-flex items-center gap-2 px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="inline-flex items-center gap-2 px-3 py-1.5 text-sm text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
           >
             <Filter size={14} />
             Limpiar filtros
@@ -228,7 +231,7 @@ export default function PermisosPage() {
           <button
             onClick={loadPermisos}
             disabled={loading}
-            className="inline-flex items-center gap-2 px-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-3 py-1.5 text-sm text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
           >
             <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
             Actualizar
@@ -255,9 +258,6 @@ export default function PermisosPage() {
                   Acción
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                  Descripción
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                   Estado
                 </th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-slate-700 dark:text-slate-300 uppercase tracking-wider">
@@ -268,13 +268,13 @@ export default function PermisosPage() {
             <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
               {loading ? (
                 <tr>
-                  <td colSpan="7" className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                  <td colSpan="6" className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
                     Cargando permisos...
                   </td>
                 </tr>
               ) : permisos.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                  <td colSpan="6" className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
                     No se encontraron permisos
                   </td>
                 </tr>
@@ -302,9 +302,6 @@ export default function PermisosPage() {
                     <td className="px-4 py-3 text-sm text-slate-900 dark:text-slate-50">
                       {permiso.accion}
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400 max-w-xs truncate">
-                      {permiso.descripcion || "-"}
-                    </td>
                     <td className="px-4 py-3">
                       <button
                         onClick={() => handleToggleEstado(permiso)}
@@ -321,6 +318,13 @@ export default function PermisosPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => setViewingPermiso(permiso)}
+                          className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                          title="Ver detalle"
+                        >
+                          <Eye size={14} />
+                        </button>
                         <button
                           onClick={() => handleEdit(permiso)}
                           disabled={permiso.es_sistema}
@@ -400,6 +404,13 @@ export default function PermisosPage() {
             setSelectedPermiso(null);
             loadPermisos();
           }}
+        />
+      )}
+
+      {viewingPermiso && (
+        <VerPermisoModal
+          permiso={viewingPermiso}
+          onClose={() => setViewingPermiso(null)}
         />
       )}
     </div>
