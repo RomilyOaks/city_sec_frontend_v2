@@ -10,7 +10,6 @@ import {
   Search,
   Plus,
   Edit,
-  Eye,
   Trash2,
   Shield,
   ShieldOff,
@@ -280,7 +279,11 @@ export default function PermisosPage() {
                 </tr>
               ) : (
                 permisos.map((permiso) => (
-                  <tr key={permiso.id} className="hover:bg-slate-50 dark:hover:bg-slate-900">
+                  <tr
+                    key={permiso.id}
+                    onClick={() => setViewingPermiso(permiso)}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-900 cursor-pointer"
+                  >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <code className="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-xs font-mono rounded text-slate-700 dark:text-slate-300">
@@ -304,7 +307,7 @@ export default function PermisosPage() {
                     </td>
                     <td className="px-4 py-3">
                       <button
-                        onClick={() => handleToggleEstado(permiso)}
+                        onClick={(e) => { e.stopPropagation(); handleToggleEstado(permiso); }}
                         disabled={permiso.es_sistema}
                         className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors ${
                           permiso.estado
@@ -316,17 +319,10 @@ export default function PermisosPage() {
                         {permiso.estado ? "Activo" : "Inactivo"}
                       </button>
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="pl-4 pr-6 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button
-                          onClick={() => setViewingPermiso(permiso)}
-                          className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                          title="Ver detalle"
-                        >
-                          <Eye size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleEdit(permiso)}
+                          onClick={(e) => { e.stopPropagation(); handleEdit(permiso); }}
                           disabled={permiso.es_sistema}
                           className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Editar permiso"
@@ -334,7 +330,7 @@ export default function PermisosPage() {
                           <Edit size={14} />
                         </button>
                         <button
-                          onClick={() => handleDelete(permiso)}
+                          onClick={(e) => { e.stopPropagation(); handleDelete(permiso); }}
                           disabled={permiso.es_sistema}
                           className="p-1.5 text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Eliminar permiso"
