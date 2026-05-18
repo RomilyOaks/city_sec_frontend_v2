@@ -255,6 +255,9 @@ export default function NovedadDetalleModal({
 
       // ESC para cerrar
       if (e.key === "Escape") {
+        const fotoOpen = document.body.getAttribute("data-foto-viewer-open") === "true";
+        console.log("[DetalleModal] Escape capturado, data-foto-viewer-open=", fotoOpen);
+        if (fotoOpen) return;
         onClose();
       }
 
