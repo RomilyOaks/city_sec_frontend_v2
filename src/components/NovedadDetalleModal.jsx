@@ -27,7 +27,9 @@ import {
   Loader2,
   Bot,
   AlertTriangle,
+  Mic,
 } from "lucide-react";
+import FotoViewerModal from "./common/FotoViewerModal";
 import toast from "react-hot-toast";
 import {
   getNovedadById,
@@ -144,6 +146,8 @@ export default function NovedadDetalleModal({
   const [activeTab, setActiveTab] = useState(0);
   const [historial, setHistorial] = useState([]);
   const [loadingHistorial, setLoadingHistorial] = useState(false);
+  const [fotoViewerOpen, setFotoViewerOpen] = useState(false);
+  const [fotoViewerIndex, setFotoViewerIndex] = useState(0);
 
   // Estado para ajuste de coordenadas en el mapa
   const [editedCoordinates, setEditedCoordinates] = useState(null);
@@ -296,6 +300,7 @@ export default function NovedadDetalleModal({
   ];
 
   return (
+    <>
     <div
       className="fixed inset-0 flex items-center justify-center bg-black/50 p-4"
       style={{ zIndex: 9999 }}
@@ -586,7 +591,15 @@ export default function NovedadDetalleModal({
               )}
 
               {/* Tab 2: Reportante */}
-              {activeTab === 2 && (
+              {activeTab === 2 && (() => {
+                const fotos = Array.isArray(novedad.fotos_adjuntas)
+                  ? novedad.fotos_adjuntas.filter(f => f?.url)
+                  : [];
+                const partes = Array.isArray(novedad.parte_adjuntos)
+                  ? novedad.parte_adjuntos.filter(p => p?.url)
+                  : [];
+                const audios = partes.filter(p => p.tipo?.startsWith("audio/"));
+                return (
                 <div className="space-y-4">
                   {novedad.es_anonimo ? (
                     <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
@@ -595,7 +608,8 @@ export default function NovedadDetalleModal({
                       </p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-2 gap-4">
+                    /* Fila 1: Nombre | Teléfono | Documento de Identidad */
+                    <div className="grid grid-cols-3 gap-4">
                       <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
                         <span className="text-xs font-medium text-slate-500">
                           Nombre
@@ -620,6 +634,74 @@ export default function NovedadDetalleModal({
                           {novedad.reportante_doc_identidad || "—"}
                         </p>
                       </div>
+                    </div>
+                  )}
+
+                  {/* Fila 2: Fotos y Audio adjuntos (solo si existen) */}
+                  {(fotos.length > 0 || audios.length > 0) && (
+                    <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-3 space-y-3">
+                      <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
+                        <Camera size={13} />
+                        Adjuntos del reporte
+                      </h4>
+
+                      {/* Fotos en grid de miniaturas */}
+                      {fotos.length > 0 && (
+                        <div>
+                          <p className="text-xs text-slate-400 mb-2">
+                            Fotos ({fotos.length}) — clic para ampliar
+                          </p>
+                          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                            {fotos.map((foto, i) => (
+                              <button
+                                key={i}
+                                onClick={() => { setFotoViewerIndex(i); setFotoViewerOpen(true); }}
+                                className="relative group block overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                title={foto.nombre ?? `Foto ${i + 1}`}
+                              >
+                                <img
+                                  src={foto.url}
+                                  alt={foto.nombre ?? `Foto ${i + 1}`}
+                                  className="w-full h-24 object-cover group-hover:scale-105 transition-transform duration-200"
+                                  loading="lazy"
+                                  onError={(e) => {
+                                    e.target.style.display = "none";
+                                    e.target.parentElement.classList.add("bg-slate-100", "dark:bg-slate-800", "flex", "items-center", "justify-center");
+                                  }}
+                                />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                                  <Camera size={18} className="text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow" />
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Audio player */}
+                      {audios.map((audio, i) => (
+                        <div key={i} className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+                          <div className="flex items-center gap-2 mb-2 text-sm text-slate-600 dark:text-slate-300">
+                            <Mic size={14} className="text-blue-500 flex-shrink-0" />
+                            <span className="font-medium truncate">
+                              {audio.nombre ?? `Audio ${i + 1}`}
+                            </span>
+                            {audio.duracion_seg != null && (
+                              <span className="text-slate-400 text-xs flex-shrink-0">
+                                {Math.floor(audio.duracion_seg / 60)}:{String(audio.duracion_seg % 60).padStart(2, "0")} min
+                              </span>
+                            )}
+                          </div>
+                          <audio
+                            controls
+                            src={audio.url}
+                            preload="none"
+                            className="w-full h-8"
+                          >
+                            Tu navegador no soporta reproducción de audio.
+                          </audio>
+                        </div>
+                      ))}
                     </div>
                   )}
                   {/* Personas Afectadas y Pérdidas Materiales */}
@@ -697,7 +779,8 @@ export default function NovedadDetalleModal({
                     </div>
                   </div>
                 </div>
-              )}
+                );
+              })()}
 
               {/* Tab 3: Recursos */}
               {activeTab === 3 && (
@@ -1251,5 +1334,17 @@ export default function NovedadDetalleModal({
         </div>
       </div>
     </div>
+
+    {/* Visor de fotos a pantalla completa */}
+    {novedad && (
+      <FotoViewerModal
+        fotos={Array.isArray(novedad.fotos_adjuntas) ? novedad.fotos_adjuntas.filter(f => f?.url) : []}
+        currentIndex={fotoViewerIndex}
+        onChangeIndex={setFotoViewerIndex}
+        isOpen={fotoViewerOpen}
+        onClose={() => setFotoViewerOpen(false)}
+      />
+    )}
+    </>
   );
 }
