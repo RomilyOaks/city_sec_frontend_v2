@@ -143,7 +143,7 @@ export default function EditarPermisoModal({ permiso, onClose, onSuccess }) {
                 <div>
                   <label className="text-xs text-slate-500 dark:text-slate-400">Slug</label>
                   <div className="flex items-center gap-2">
-                    <code className="px-2 py-1 bg-white dark:bg-slate-800 text-xs font-mono rounded border border-slate-300 dark:border-slate-600">
+                    <code className="px-2 py-1 bg-white dark:bg-slate-700 text-xs font-mono rounded border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200">
                       {permiso.slug}
                     </code>
                     {permiso.es_sistema && (
@@ -153,23 +153,23 @@ export default function EditarPermisoModal({ permiso, onClose, onSuccess }) {
                     )}
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-3 gap-3">
                   <div>
                     <label className="text-xs text-slate-500 dark:text-slate-400">Módulo</label>
-                    <div className="px-2 py-1 bg-white dark:bg-slate-800 text-sm rounded border border-slate-300 dark:border-slate-600">
+                    <div className="px-2 py-1 bg-white dark:bg-slate-700 text-sm rounded border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-100">
                       {permiso.modulo}
                     </div>
                   </div>
                   <div>
                     <label className="text-xs text-slate-500 dark:text-slate-400">Recurso</label>
-                    <div className="px-2 py-1 bg-white dark:bg-slate-800 text-sm rounded border border-slate-300 dark:border-slate-600">
+                    <div className="px-2 py-1 bg-white dark:bg-slate-700 text-sm rounded border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-100">
                       {permiso.recurso}
                     </div>
                   </div>
                   <div>
                     <label className="text-xs text-slate-500 dark:text-slate-400">Acción</label>
-                    <div className="px-2 py-1 bg-white dark:bg-slate-800 text-sm rounded border border-slate-300 dark:border-slate-600">
+                    <div className="px-2 py-1 bg-white dark:bg-slate-700 text-sm rounded border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-100">
                       {permiso.accion}
                     </div>
                   </div>
