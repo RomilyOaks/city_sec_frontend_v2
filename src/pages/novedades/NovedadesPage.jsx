@@ -977,6 +977,8 @@ export default function NovedadesPage() {
           setSelectedNovedad(null);
         }
         if (viewingNovedad) {
+          // Si el visor de fotos está abierto dentro del modal, no cerrar el modal principal
+          if (document.body.getAttribute("data-foto-viewer-open") === "true") return;
           setViewingNovedad(null);
         }
       }

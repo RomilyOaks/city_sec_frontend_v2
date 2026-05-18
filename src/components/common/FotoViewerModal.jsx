@@ -23,6 +23,14 @@ export default function FotoViewerModal({ fotos = [], currentIndex = 0, onChange
     onChangeIndex((currentIndex + 1) % total);
   }, [currentIndex, total, onChangeIndex]);
 
+  // Marcar body para que handlers de Escape externos sepan que el visor está abierto
+  useEffect(() => {
+    if (isOpen) {
+      document.body.setAttribute("data-foto-viewer-open", "true");
+    }
+    return () => document.body.removeAttribute("data-foto-viewer-open");
+  }, [isOpen]);
+
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (e) => {
