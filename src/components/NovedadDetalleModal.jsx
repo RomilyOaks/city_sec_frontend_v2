@@ -1355,6 +1355,7 @@ export default function NovedadDetalleModal({
         isOpen={fotoViewerOpen}
         onClose={() => setFotoViewerOpen(false)}
         puedeDescargar={puedeDescargarFotos}
+        novedad={novedad}
       />
     )}
     </>
