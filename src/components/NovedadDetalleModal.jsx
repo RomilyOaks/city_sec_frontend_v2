@@ -143,14 +143,11 @@ export default function NovedadDetalleModal({
 
   // Permisos RBAC para adjuntos (fotos y audio de vecino alerta)
   const _permisos = user?.permisos ?? [];
-  const _roles    = user?.roles ?? [];
-  const _isSuperAdmin = _roles.some((r) => r?.slug === "super_admin");
+  const _isSuperAdmin = (user?.roles ?? []).some((r) => r?.slug === "super_admin");
   const _hasPerm = (slug) => _isSuperAdmin || _permisos.some((p) => (p?.slug || p) === slug);
   const puedeVerFotos       = _hasPerm("novedades.fotos.viewer");
   const puedeDescargarFotos = _hasPerm("novedades.fotos.downloader");
   const puedeReproducirAudio = _hasPerm("novedades.audio.player");
-  // DEBUG: log para diagnosticar permisos de adjuntos
-  console.log("[Adjuntos DEBUG] user:", user?.username, "| roles:", JSON.stringify(_roles), "| isSuperAdmin:", _isSuperAdmin, "| puedeVerFotos:", puedeVerFotos, "| puedeReproducirAudio:", puedeReproducirAudio);
 
   const [novedad, setNovedad] = useState(initialNovedad);
   const [loading, setLoading] = useState(!initialNovedad);
@@ -604,9 +601,6 @@ export default function NovedadDetalleModal({
 
               {/* Tab 2: Reportante */}
               {activeTab === 2 && (() => {
-                // DEBUG: log del contenido raw que llega del backend
-                console.log("[Adjuntos DEBUG] novedad.fotos_adjuntas (raw):", novedad.fotos_adjuntas);
-                console.log("[Adjuntos DEBUG] novedad.parte_adjuntos (raw):", novedad.parte_adjuntos);
                 // Fotos: solo si el usuario tiene permiso viewer
                 const fotos = puedeVerFotos && Array.isArray(novedad.fotos_adjuntas)
                   ? novedad.fotos_adjuntas.filter(f => f?.url)
@@ -616,7 +610,6 @@ export default function NovedadDetalleModal({
                   ? novedad.parte_adjuntos.filter(p => p?.url)
                   : [];
                 const audios = partes.filter(p => p.tipo?.startsWith("audio/"));
-                console.log("[Adjuntos DEBUG] fotos filtradas:", fotos.length, "| audios filtrados:", audios.length);
                 return (
                 <div className="space-y-4">
                   {novedad.es_anonimo ? (
