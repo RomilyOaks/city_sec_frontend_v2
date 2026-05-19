@@ -1,11 +1,13 @@
 # PRD — CitySecure: Sistema de Seguridad Ciudadana (Frontend v2)
 
 **Documento:** Product Requirements Document  
-**Versión:** 1.0  
-**Fecha:** 2026-05-12  
+**Versión:** 1.4  
+**Fecha:** 2026-05-18  
 **Estado:** Activo  
 **Autor:** Romily Robles  
-**Repositorio Backend:** [RomilyOaks/city_sec_backend_claude](https://github.com/RomilyOaks/city_sec_backend_claude)
+**Repositorio Frontend:** [RomilyOaks/city_sec_frontend_v2](https://github.com/RomilyOaks/city_sec_frontend_v2)  
+**Repositorio Backend:** [RomilyOaks/city_sec_backend_claude](https://github.com/RomilyOaks/city_sec_backend_claude)  
+**URL Producción:** `https://citysecfrontendv2-production.up.railway.app`
 
 ---
 
@@ -21,11 +23,13 @@ Digitalizar y centralizar la operación diaria del serenazgo municipal: desde la
 
 | Rol | Descripción |
 |-----|-------------|
-| **Administrador** | Gestiona usuarios, roles y permisos del sistema |
-| **Supervisor** | Supervisa turnos operativos y personal |
-| **Operador** | Crea y gestiona turnos operativos |
-| **Sereno / Personal** | Registra incidentes en cuadrantes durante patrullaje |
-| **Analista** | Consulta reportes y estadísticas del dashboard |
+| `super_admin` | Acceso total al sistema. Gestiona usuarios, roles y permisos |
+| `admin` | Gestión de usuarios y configuración |
+| `supervisor` | Supervisa turnos operativos y personal |
+| `operador` | Crea y gestiona turnos operativos |
+| `radio_operador` | Registra novedades/incidentes en tiempo real |
+| `consulta` | Solo lectura de novedades y reportes |
+| `usuario_basico` | Acceso mínimo, sin adjuntos |
 
 ---
 
@@ -70,52 +74,88 @@ VITE_DEBUG=false
 
 ```
 src/
-├── main.jsx                    # Punto de entrada React
-├── setupTests.js               # Configuración Vitest
+├── main.jsx
+├── App.jsx
 ├── routes/
-│   ├── AppRouter.jsx           # Enrutamiento principal
-│   └── ProtectedRoute.jsx      # Guard para rutas autenticadas (RBAC)
+│   ├── AppRouter.jsx
+│   └── ProtectedRoute.jsx
 ├── layouts/
-│   └── AppShell.jsx            # Layout principal con sidebar y header
+│   └── AppShell.jsx
 ├── pages/
-│   ├── auth/
-│   │   ├── LoginPage.jsx
-│   │   └── SignupPage.jsx
-│   ├── dashboard/
-│   │   └── DashboardPage.jsx
-│   ├── personal/
-│   │   └── PersonalPage.jsx
-│   ├── admin/
-│   │   ├── AdminUsuariosPage.jsx
-│   │   └── RolesPermisosPage.jsx
-│   └── NotFoundPage.jsx
+│   ├── auth/            LoginPage, SignupPage
+│   ├── dashboard/       DashboardPage
+│   ├── novedades/       NovedadesPage (formulario completo + rápido + listado)
+│   ├── personal/        PersonalPage
+│   ├── vehiculos/       VehiculosPage
+│   ├── operativos/      OperativosTurnoPage, vehiculos/, personal/
+│   ├── reportes-operativos/  NovedadesNoAtendidasPage, OperativosPiePage, OperativosVehicularesPage
+│   ├── calles/          TiposViaPage, CallesCuadrantesPage
+│   ├── catalogos/       RadiosTetraPage, TiposSubtiposNovedadPage, UnidadesOficinaPage
+│   ├── direcciones/     DireccionesEliminadasPage
+│   ├── admin/           AdminUsuariosPage, RolesPermisosPage, PermisosPage
+│   └── NotFoundPage
 ├── components/
 │   ├── common/
-│   │   ├── ThemeToggle.jsx     # Toggle dark/light mode
-│   │   └── ThemeApplier.jsx    # Aplicador de tema global
-│   ├── MapaIncidentes.jsx      # Mapa interactivo Leaflet
-│   ├── NovedadDetalleModal.jsx # Modal detalle de novedad
-│   └── ChangePasswordModal.jsx # Modal cambio de contraseña
-└── services/
-    ├── api.js                  # Instancia Axios configurada
-    ├── authService.js          # Autenticación JWT
-    └── [módulos].js            # Servicios por módulo
+│   │   ├── ThemeToggle.jsx
+│   │   ├── ThemeApplier.jsx
+│   │   └── FotoViewerModal.jsx      ← visor de fotos a pantalla completa (NUEVO)
+│   ├── admin/permisos/
+│   │   ├── CrearPermisoModal.jsx
+│   │   ├── EditarPermisoModal.jsx
+│   │   └── VerPermisoModal.jsx      ← modal de consulta solo lectura (NUEVO)
+│   ├── novedades/
+│   ├── vehiculos/
+│   ├── calles/
+│   ├── catalogos/
+│   ├── direcciones/
+│   ├── MapaIncidentes.jsx
+│   ├── NovedadDetalleModal.jsx      ← modal principal con adjuntos + RBAC
+│   └── ChangePasswordModal.jsx
+├── hooks/
+│   └── useNovedadesStream.js        ← SSE stream en tiempo real
+├── services/
+│   ├── api.js                       ← Axios con interceptor JWT
+│   ├── authService.js
+│   └── [módulos].js
+├── store/
+│   └── useAuthStore.js              ← Zustand (token, user, permisos, helpers RBAC)
+├── rbac/
+│   └── rbac.js                      ← ACTION_PERMISSIONS, ROUTE_PERMISSIONS
+└── utils/
+    ├── dateHelper.js                ← formatForDisplay (timezone Lima)
+    └── usuarioUtils.js
 ```
 
 ### 3.2 Autenticación
 
-- **Método:** JWT Bearer Token
+- **Método:** JWT Bearer Token (2h expiración)
 - **Header:** `Authorization: Bearer <token>`
-- **Guard:** `ProtectedRoute.jsx` valida token y permisos RBAC antes de renderizar cada ruta
+- **Guard:** `ProtectedRoute.jsx` valida token y permisos RBAC
+- **Refresh:** El token expira en 2h; el usuario debe re-autenticarse
 
 ### 3.3 Control de Acceso (RBAC)
 
-El sistema implementa control de acceso basado en roles con permisos granulares por módulo:
+Permisos granulares por módulo con el patrón `modulo.recurso.accion`:
 
 ```
-{modulo}:{accion}
-Ejemplo: operativos_turnos:create, novedades:read, admin:manage
+novedades.incidentes.create
+novedades.fotos.viewer          ← controla si backend envía fotos_adjuntas
+novedades.fotos.downloader      ← controla botón de descarga en FotoViewerModal
+novedades.audio.player          ← controla si backend envía parte_adjuntos
+operativos_turnos.create
+admin.manage
 ```
+
+El `super_admin` tiene acceso total automático (bypass de todos los guards).
+
+### 3.4 Tiempo Real (SSE)
+
+El stream `GET /api/v1/novedades/stream?token=<jwt>` emite el evento `nueva_novedad` con la estructura completa del incidente. El hook `useNovedadesStream.js` gestiona la conexión con reconexión automática cada 5s.
+
+**Deduplicación de toasts SSE:**
+- **Form completo** → muestra solo toast verde ✅ (SSE suprimido con `isCreatingManually` ref)
+- **Form rápido** → muestra solo toast SSE 🚨 (feedback intencional)
+- **Voice Gateway / otro usuario** → toast SSE 🚨 en todos los operadores conectados
 
 ---
 
@@ -125,7 +165,7 @@ Ejemplo: operativos_turnos:create, novedades:read, admin:manage
 
 **Páginas:** `LoginPage`, `SignupPage`  
 **Funcionalidades:**
-- Login con usuario y contraseña → JWT
+- Login con usuario y contraseña → JWT almacenado en Zustand (persistido en localStorage)
 - Protección de rutas autenticadas
 - Cambio de contraseña (modal)
 - Logout y limpieza de estado
@@ -137,35 +177,73 @@ Ejemplo: operativos_turnos:create, novedades:read, admin:manage
 **Página:** `DashboardPage`  
 **Funcionalidades:**
 - KPIs de novedades por período (día, semana, mes)
-- Gráficos con Recharts: novedades por tipo, por sector, por prioridad
-- Mapa de calor de incidentes
+- Gráficos con Recharts: novedades por tipo, sector, prioridad
+- Exportación de gráficos con captura DOM + layout side-by-side
+- Nombres de archivo dinámicos en exportación
 - Últimas novedades registradas
 
 ---
 
 ### 4.3 Novedades (Incidentes)
 
-**Endpoint base:** `GET/POST/PUT/DELETE /api/v1/novedades`  
+**Endpoint base:** `/api/v1/novedades`  
 **Funcionalidades:**
-- Listado con filtros: fecha, estado, prioridad, sector, tipo
-- Ordenamiento dinámico (`sort` + `order`): por código, fecha, prioridad
+- Listado con filtros: fecha, estado, prioridad, sector, tipo, búsqueda
+- Ordenamiento dinámico (`sort` + `order`)
 - Paginación (`page` + `limit`)
-- Modal de detalle completo (`NovedadDetalleModal`)
-- Registro de nuevo incidente con geolocalización
-- Exportar a Excel (xlsx) y PDF (jsPDF)
+- **Modal de detalle** (`NovedadDetalleModal`) con 5 pestañas:
+  - Datos Básicos, Ubicación, Reportante, Recursos, Seguimiento
+- Registro de novedad (form completo y form rápido)
+- Exportar a Excel y PDF
 
-**Prioridades:** `ALTA` | `MEDIA` | `BAJA`  
-**Estados:** `ABIERTO` | `EN_PROCESO` | `CERRADO`
+**Pestaña Reportante — Adjuntos de la App Vecino Alerta:**
 
-**Parámetros de filtro soportados:**
+La app móvil "Alerta Chorrillos" puede adjuntar hasta 2 fotos y 1 audio por novedad. Estos se muestran en la pestaña Reportante bajo control RBAC:
+
+| Permiso | Efecto |
+|---------|--------|
+| `novedades.fotos.viewer` | Muestra las miniaturas de fotos (backend también redacta el campo) |
+| `novedades.fotos.downloader` | Muestra botón ⬇ en el `FotoViewerModal` |
+| `novedades.audio.player` | Muestra el player `<audio>` (backend también redacta el campo) |
+
+**Campos de adjuntos en la novedad:**
+```json
+{
+  "fotos_adjuntas": [{ "url": "...", "nombre": "foto_001.jpg", "tipo": "image/jpeg", "tamaño_bytes": 204800 }],
+  "parte_adjuntos":  [{ "url": "...", "nombre": "audio_001.m4a", "tipo": "audio/mp4", "duracion_seg": 45 }]
+}
 ```
-fecha_inicio, fecha_fin, estado_novedad_id, prioridad_actual,
-sector_id, tipo_novedad_id, search, page, limit, sort, order
-```
+
+**Política de acceso por rol:**
+
+| Rol | Ver fotos | Descargar | Escuchar audio |
+|-----|:---------:|:---------:|:--------------:|
+| `super_admin` / `admin` / `supervisor` | ✅ | ✅ | ✅ |
+| `operador` / `consulta` / `radio_operador` | ✅ | ❌ | ✅ |
+| `usuario_basico` | ❌ | ❌ | ❌ |
 
 ---
 
-### 4.4 Mapa de Incidentes
+### 4.4 Visor de Fotos (`FotoViewerModal`)
+
+**Componente:** `src/components/common/FotoViewerModal.jsx`  
+**Funcionalidades:**
+- Visualización a pantalla completa con overlay
+- **Header fijo** con datos de la novedad (no cambia al navegar):
+  - `#novedad_code` + título tipo/subtipo
+  - Dirección en color ámbar (`localizacion + referencia_ubicacion`)
+  - Fecha/Hora de Ocurrencia
+- Navegación entre fotos con botones ← → y teclado `ArrowLeft` / `ArrowRight`
+- Contador de fotos (N / total)
+- Miniaturas de navegación rápida cuando hay múltiples fotos
+- Botón de descarga (solo si `puedeDescargar`)
+- Cierre con botón X, clic en overlay o `Escape`
+- **Escape coordinado:** usa `document.body.setAttribute("data-foto-viewer-open", "true")` para evitar que el modal padre se cierre al presionar Escape
+- Responsive a Light/Dark mode
+
+---
+
+### 4.5 Mapa de Incidentes
 
 **Componente:** `MapaIncidentes`  
 **Funcionalidades:**
@@ -173,28 +251,20 @@ sector_id, tipo_novedad_id, search, page, limit, sort, order
 - Marcadores agrupados (clusters) con `react-leaflet-cluster`
 - Visualización de novedades georeferenciadas
 - Filtro temporal en el mapa
-- Búsqueda de ubicación por ubigeo (departamento/provincia/distrito)
-
-**Endpoint ubigeo:**
-```
-GET /api/v1/catalogos/ubigeo?ubigeo_code=150116
-GET /api/v1/catalogos/ubigeo?search=LINCE&departamento=LIMA
-```
+- Búsqueda de ubicación por ubigeo
 
 ---
 
-### 4.5 Personal de Seguridad
+### 4.6 Personal de Seguridad
 
 **Página:** `PersonalPage`  
 **Funcionalidades:**
 - Listado de personal (serenos, policías, vigilantes)
 - CRUD completo de personal
-- Asignación a turnos operativos
-- Visualización de historial de turnos
 
 ---
 
-### 4.6 Operativos de Patrullaje
+### 4.7 Operativos de Patrullaje
 
 Sistema jerárquico de 4 niveles:
 
@@ -205,111 +275,70 @@ Turno Operativo
             └─ Novedades/Incidentes Atendidos
 ```
 
-#### 4.6.1 Turnos Operativos
+| Sub-módulo | Endpoint base |
+|-----------|--------------|
+| Turnos | `/api/v1/operativos` |
+| Vehículos | `/api/v1/operativos/:turnoId/vehiculos` |
+| Personal | `/api/v1/operativos/:turnoId/personal` |
+| Cuadrantes | `.../vehiculos/:vehiculoId/cuadrantes` |
+| Novedades en cuadrante | `.../cuadrantes/:cuadranteId/novedades` |
 
-**Endpoints:** `/api/v1/operativos`  
-**Funcionalidades:**
-- Crear turno (MAÑANA / TARDE / NOCHE) con fecha, sector, operador, supervisor
-- Listar turnos con filtros por sector, fecha, turno
-- Cerrar turno operativo
-- Soft delete
-
-**Permisos:** `operativos_turnos:create|read|update|delete|manage`
-
-#### 4.6.2 Vehículos del Turno
-
-**Endpoints:** `/api/v1/operativos/:turnoId/vehiculos`  
-**Funcionalidades:**
-- Asignar vehículo a turno (conductor, copiloto, radio tetra, combustible, km inicio)
-- Cerrar asignación del vehículo (km fin, combustible fin)
-- Relaciones: Vehículo, PersonalSeguridad (conductor/copiloto), TipoCopiloto, RadioTetra, EstadoOperativo
-
-**Nivel de combustible:** `LLENO` | `3/4` | `1/2` | `1/4` | `RESERVA`
-
-#### 4.6.3 Personal del Turno
-
-**Endpoints:** `/api/v1/operativos/:turnoId/personal`  
-**Funcionalidades:**
-- Asignar personal al turno con tipo de patrullaje y equipamiento
-- Registrar equipamiento: chaleco balístico, porra, esposas, linterna, kit primeros auxilios
-- Cerrar asignación con hora_fin
-
-**Tipo patrullaje:** `SERENAZGO` | `PPFF` | `GUARDIA` | `VIGILANTE` | `OTRO`
-
-#### 4.6.4 Cuadrantes
-
-**Endpoints:** `/api/v1/operativos/:turnoId/vehiculos/:vehiculoId/cuadrantes`  
-**Funcionalidades:**
-- Registrar ingreso a cuadrante (hora_ingreso)
-- Registrar salida (hora_salida, incidentes_reportados)
-- Campo calculado: `tiempo_minutos`
-
-#### 4.6.5 Novedades en Cuadrante
-
-**Endpoints:** `.../cuadrantes/:cuadranteId/novedades`  
-**Funcionalidades:**
-- Vincular novedad del sistema al cuadrante patrullado
-- Estados de resultado: `PENDIENTE` | `RESUELTO` | `ESCALADO` | `CANCELADO`
-- Prioridades: `BAJA` | `MEDIA` | `ALTA` | `URGENTE`
+**Reportes Operativos:**
+- Novedades No Atendidas — filtros homologados
+- Operativos a Pie — filtros + columnas optimizadas
+- Operativos Vehiculares — filtros + exportación
 
 ---
 
-### 4.7 Administración
+### 4.8 Administración
 
-#### 4.7.1 Usuarios
-
-**Página:** `AdminUsuariosPage`  
-**Funcionalidades:**
-- Listado de usuarios del sistema
-- Crear / editar / desactivar usuarios
+#### 4.8.1 Usuarios (`AdminUsuariosPage`)
+- Listado, crear, editar, desactivar usuarios
 - Asignar roles
 
-#### 4.7.2 Roles y Permisos
-
-**Página:** `RolesPermisosPage`  
-**Funcionalidades:**
+#### 4.8.2 Roles (`RolesPermisosPage`)
 - Gestión de roles RBAC
-- Asignación de permisos granulares por módulo
-- Guard de async behavior (mounted ref) para evitar setState en componentes desmontados
+- Asignación de permisos por módulo
+
+#### 4.8.3 Permisos del Sistema (`PermisosPage`)
+- Grid de permisos con columnas: Slug, Módulo, Recurso, Acción, Estado, Acciones
+- **Fila cliqueable** → abre `VerPermisoModal` (solo lectura con descripción completa)
+- Filtros: búsqueda por slug/descripción, módulo, recurso, estado
+- Botones de filtro con soporte completo Light/Dark mode
+- Edición de descripción vía `EditarPermisoModal` (campos solo-lectura con contraste correcto en dark mode)
+
+**`VerPermisoModal`** — consulta de permiso (solo lectura):
+- Slug + badge Sistema
+- Módulo / Recurso / Acción en grid de 3 columnas
+- Descripción completa
+- Estado (badge colorido)
 
 ---
 
 ## 5. Catálogos del Sistema
 
-Endpoints de solo lectura usados para poblar selectores/dropdowns:
-
 | Catálogo | Endpoint |
 |----------|---------|
-| Ubigeo (distrito/provincia/dpto) | `GET /api/v1/catalogos/ubigeo` |
+| Ubigeo | `GET /api/v1/catalogos/ubigeo` |
 | Tipos de novedad | `GET /api/v1/catalogos/tipos-novedad` |
 | Sectores | `GET /api/v1/catalogos/sectores` |
 | Estados operativos | `GET /api/v1/catalogos/estados-operativos` |
-| Vehículos disponibles | `GET /api/v1/vehiculos` |
-| Personal disponible | `GET /api/v1/personal-seguridad` |
+| Vehículos | `GET /api/v1/vehiculos` |
+| Personal | `GET /api/v1/personal-seguridad` |
 | Radios TETRA | `GET /api/v1/catalogos/radios-tetra` |
 | Cuadrantes | `GET /api/v1/catalogos/cuadrantes` |
+| Tipos copiloto | `GET /api/v1/catalogos/tipos-copiloto` |
 
 ---
 
 ## 6. Formato de Respuesta API
 
-### Éxito
 ```json
-{
-  "success": true,
-  "message": "Operación exitosa",
-  "data": {},
-  "pagination": { "total": 500, "page": 1, "limit": 20, "totalPages": 25 }
-}
-```
+// Éxito
+{ "success": true, "data": {}, "pagination": { "total": 500, "page": 1, "limit": 20, "totalPages": 25 } }
 
-### Error
-```json
-{
-  "success": false,
-  "message": "Descripción del error",
-  "errors": [{ "field": "campo", "message": "error específico" }]
-}
+// Error
+{ "success": false, "message": "...", "errors": [{ "field": "campo", "message": "..." }] }
 ```
 
 ---
@@ -318,15 +347,14 @@ Endpoints de solo lectura usados para poblar selectores/dropdowns:
 
 | Requisito | Detalle |
 |-----------|---------|
-| **Timezone** | America/Lima (UTC-5) — todas las fechas DATETIME se tratan con esta zona |
+| **Timezone** | America/Lima (UTC-5) — `formatForDisplay()` en `dateHelper.js` |
 | **Moneda** | PEN (Sol peruano) |
 | **Idioma** | Español (es-PE) |
 | **Responsive** | Mobile-first con TailwindCSS |
-| **Dark/Light mode** | Toggle de tema (ThemeToggle + ThemeApplier) |
-| **Offline-ready** | Cache de catálogos con React Query |
-| **Polling** | Considerar WebSockets o polling para actualizaciones en tiempo real |
-| **Auth expiración** | Redirigir a login al expirar token JWT |
-| **Seguridad** | Sin exposición de tokens en localStorage sin cifrado |
+| **Dark/Light mode** | Toggle de tema global; todos los componentes respetan `dark:` variants |
+| **Tiempo real** | SSE con reconexión automática (useNovedadesStream) |
+| **Auth expiración** | 2h JWT; redirige a login al expirar |
+| **Seguridad** | Tokens en Zustand persist (localStorage) |
 
 ---
 
@@ -342,82 +370,64 @@ Endpoints de solo lectura usados para poblar selectores/dropdowns:
 | **HTTPS** | Gestionado por Railway automáticamente |
 | **Backend URL prod** | `https://citysecbackendclaude-production.up.railway.app/api/v1` |
 
-### Comandos clave
-
 ```bash
-npm run dev       # Servidor de desarrollo (puerto 5173)
+npm run dev       # Desarrollo (puerto 5173, polling Windows)
 npm run build     # Build de producción
-npm run lint      # ESLint
-npm run test      # Tests con Vitest
+npm run lint      # ESLint 9 (0 errores activos)
 ```
 
 ---
 
-## 9. Estado Actual del Proyecto
+## 9. Estado del Proyecto
 
-### ⚠️ ALERTA CRÍTICA: Código Fuente Faltante
-
-El directorio `src/` **no existe** en el workspace actual. El código fuente fue eliminado al reinstalar Windows. Los archivos identificados por el CHANGELOG incluían:
-
-- `src/main.jsx`
-- `src/routes/AppRouter.jsx`, `ProtectedRoute.jsx`
-- `src/layouts/AppShell.jsx`
-- `src/pages/auth/LoginPage.jsx`, `SignupPage.jsx`
-- `src/pages/dashboard/DashboardPage.jsx`
-- `src/pages/personal/PersonalPage.jsx`
-- `src/pages/admin/AdminUsuariosPage.jsx`, `RolesPermisosPage.jsx`
-- `src/pages/NotFoundPage.jsx`
-- `src/components/MapaIncidentes.jsx`
-- `src/components/NovedadDetalleModal.jsx`
-- `src/components/ChangePasswordModal.jsx`
-- `src/components/common/ThemeToggle.jsx`, `ThemeApplier.jsx`
-- `src/services/api.js`, `authService.js` + servicios por módulo
-
-**Acciones a tomar:**
-1. Recuperar `src/` desde el repositorio GitHub o backup
-2. Si no hay backup: reconstruir desde cero usando este PRD como guía
-3. Ejecutar `npm install` ✅ (ya realizado — 544 paquetes instalados)
-
-### Dependencias Instaladas ✅
-
-```
-npm install   →  544 paquetes instalados (Node.js v24.15.0 / npm v11.12.1)
-```
-
-### Vulnerabilidades detectadas
-
-```
-24 vulnerabilidades (2 low, 9 moderate, 12 high, 1 critical)
-Ejecutar: npm audit fix   (para las no breaking)
-```
+**Código fuente:** ✅ Completo en GitHub y workspace local  
+**Dependencias:** ✅ 544 paquetes instalados (Node v24.15.0 / npm v11.12.1)  
+**ESLint:** ✅ 0 errores (44 warnings pre-existentes de exhaustive-deps)  
+**Build:** ✅ Compilación exitosa en producción  
+**Deploy:** ✅ Railway (Caddy) — activo
 
 ---
 
-## 10. Decisiones de Diseño Documentadas
+## 10. Decisiones de Diseño
 
 | Decisión | Razón |
 |----------|-------|
-| Vite + SWC en lugar de CRA | Build más rápido, menor overhead |
-| Caddy en lugar de `serve` o Express | Servidor de producción confiable, soporte nativo SPA, integración Railway |
-| Polling en vite.config.js (Windows) | HMR con `usePolling: true` para evitar problemas en Windows |
-| Zustand sobre Redux | Menor boilerplate, API más simple para estado global |
-| TanStack Query sobre SWR | Más features: invalidación, prefetch, deduplicación de requests |
-| react-leaflet-cluster | Mejora de rendimiento con miles de marcadores en el mapa |
-| Soft delete en todas las entidades | `deleted_at` + `deleted_by` para auditoría completa |
+| Vite + SWC | Build más rápido, menor overhead que CRA |
+| Caddy en producción | Servidor confiable, soporte nativo SPA, integrado con Railway |
+| `usePolling: true` en vite.config | HMR estable en Windows |
+| Zustand sobre Redux | Menor boilerplate, API simple |
+| TanStack Query | Invalidación, prefetch, deduplicación de requests |
+| SSE sobre WebSockets | Unidireccional (servidor → cliente), más simple, soportado sin libs extra |
+| `data-foto-viewer-open` en body | Coordinación de Escape entre múltiples handlers de `window.keydown` sin acoplamiento entre componentes |
+| RBAC adjuntos en frontend + backend | Doble guardia: backend redacta campos null sin permiso; frontend evita renders innecesarios |
 
 ---
 
-## 11. Issues Conocidos y Resoluciones
+## 11. Issues Resueltos
 
-| Issue | Estado | Solución |
-|-------|--------|----------|
-| Ubigeo: `ubigeo_code` no filtrable | ✅ Resuelto (backend v2.3.0) | Parámetro `ubigeo_code` implementado en backend |
-| Novedades: sin ordenamiento dinámico | ✅ Resuelto (backend v2.3.0) | Parámetros `sort` y `order` implementados |
-| Vehículos: relaciones no incluidas en respuesta | ✅ Resuelto | Backend incluye objetos relacionados completos |
-| RolesPermisosPage: setState en componente desmontado | ✅ Resuelto | Mounted ref guard implementado |
-| HMR intermitente en Windows | ✅ Resuelto | `usePolling: true` en vite.config.js |
-| Error 502 en Railway | ✅ Resuelto | Puerto 8080 configurado en Caddy |
+| Issue | Solución | Commit |
+|-------|----------|--------|
+| Código fuente perdido (reinstalación Windows) | Recuperado desde GitHub | — |
+| Triggers MySQL con `DEFINER='root'@'%'` | Script `fix_definer_triggers.sql` | backend |
+| Toast SSE duplicado al crear novedad internamente | Guard `isCreatingManually` ref en callback SSE | `cbc0dec` |
+| Escape en FotoViewerModal cerraba modal principal | `data-foto-viewer-open` en `document.body` | `3ba581d` |
+| Permisos del Sistema: dark mode invisible en botones | Añadir `text-slate-700 dark:text-slate-200` | `83bffdd` |
+| EditarPermisoModal: texto invisible en dark mode | Añadir `text-slate-900 dark:text-slate-100` a campos read-only | `dfe46d4` |
+| ESLint 9: `--ignore-path` obsoleto | Script lint actualizado a `eslint .` | `cbc0dec` |
+| `process` no definido en playwright.config | Globals Node añadidos en eslint.config.js | `cbc0dec` |
+| HMR intermitente en Windows | `usePolling: true` en vite.config.js | preexistente |
+| Error 502 en Railway | Puerto 8080 en Caddyfile | preexistente |
 
 ---
 
-*Generado a partir del análisis de documentación del proyecto — 2026-05-12*
+## 12. Componentes Nuevos (2026-05-14 → 2026-05-18)
+
+| Componente | Ruta | Descripción |
+|-----------|------|-------------|
+| `FotoViewerModal` | `src/components/common/FotoViewerModal.jsx` | Visor de fotos a pantalla completa con header de novedad, carrusel, RBAC descarga |
+| `VerPermisoModal` | `src/components/admin/permisos/VerPermisoModal.jsx` | Consulta de permiso en solo lectura |
+| Adjuntos en `NovedadDetalleModal` | pestaña Reportante | Fotos (grid miniaturas) + audio (`<audio>`) con control RBAC |
+
+---
+
+*Actualizado: 2026-05-18*
