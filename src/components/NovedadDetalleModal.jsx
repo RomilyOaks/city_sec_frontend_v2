@@ -141,6 +141,14 @@ export default function NovedadDetalleModal({
   const user = useAuthStore((s) => s.user);
   const canEditLocation = canPerformAction(user, "novedades_update");
 
+  // Permisos RBAC para adjuntos (fotos y audio de vecino alerta)
+  const _permisos = user?.permisos ?? [];
+  const _isSuperAdmin = (user?.roles ?? []).some((r) => r?.slug === "super_admin");
+  const _hasPerm = (slug) => _isSuperAdmin || _permisos.some((p) => (p?.slug || p) === slug);
+  const puedeVerFotos      = _hasPerm("novedades.fotos.viewer");
+  const puedeDescargarFotos = _hasPerm("novedades.fotos.downloader");
+  const puedeReproducirAudio = _hasPerm("novedades.audio.player");
+
   const [novedad, setNovedad] = useState(initialNovedad);
   const [loading, setLoading] = useState(!initialNovedad);
   const [activeTab, setActiveTab] = useState(0);
@@ -593,10 +601,12 @@ export default function NovedadDetalleModal({
 
               {/* Tab 2: Reportante */}
               {activeTab === 2 && (() => {
-                const fotos = Array.isArray(novedad.fotos_adjuntas)
+                // Fotos: solo si el usuario tiene permiso viewer
+                const fotos = puedeVerFotos && Array.isArray(novedad.fotos_adjuntas)
                   ? novedad.fotos_adjuntas.filter(f => f?.url)
                   : [];
-                const partes = Array.isArray(novedad.parte_adjuntos)
+                // Audio: solo si el usuario tiene permiso player
+                const partes = puedeReproducirAudio && Array.isArray(novedad.parte_adjuntos)
                   ? novedad.parte_adjuntos.filter(p => p?.url)
                   : [];
                 const audios = partes.filter(p => p.tipo?.startsWith("audio/"));
@@ -1344,6 +1354,7 @@ export default function NovedadDetalleModal({
         onChangeIndex={setFotoViewerIndex}
         isOpen={fotoViewerOpen}
         onClose={() => setFotoViewerOpen(false)}
+        puedeDescargar={puedeDescargarFotos}
       />
     )}
     </>

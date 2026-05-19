@@ -11,7 +11,7 @@ import { X, ChevronLeft, ChevronRight, Download } from "lucide-react";
  * @param {boolean}  isOpen - Si el modal está visible
  * @param {Function} onClose - Callback para cerrar
  */
-export default function FotoViewerModal({ fotos = [], currentIndex = 0, onChangeIndex, isOpen, onClose }) {
+export default function FotoViewerModal({ fotos = [], currentIndex = 0, onChangeIndex, isOpen, onClose, puedeDescargar = false }) {
   const total = fotos.length;
   const foto = fotos[currentIndex];
 
@@ -65,17 +65,19 @@ export default function FotoViewerModal({ fotos = [], currentIndex = 0, onChange
                 {currentIndex + 1} / {total}
               </span>
             )}
-            <a
-              href={foto.url}
-              download={foto.nombre ?? `foto_${currentIndex + 1}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-white/70 hover:text-white transition-colors"
-              title="Descargar"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Download size={18} />
-            </a>
+            {puedeDescargar && (
+              <a
+                href={foto.url}
+                download={foto.nombre ?? `foto_${currentIndex + 1}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white/70 hover:text-white transition-colors"
+                title="Descargar foto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Download size={18} />
+              </a>
+            )}
             <button
               onClick={onClose}
               className="text-white/70 hover:text-white transition-colors"
