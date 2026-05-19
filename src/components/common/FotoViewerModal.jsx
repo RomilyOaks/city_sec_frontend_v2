@@ -88,14 +88,14 @@ export default function FotoViewerModal({
         {/* ── Header novedad (fijo, no cambia al navegar fotos) ── */}
         {novedad && (
           <div className="w-full mb-2 px-1">
-            <div className="bg-black/60 backdrop-blur-sm rounded-xl px-4 py-3 border border-white/10">
+            <div className="bg-white/95 dark:bg-black/60 backdrop-blur-sm rounded-xl px-4 py-3 border border-slate-200 dark:border-white/10 shadow-lg dark:shadow-none">
               {/* Código + título */}
               <div className="flex items-start gap-2 flex-wrap">
-                <span className="font-mono text-xs text-white/60 flex-shrink-0 mt-0.5">
+                <span className="font-mono text-xs text-slate-400 dark:text-white/60 flex-shrink-0 mt-0.5">
                   #{novedad.novedad_code}
                 </span>
                 {titulo && (
-                  <span className="text-white font-semibold text-sm leading-tight">
+                  <span className="text-slate-800 dark:text-white font-semibold text-sm leading-tight">
                     {titulo}
                   </span>
                 )}
@@ -103,13 +103,13 @@ export default function FotoViewerModal({
               {/* Dirección + Fecha de ocurrencia */}
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5">
                 {direccion && (
-                  <span className="flex items-center gap-1 text-amber-300 text-xs font-medium">
+                  <span className="flex items-center gap-1 text-amber-600 dark:text-amber-300 text-xs font-medium">
                     <MapPin size={11} className="flex-shrink-0" />
                     {direccion}
                   </span>
                 )}
                 {fechaOcurrencia && (
-                  <span className="flex items-center gap-1 text-white/60 text-xs">
+                  <span className="flex items-center gap-1 text-slate-500 dark:text-white/60 text-xs">
                     <Calendar size={11} className="flex-shrink-0" />
                     {fechaOcurrencia}
                   </span>
@@ -121,12 +121,12 @@ export default function FotoViewerModal({
 
         {/* ── Barra superior: nombre foto · contador · descarga · cerrar ── */}
         <div className="flex items-center justify-between w-full px-2 pb-2">
-          <span className="text-white/70 text-sm font-medium truncate max-w-[60%]">
+          <span className="text-slate-200 dark:text-white/70 text-sm font-medium truncate max-w-[60%]">
             {foto.nombre ?? `Foto ${currentIndex + 1}`}
           </span>
           <div className="flex items-center gap-3">
             {total > 1 && (
-              <span className="text-white/60 text-sm">
+              <span className="text-slate-300 dark:text-white/60 text-sm">
                 {currentIndex + 1} / {total}
               </span>
             )}
@@ -136,7 +136,7 @@ export default function FotoViewerModal({
                 download={foto.nombre ?? `foto_${currentIndex + 1}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-white/70 hover:text-white transition-colors"
+                className="text-slate-300 dark:text-white/70 hover:text-white transition-colors"
                 title="Descargar foto"
                 onClick={(e) => e.stopPropagation()}
               >
@@ -145,7 +145,7 @@ export default function FotoViewerModal({
             )}
             <button
               onClick={onClose}
-              className="text-white/70 hover:text-white transition-colors"
+              className="text-slate-300 dark:text-white/70 hover:text-white transition-colors"
               title="Cerrar (Esc)"
             >
               <X size={22} />
