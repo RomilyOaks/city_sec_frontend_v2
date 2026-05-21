@@ -632,9 +632,10 @@ const wsCuadrantes = XLSX.utils.aoa_to_sheet(cuadrantesRows);
           "Cuadrante Nombre",
           "Tipo Novedad",
           "Descripción",
-          "Hora Ingreso",
-          "Hora Salida",
-          "Estado"
+          "Prioridad",
+          "Resultado",
+          "Hora Ingreso Cuadrante",
+          "Hora Salida Cuadrante",
         ];
 
         const novedadesRows = [novedadesHeaders];
@@ -652,28 +653,30 @@ const wsCuadrantes = XLSX.utils.aoa_to_sheet(cuadrantesRows);
             novedad.cuadrante_nombre || "-",
             novedad.tipo_novedad || "-",
             novedad.descripcion || "-",
+            novedad.prioridad || "-",
+            novedad.resultado || "-",
             novedad.hora_ingreso || "-",
             novedad.hora_salida || "-",
-            novedad.estado || "-"
           ]);
         }
 
         const wsNovedades = XLSX.utils.aoa_to_sheet(novedadesRows);
         wsNovedades["!cols"] = [
-          { wch: 12 }, // Fecha Ocurrencia
+          { wch: 18 }, // Fecha Ocurrencia
           { wch: 10 }, // Turno
           { wch: 18 }, // Sector
           { wch: 22 }, // Operador
           { wch: 22 }, // Supervisor
-          { wch: 12 }, // Tipo Recurso
+          { wch: 14 }, // Tipo Recurso
           { wch: 20 }, // Recurso
           { wch: 15 }, // Cuadrante Código
           { wch: 25 }, // Cuadrante Nombre
-          { wch: 15 }, // Tipo Novedad
+          { wch: 20 }, // Tipo Novedad
           { wch: 40 }, // Descripción
-          { wch: 12 }, // Hora Ingreso
-          { wch: 12 }, // Hora Salida
-          { wch: 12 }, // Estado
+          { wch: 10 }, // Prioridad
+          { wch: 12 }, // Resultado
+          { wch: 20 }, // Hora Ingreso Cuadrante
+          { wch: 20 }, // Hora Salida Cuadrante
         ];
 
         // Aplicar formato de fecha a columnas de fecha/hora

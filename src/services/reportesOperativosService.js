@@ -121,16 +121,16 @@ export async function buildReporteData(params) {
             console.warn(`No se pudieron obtener cuadrantes para vehículo ${veh.id}`);
           }
 
-          // Para cada cuadrante, contar novedades
+          // Para cada cuadrante, obtener novedades completas
           const cuadrantesConNovedades = [];
           for (const cuad of cuadrantes) {
-            let novedadesCount = 0;
+            let novedadesData = [];
             try {
               const novResp = await api.get(
                 `/operativos/${turnoOp.id}/vehiculos/${veh.id}/cuadrantes/${cuad.id}/novedades`
               );
-              const novedades = novResp.data?.data || novResp.data || [];
-              novedadesCount = Array.isArray(novedades) ? novedades.length : 0;
+              const raw = novResp.data?.data || novResp.data || [];
+              novedadesData = Array.isArray(raw) ? raw : [];
             } catch {
               // Sin novedades
             }
@@ -142,7 +142,8 @@ export async function buildReporteData(params) {
               hora_ingreso: cuad.hora_ingreso,
               hora_salida: cuad.hora_salida,
               tiempo_minutos: cuad.tiempo_minutos || 0,
-              novedades_count: novedadesCount,
+              novedades_count: novedadesData.length,
+              novedades: novedadesData, // ← datos completos para hoja Excel
             });
           }
 
@@ -210,16 +211,16 @@ export async function buildReporteData(params) {
             console.warn(`No se pudieron obtener cuadrantes para personal ${pers.id}`);
           }
 
-          // Para cada cuadrante, contar novedades
+          // Para cada cuadrante, obtener novedades completas
           const cuadrantesConNovedades = [];
           for (const cuad of cuadrantes) {
-            let novedadesCount = 0;
+            let novedadesData = [];
             try {
               const novResp = await api.get(
                 `/operativos/${turnoOp.id}/personal/${pers.id}/cuadrantes/${cuad.id}/novedades`
               );
-              const novedades = novResp.data?.data || novResp.data || [];
-              novedadesCount = Array.isArray(novedades) ? novedades.length : 0;
+              const raw = novResp.data?.data || novResp.data || [];
+              novedadesData = Array.isArray(raw) ? raw : [];
             } catch {
               // Sin novedades
             }
@@ -231,7 +232,8 @@ export async function buildReporteData(params) {
               hora_ingreso: cuad.hora_ingreso,
               hora_salida: cuad.hora_salida,
               tiempo_minutos: cuad.tiempo_minutos || 0,
-              novedades_count: novedadesCount,
+              novedades_count: novedadesData.length,
+              novedades: novedadesData, // ← datos completos para hoja Excel
             });
           }
 
@@ -298,23 +300,26 @@ export async function buildReporteData(params) {
         for (const cuadrante of recurso.cuadrantes) {
           // Cuando backend incorpore novedades, vendrán en: cuadrante.novedades
           if (cuadrante.novedades && cuadrante.novedades.length > 0) {
-            for (const novedad of cuadrante.novedades) {
+            for (const nov of cuadrante.novedades) {
+              // Las novedades de operativos pueden venir como objeto novedad anidado
+              const novedadRef = nov.novedad || {};
               allNovedades.push({
-                fecha_ocurrencia: novedad.fecha_hora_ocurrencia || novedad.fecha_ocurrencia || turnoInfo.fecha,
+                fecha_ocurrencia: nov.reportado || novedadRef.fecha_hora_ocurrencia || turnoInfo.fecha,
                 turno: turnoInfo.turno,
                 sector: turnoInfo.sector,
                 operador: turnoInfo.operador,
                 supervisor: turnoInfo.supervisor,
-                tipo_recurso: recurso.tipo,
-                recurso_nombre: recurso.personal_nombre || recurso.vehiculo_placa || "-",
-                cuadrante_codigo: cuadrante.cuadrante_code || cuadrante.codigo || "-",
-                cuadrante_nombre: cuadrante.cuadrante_nombre || cuadrante.nombre || "-",
-                tipo_novedad: novedad.tipo_novedad?.nombre || novedad.tipo_novedad || "-",
-                descripcion: novedad.descripcion || novedad.detalle || "-",
-                hora_ingreso: cuadrante.hora_ingreso,
-                hora_salida: cuadrante.hora_salida,
-                estado: novedad.estado || "REPORTADA",
-                novedad_id: novedad.id
+                tipo_recurso: recurso.tipo === "VEHICULO" ? "Vehículo" : "Personal a Pie",
+                recurso_nombre: recurso.tipo === "VEHICULO"
+                  ? (recurso.placa || recurso.codigo_vehiculo || "-")
+                  : (recurso.personal_nombre || "-"),
+                cuadrante_codigo: cuadrante.cuadrante_code || "-",
+                cuadrante_nombre: cuadrante.cuadrante_nombre || "-",
+                tipo_novedad: novedadRef.tipoNovedad?.nombre || novedadRef.tipo_novedad?.nombre || novedadRef.titulo || "-",
+                descripcion: novedadRef.descripcion || nov.observaciones || "-",
+                prioridad: nov.prioridad || novedadRef.prioridad_actual || "-",
+                resultado: nov.resultado || nov.estado || "PENDIENTE",
+                novedad_id: nov.novedad_id || nov.id,
               });
             }
           }
