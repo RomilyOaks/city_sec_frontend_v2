@@ -1,8 +1,8 @@
 # PRD — CitySecure: Sistema de Seguridad Ciudadana (Frontend v2)
 
 **Documento:** Product Requirements Document  
-**Versión:** 1.4  
-**Fecha:** 2026-05-18  
+**Versión:** 1.5  
+**Fecha:** 2026-05-21  
 **Estado:** Activo  
 **Autor:** Romily Robles  
 **Repositorio Frontend:** [RomilyOaks/city_sec_frontend_v2](https://github.com/RomilyOaks/city_sec_frontend_v2)  
@@ -88,7 +88,9 @@ src/
 │   ├── personal/        PersonalPage
 │   ├── vehiculos/       VehiculosPage
 │   ├── operativos/      OperativosTurnoPage, vehiculos/, personal/
-│   ├── reportes-operativos/  NovedadesNoAtendidasPage, OperativosPiePage, OperativosVehicularesPage
+│   │                    ReportesOperativosPage.jsx  ← reporte Excel por turnos
+│   ├── reportes-operativos/  ReportesOperativosDashboardPage
+│   │                         NovedadesNoAtendidasPage, OperativosPiePage, OperativosVehicularesPage
 │   ├── calles/          TiposViaPage, CallesCuadrantesPage
 │   ├── catalogos/       RadiosTetraPage, TiposSubtiposNovedadPage, UnidadesOficinaPage
 │   ├── direcciones/     DireccionesEliminadasPage
@@ -283,24 +285,95 @@ Turno Operativo
 | Cuadrantes | `.../vehiculos/:vehiculoId/cuadrantes` |
 | Novedades en cuadrante | `.../cuadrantes/:cuadranteId/novedades` |
 
-**Reportes Operativos:**
-- Novedades No Atendidas — filtros homologados
-- Operativos a Pie — filtros + columnas optimizadas
-- Operativos Vehiculares — filtros + exportación
+---
+
+### 4.8 Reporte de Operativos de Patrullaje (Excel)
+
+**Acceso:** Operativos de Patrullaje → botón naranja **"Reportes"**  
+**Página:** `src/pages/operativos/ReportesOperativosPage.jsx`  
+**Servicio:** `src/services/reportesOperativosService.js` → `buildReporteData()`
+
+#### Flujo de dos pasos
+
+**Paso 1 — "Generar Reporte"** (botón naranja):
+- Realiza múltiples llamadas al backend en cascada:
+```
+GET /api/v1/operativos?fecha_inicio=...&fecha_fin=...&turno=...&sector_id=...&limit=1000
+  └─ Por cada turno:
+      GET /api/v1/operativos/{id}/vehiculos
+      GET /api/v1/operativos/{id}/personal
+        └─ Por cada vehículo/personal:
+            GET .../cuadrantes
+              └─ Por cada cuadrante:
+                  GET .../novedades   ← datos completos guardados en memoria
+```
+- Resultado en `reporteData` (estado local, nunca sale al backend de nuevo)
+- Muestra grid resumen: Total Turnos, Recursos, Cuadrantes, Novedades
+
+**Paso 2 — "Exportar a Excel"** (botón verde, aparece tras generar):
+- **NO llama al backend** — usa `reporteData` en memoria
+- Genera Excel localmente con `xlsx` (SheetJS)
+- Nombre del archivo: `Reporte_Operativos_Patrullaje_YYYY-MM-DD.xlsx`
+
+#### Estructura del Excel (6 hojas)
+
+| Hoja | Columnas | Contenido |
+|------|----------|-----------|
+| **Resumen** | 2 | KPIs totales + filtros aplicados |
+| **Sectores** | 9 | Un registro por turno (fecha, operador, supervisor, estado) |
+| **Detalle Vehículos** | 29 | Placa, km, combustible, conductor, copiloto, radio TETRA |
+| **Patrullaje a Pie** | 11 | Personal a pie por turno |
+| **Cuadrantes Patrullados** | 11 | Hora entrada/salida, tiempo en minutos, novedades por cuadrante |
+| **Novedades** | 15 | Tipo novedad, descripción, prioridad, resultado, cuadrante |
+
+#### Filtros disponibles
+
+| Filtro | Tipo | Aplicación |
+|--------|------|-----------|
+| Fecha Inicio / Fin | date | Backend (query param) |
+| Turno | MAÑANA/TARDE/NOCHE/todos | Backend (query param) |
+| Sector | select desde catálogo | Backend (query param) |
+| Tipo de Recurso | VEHICULO/PERSONAL/todos | Frontend (filtra el array local) |
 
 ---
 
-### 4.8 Administración
+### 4.9 Reportes de Análisis (Dashboard de Reportes)
 
-#### 4.8.1 Usuarios (`AdminUsuariosPage`)
+**Acceso:** menú lateral → "Reportes de Operativos"  
+**Páginas:** `src/pages/reportes-operativos/`
+
+A diferencia del §4.8, este módulo genera el Excel **en el backend** (devuelve un blob) y ofrece análisis estadístico con gráficos.
+
+#### Sub-módulos
+
+| Página | Descripción | Export |
+|--------|-------------|--------|
+| `ReportesOperativosDashboardPage` | Dashboard KPIs + gráficos, exporta todos los operativos combinados | Backend blob → `.xlsx` |
+| `OperativosVehicularesPage` | Listado detallado de operativos vehiculares con filtros | Backend blob → `.xlsx` |
+| `OperativosPiePage` | Listado de operativos a pie con filtros | Backend blob → `.xlsx` |
+| `NovedadesNoAtendidasPage` | Novedades pendientes de atención | Backend blob → `.xlsx` |
+
+**Endpoints de exportación (backend genera el archivo):**
+```
+GET /api/v1/reportes-operativos/combinados/exportar?fecha_inicio=...&formato=excel
+GET /api/v1/reportes-operativos/vehiculares/exportar
+GET /api/v1/reportes-operativos/pie/exportar
+GET /api/v1/reportes-operativos/novedades-no-atendidas/exportar
+```
+
+---
+
+### 4.10 Administración
+
+#### 4.10.1 Usuarios (`AdminUsuariosPage`)
 - Listado, crear, editar, desactivar usuarios
 - Asignar roles
 
-#### 4.8.2 Roles (`RolesPermisosPage`)
+#### 4.10.2 Roles (`RolesPermisosPage`)
 - Gestión de roles RBAC
 - Asignación de permisos por módulo
 
-#### 4.8.3 Permisos del Sistema (`PermisosPage`)
+#### 4.10.3 Permisos del Sistema (`PermisosPage`)
 - Grid de permisos con columnas: Slug, Módulo, Recurso, Acción, Estado, Acciones
 - **Fila cliqueable** → abre `VerPermisoModal` (solo lectura con descripción completa)
 - Filtros: búsqueda por slug/descripción, módulo, recurso, estado
@@ -417,17 +490,36 @@ npm run lint      # ESLint 9 (0 errores activos)
 | `process` no definido en playwright.config | Globals Node añadidos en eslint.config.js | `cbc0dec` |
 | HMR intermitente en Windows | `usePolling: true` en vite.config.js | preexistente |
 | Error 502 en Railway | Puerto 8080 en Caddyfile | preexistente |
+| Hoja Novedades ausente del Excel de Reportes Operativos | `buildReporteData` guardaba solo el conteo, no el array; fix almacena `novedades[]` en cada cuadrante | `a7059eb` |
+| Modal Atención dark mode: inputs invisibles | `dark:bg-slate-950/40` → `dark:bg-slate-800`; ícono calendario con `filter: invert(1)` en `index.css` | `444741a` |
+| Dropdown Estado novedad mostraba todos los estados | Filtro usaba `selectedNovedad?.estado_novedad_id` (podía ser undefined); cambiado a `estadoOriginalId` | `444741a` |
 
 ---
 
-## 12. Componentes Nuevos (2026-05-14 → 2026-05-18)
+## 12. Componentes y Servicios Nuevos (2026-05-14 → 2026-05-21)
 
-| Componente | Ruta | Descripción |
-|-----------|------|-------------|
-| `FotoViewerModal` | `src/components/common/FotoViewerModal.jsx` | Visor de fotos a pantalla completa con header de novedad, carrusel, RBAC descarga |
+| Componente / Servicio | Ruta | Descripción |
+|----------------------|------|-------------|
+| `FotoViewerModal` | `src/components/common/FotoViewerModal.jsx` | Visor de fotos a pantalla completa, header de novedad, carrusel, RBAC descarga |
 | `VerPermisoModal` | `src/components/admin/permisos/VerPermisoModal.jsx` | Consulta de permiso en solo lectura |
-| Adjuntos en `NovedadDetalleModal` | pestaña Reportante | Fotos (grid miniaturas) + audio (`<audio>`) con control RBAC |
+| Adjuntos en `NovedadDetalleModal` | pestaña Reportante | Fotos (miniaturas) + audio (`<audio>`) con control RBAC |
+| Reporte Excel operativos (fix) | `src/services/reportesOperativosService.js` | Fix: novedades completas guardadas en cuadrante; hoja Novedades ahora generada |
 
 ---
 
-*Actualizado: 2026-05-18*
+## 13. Comparativa de Sistemas de Reportes
+
+| Característica | §4.8 Reporte Patrullaje (Excel) | §4.9 Reportes de Análisis |
+|---------------|--------------------------------|--------------------------|
+| **Acceso** | Operativos de Patrullaje → "Reportes" | Menú "Reportes de Operativos" |
+| **Página** | `ReportesOperativosPage.jsx` | `ReportesOperativosDashboardPage.jsx` + sub-páginas |
+| **Genera Excel** | Frontend con `xlsx` (datos en memoria) | Backend → blob binario |
+| **Datos** | Cascada de endpoints en tiempo real | Endpoints especializados de reportes |
+| **Hojas Excel** | 6 (Resumen, Sectores, Vehículos, Pie, Cuadrantes, Novedades) | 1 por tipo de reporte |
+| **Gráficos** | No | Sí (Recharts, exportables a imagen) |
+| **Filtros** | Fecha, Turno, Sector, Tipo Recurso | Fecha, Turno, Sector, Prioridad, Estado |
+| **Uso típico** | Informe diario de operativos de un turno | Análisis estadístico y tendencias |
+
+---
+
+*Actualizado: 2026-05-21*
