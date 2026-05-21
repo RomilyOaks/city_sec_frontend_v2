@@ -509,6 +509,7 @@ export default function NovedadesPage() {
   const [saving, setSaving] = useState(false);
   const justCreatedNovedad = useRef(null); // ID de novedad recién creada (post-creación)
   const isCreatingManually = useRef(false); // true DURANTE el await createNovedad → bloquea SSE
+  const fechaRevisionRef = useRef(null);   // Foco en Fecha Próxima Revisión al activar checkbox
   const [viewingFromTruck, setViewingFromTruck] = useState(false); // Track si se abrió desde Truck o Eye
   const [gpsEnabled, setGpsEnabled] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
@@ -1520,7 +1521,7 @@ export default function NovedadesPage() {
         tiempo_respuesta_minutos:
           novedadCompleta.tiempo_respuesta_minutos || "",
         observaciones: novedadCompleta.observaciones || "",
-        estado_novedad_id: novedadCompleta.estado_novedad_id || 2,
+        estado_novedad_id: "",  // inicia vacío → usuario elige el siguiente estado
         requiere_seguimiento: novedadCompleta.requiere_seguimiento || false,
         fecha_llegada: novedadCompleta.fecha_llegada
           ? new Date(novedadCompleta.fecha_llegada).toISOString().slice(0, 16)
@@ -1536,7 +1537,7 @@ export default function NovedadesPage() {
             .slice(0, 10)
           : "",
         perdidas_materiales_estimadas:
-          novedadCompleta.perdidas_materiales_estimadas || "",
+          novedadCompleta.perdidas_materiales_estimadas ?? "",
         num_personas_afectadas: novedadCompleta.num_personas_afectadas ?? 0,
         observaciones_historial: "",
         usar_fecha_cierre_actual: false, // Siempre inicia sin marcar
@@ -1720,6 +1721,14 @@ export default function NovedadesPage() {
       toast.error(
         "No puede asignar la misma persona en múltiples campos de personal",
       );
+      return;
+    }
+
+    // Validar Fecha Próxima Revisión obligatoria cuando "Requiere Seguimiento" está activo
+    if (atencionData.requiere_seguimiento && !atencionData.fecha_proxima_revision) {
+      toast.error("Debe indicar la Fecha de Próxima Revisión");
+      setAtencionTab(1);
+      setTimeout(() => fechaRevisionRef.current?.focus(), 150);
       return;
     }
 
@@ -3032,17 +3041,17 @@ export default function NovedadesPage() {
                     <button
                       disabled={page <= 1}
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      className="p-2 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-50"
+                      className="p-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-40"
                     >
                       <ChevronLeft size={16} />
                     </button>
-                    <span className="px-3 py-2 text-sm">
+                    <span className="px-3 py-2 text-sm text-slate-700 dark:text-slate-200">
                       {page} / {pagination.totalPages || 1}
                     </span>
                     <button
                       disabled={page >= (pagination.totalPages || 1)}
                       onClick={() => setPage((p) => p + 1)}
-                      className="p-2 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-50"
+                      className="p-2 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-40"
                     >
                       <ChevronRight size={16} />
                     </button>
@@ -4950,7 +4959,7 @@ export default function NovedadesPage() {
           style={{ overflow: "hidden" }}
           onWheel={(e) => e.stopPropagation()}
         >
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
             {/* Header */}
             <div className="flex items-start justify-between p-4 border-b border-slate-200 dark:border-slate-700">
               <div className="flex items-center gap-3">
@@ -5411,9 +5420,9 @@ export default function NovedadesPage() {
                   const fechaLlegadaVacia = !atencionData.fecha_llegada;
 
                   const clsEditable =
-                    "mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50";
+                    "mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-slate-900 dark:text-slate-100";
                   const clsReadonly =
-                    "mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 px-3 py-2 text-slate-500 cursor-not-allowed";
+                    "mt-1 w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-700 px-3 py-2 text-slate-600 dark:text-slate-300 cursor-not-allowed";
 
                   const historialBlock = (
                     <div className="p-4 rounded-lg border border-slate-200 dark:border-slate-700">
@@ -5500,28 +5509,30 @@ export default function NovedadesPage() {
 
                   const datosSeguimientoBlock = (
                     <div className="p-4 rounded-lg border border-primary-300 dark:border-primary-700 bg-primary-50/50 dark:bg-primary-900/10">
-                      <h4 className="font-medium text-slate-900 dark:text-slate-50 mb-3">
+                      <h4 className="font-medium text-slate-900 dark:text-slate-50 mb-4">
                         Datos de Seguimiento
                       </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                      {/* Fila 1: Fecha de Llegada | N° Personas | Pérdidas Materiales */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                           {(() => {
                             const esEnLugar =
                               Number(atencionData.estado_novedad_id) === 4;
-                            const clsLlegada = isAllReadonly || fechaLlegadaVacia
-                              ? isAllReadonly
-                                ? clsReadonly
-                                : esEnLugar
-                                  ? "mt-1 w-full rounded-lg border-2 border-green-500 dark:border-green-400 bg-green-50 dark:bg-green-900/30 px-3 py-2 text-slate-900 dark:text-slate-50 ring-2 ring-green-400/40"
-                                  : clsEditable
-                              : clsEditable;
+                            // Si ya tiene fecha: mostrar como solo-lectura (readOnly preserva el valor visualmente)
+                            const tieneValor = !fechaLlegadaVacia;
+                            const clsLlegada = isAllReadonly || tieneValor
+                              ? clsReadonly
+                              : esEnLugar
+                                ? "mt-1 w-full rounded-lg border-2 border-green-500 dark:border-green-400 bg-green-50 dark:bg-green-900/30 px-3 py-2 text-slate-900 dark:text-slate-50 ring-2 ring-green-400/40"
+                                : clsEditable;
                             return (
                               <>
                                 <label
-                                  className={`block text-sm font-medium mb-0 ${esEnLugar ? "text-green-700 dark:text-green-400 font-bold" : "text-slate-700 dark:text-slate-200"}`}
+                                  className={`block text-sm font-medium mb-0 ${esEnLugar && !tieneValor ? "text-green-700 dark:text-green-400 font-bold" : "text-slate-700 dark:text-slate-200"}`}
                                 >
                                   Fecha de Llegada
-                                  {esEnLugar && (
+                                  {esEnLugar && !tieneValor && (
                                     <span className="ml-1 text-green-600 dark:text-green-400">
                                       ★ Requerido
                                     </span>
@@ -5536,7 +5547,8 @@ export default function NovedadesPage() {
                                       fecha_llegada: e.target.value,
                                     })
                                   }
-                                  disabled={isAllReadonly || !fechaLlegadaVacia}
+                                  readOnly={tieneValor}
+                                  disabled={isAllReadonly}
                                   className={clsLlegada}
                                 />
                               </>
@@ -5545,16 +5557,86 @@ export default function NovedadesPage() {
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                            N° Personas Afectadas
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={atencionData.num_personas_afectadas ?? 0}
+                            onChange={(e) =>
+                              setAtencionData({
+                                ...atencionData,
+                                num_personas_afectadas: e.target.value,
+                              })
+                            }
+                            disabled={isAllReadonly}
+                            placeholder="0"
+                            className={isAllReadonly ? clsReadonly : clsEditable}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                            Pérdidas Materiales Estimadas (S/.)
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={atencionData.perdidas_materiales_estimadas ?? ""}
+                            onChange={(e) =>
+                              setAtencionData({
+                                ...atencionData,
+                                perdidas_materiales_estimadas: e.target.value,
+                              })
+                            }
+                            disabled={isAllReadonly || isCerrada}
+                            placeholder="0.00"
+                            className={!isAllReadonly && !isCerrada ? clsEditable : clsReadonly}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Fila 2: Estado de Novedad | Fecha de Cierre */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                            Estado de Novedad *
+                          </label>
+                          <select
+                            value={atencionData.estado_novedad_id}
+                            onChange={(e) =>
+                              setAtencionData({
+                                ...atencionData,
+                                estado_novedad_id: e.target.value,
+                              })
+                            }
+                            disabled={isAllReadonly}
+                            className={isAllReadonly ? clsReadonly : clsEditable}
+                          >
+                            <option value="">Seleccione estado...</option>
+                            {(estadosRol.length > 0
+                              ? estadosRol
+                              : isSupervisor()
+                                ? estados
+                                : []
+                            )
+                              .filter((e) => e.id > estadoOriginalId)
+                              .sort((a, b) => a.id - b.id)
+                              .map((e) => (
+                                <option key={e.id} value={e.id}>
+                                  {e.nombre}
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
                             Fecha de Cierre
                             {isCerrada && isSupervisor() && (
-                              <span className="text-xs text-red-500 ml-1">
-                                *
-                              </span>
+                              <span className="text-xs text-red-500 ml-1">*</span>
                             )}
                             {!isSupervisor() && (
-                              <span className="text-xs text-slate-400 ml-1">
-                                (Solo supervisor)
-                              </span>
+                              <span className="text-xs text-slate-400 ml-1">(Solo supervisor)</span>
                             )}
                           </label>
                           <div className="space-y-2">
@@ -5609,11 +5691,8 @@ export default function NovedadesPage() {
                             {atencionData.fecha_cierre && (
                               <div className="text-xs text-slate-500 dark:text-slate-400">
                                 Fecha actual: {new Date(atencionData.fecha_cierre).toLocaleString('es-PE', {
-                                  day: '2-digit',
-                                  month: '2-digit',
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
+                                  day: '2-digit', month: '2-digit', year: 'numeric',
+                                  hour: '2-digit', minute: '2-digit'
                                 })}
                               </div>
                             )}
@@ -5621,116 +5700,8 @@ export default function NovedadesPage() {
                         </div>
                       </div>
 
+                      {/* Fila 3: ¿Requiere Seguimiento? | Fecha Próxima Revisión */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-                            N° Personas Afectadas
-                          </label>
-                          <input
-                            type="number"
-                            min="0"
-                            value={atencionData.num_personas_afectadas ?? 0}
-                            onChange={(e) =>
-                              setAtencionData({
-                                ...atencionData,
-                                num_personas_afectadas: e.target.value,
-                              })
-                            }
-                            disabled={isAllReadonly}
-                            placeholder="0"
-                            className={isAllReadonly ? clsReadonly : clsEditable}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-                            Pérdidas Materiales Estimadas (S/.)
-                          </label>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={atencionData.perdidas_materiales_estimadas || ""}
-                            onChange={(e) =>
-                              setAtencionData({
-                                ...atencionData,
-                                perdidas_materiales_estimadas: e.target.value,
-                              })
-                            }
-                            disabled={isAllReadonly || isCerrada}
-                            placeholder="0.00"
-                            className={!isAllReadonly && !isCerrada ? clsEditable : clsReadonly}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-                            Fecha Próxima Revisión
-                            {isCerrada && (
-                              <span className="text-xs text-slate-400 ml-1">
-                                (Solo lectura)
-                              </span>
-                            )}
-                          </label>
-                          <input
-                            type="date"
-                            value={atencionData.fecha_proxima_revision}
-                            onChange={(e) =>
-                              setAtencionData({
-                                ...atencionData,
-                                fecha_proxima_revision: e.target.value,
-                              })
-                            }
-                            disabled={isAllReadonly || isCerrada}
-                            className={!isAllReadonly && !isCerrada ? clsEditable : clsReadonly}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  );
-
-                  return (
-                    <div className="space-y-4">
-                      {/* Fila 1: Estado de Novedad + Requiere Seguimiento */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
-                            Estado de Novedad *
-                          </label>
-                          <select
-                            value={atencionData.estado_novedad_id}
-                            onChange={(e) =>
-                              setAtencionData({
-                                ...atencionData,
-                                estado_novedad_id: e.target.value,
-                              })
-                            }
-                            disabled={isAllReadonly}
-                            className={isAllReadonly ? clsReadonly : clsEditable}
-                          >
-                            <option value="">Seleccione estado...</option>
-                            {(estadosRol.length > 0
-                              ? estadosRol
-                              : isSupervisor()
-                                ? estados
-                                : []
-                            )
-                              .filter(
-                                (e) =>
-                                  e.id >
-                                  Number(
-                                    selectedNovedad?.estado_novedad_id || 0,
-                                  ),
-                              )
-                              .sort((a, b) => a.id - b.id) // Ordenar por ID (numérico)
-                              .map((e) => (
-                                <option key={e.id} value={e.id}>
-                                  {e.nombre}
-                                </option>
-                              ))}
-                          </select>
-                        </div>
                         <div className="flex items-end">
                           <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 w-full">
                             <input
@@ -5744,19 +5715,17 @@ export default function NovedadesPage() {
                                     requiere_seguimiento: e.target.checked,
                                   });
                                   if (e.target.checked) {
-                                    toast(
-                                      "Completar datos en pestaña Seguimiento",
-                                      {
-                                        icon: "📋",
-                                        duration: 3000,
-                                      },
-                                    );
+                                    toast("Indicar Fecha de Próxima Revisión", {
+                                      icon: "📅",
+                                      duration: 3000,
+                                    });
+                                    // Mover foco al campo Fecha Próxima Revisión
+                                    setTimeout(() => fechaRevisionRef.current?.focus(), 80);
                                   }
                                 }
                               }}
                               disabled={isAllReadonly}
-                              className={`w-5 h-5 rounded border-slate-300 text-primary-600 focus:ring-primary-500 ${isAllReadonly ? "opacity-50 cursor-not-allowed" : ""
-                                }`}
+                              className={`w-5 h-5 rounded border-slate-300 text-primary-600 focus:ring-primary-500 ${isAllReadonly ? "opacity-50 cursor-not-allowed" : ""}`}
                             />
                             <label
                               htmlFor="requiere_seguimiento"
@@ -5766,9 +5735,43 @@ export default function NovedadesPage() {
                             </label>
                           </div>
                         </div>
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                            Fecha Próxima Revisión
+                            {requiereSeg && !isCerrada && (
+                              <span className="ml-1 text-red-500 font-semibold">* Obligatorio</span>
+                            )}
+                            {isCerrada && (
+                              <span className="text-xs text-slate-400 ml-1">(Solo lectura)</span>
+                            )}
+                          </label>
+                          <input
+                            ref={fechaRevisionRef}
+                            type="date"
+                            value={atencionData.fecha_proxima_revision}
+                            onChange={(e) =>
+                              setAtencionData({
+                                ...atencionData,
+                                fecha_proxima_revision: e.target.value,
+                              })
+                            }
+                            disabled={isAllReadonly || isCerrada}
+                            className={
+                              !isAllReadonly && !isCerrada
+                                ? requiereSeg && !atencionData.fecha_proxima_revision
+                                  ? "mt-1 w-full rounded-lg border-2 border-red-400 dark:border-red-500 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 ring-2 ring-red-300/40"
+                                  : clsEditable
+                                : clsReadonly
+                            }
+                          />
+                        </div>
                       </div>
+                    </div>
+                  );
 
-                      {requiereSeg && datosSeguimientoBlock}
+                  return (
+                    <div className="space-y-4">
+                      {datosSeguimientoBlock}
 
                       {/* Campo Observaciones para estados RESUELTA (6) o superior */}
                       {estadoOriginalId >= 6 && (
