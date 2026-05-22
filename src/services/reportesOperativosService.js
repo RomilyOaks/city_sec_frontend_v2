@@ -304,22 +304,44 @@ export async function buildReporteData(params) {
               // Las novedades de operativos pueden venir como objeto novedad anidado
               const novedadRef = nov.novedad || {};
               allNovedades.push({
+                // Identificación
+                novedad_id:       nov.novedad_id || nov.id,
+                codigo_novedad:   novedadRef.codigo || novedadRef.codigo_novedad || "-",
+                // Fechas
                 fecha_ocurrencia: nov.reportado || novedadRef.fecha_hora_ocurrencia || turnoInfo.fecha,
-                turno: turnoInfo.turno,
-                sector: turnoInfo.sector,
-                operador: turnoInfo.operador,
-                supervisor: turnoInfo.supervisor,
-                tipo_recurso: recurso.tipo === "VEHICULO" ? "Vehículo" : "Personal a Pie",
-                recurso_nombre: recurso.tipo === "VEHICULO"
+                fecha_atencion:   novedadRef.fecha_hora_atencion || nov.fecha_atencion || null,
+                // Contexto operativo
+                turno:            turnoInfo.turno,
+                sector:           turnoInfo.sector,
+                operador:         turnoInfo.operador,
+                supervisor:       turnoInfo.supervisor,
+                tipo_recurso:     recurso.tipo === "VEHICULO" ? "Vehículo" : "Personal a Pie",
+                recurso_nombre:   recurso.tipo === "VEHICULO"
                   ? (recurso.placa || recurso.codigo_vehiculo || "-")
                   : (recurso.personal_nombre || "-"),
+                // Cuadrante
                 cuadrante_codigo: cuadrante.cuadrante_code || "-",
                 cuadrante_nombre: cuadrante.cuadrante_nombre || "-",
-                tipo_novedad: novedadRef.tipoNovedad?.nombre || novedadRef.tipo_novedad?.nombre || novedadRef.titulo || "-",
-                descripcion: novedadRef.descripcion || nov.observaciones || "-",
-                prioridad: nov.prioridad || novedadRef.prioridad_actual || "-",
-                resultado: nov.resultado || nov.estado || "PENDIENTE",
-                novedad_id: nov.novedad_id || nov.id,
+                hora_ingreso:     cuadrante.hora_ingreso || null,
+                hora_salida:      cuadrante.hora_salida || null,
+                // Clasificación
+                tipo_novedad:     novedadRef.tipoNovedad?.nombre || novedadRef.tipo_novedad?.nombre || novedadRef.titulo || "-",
+                subtipo_novedad:  novedadRef.subtipoNovedad?.nombre || novedadRef.subtipo_novedad?.nombre || "-",
+                // Descripción y ubicación
+                descripcion:      novedadRef.descripcion || nov.observaciones || "-",
+                direccion:        novedadRef.direccion || novedadRef.direccion_ocurrencia || "-",
+                referencia:       novedadRef.referencia_ubicacion || "-",
+                latitud:          novedadRef.latitud || null,
+                longitud:         novedadRef.longitud || null,
+                // Estado y resultado
+                estado_novedad:   novedadRef.estadoNovedad?.nombre || novedadRef.estado_novedad?.nombre || novedadRef.estado || "-",
+                prioridad:        nov.prioridad || novedadRef.prioridad_actual || "-",
+                resultado:        nov.resultado || nov.estado || "PENDIENTE",
+                // Atención
+                obs_atencion:     novedadRef.observaciones_atencion || nov.observaciones_atencion || "-",
+                // Reportante
+                reportante_nombre:    novedadRef.reportante_nombre || novedadRef.reportante?.nombre || "-",
+                reportante_telefono:  novedadRef.reportante_telefono || novedadRef.reportante?.telefono || "-",
               });
             }
           }

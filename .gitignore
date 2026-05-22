@@ -35,3 +35,6 @@ mcp-server/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# Claude settings
+.claude/settings.local.json

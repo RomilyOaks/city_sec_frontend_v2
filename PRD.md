@@ -324,7 +324,7 @@ GET /api/v1/operativos?fecha_inicio=...&fecha_fin=...&turno=...&sector_id=...&li
 | **Detalle Vehículos** | 29 | Placa, km, combustible, conductor, copiloto, radio TETRA |
 | **Patrullaje a Pie** | 11 | Personal a pie por turno |
 | **Cuadrantes Patrullados** | 11 | Hora entrada/salida, tiempo en minutos, novedades por cuadrante |
-| **Novedades** | 15 | Tipo novedad, descripción, prioridad, resultado, cuadrante |
+| **Novedades** | 26 | Código, fechas, tipo/subtipo, descripción, dirección, estado, prioridad, resultado, observaciones atención, reportante, contexto operativo, cuadrante |
 
 #### Filtros disponibles
 

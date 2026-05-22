@@ -621,19 +621,40 @@ const wsCuadrantes = XLSX.utils.aoa_to_sheet(cuadrantesRows);
       // ========================================
       if (reporteData.novedades && reporteData.novedades.length > 0) {
         const novedadesHeaders = [
+          // Identificación
+          "Código Novedad",
+          // Fechas
           "Fecha Ocurrencia",
+          "Fecha/Hora Atención",
+          // Clasificación
+          "Tipo Novedad",
+          "Subtipo Novedad",
+          // Descripción
+          "Descripción",
+          // Ubicación
+          "Dirección",
+          "Referencia",
+          "Latitud",
+          "Longitud",
+          // Estado
+          "Estado Novedad",
+          "Prioridad",
+          "Resultado",
+          // Atención
+          "Observaciones Atención",
+          // Reportante
+          "Reportante Nombre",
+          "Reportante Teléfono",
+          // Contexto operativo
           "Turno",
           "Sector",
           "Operador",
           "Supervisor",
           "Tipo Recurso",
-          "Recurso",
+          "Recurso (Placa/Personal)",
+          // Cuadrante
           "Cuadrante Código",
           "Cuadrante Nombre",
-          "Tipo Novedad",
-          "Descripción",
-          "Prioridad",
-          "Resultado",
           "Hora Ingreso Cuadrante",
           "Hora Salida Cuadrante",
         ];
@@ -642,7 +663,22 @@ const wsCuadrantes = XLSX.utils.aoa_to_sheet(cuadrantesRows);
 
         for (const novedad of reporteData.novedades) {
           novedadesRows.push([
+            novedad.codigo_novedad || "-",
             formatDateForExcel(novedad.fecha_ocurrencia),
+            novedad.fecha_atencion ? formatDateTimeForExcel(novedad.fecha_atencion) : "-",
+            novedad.tipo_novedad || "-",
+            novedad.subtipo_novedad || "-",
+            novedad.descripcion || "-",
+            novedad.direccion || "-",
+            novedad.referencia || "-",
+            novedad.latitud ?? "-",
+            novedad.longitud ?? "-",
+            novedad.estado_novedad || "-",
+            novedad.prioridad || "-",
+            novedad.resultado || "-",
+            novedad.obs_atencion || "-",
+            novedad.reportante_nombre || "-",
+            novedad.reportante_telefono || "-",
             novedad.turno || "-",
             novedad.sector || "-",
             novedad.operador || "-",
@@ -651,46 +687,40 @@ const wsCuadrantes = XLSX.utils.aoa_to_sheet(cuadrantesRows);
             novedad.recurso_nombre || "-",
             novedad.cuadrante_codigo || "-",
             novedad.cuadrante_nombre || "-",
-            novedad.tipo_novedad || "-",
-            novedad.descripcion || "-",
-            novedad.prioridad || "-",
-            novedad.resultado || "-",
-            novedad.hora_ingreso || "-",
-            novedad.hora_salida || "-",
+            novedad.hora_ingreso ? formatDateTimeForExcel(novedad.hora_ingreso) : "-",
+            novedad.hora_salida ? formatDateTimeForExcel(novedad.hora_salida) : "-",
           ]);
         }
 
         const wsNovedades = XLSX.utils.aoa_to_sheet(novedadesRows);
         wsNovedades["!cols"] = [
+          { wch: 16 }, // Código Novedad
           { wch: 18 }, // Fecha Ocurrencia
+          { wch: 20 }, // Fecha/Hora Atención
+          { wch: 22 }, // Tipo Novedad
+          { wch: 22 }, // Subtipo Novedad
+          { wch: 45 }, // Descripción
+          { wch: 35 }, // Dirección
+          { wch: 30 }, // Referencia
+          { wch: 12 }, // Latitud
+          { wch: 12 }, // Longitud
+          { wch: 18 }, // Estado Novedad
+          { wch: 12 }, // Prioridad
+          { wch: 14 }, // Resultado
+          { wch: 40 }, // Observaciones Atención
+          { wch: 25 }, // Reportante Nombre
+          { wch: 18 }, // Reportante Teléfono
           { wch: 10 }, // Turno
-          { wch: 18 }, // Sector
+          { wch: 20 }, // Sector
           { wch: 22 }, // Operador
           { wch: 22 }, // Supervisor
-          { wch: 14 }, // Tipo Recurso
-          { wch: 20 }, // Recurso
-          { wch: 15 }, // Cuadrante Código
-          { wch: 25 }, // Cuadrante Nombre
-          { wch: 20 }, // Tipo Novedad
-          { wch: 40 }, // Descripción
-          { wch: 10 }, // Prioridad
-          { wch: 12 }, // Resultado
-          { wch: 20 }, // Hora Ingreso Cuadrante
-          { wch: 20 }, // Hora Salida Cuadrante
+          { wch: 16 }, // Tipo Recurso
+          { wch: 22 }, // Recurso
+          { wch: 16 }, // Cuadrante Código
+          { wch: 28 }, // Cuadrante Nombre
+          { wch: 22 }, // Hora Ingreso Cuadrante
+          { wch: 22 }, // Hora Salida Cuadrante
         ];
-
-        // Aplicar formato de fecha a columnas de fecha/hora
-        const rangeNovedades = XLSX.utils.decode_range(wsNovedades['!ref']);
-        for (let C = 0; C <= rangeNovedades.e.c; C++) {
-          if ([0, 11, 12].includes(C)) { // Columnas: Fecha Ocurrencia, Hora Ingreso, Hora Salida
-            for (let R = 1; R <= rangeNovedades.e.r; R++) {
-              const cellRef = XLSX.utils.encode_cell({c: C, r: R});
-              if (wsNovedades[cellRef] && wsNovedades[cellRef].v) {
-                wsNovedades[cellRef].z = C === 0 ? 'yyyy-mm-dd;@' : 'yyyy-mm-dd hh:mm:ss;@';
-              }
-            }
-          }
-        }
 
         XLSX.utils.book_append_sheet(wb, wsNovedades, "Novedades");
       }
