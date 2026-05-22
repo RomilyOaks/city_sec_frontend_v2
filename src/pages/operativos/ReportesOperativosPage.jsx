@@ -625,14 +625,14 @@ const wsCuadrantes = XLSX.utils.aoa_to_sheet(cuadrantesRows);
           "Código Novedad",
           // Fechas
           "Fecha Ocurrencia",
-          "Fecha/Hora Atención",
+          "Fecha Llegada",
           // Clasificación
           "Tipo Novedad",
           "Subtipo Novedad",
           // Descripción
           "Descripción",
           // Ubicación
-          "Dirección",
+          "Localización",
           "Referencia",
           "Latitud",
           "Longitud",

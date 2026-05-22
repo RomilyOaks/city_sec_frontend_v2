@@ -301,15 +301,18 @@ export async function buildReporteData(params) {
           // Cuando backend incorpore novedades, vendrán en: cuadrante.novedades
           if (cuadrante.novedades && cuadrante.novedades.length > 0) {
             for (const nov of cuadrante.novedades) {
-              // Las novedades de operativos pueden venir como objeto novedad anidado
+              // Alias reales de Sequelize según backend (confirmados 2026-05-22):
+              // novedad_code, novedadTipoNovedad, novedadSubtipoNovedad, novedadEstado,
+              // localizacion (en vez de direccion), fecha_llegada (en vez de fecha_hora_atencion),
+              // observaciones (en vez de observaciones_atencion)
               const novedadRef = nov.novedad || {};
               allNovedades.push({
                 // Identificación
                 novedad_id:       nov.novedad_id || nov.id,
-                codigo_novedad:   novedadRef.codigo || novedadRef.codigo_novedad || "-",
+                codigo_novedad:   novedadRef.novedad_code || "-",
                 // Fechas
                 fecha_ocurrencia: nov.reportado || novedadRef.fecha_hora_ocurrencia || turnoInfo.fecha,
-                fecha_atencion:   novedadRef.fecha_hora_atencion || nov.fecha_atencion || null,
+                fecha_atencion:   novedadRef.fecha_llegada || null,
                 // Contexto operativo
                 turno:            turnoInfo.turno,
                 sector:           turnoInfo.sector,
@@ -324,28 +327,24 @@ export async function buildReporteData(params) {
                 cuadrante_nombre: cuadrante.cuadrante_nombre || "-",
                 hora_ingreso:     cuadrante.hora_ingreso || null,
                 hora_salida:      cuadrante.hora_salida || null,
-                // Clasificación
-                tipo_novedad:     novedadRef.tipoNovedad?.nombre || novedadRef.tipo_novedad?.nombre || novedadRef.titulo || "-",
-                subtipo_novedad:  novedadRef.subtipoNovedad?.nombre || novedadRef.subtipo_novedad?.nombre || "-",
+                // Clasificación (alias Sequelize reales del backend)
+                tipo_novedad:     novedadRef.novedadTipoNovedad?.nombre || "-",
+                subtipo_novedad:  novedadRef.novedadSubtipoNovedad?.nombre || "-",
                 // Descripción y ubicación
                 descripcion:      novedadRef.descripcion || nov.observaciones || "-",
-                direccion:        novedadRef.direccion || novedadRef.direccion_ocurrencia || "-",
+                direccion:        novedadRef.localizacion || "-",
                 referencia:       novedadRef.referencia_ubicacion || "-",
-                latitud:          novedadRef.latitud || null,
-                longitud:         novedadRef.longitud || null,
+                latitud:          novedadRef.latitud ?? null,
+                longitud:         novedadRef.longitud ?? null,
                 // Estado y resultado
-                // novedadRef.estado puede ser un FK numérico — descartar si no es string
-                estado_novedad:   novedadRef.estadoNovedad?.nombre
-                  || novedadRef.estado_novedad?.nombre
-                  || (typeof novedadRef.estado === "string" ? novedadRef.estado : null)
-                  || "-",
+                estado_novedad:   novedadRef.novedadEstado?.nombre || "-",
                 prioridad:        nov.prioridad || novedadRef.prioridad_actual || "-",
-                resultado:        nov.resultado || nov.estado || "PENDIENTE",
-                // Atención
-                obs_atencion:     novedadRef.observaciones_atencion || nov.observaciones_atencion || "-",
+                resultado:        nov.resultado || "PENDIENTE",
+                // Atención (campo real: observaciones en el modelo)
+                obs_atencion:     novedadRef.observaciones || nov.observaciones || "-",
                 // Reportante
-                reportante_nombre:    novedadRef.reportante_nombre || novedadRef.reportante?.nombre || "-",
-                reportante_telefono:  novedadRef.reportante_telefono || novedadRef.reportante?.telefono || "-",
+                reportante_nombre:   novedadRef.reportante_nombre || "-",
+                reportante_telefono: novedadRef.reportante_telefono || "-",
               });
             }
           }
