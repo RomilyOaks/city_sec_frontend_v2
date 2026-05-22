@@ -334,7 +334,11 @@ export async function buildReporteData(params) {
                 latitud:          novedadRef.latitud || null,
                 longitud:         novedadRef.longitud || null,
                 // Estado y resultado
-                estado_novedad:   novedadRef.estadoNovedad?.nombre || novedadRef.estado_novedad?.nombre || novedadRef.estado || "-",
+                // novedadRef.estado puede ser un FK numérico — descartar si no es string
+                estado_novedad:   novedadRef.estadoNovedad?.nombre
+                  || novedadRef.estado_novedad?.nombre
+                  || (typeof novedadRef.estado === "string" ? novedadRef.estado : null)
+                  || "-",
                 prioridad:        nov.prioridad || novedadRef.prioridad_actual || "-",
                 resultado:        nov.resultado || nov.estado || "PENDIENTE",
                 // Atención
