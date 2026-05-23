@@ -438,11 +438,20 @@ export async function buildReporteData(params) {
 
   // Recursos únicos = vehículos por placa + personal por nombre (igual que UNION en SQL)
   const recursosUnicosSet = new Set();
+  // Vehículos/Personal con al menos una novedad atendida activa (equivalente a INNER JOIN novedades)
+  const vehiculosUnicosSet = new Set();
+  const personalUnicosSet = new Set();
   for (const t of reporteData) {
     for (const r of t.recursos) {
       recursosUnicosSet.add(
         r.tipo === "VEHICULO" ? `V_${r.placa}` : `P_${r.personal_nombre}`
       );
+      if (r.tipo === "VEHICULO" && r.total_novedades > 0 && r.placa && r.placa !== "-") {
+        vehiculosUnicosSet.add(r.placa);
+      }
+      if (r.tipo === "PERSONAL" && r.total_novedades > 0 && r.personal_nombre && r.personal_nombre !== "-") {
+        personalUnicosSet.add(r.personal_nombre);
+      }
     }
   }
 
@@ -461,11 +470,10 @@ export async function buildReporteData(params) {
     generado_en: new Date().toISOString(),
     total_turnos: turnosUnicosSet.size,
     total_recursos: recursosUnicosSet.size,
+    total_vehiculos: vehiculosUnicosSet.size,
+    total_personal: personalUnicosSet.size,
     total_cuadrantes: cuadrantesUnicosSet.size,
-    total_novedades: reporteData.reduce(
-      (sum, t) => sum + t.recursos.reduce((s, r) => s + r.total_novedades, 0),
-      0
-    ),
+    total_novedades: novedadesFiltradas.length,
     data: reporteData,
     turnos: turnosOriginales,
     novedades: novedadesFiltradas,

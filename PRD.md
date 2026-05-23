@@ -1,8 +1,8 @@
 # PRD — CitySecure: Sistema de Seguridad Ciudadana (Frontend v2)
 
 **Documento:** Product Requirements Document  
-**Versión:** 1.5  
-**Fecha:** 2026-05-21  
+**Versión:** 1.6  
+**Fecha:** 2026-05-23  
 **Estado:** Activo  
 **Autor:** Romily Robles  
 **Repositorio Frontend:** [RomilyOaks/city_sec_frontend_v2](https://github.com/RomilyOaks/city_sec_frontend_v2)  
@@ -141,14 +141,44 @@ Permisos granulares por módulo con el patrón `modulo.recurso.accion`:
 
 ```
 novedades.incidentes.create
-novedades.fotos.viewer          ← controla si backend envía fotos_adjuntas
-novedades.fotos.downloader      ← controla botón de descarga en FotoViewerModal
-novedades.audio.player          ← controla si backend envía parte_adjuntos
-operativos_turnos.create
+novedades.fotos.viewer              ← controla si backend envía fotos_adjuntas
+novedades.fotos.downloader          ← controla botón de descarga en FotoViewerModal
+novedades.audio.player              ← controla si backend envía parte_adjuntos
+operativos.turnos.create
+operativos.turnos.update
+operativos.turnos.delete
+operativos.vehiculos.create
+operativos.vehiculos.update
+operativos.vehiculos.delete
+operativos.vehiculos.cuadrantes.read
 admin.manage
 ```
 
 El `super_admin` tiene acceso total automático (bypass de todos los guards).
+
+#### Patrón de verificación en componentes
+
+**Forma correcta (useAuthStore directo):**
+```jsx
+const { hasAnyPermission } = useAuthStore();
+const canCreate = hasAnyPermission(["operativos.turnos.create"]);
+```
+
+**Forma legacy (rbac.js — mantener solo donde ya existe):**
+```jsx
+import { canPerformAction } from "../../rbac/rbac.js";
+const canCreate = canPerformAction(user, "operativos_turnos_create");
+// canPerformAction mapea el key a dot-notation internamente vía ACTION_PERMISSIONS
+```
+
+> **Regla:** Todo código nuevo y las páginas de Operativos ya homologadas usan `hasAnyPermission` directamente desde `useAuthStore`. No usar `canPerformAction` en código nuevo.
+
+#### Normalización de `user.permisos`
+
+El backend devuelve `user.permisos` como array de objetos `{ id, slug, ... }`, no de strings. Las tres funciones de `useAuthStore` (`hasAnyPermission`, `hasAllPermissions`, `can`) normalizan con:
+```js
+const slugs = userPermisos.map((p) => p?.slug || p).filter(Boolean);
+```
 
 ### 3.4 Tiempo Real (SSE)
 
@@ -305,26 +335,42 @@ GET /api/v1/operativos?fecha_inicio=...&fecha_fin=...&turno=...&sector_id=...&li
         └─ Por cada vehículo/personal:
             GET .../cuadrantes
               └─ Por cada cuadrante:
-                  GET .../novedades   ← datos completos guardados en memoria
+                  GET .../novedades   ← novedades atendidas (con cuadrante)
+
+GET /api/v1/novedades?estado_novedad_id=1&fecha_inicio=...&fecha_fin=...&limit=100
+                                          ← novedades PENDIENTE (sin cuadrante)
 ```
 - Resultado en `reporteData` (estado local, nunca sale al backend de nuevo)
-- Muestra grid resumen: Total Turnos, Recursos, Cuadrantes, Novedades
+- Muestra grid resumen: Total Turnos, Recursos, Cuadrantes, Novedades, Pendientes
+
+> **Límite `/novedades`:** El validador del backend acepta máximo `limit=100`. Enviar valores mayores devuelve HTTP 400. Si el rango supera 100 registros, implementar paginación iterando `totalPages`.
 
 **Paso 2 — "Exportar a Excel"** (botón verde, aparece tras generar):
 - **NO llama al backend** — usa `reporteData` en memoria
 - Genera Excel localmente con `xlsx` (SheetJS)
 - Nombre del archivo: `Reporte_Operativos_Patrullaje_YYYY-MM-DD.xlsx`
 
-#### Estructura del Excel (6 hojas)
+#### Estructura del Excel (7 hojas)
 
 | Hoja | Columnas | Contenido |
 |------|----------|-----------|
-| **Resumen** | 2 | KPIs totales + filtros aplicados |
+| **Resumen** | 2 | KPIs totales (turnos distintos, recursos distintos, cuadrantes distintos, novedades atendidas, pendientes) + filtros aplicados |
 | **Sectores** | 9 | Un registro por turno (fecha, operador, supervisor, estado) |
 | **Detalle Vehículos** | 29 | Placa, km, combustible, conductor, copiloto, radio TETRA |
 | **Patrullaje a Pie** | 11 | Personal a pie por turno |
 | **Cuadrantes Patrullados** | 11 | Hora entrada/salida, tiempo en minutos, novedades por cuadrante |
-| **Novedades** | 26 | Código, fechas, tipo/subtipo, descripción, dirección, estado, prioridad, resultado, observaciones atención, reportante, contexto operativo, cuadrante |
+| **Novedades Atendidas** | 26 | Código, fechas, tipo/subtipo, descripción, dirección, estado, prioridad, resultado, observaciones, reportante, contexto operativo, cuadrante — ordenadas por `codigo_novedad` |
+| **No Atendidas** | 10 | Novedades PENDIENTE en el mismo rango de fechas — obtenidas directamente de `/novedades?estado_novedad_id=1` |
+
+#### Cálculo de totales en Resumen
+
+Los totales usan `Set` de JavaScript para garantizar DISTINCT, equivalente a `COUNT DISTINCT` en SQL:
+
+| Total | Clave de deduplicación |
+|-------|----------------------|
+| Total Turnos | `fecha_MAÑANA`, `fecha_TARDE` … (combinación fecha+turno) |
+| Total Recursos | `V_{placa}` para vehículos, `P_{nombre}` para personal |
+| Total Cuadrantes | `cuadrante_id` del objeto cuadrante |
 
 #### Filtros disponibles
 
@@ -493,17 +539,30 @@ npm run lint      # ESLint 9 (0 errores activos)
 | Hoja Novedades ausente del Excel de Reportes Operativos | `buildReporteData` guardaba solo el conteo, no el array; fix almacena `novedades[]` en cada cuadrante | `a7059eb` |
 | Modal Atención dark mode: inputs invisibles | `dark:bg-slate-950/40` → `dark:bg-slate-800`; ícono calendario con `filter: invert(1)` en `index.css` | `444741a` |
 | Dropdown Estado novedad mostraba todos los estados | Filtro usaba `selectedNovedad?.estado_novedad_id` (podía ser undefined); cambiado a `estadoOriginalId` | `444741a` |
+| Hoja Novedades (Excel): `fecha_ocurrencia` usaba fecha de junction (`reportado`) en vez de la fecha real del incidente | Prioridad invertida: `novedadRef.fecha_hora_ocurrencia \|\| nov.reportado` | `aeee806` |
+| Hoja "No Atendidas" vacía — primera causa: novedades PENDIENTE no tienen cuadrante asignado | Se obtienen directamente de `GET /novedades?estado_novedad_id=1` en vez de filtrar `novedades[]` del cuadrante | `77e7c4f` |
+| Hoja "No Atendidas" vacía — segunda causa: `limit=500` rechazado por validador backend (HTTP 400 silencioso) | Cambiado a `limit=100` (máximo permitido); docs en `docs/backend-novedades-pendientes-endpoint.md` | `7082595` |
+| Total Turnos incorrecto (contaba registros operativo, no turnos distintos) | `new Set(map t => fecha_turno).size` — DISTINCT por combinación fecha+turno | `f3fafcd` |
+| Total Recursos incorrecto (sumaba entradas, no recursos únicos) | `new Set` por `V_{placa}` o `P_{nombre}` | `f3fafcd` |
+| Total Cuadrantes incorrecto (sumaba por recurso, no únicos) | `new Set(cuadrante_id)` sobre todos los recursos | `4507082` |
+| `hasAnyPermission` siempre `false` para usuarios no super_admin | `user.permisos` del backend es array de objetos `{slug,...}`, no strings; fix normaliza con `.map(p => p?.slug \|\| p)` | `5dbfc6a` |
+| `OperativosTurnoPage` y `OperativosVehiculosPage` usaban `canPerformAction` con slugs inconsistentes | Homologados a `hasAnyPermission(["operativos.*.action"])` desde `useAuthStore` | `bad6f29` |
 
 ---
 
-## 12. Componentes y Servicios Nuevos (2026-05-14 → 2026-05-21)
+## 12. Componentes y Servicios Nuevos (2026-05-14 → 2026-05-23)
 
 | Componente / Servicio | Ruta | Descripción |
 |----------------------|------|-------------|
 | `FotoViewerModal` | `src/components/common/FotoViewerModal.jsx` | Visor de fotos a pantalla completa, header de novedad, carrusel, RBAC descarga |
 | `VerPermisoModal` | `src/components/admin/permisos/VerPermisoModal.jsx` | Consulta de permiso en solo lectura |
 | Adjuntos en `NovedadDetalleModal` | pestaña Reportante | Fotos (miniaturas) + audio (`<audio>`) con control RBAC |
-| Reporte Excel operativos (fix) | `src/services/reportesOperativosService.js` | Fix: novedades completas guardadas en cuadrante; hoja Novedades ahora generada |
+| Reporte Excel operativos — hoja "Novedades Atendidas" | `src/services/reportesOperativosService.js` | Fix: novedades completas guardadas en cuadrante; ordenadas por `codigo_novedad` |
+| Reporte Excel operativos — hoja "No Atendidas" | `src/services/reportesOperativosService.js` + `ReportesOperativosPage.jsx` | Novedades PENDIENTE obtenidas de `GET /novedades?estado_novedad_id=1` |
+| Totales DISTINCT en Resumen | `src/services/reportesOperativosService.js` | Turnos/Recursos/Cuadrantes calculados con `Set` JS (equivalente a COUNT DISTINCT) |
+| Normalización RBAC | `src/store/useAuthStore.js` | `hasAnyPermission`, `hasAllPermissions`, `can` normalizan `user.permisos` (objetos → slugs) |
+| Homologación RBAC operativos | `OperativosTurnoPage.jsx`, `OperativosVehiculosPage.jsx` | Reemplazado `canPerformAction` por `hasAnyPermission` con dot-notation consistente |
+| Docs backend novedades PENDIENTE | `docs/backend-novedades-pendientes-endpoint.md` | Límites, parámetros y paginación del endpoint `/novedades` para novedades pendientes |
 
 ---
 
@@ -515,11 +574,11 @@ npm run lint      # ESLint 9 (0 errores activos)
 | **Página** | `ReportesOperativosPage.jsx` | `ReportesOperativosDashboardPage.jsx` + sub-páginas |
 | **Genera Excel** | Frontend con `xlsx` (datos en memoria) | Backend → blob binario |
 | **Datos** | Cascada de endpoints en tiempo real | Endpoints especializados de reportes |
-| **Hojas Excel** | 6 (Resumen, Sectores, Vehículos, Pie, Cuadrantes, Novedades) | 1 por tipo de reporte |
+| **Hojas Excel** | 7 (Resumen, Sectores, Vehículos, Pie, Cuadrantes, Novedades Atendidas, No Atendidas) | 1 por tipo de reporte |
 | **Gráficos** | No | Sí (Recharts, exportables a imagen) |
 | **Filtros** | Fecha, Turno, Sector, Tipo Recurso | Fecha, Turno, Sector, Prioridad, Estado |
 | **Uso típico** | Informe diario de operativos de un turno | Análisis estadístico y tendencias |
 
 ---
 
-*Actualizado: 2026-05-21*
+*Actualizado: 2026-05-23*
