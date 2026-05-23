@@ -80,7 +80,9 @@ export const useAuthStore = create(
         const isSuperAdmin = roles.some((r) => r?.slug === "super_admin");
         if (isSuperAdmin) return true;
 
-        return requiredPermisos.some((p) => userPermisos.includes(p));
+        // Normalizar: permisos puede ser array de strings o array de objetos {slug,...}
+        const slugs = userPermisos.map((p) => p?.slug || p).filter(Boolean);
+        return requiredPermisos.some((p) => slugs.includes(p));
       },
 
       // Verificar si el usuario tiene TODOS los permisos especificados
@@ -94,7 +96,9 @@ export const useAuthStore = create(
         const isSuperAdmin = roles.some((r) => r?.slug === "super_admin");
         if (isSuperAdmin) return true;
 
-        return requiredPermisos.every((p) => userPermisos.includes(p));
+        // Normalizar: permisos puede ser array de strings o array de objetos {slug,...}
+        const slugs = userPermisos.map((p) => p?.slug || p).filter(Boolean);
+        return requiredPermisos.every((p) => slugs.includes(p));
       },
 
       // Helper para verificar permisos de lectura (alias para usar con ROUTE_PERMISSIONS)
@@ -136,10 +140,10 @@ export const useAuthStore = create(
         if (!requiredPermisos || requiredPermisos.length === 0) return true;
 
         const userPermisos = user?.permisos || [];
-        
-        const hasPermission = requiredPermisos.some((p) => userPermisos.includes(p));
-        
-        return hasPermission;
+
+        // Normalizar: permisos puede ser array de strings o array de objetos {slug,...}
+        const slugs = userPermisos.map((p) => p?.slug || p).filter(Boolean);
+        return requiredPermisos.some((p) => slugs.includes(p));
       },
     }),
     {
