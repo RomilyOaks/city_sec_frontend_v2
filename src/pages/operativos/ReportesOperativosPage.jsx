@@ -305,6 +305,7 @@ export default function ReportesOperativosPage() {
         ["Total Personal a Pie:", personal.length],
         ["Total Cuadrantes Patrullados:", reporteData.total_cuadrantes],
         ["Total Novedades Atendidas:", reporteData.total_novedades],
+        ["Total Novedades No Atendidas (PENDIENTE):", reporteData.novedades_pendientes?.length || 0],
       ];
 
       const wsResumen = XLSX.utils.aoa_to_sheet(resumenData);

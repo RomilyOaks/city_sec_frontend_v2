@@ -433,11 +433,24 @@ export async function buildReporteData(params) {
     console.warn("No se pudieron obtener novedades pendientes:", err.message);
   }
 
+  // Turnos únicos = combinaciones distintas (fecha, turno) — no contar registros de operativo
+  const turnosUnicosSet = new Set(reporteData.map(t => `${t.fecha}_${t.turno}`));
+
+  // Recursos únicos = vehículos por placa + personal por nombre (igual que UNION en SQL)
+  const recursosUnicosSet = new Set();
+  for (const t of reporteData) {
+    for (const r of t.recursos) {
+      recursosUnicosSet.add(
+        r.tipo === "VEHICULO" ? `V_${r.placa}` : `P_${r.personal_nombre}`
+      );
+    }
+  }
+
   const resultado = {
     filtros: params,
     generado_en: new Date().toISOString(),
-    total_turnos: reporteData.length,
-    total_recursos: reporteData.reduce((sum, t) => sum + t.recursos.length, 0),
+    total_turnos: turnosUnicosSet.size,
+    total_recursos: recursosUnicosSet.size,
     total_cuadrantes: reporteData.reduce(
       (sum, t) => sum + t.recursos.reduce((s, r) => s + r.total_cuadrantes, 0),
       0
