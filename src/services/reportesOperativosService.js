@@ -290,29 +290,49 @@ export async function buildReporteData(params) {
   console.log("Estructura esperada: recurso.cuadrantes[].novedades[]");
   
   const allNovedades = [];
-  
-  // Procesar novedades desde la estructura de turnos (cuando backend las incorpore)
+  // DISTINCT: evitar duplicados cuando la misma novedad aparece en varios cuadrantes/recursos
+  const seenNovedad = new Set();
+
+  // Procesar novedades desde la estructura de turnos
   for (const turnoInfo of reporteData) {
-    console.log("Procesando turnoInfo para novedades:", turnoInfo.turno_id, "-", turnoInfo.turno);
-    
     for (const recurso of turnoInfo.recursos) {
       if (recurso.cuadrantes && recurso.cuadrantes.length > 0) {
         for (const cuadrante of recurso.cuadrantes) {
-          // Cuando backend incorpore novedades, vendrán en: cuadrante.novedades
           if (cuadrante.novedades && cuadrante.novedades.length > 0) {
             for (const nov of cuadrante.novedades) {
-              // Alias reales de Sequelize según backend (confirmados 2026-05-22):
-              // novedad_code, novedadTipoNovedad, novedadSubtipoNovedad, novedadEstado,
-              // localizacion (en vez de direccion), fecha_llegada (en vez de fecha_hora_atencion),
-              // observaciones (en vez de observaciones_atencion)
+              // Alias reales de Sequelize según backend (confirmados 2026-05-22)
               const novedadRef = nov.novedad || {};
+              const uid = nov.novedad_id || nov.id;
+              if (uid && seenNovedad.has(uid)) continue;
+              if (uid) seenNovedad.add(uid);
+
               allNovedades.push({
                 // Identificación
-                novedad_id:       nov.novedad_id || nov.id,
+                novedad_id:       uid,
                 codigo_novedad:   novedadRef.novedad_code || "-",
+                // Estado (columna C en Excel)
+                estado_novedad:   novedadRef.novedadEstado?.nombre || "-",
                 // Fechas
+                fecha_despacho:   nov.atendido || null,
+                origen_llamada:   novedadRef.origen_llamada || "-",
                 fecha_ocurrencia: nov.reportado || novedadRef.fecha_hora_ocurrencia || turnoInfo.fecha,
-                fecha_atencion:   novedadRef.fecha_llegada || null,
+                fecha_llegada:    novedadRef.fecha_llegada || null,
+                // Clasificación (alias Sequelize reales del backend)
+                tipo_novedad:     novedadRef.novedadTipoNovedad?.nombre || "-",
+                subtipo_novedad:  novedadRef.novedadSubtipoNovedad?.nombre || "-",
+                // Descripción y ubicación
+                descripcion:      novedadRef.descripcion || nov.observaciones || "-",
+                direccion:        novedadRef.localizacion || "-",
+                referencia:       novedadRef.referencia_ubicacion || "-",
+                latitud:          novedadRef.latitud ?? null,
+                longitud:         novedadRef.longitud ?? null,
+                // Resultado
+                prioridad:        nov.prioridad || novedadRef.prioridad_actual || "-",
+                resultado:        nov.resultado || "PENDIENTE",
+                obs_atencion:     novedadRef.observaciones || nov.observaciones || "-",
+                // Reportante
+                reportante_nombre:   novedadRef.reportante_nombre || "-",
+                reportante_telefono: novedadRef.reportante_telefono || "-",
                 // Contexto operativo
                 turno:            turnoInfo.turno,
                 sector:           turnoInfo.sector,
@@ -327,24 +347,6 @@ export async function buildReporteData(params) {
                 cuadrante_nombre: cuadrante.cuadrante_nombre || "-",
                 hora_ingreso:     cuadrante.hora_ingreso || null,
                 hora_salida:      cuadrante.hora_salida || null,
-                // Clasificación (alias Sequelize reales del backend)
-                tipo_novedad:     novedadRef.novedadTipoNovedad?.nombre || "-",
-                subtipo_novedad:  novedadRef.novedadSubtipoNovedad?.nombre || "-",
-                // Descripción y ubicación
-                descripcion:      novedadRef.descripcion || nov.observaciones || "-",
-                direccion:        novedadRef.localizacion || "-",
-                referencia:       novedadRef.referencia_ubicacion || "-",
-                latitud:          novedadRef.latitud ?? null,
-                longitud:         novedadRef.longitud ?? null,
-                // Estado y resultado
-                estado_novedad:   novedadRef.novedadEstado?.nombre || "-",
-                prioridad:        nov.prioridad || novedadRef.prioridad_actual || "-",
-                resultado:        nov.resultado || "PENDIENTE",
-                // Atención (campo real: observaciones en el modelo)
-                obs_atencion:     novedadRef.observaciones || nov.observaciones || "-",
-                // Reportante
-                reportante_nombre:   novedadRef.reportante_nombre || "-",
-                reportante_telefono: novedadRef.reportante_telefono || "-",
               });
             }
           }
