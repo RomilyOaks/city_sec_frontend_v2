@@ -664,12 +664,15 @@ const wsCuadrantes = XLSX.utils.aoa_to_sheet(cuadrantesRows);
           "Hora Salida Cuadrante",
         ];
 
+        const novedadesOrdenadas = [...novedadesSheetData].sort((a, b) =>
+          (a.codigo_novedad || "").localeCompare(b.codigo_novedad || "")
+        );
         const novedadesRows = [novedadesHeaders];
 
-        if (novedadesSheetData.length === 0) {
+        if (novedadesOrdenadas.length === 0) {
           novedadesRows.push(["Sin novedades para el período seleccionado"]);
         } else {
-          for (const novedad of novedadesSheetData) {
+          for (const novedad of novedadesOrdenadas) {
             novedadesRows.push([
               novedad.codigo_novedad || "-",
               formatDateForExcel(novedad.fecha_ocurrencia),
@@ -735,7 +738,7 @@ const wsCuadrantes = XLSX.utils.aoa_to_sheet(cuadrantesRows);
           { wch: 22 }, // AB Hora Salida Cuadrante
         ];
 
-        XLSX.utils.book_append_sheet(wb, wsNovedades, "Novedades");
+        XLSX.utils.book_append_sheet(wb, wsNovedades, "Novedades Atendidas");
       }
 
       // ========================================

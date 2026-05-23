@@ -376,18 +376,24 @@ export async function buildReporteData(params) {
     console.log("Novedades después de filtrar por fecha:", novedadesFiltradas.length);
   }
 
-  // Obtener novedades PENDIENTE directamente desde /novedades (no pasan por cuadrante)
+  // Obtener novedades PENDIENTE directamente desde /novedades (no pasan por cuadrante).
+  // No se pasa fecha al backend porque el backend puede filtrar por un campo distinto
+  // a fecha_hora_ocurrencia (ej. created_at). Se filtra client-side por ocurrencia.
   let novedadesPendientes = [];
   try {
     const pendienteResp = await listNovedades({
       estado_novedad_id: 1, // PENDIENTE
-      fecha_inicio,
-      fecha_fin,
       limit: 500,
       sort: "fecha_hora_ocurrencia",
       order: "asc",
     });
-    const rawPendientes = pendienteResp.novedades || [];
+    const rawPendientes = (pendienteResp.novedades || []).filter(n => {
+      if (!n.fecha_hora_ocurrencia) return true; // sin fecha: incluir por precaución
+      const fechaNov = new Date(n.fecha_hora_ocurrencia).toISOString().split("T")[0];
+      if (fecha_inicio && fechaNov < fecha_inicio) return false;
+      if (fecha_fin   && fechaNov > fecha_fin)     return false;
+      return true;
+    });
     novedadesPendientes = rawPendientes.map(n => ({
       novedad_id:          n.id,
       codigo_novedad:      n.novedad_code || "-",
