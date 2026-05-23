@@ -742,8 +742,8 @@ const wsCuadrantes = XLSX.utils.aoa_to_sheet(cuadrantesRows);
       // HOJA 6: NO ATENDIDAS (estado PENDIENTE)
       // ========================================
       {
-        const todasNovedades = Array.isArray(reporteData.novedades) ? reporteData.novedades : [];
-        const noAtendidas = todasNovedades.filter(n => n.estado_novedad === "PENDIENTE");
+        // Las novedades PENDIENTE no tienen cuadrante asignado → vienen de /novedades directamente
+        const noAtendidas = Array.isArray(reporteData.novedades_pendientes) ? reporteData.novedades_pendientes : [];
 
         const noAtendidasHeaders = [
           "Código Novedad",

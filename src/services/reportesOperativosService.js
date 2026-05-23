@@ -5,6 +5,7 @@
  */
 
 import api from "./api.js";
+import { listNovedades } from "./novedadesService.js";
 
 /**
  * Obtiene datos para el reporte de operativos
@@ -375,6 +376,55 @@ export async function buildReporteData(params) {
     console.log("Novedades después de filtrar por fecha:", novedadesFiltradas.length);
   }
 
+  // Obtener novedades PENDIENTE directamente desde /novedades (no pasan por cuadrante)
+  let novedadesPendientes = [];
+  try {
+    const pendienteResp = await listNovedades({
+      estado_novedad_id: 1, // PENDIENTE
+      fecha_inicio,
+      fecha_fin,
+      limit: 500,
+      sort: "fecha_hora_ocurrencia",
+      order: "asc",
+    });
+    const rawPendientes = pendienteResp.novedades || [];
+    novedadesPendientes = rawPendientes.map(n => ({
+      novedad_id:          n.id,
+      codigo_novedad:      n.novedad_code || "-",
+      estado_novedad:      n.novedadEstado?.nombre || "PENDIENTE",
+      fecha_ocurrencia:    n.fecha_hora_ocurrencia || null,
+      fecha_despacho:      n.fecha_despacho || null,
+      origen_llamada:      n.origen_llamada || "-",
+      fecha_llegada:       n.fecha_llegada || null,
+      tipo_novedad:        n.novedadTipoNovedad?.nombre || "-",
+      subtipo_novedad:     n.novedadSubtipoNovedad?.nombre || "-",
+      descripcion:         n.descripcion || "-",
+      direccion:           n.localizacion || "-",
+      referencia:          n.referencia_ubicacion || "-",
+      latitud:             n.latitud ?? null,
+      longitud:            n.longitud ?? null,
+      prioridad:           n.prioridad_actual || "-",
+      resultado:           "-",
+      obs_atencion:        n.observaciones || "-",
+      reportante_nombre:   n.reportante_nombre || "-",
+      reportante_telefono: n.reportante_telefono || "-",
+      // Sin asignación operativa (aún no despachadas)
+      turno:            "-",
+      sector:           "-",
+      operador:         "-",
+      supervisor:       "-",
+      tipo_recurso:     "-",
+      recurso_nombre:   "-",
+      cuadrante_codigo: "-",
+      cuadrante_nombre: "-",
+      hora_ingreso:     null,
+      hora_salida:      null,
+    }));
+    console.log("Novedades PENDIENTE obtenidas:", novedadesPendientes.length);
+  } catch (err) {
+    console.warn("No se pudieron obtener novedades pendientes:", err.message);
+  }
+
   const resultado = {
     filtros: params,
     generado_en: new Date().toISOString(),
@@ -389,8 +439,9 @@ export async function buildReporteData(params) {
       0
     ),
     data: reporteData,
-    turnos: turnosOriginales, // Agregar turnos originales para pestaña Sectores
-    novedades: novedadesFiltradas, // Agregar novedades para pestaña Novedades
+    turnos: turnosOriginales,
+    novedades: novedadesFiltradas,
+    novedades_pendientes: novedadesPendientes,
   };
 
   console.log("=== DEBUGGING RETORNO FINAL ===");
