@@ -39,7 +39,6 @@ import {
 import { listPersonal } from "../../services/personalService.js";
 import { listSectores } from "../../services/sectoresService.js";
 import { useAuthStore } from "../../store/useAuthStore.js";
-import { canPerformAction } from "../../rbac/rbac.js";
 import OperativosVehiculosModal from "./vehiculos/OperativosVehiculosModal.jsx";
 import OperativosPersonalModal from "./personal/OperativosPersonalModal.jsx";
 
@@ -152,9 +151,10 @@ const formatDateTime = (dateString) => {
 export default function OperativosTurnoPage() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
-  const canCreate = canPerformAction(user, "operativos_turnos_create");
-  const canEdit = canPerformAction(user, "operativos_turnos_update");
-  const canDelete = canPerformAction(user, "operativos_turnos_delete");
+  const { hasAnyPermission } = useAuthStore();
+  const canCreate = hasAnyPermission(["operativos.turnos.create"]);
+  const canEdit = hasAnyPermission(["operativos.turnos.update"]);
+  const canDelete = hasAnyPermission(["operativos.turnos.delete"]);
 
   // Estado principal
   const [operativos, setOperativos] = useState([]);

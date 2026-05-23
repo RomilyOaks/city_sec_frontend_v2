@@ -26,7 +26,6 @@ import {
 } from "../../../services/operativosVehiculosService.js";
 import { listPersonalSelector } from "../../../services/personalService.js";
 import api from "../../../services/api.js";
-import { canPerformAction } from "../../../rbac/rbac.js";
 import { useAuthStore } from "../../../store/useAuthStore.js";
 import AsignarVehiculoForm from "./AsignarVehiculoForm.jsx";
 import VerVehiculoModal from "./VerVehiculoModal.jsx";
@@ -81,15 +80,15 @@ function OperativosVehiculosPage() {
   const { turnoId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const user = useAuthStore((s) => s.user);
-  
+  const { hasAnyPermission } = useAuthStore();
+
   // Obtener sector_id desde query params
   const sectorIdFromUrl = searchParams.get('sector_id');
-  
-  const canCreate = canPerformAction(user, "operativos_vehiculos_create");
-  const canEdit = canPerformAction(user, "operativos_vehiculos_update");
-  const canDelete = canPerformAction(user, "operativos_vehiculos_delete");
-  const canReadCuadrantes = canPerformAction(user, "operativos.vehiculos.cuadrantes.read");
+
+  const canCreate = hasAnyPermission(["operativos.vehiculos.create"]);
+  const canEdit = hasAnyPermission(["operativos.vehiculos.update"]);
+  const canDelete = hasAnyPermission(["operativos.vehiculos.delete"]);
+  const canReadCuadrantes = hasAnyPermission(["operativos.vehiculos.cuadrantes.read"]);
 
   const [vehiculos, setVehiculos] = useState([]);
   const [turno, setTurno] = useState(null);
