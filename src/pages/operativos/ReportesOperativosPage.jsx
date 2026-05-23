@@ -617,9 +617,10 @@ const wsCuadrantes = XLSX.utils.aoa_to_sheet(cuadrantesRows);
         XLSX.utils.book_append_sheet(wb, wsCuadrantes, "Cuadrantes Patrullados");
 
       // ========================================
-      // HOJA 5: NOVEDADES
+      // HOJA 5: NOVEDADES (siempre se agrega)
       // ========================================
-      if (reporteData.novedades && reporteData.novedades.length > 0) {
+      {
+        const novedadesSheetData = Array.isArray(reporteData.novedades) ? reporteData.novedades : [];
         const novedadesHeaders = [
           // A - Identificación
           "Código Novedad",
@@ -665,37 +666,41 @@ const wsCuadrantes = XLSX.utils.aoa_to_sheet(cuadrantesRows);
 
         const novedadesRows = [novedadesHeaders];
 
-        for (const novedad of reporteData.novedades) {
-          novedadesRows.push([
-            novedad.codigo_novedad || "-",
-            formatDateForExcel(novedad.fecha_ocurrencia),
-            novedad.estado_novedad || "-",
-            novedad.fecha_despacho ? formatDateTimeForExcel(novedad.fecha_despacho) : "-",
-            novedad.origen_llamada || "-",
-            novedad.fecha_llegada ? formatDateTimeForExcel(novedad.fecha_llegada) : "-",
-            novedad.tipo_novedad || "-",
-            novedad.subtipo_novedad || "-",
-            novedad.descripcion || "-",
-            novedad.direccion || "-",
-            novedad.referencia || "-",
-            novedad.latitud ?? "-",
-            novedad.longitud ?? "-",
-            novedad.prioridad || "-",
-            novedad.resultado || "-",
-            novedad.obs_atencion || "-",
-            novedad.reportante_nombre || "-",
-            novedad.reportante_telefono || "-",
-            novedad.turno || "-",
-            novedad.sector || "-",
-            novedad.operador || "-",
-            novedad.supervisor || "-",
-            novedad.tipo_recurso || "-",
-            novedad.recurso_nombre || "-",
-            novedad.cuadrante_codigo || "-",
-            novedad.cuadrante_nombre || "-",
-            novedad.hora_ingreso ? formatDateTimeForExcel(novedad.hora_ingreso) : "-",
-            novedad.hora_salida ? formatDateTimeForExcel(novedad.hora_salida) : "-",
-          ]);
+        if (novedadesSheetData.length === 0) {
+          novedadesRows.push(["Sin novedades para el período seleccionado"]);
+        } else {
+          for (const novedad of novedadesSheetData) {
+            novedadesRows.push([
+              novedad.codigo_novedad || "-",
+              formatDateForExcel(novedad.fecha_ocurrencia),
+              novedad.estado_novedad || "-",
+              novedad.fecha_despacho ? formatDateTimeForExcel(novedad.fecha_despacho) : "-",
+              novedad.origen_llamada || "-",
+              novedad.fecha_llegada ? formatDateTimeForExcel(novedad.fecha_llegada) : "-",
+              novedad.tipo_novedad || "-",
+              novedad.subtipo_novedad || "-",
+              novedad.descripcion || "-",
+              novedad.direccion || "-",
+              novedad.referencia || "-",
+              novedad.latitud ?? "-",
+              novedad.longitud ?? "-",
+              novedad.prioridad || "-",
+              novedad.resultado || "-",
+              novedad.obs_atencion || "-",
+              novedad.reportante_nombre || "-",
+              novedad.reportante_telefono || "-",
+              novedad.turno || "-",
+              novedad.sector || "-",
+              novedad.operador || "-",
+              novedad.supervisor || "-",
+              novedad.tipo_recurso || "-",
+              novedad.recurso_nombre || "-",
+              novedad.cuadrante_codigo || "-",
+              novedad.cuadrante_nombre || "-",
+              novedad.hora_ingreso ? formatDateTimeForExcel(novedad.hora_ingreso) : "-",
+              novedad.hora_salida ? formatDateTimeForExcel(novedad.hora_salida) : "-",
+            ]);
+          }
         }
 
         const wsNovedades = XLSX.utils.aoa_to_sheet(novedadesRows);

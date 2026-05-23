@@ -129,7 +129,7 @@ export async function buildReporteData(params) {
               const novResp = await api.get(
                 `/operativos/${turnoOp.id}/vehiculos/${veh.id}/cuadrantes/${cuad.id}/novedades`
               );
-              const raw = novResp.data?.data || novResp.data || [];
+              const raw = novResp.data?.data?.items ?? novResp.data?.data ?? novResp.data ?? [];
               novedadesData = Array.isArray(raw) ? raw : [];
             } catch {
               // Sin novedades
@@ -219,7 +219,7 @@ export async function buildReporteData(params) {
               const novResp = await api.get(
                 `/operativos/${turnoOp.id}/personal/${pers.id}/cuadrantes/${cuad.id}/novedades`
               );
-              const raw = novResp.data?.data || novResp.data || [];
+              const raw = novResp.data?.data?.items ?? novResp.data?.data ?? novResp.data ?? [];
               novedadesData = Array.isArray(raw) ? raw : [];
             } catch {
               // Sin novedades
