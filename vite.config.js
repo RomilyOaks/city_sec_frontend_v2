@@ -27,6 +27,6 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['react', 'react-dom'], // Pre-bundle deps
+    include: ['react', 'react-dom', 'exceljs'], // Pre-bundle deps
   },
 })

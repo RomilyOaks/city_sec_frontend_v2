@@ -9,10 +9,15 @@
  * - Columnas adicionales en Detalle Vehículos
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import * as XLSX from "xlsx";
+import html2canvas from "html2canvas";
+import {
+  PieChart, Pie, Cell,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+} from "recharts";
 import {
   FileSpreadsheet,
   Calendar,
@@ -167,6 +172,11 @@ export default function ReportesOperativosPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Refs para captura de gráficos — usados al exportar Excel
+  const chartDistribucionRef = useRef(null);
+  const chartNovedadesRef = useRef(null);
+  const chartTiposRef = useRef(null);
+
   // Cargar sectores al montar
   useEffect(() => {
     const fetchSectores = async () => {
@@ -247,13 +257,34 @@ export default function ReportesOperativosPage() {
   }, [filters]);
 
   // Exportar a Excel
-  const handleExportarExcel = useCallback(() => {
+  const handleExportarExcel = useCallback(async () => {
     if (!reporteData || reporteData.total_turnos === 0) {
       toast.error("No hay datos para exportar");
       return;
     }
 
     try {
+      // Capturar gráficos off-screen como PNG para incrustar en Excel
+      const captureChart = async (ref) => {
+        if (!ref?.current) return null;
+        try {
+          const canvas = await html2canvas(ref.current, {
+            backgroundColor: "#ffffff",
+            scale: 1.5,
+            useCORS: true,
+            logging: false,
+          });
+          return canvas.toDataURL("image/png").split(",")[1];
+        } catch {
+          return null;
+        }
+      };
+      const [imgDistribucion, imgNovedades, imgTipos] = await Promise.all([
+        captureChart(chartDistribucionRef),
+        captureChart(chartNovedadesRef),
+        captureChart(chartTiposRef),
+      ]);
+
       // Crear workbook
       const wb = XLSX.utils.book_new();
 
@@ -855,12 +886,63 @@ const wsCuadrantes = XLSX.utils.aoa_to_sheet(cuadrantesRows);
       }
 
       // ========================================
-      // Generar y descargar archivo
+      // Generar archivo — con gráficos (exceljs) o fallback xlsx
       // ========================================
       const fechaArchivo = new Date().toISOString().split("T")[0];
       const fileName = `Reporte_Operativos_Patrullaje_${fechaArchivo}.xlsx`;
 
-      XLSX.writeFile(wb, fileName);
+      const xlsxBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+      let descargado = false;
+
+      if (imgDistribucion || imgNovedades || imgTipos) {
+        try {
+          const { Workbook } = await import("exceljs");
+          const workbook = new Workbook();
+          await workbook.xlsx.load(xlsxBuffer);
+
+          const resumenSheet = workbook.getWorksheet("Resumen");
+          if (resumenSheet) {
+            resumenSheet.getRow(21).getCell(1).value = "GRÁFICOS";
+            resumenSheet.getRow(21).getCell(1).font = {
+              bold: true, size: 11, color: { argb: "FF1E3A8A" },
+            };
+
+            let startRow = 22;
+            const addImg = (imgData) => {
+              if (!imgData) return;
+              const id = workbook.addImage({ base64: imgData, extension: "png" });
+              resumenSheet.addImage(id, {
+                tl: { col: 0, row: startRow },
+                ext: { width: 480, height: 260 },
+              });
+              startRow += 19;
+            };
+            addImg(imgDistribucion);
+            addImg(imgNovedades);
+            addImg(imgTipos);
+          }
+
+          const finalBuffer = await workbook.xlsx.writeBuffer();
+          const blob = new Blob([finalBuffer], {
+            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(() => URL.revokeObjectURL(url), 100);
+          descargado = true;
+        } catch (ejErr) {
+          console.warn("exceljs embed falló, descargando sin gráficos:", ejErr);
+        }
+      }
+
+      if (!descargado) {
+        XLSX.writeFile(wb, fileName);
+      }
       toast.success(`Archivo "${fileName}" descargado correctamente`);
     } catch (err) {
       console.error("Error exportando a Excel:", err);
@@ -1263,6 +1345,103 @@ const wsCuadrantes = XLSX.utils.aoa_to_sheet(cuadrantesRows);
               </div>
             )}
           </>
+        )}
+
+        {/* Gráficos off-screen para captura al exportar Excel */}
+        {reporteData && (
+          <div
+            aria-hidden="true"
+            style={{
+              position: "fixed", left: "-9999px", top: 0,
+              width: 500, pointerEvents: "none", zIndex: -1,
+            }}
+          >
+            {/* Gráfico 1 — Distribución de Recursos */}
+            <div
+              ref={chartDistribucionRef}
+              style={{ width: 500, height: 280, background: "#fff", padding: "12px 16px" }}
+            >
+              <p style={{ textAlign: "center", fontFamily: "sans-serif", fontWeight: "bold", fontSize: 14, color: "#1e293b", margin: "0 0 6px" }}>
+                Distribución de Recursos
+              </p>
+              <PieChart width={468} height={240}>
+                <Pie
+                  data={[
+                    { name: "Vehículos", value: reporteData.total_vehiculos || 0 },
+                    { name: "Personal a Pie", value: reporteData.total_personal || 0 },
+                  ]}
+                  cx={234} cy={105} outerRadius={88} innerRadius={42}
+                  dataKey="value" isAnimationActive={false}
+                  label={({ name, value }) => `${name}: ${value}`}
+                >
+                  <Cell fill="#3b82f6" />
+                  <Cell fill="#10b981" />
+                </Pie>
+                <Legend />
+              </PieChart>
+            </div>
+
+            {/* Gráfico 2 — Estado de Novedades */}
+            <div
+              ref={chartNovedadesRef}
+              style={{ width: 500, height: 280, background: "#fff", padding: "12px 16px" }}
+            >
+              <p style={{ textAlign: "center", fontFamily: "sans-serif", fontWeight: "bold", fontSize: 14, color: "#1e293b", margin: "0 0 6px" }}>
+                Estado de Novedades
+              </p>
+              <BarChart
+                width={468} height={240}
+                data={[
+                  { name: "Atendidas", value: reporteData.total_novedades || 0 },
+                  { name: "No Atendidas", value: reporteData.novedades_pendientes?.length || 0 },
+                ]}
+                margin={{ top: 10, right: 20, left: 0, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis allowDecimals={false} />
+                <Tooltip />
+                <Bar dataKey="value" isAnimationActive={false}>
+                  <Cell fill="#22c55e" />
+                  <Cell fill="#f97316" />
+                </Bar>
+              </BarChart>
+            </div>
+
+            {/* Gráfico 3 — Novedades por Tipo (solo si hay datos) */}
+            {(() => {
+              const tiposCount = {};
+              for (const nov of reporteData.novedades || []) {
+                const tipo = nov.tipo_novedad || "Sin tipo";
+                tiposCount[tipo] = (tiposCount[tipo] || 0) + 1;
+              }
+              const tiposData = Object.entries(tiposCount)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 8)
+                .map(([name, value]) => ({ name, value }));
+              if (tiposData.length === 0) return null;
+              return (
+                <div
+                  ref={chartTiposRef}
+                  style={{ width: 500, height: 280, background: "#fff", padding: "12px 16px" }}
+                >
+                  <p style={{ textAlign: "center", fontFamily: "sans-serif", fontWeight: "bold", fontSize: 14, color: "#1e293b", margin: "0 0 6px" }}>
+                    Novedades Atendidas por Tipo
+                  </p>
+                  <BarChart
+                    width={468} height={240} data={tiposData} layout="vertical"
+                    margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" allowDecimals={false} />
+                    <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 11 }} />
+                    <Tooltip />
+                    <Bar dataKey="value" fill="#8b5cf6" isAnimationActive={false} />
+                  </BarChart>
+                </div>
+              );
+            })()}
+          </div>
         )}
 
         {/* Estado inicial */}
