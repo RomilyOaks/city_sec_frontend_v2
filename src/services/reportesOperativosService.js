@@ -312,10 +312,11 @@ export async function buildReporteData(params) {
                 codigo_novedad:   novedadRef.novedad_code || "-",
                 // Estado (columna C en Excel)
                 estado_novedad:   novedadRef.novedadEstado?.nombre || "-",
-                // Fechas
-                fecha_despacho:   nov.atendido || novedadRef.fecha_llegada || null,
+                // Fechas — usar fecha real de ocurrencia (no nov.reportado que es la fecha del registro de patrullaje)
+                fecha_ocurrencia: novedadRef.fecha_hora_ocurrencia || nov.reportado || null,
+                // fecha_despacho: campo en DB pero backend aún no lo incluye en Sequelize attributes
+                fecha_despacho:   novedadRef.fecha_despacho || nov.atendido || null,
                 origen_llamada:   novedadRef.origen_llamada || "-",
-                fecha_ocurrencia: nov.reportado || novedadRef.fecha_hora_ocurrencia || null,
                 fecha_llegada:    novedadRef.fecha_llegada || null,
                 // Clasificación (alias Sequelize reales del backend)
                 tipo_novedad:     novedadRef.novedadTipoNovedad?.nombre || "-",

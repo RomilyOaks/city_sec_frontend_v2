@@ -173,6 +173,17 @@ observaciones, reportante_nombre, reportante_telefono, estado_novedad_id,
 origen_llamada, gravedad
 ```
 
+### ⚠️ Campo faltante — PRIORIDAD ALTA — Agregar `fecha_despacho`
+
+Confirmado via MySQL (2026-05-23): la tabla `novedades_incidentes` SÍ tiene columna `fecha_despacho`
+con valores reales (ej. novedad 0000000023 tiene `fecha_despacho = "2026-05-23T05:46:51Z"`),
+pero el backend NO la incluye en los `attributes` del include Sequelize.
+
+**Acción requerida:** agregar `'fecha_despacho'` a los `attributes` del include de `Novedad`
+en `operativosVehiculosNovedadesController.js` y `operativosPersonalNovedadesController.js`.
+
+El frontend ya está preparado para leer `novedad.fecha_despacho` cuando el backend lo envíe.
+
 Más los objetos relacionados:
 ```
 novedadEstado      → { id, nombre, color_hex, icono, orden }
