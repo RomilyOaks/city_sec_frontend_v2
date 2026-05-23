@@ -739,6 +739,118 @@ const wsCuadrantes = XLSX.utils.aoa_to_sheet(cuadrantesRows);
       }
 
       // ========================================
+      // HOJA 6: NO ATENDIDAS (estado PENDIENTE)
+      // ========================================
+      {
+        const todasNovedades = Array.isArray(reporteData.novedades) ? reporteData.novedades : [];
+        const noAtendidas = todasNovedades.filter(n => n.estado_novedad === "PENDIENTE");
+
+        const noAtendidasHeaders = [
+          "Código Novedad",
+          "Fecha Ocurrencia",
+          "Estado Novedad",
+          "Fecha Despacho",
+          "Origen Llamada",
+          "Fecha Llegada",
+          "Tipo Novedad",
+          "Subtipo Novedad",
+          "Descripción",
+          "Localización",
+          "Referencia",
+          "Latitud",
+          "Longitud",
+          "Prioridad",
+          "Resultado",
+          "Observaciones Atención",
+          "Reportante Nombre",
+          "Reportante Teléfono",
+          "Turno",
+          "Sector",
+          "Operador",
+          "Supervisor",
+          "Tipo Recurso",
+          "Recurso (Placa/Personal)",
+          "Cuadrante Código",
+          "Cuadrante Nombre",
+          "Hora Ingreso Cuadrante",
+          "Hora Salida Cuadrante",
+        ];
+
+        const noAtendidasRows = [noAtendidasHeaders];
+
+        if (noAtendidas.length === 0) {
+          noAtendidasRows.push(["Sin novedades pendientes para el período seleccionado"]);
+        } else {
+          for (const novedad of noAtendidas) {
+            noAtendidasRows.push([
+              novedad.codigo_novedad || "-",
+              formatDateForExcel(novedad.fecha_ocurrencia),
+              novedad.estado_novedad || "-",
+              novedad.fecha_despacho ? formatDateTimeForExcel(novedad.fecha_despacho) : "-",
+              novedad.origen_llamada || "-",
+              novedad.fecha_llegada ? formatDateTimeForExcel(novedad.fecha_llegada) : "-",
+              novedad.tipo_novedad || "-",
+              novedad.subtipo_novedad || "-",
+              novedad.descripcion || "-",
+              novedad.direccion || "-",
+              novedad.referencia || "-",
+              novedad.latitud ?? "-",
+              novedad.longitud ?? "-",
+              novedad.prioridad || "-",
+              novedad.resultado || "-",
+              novedad.obs_atencion || "-",
+              novedad.reportante_nombre || "-",
+              novedad.reportante_telefono || "-",
+              novedad.turno || "-",
+              novedad.sector || "-",
+              novedad.operador || "-",
+              novedad.supervisor || "-",
+              novedad.tipo_recurso || "-",
+              novedad.recurso_nombre || "-",
+              novedad.cuadrante_codigo || "-",
+              novedad.cuadrante_nombre || "-",
+              novedad.hora_ingreso ? formatDateTimeForExcel(novedad.hora_ingreso) : "-",
+              novedad.hora_salida ? formatDateTimeForExcel(novedad.hora_salida) : "-",
+            ]);
+          }
+        }
+
+        const wsNoAtendidas = XLSX.utils.aoa_to_sheet(noAtendidasRows);
+        wsNoAtendidas["!cols"] = [
+          { wch: 16 }, // A  Código Novedad
+          { wch: 20 }, // B  Fecha Ocurrencia
+          { wch: 18 }, // C  Estado Novedad
+          { wch: 20 }, // D  Fecha Despacho
+          { wch: 18 }, // E  Origen Llamada
+          { wch: 20 }, // F  Fecha Llegada
+          { wch: 22 }, // G  Tipo Novedad
+          { wch: 22 }, // H  Subtipo Novedad
+          { wch: 45 }, // I  Descripción
+          { wch: 35 }, // J  Localización
+          { wch: 30 }, // K  Referencia
+          { wch: 12 }, // L  Latitud
+          { wch: 12 }, // M  Longitud
+          { wch: 12 }, // N  Prioridad
+          { wch: 14 }, // O  Resultado
+          { wch: 40 }, // P  Observaciones Atención
+          { wch: 25 }, // Q  Reportante Nombre
+          { wch: 18 }, // R  Reportante Teléfono
+          { wch: 10 }, // S  Turno
+          { wch: 20 }, // T  Sector
+          { wch: 22 }, // U  Operador
+          { wch: 22 }, // V  Supervisor
+          { wch: 16 }, // W  Tipo Recurso
+          { wch: 22 }, // X  Recurso
+          { wch: 16 }, // Y  Cuadrante Código
+          { wch: 28 }, // Z  Cuadrante Nombre
+          { wch: 22 }, // AA Hora Ingreso Cuadrante
+          { wch: 22 }, // AB Hora Salida Cuadrante
+        ];
+
+        XLSX.utils.book_append_sheet(wb, wsNoAtendidas, "No Atendidas");
+      }
+
+      // ========================================
       // Generar y descargar archivo
       // ========================================
       const fechaArchivo = new Date().toISOString().split("T")[0];
