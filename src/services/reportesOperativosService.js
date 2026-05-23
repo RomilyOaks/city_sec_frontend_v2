@@ -446,15 +446,22 @@ export async function buildReporteData(params) {
     }
   }
 
+  // Cuadrantes únicos = cuadrante_id distintos entre vehículos y personal (igual que UNION en SQL)
+  const cuadrantesUnicosSet = new Set();
+  for (const t of reporteData) {
+    for (const r of t.recursos) {
+      for (const c of r.cuadrantes || []) {
+        if (c.cuadrante_id) cuadrantesUnicosSet.add(c.cuadrante_id);
+      }
+    }
+  }
+
   const resultado = {
     filtros: params,
     generado_en: new Date().toISOString(),
     total_turnos: turnosUnicosSet.size,
     total_recursos: recursosUnicosSet.size,
-    total_cuadrantes: reporteData.reduce(
-      (sum, t) => sum + t.recursos.reduce((s, r) => s + r.total_cuadrantes, 0),
-      0
-    ),
+    total_cuadrantes: cuadrantesUnicosSet.size,
     total_novedades: reporteData.reduce(
       (sum, t) => sum + t.recursos.reduce((s, r) => s + r.total_novedades, 0),
       0
