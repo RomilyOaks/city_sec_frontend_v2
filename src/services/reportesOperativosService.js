@@ -313,9 +313,9 @@ export async function buildReporteData(params) {
                 // Estado (columna C en Excel)
                 estado_novedad:   novedadRef.novedadEstado?.nombre || "-",
                 // Fechas
-                fecha_despacho:   nov.atendido || null,
+                fecha_despacho:   nov.atendido || novedadRef.fecha_llegada || null,
                 origen_llamada:   novedadRef.origen_llamada || "-",
-                fecha_ocurrencia: nov.reportado || novedadRef.fecha_hora_ocurrencia || turnoInfo.fecha,
+                fecha_ocurrencia: nov.reportado || novedadRef.fecha_hora_ocurrencia || null,
                 fecha_llegada:    novedadRef.fecha_llegada || null,
                 // Clasificación (alias Sequelize reales del backend)
                 tipo_novedad:     novedadRef.novedadTipoNovedad?.nombre || "-",
