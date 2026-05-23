@@ -358,23 +358,9 @@ export async function buildReporteData(params) {
   }
   
   console.log("Total de novedades encontradas (desde backend):", allNovedades.length);
-  
-  // Filtrar novedades por rango de fechas si se especifica
-  let novedadesFiltradas = allNovedades;
-  if (fecha_inicio || fecha_fin) {
-    console.log("Aplicando filtro de fechas a novedades del backend:");
-    console.log("fecha_inicio:", fecha_inicio);
-    console.log("fecha_fin:", fecha_fin);
-    
-    novedadesFiltradas = allNovedades.filter(nov => {
-      if (!nov.fecha_ocurrencia) return false;
-      const fechaNov = new Date(nov.fecha_ocurrencia).toISOString().split('T')[0];
-      if (fecha_inicio && fechaNov < fecha_inicio) return false;
-      if (fecha_fin && fechaNov > fecha_fin) return false;
-      return true;
-    });
-    console.log("Novedades después de filtrar por fecha:", novedadesFiltradas.length);
-  }
+  // allNovedades ya está acotado al rango de fechas porque proviene de cuadrantes
+  // de turnos filtrados por ot.fecha — no se filtra adicionalmente por fecha_ocurrencia
+  // (una novedad puede haber ocurrido antes del rango pero ser atendida dentro de él).
 
   // Obtener novedades PENDIENTE directamente desde /novedades (no pasan por cuadrante).
   // limit máximo permitido por el backend: 100. Se filtra adicionalmente client-side
@@ -473,10 +459,10 @@ export async function buildReporteData(params) {
     total_vehiculos: vehiculosUnicosSet.size,
     total_personal: personalUnicosSet.size,
     total_cuadrantes: cuadrantesUnicosSet.size,
-    total_novedades: novedadesFiltradas.length,
+    total_novedades: allNovedades.length,
     data: reporteData,
     turnos: turnosOriginales,
-    novedades: novedadesFiltradas,
+    novedades: allNovedades,
     novedades_pendientes: novedadesPendientes,
   };
 
