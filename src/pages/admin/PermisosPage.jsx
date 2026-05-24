@@ -24,6 +24,7 @@ import {
   cambiarEstadoPermiso,
   deletePermiso,
 } from "../../services/permisosService.js";
+import { ConfirmModal } from "../../components/common";
 import CrearPermisoModal from "../../components/admin/permisos/CrearPermisoModal.jsx";
 import EditarPermisoModal from "../../components/admin/permisos/EditarPermisoModal.jsx";
 import VerPermisoModal from "../../components/admin/permisos/VerPermisoModal.jsx";
@@ -48,6 +49,7 @@ export default function PermisosPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedPermiso, setSelectedPermiso] = useState(null);
   const [viewingPermiso, setViewingPermiso] = useState(null);
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, item: null, loading: false });
 
   // Cargar permisos
   const loadPermisos = useCallback(async () => {
@@ -94,23 +96,25 @@ export default function PermisosPage() {
   };
 
   // Eliminar permiso
-  const handleDelete = async (permiso) => {
+  const handleDelete = (permiso) => {
     if (permiso.es_sistema) {
       toast.error("No se puede eliminar un permiso del sistema");
       return;
     }
+    setConfirmModal({ isOpen: true, item: permiso, loading: false });
+  };
 
-    if (!confirm(`¿Está seguro de eliminar el permiso "${permiso.slug}"?\n\nEsta acción es permanente y puede afectar roles y usuarios que tengan este permiso asignado.`)) {
-      return;
-    }
-
+  const handleConfirmDelete = async () => {
+    setConfirmModal((s) => ({ ...s, loading: true }));
     try {
-      await deletePermiso(permiso.id);
+      await deletePermiso(confirmModal.item.id);
       toast.success("Permiso eliminado exitosamente");
       loadPermisos();
     } catch (error) {
       console.error("Error eliminando permiso:", error);
       toast.error(error.response?.data?.message || "Error al eliminar el permiso");
+    } finally {
+      setConfirmModal({ isOpen: false, item: null, loading: false });
     }
   };
 
@@ -409,6 +413,17 @@ export default function PermisosPage() {
           onClose={() => setViewingPermiso(null)}
         />
       )}
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title="Eliminar Permiso"
+        message={`¿Está seguro de eliminar el permiso "${confirmModal.item?.slug}"? Esta acción es permanente y puede afectar roles y usuarios que tengan este permiso asignado.`}
+        confirmText="Eliminar"
+        type="danger"
+        loading={confirmModal.loading}
+        onClose={() => setConfirmModal({ isOpen: false, item: null, loading: false })}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 }
