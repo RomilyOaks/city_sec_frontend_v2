@@ -50,13 +50,15 @@ Make sure to gate heavy or frequent logs behind the debug flag to avoid performa
 
 ### **Características Técnicas**
 
-- **SPA (Single Page Application)** con React 18
+- **SPA (Single Page Application)** con React 19
 - **Responsive Design** para dispositivos móviles y desktop
-- **Estado Global** con Zustand
-- **Navegación** con React Router
-- **Autenticación** JWT con RBAC
+- **Estado Global** con Zustand 5 (local) + React Query 5 (server state)
+- **Navegación** con React Router 7
+- **Autenticación** JWT con RBAC granular por permiso
 - **API RESTful** con Axios
-- **UI Components** con TailwindCSS
+- **UI Components** con TailwindCSS 3 + dark mode
+- **Generación Excel** con ExcelJS 4 (multi-hoja + gráficos incrustados)
+- **Mapas** con React Leaflet 5
 
 ---
 
@@ -67,53 +69,34 @@ Make sure to gate heavy or frequent logs behind the debug flag to avoid performa
 ```
 src/
 ├── components/
-│   ├── common/
-│   │   ├── Button.jsx
-│   │   ├── Input.jsx
-│   │   ├── Modal.jsx
-│   │   └── index.js
-│   ├── forms/
-│   │   ├── NovedadForm.jsx
-│   │   ├── PersonalForm.jsx
-│   │   └── index.js
-│   └── modals/
-│       ├── NovedadDetalleModal.jsx
-│       ├── ConfirmModal.jsx
-│       └── index.js
+│   ├── common/          # ConfirmModal, ThemeToggle, ThemeApplier (barrel: index.js)
+│   ├── admin/           # Modales de usuarios, roles, permisos
+│   ├── calles/          # CalleFormModal, CuadranteMapaModal, CuadranteVehiculosModal...
+│   ├── catalogos/       # RadioTetraList, RadioTetraFormModal, AsignarPersonalModal...
+│   ├── direcciones/     # DireccionFormModal, DireccionViewModal
+│   ├── novedades/       # Componentes del módulo novedades
+│   └── vehiculos/       # AbastecimientoModal
 ├── pages/
-│   ├── novedades/
-│   │   ├── NovedadesPage.jsx
-│   │   ├── NovedadDetallePage.jsx
-│   │   └── components/
-│   ├── operativos/
-│   │   ├── OperativosPage.jsx
-│   │   ├── vehiculos/
-│   │   └── personal/
-│   └── auth/
-│       ├── LoginPage.jsx
-│       └── RegisterPage.jsx
-├── hooks/
-│   ├── useAuthStore.js
-│   ├── useNovedades.js
-│   ├── useOperativos.js
-│   └── index.js
-├── services/
-│   ├── api.js
-│   ├── novedadesService.js
-│   ├── operativosService.js
-│   └── authServices.js
-├── store/
-│   ├── authStore.js
-│   ├── novedadesStore.js
-│   └── index.js
-├── utils/
-│   ├── dateHelper.js
-│   ├── validationHelper.js
-│   └── constants.js
-└── rbac/
-    ├── rbac.js
-    ├── permissions.js
-    └── roles.js
+│   ├── admin/           # AdminUsuariosPage, RolesPermisosPage, PermisosPage
+│   ├── auth/            # LoginPage, SignupPage
+│   ├── calles/          # CallesPage, SectoresCuadrantesPage, DireccionesPage, TiposViaPage...
+│   ├── catalogos/       # RadiosTetraPage, UnidadesOficinaPage
+│   ├── dashboard/       # DashboardPage
+│   ├── novedades/       # NovedadesPage (~5000 líneas)
+│   ├── operativos/      # OperativosTurnosPage + vehiculos/ + personal/
+│   ├── personal/        # PersonalPage
+│   ├── reportes-operativos/ # ReportesOperativosPage
+│   └── vehiculos/       # VehiculosPage
+├── services/            # Un archivo por entidad (api.js + *Service.js)
+├── store/               # useAuthStore.js (Zustand)
+├── rbac/                # rbac.js — canPerformAction(), ROLE_SLUGS
+├── forms/               # Schemas Zod (AbastecimientoSchema, etc.)
+├── hooks/               # useBodyScrollLock, etc.
+├── utils/               # errorUtils, dateHelper, direccionCodeHelper, debug
+├── layouts/             # AppShell.jsx
+├── routes/              # AppRouter.jsx, ProtectedRoute.jsx
+├── config/              # Configuraciones
+└── styles/              # Estilos adicionales
 ```
 
 ### **Flujo de Datos Frontend**
@@ -172,32 +155,37 @@ Store ← Utils ← Hooks ← Estado
 
 ```javascript
 // Framework UI
-React: ^18.2.0          // Framework principal
-JavaScript: ES2022       // Lenguaje principal
-TypeScript: Opcional     // Tipado estático (opcional)
+React: ^19.2.0           // Framework principal
+JavaScript: ES2022       // Lenguaje principal (sin TypeScript)
 
 // Routing
-React Router: ^6.8.0     // Navegación SPA
-React Router DOM: ^6.8.0 // DOM bindings
+React Router DOM: ^7.11.0 // Navegación SPA
 
 // State Management
-Zustand: ^4.3.0          // Estado global
-React Hook Form: ^7.43.0 // Formularios
+Zustand: ^5.0.9          // Estado global (auth, theme)
+@tanstack/react-query: ^5.90.12 // Server state y cache
+React Hook Form: ^7.68.0 // Formularios
+Zod: ^4.2.1              // Validación de schemas
 
 // UI Framework
-TailwindCSS: ^3.2.0     // CSS utility-first
-Lucide React: ^0.263.0   // Iconos
-React Hot Toast: ^2.4.0  // Notificaciones toast
+TailwindCSS: ^3.4.17    // CSS utility-first con dark mode
+Lucide React: ^0.562.0   // Iconos
+React Hot Toast: ^2.6.0  // Notificaciones toast
 
 // HTTP Client
-Axios: ^1.3.0            // Llamadas API
+Axios: ^1.13.2           // Llamadas API
 
-// Validation
-Yup: ^1.0.0              // Validación de formularios
+// Mapas
+React Leaflet: ^5.0.0    // Mapas interactivos
+Leaflet: ^1.9.4
 
-// Utilities
-date-fns: ^2.29.0        # Manipulación de fechas
-clsx: ^1.2.0             # Class names utilities
+// Excel y PDF
+ExcelJS: ^4.4.0          // Generación Excel multi-hoja con imágenes
+jsPDF: ^3.0.4
+html2canvas: ^1.4.1
+
+// Gráficos
+Recharts: ^3.8.1
 ```
 
 ### **DevTools y Build**
@@ -220,11 +208,15 @@ React Testing Library: ^13.4.0 // Component testing
 ```json
 {
   "devDependencies": {
-    "@vitejs/plugin-react": "^3.1.0",
-    "vite": "^4.0.0",
-    "eslint": "^8.0.0",
-    "eslint-plugin-react": "^7.32.0",
-    "prettier": "^2.8.0"
+    "@vitejs/plugin-react-swc": "^4.2.2",
+    "vite": "^7.2.4",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "tailwindcss": "^3.4.17",
+    "autoprefixer": "^10.4.23",
+    "vitest": "^1.6.1",
+    "@playwright/test": "^1.59.1"
   }
 }
 ```
@@ -283,53 +275,34 @@ const ModalContainer = () => {};
 ```
 src/
 ├── components/
-│   ├── common/
-│   │   ├── Button.jsx
-│   │   ├── Input.jsx
-│   │   ├── Modal.jsx
-│   │   └── index.js
-│   ├── forms/
-│   │   ├── NovedadForm.jsx
-│   │   ├── PersonalForm.jsx
-│   │   └── index.js
-│   └── modals/
-│       ├── NovedadDetalleModal.jsx
-│       ├── ConfirmModal.jsx
-│       └── index.js
+│   ├── common/          # ConfirmModal, ThemeToggle, ThemeApplier (barrel: index.js)
+│   ├── admin/           # Modales de usuarios, roles, permisos
+│   ├── calles/          # CalleFormModal, CuadranteMapaModal, CuadranteVehiculosModal...
+│   ├── catalogos/       # RadioTetraList, RadioTetraFormModal, AsignarPersonalModal...
+│   ├── direcciones/     # DireccionFormModal, DireccionViewModal
+│   ├── novedades/       # Componentes del módulo novedades
+│   └── vehiculos/       # AbastecimientoModal
 ├── pages/
-│   ├── novedades/
-│   │   ├── NovedadesPage.jsx
-│   │   ├── NovedadDetallePage.jsx
-│   │   └── components/
-│   ├── operativos/
-│   │   ├── OperativosPage.jsx
-│   │   ├── vehiculos/
-│   │   └── personal/
-│   └── auth/
-│       ├── LoginPage.jsx
-│       └── RegisterPage.jsx
-├── hooks/
-│   ├── useAuthStore.js
-│   ├── useNovedades.js
-│   ├── useOperativos.js
-│   └── index.js
-├── services/
-│   ├── api.js
-│   ├── novedadesService.js
-│   ├── operativosService.js
-│   └── authServices.js
-├── store/
-│   ├── authStore.js
-│   ├── novedadesStore.js
-│   └── index.js
-├── utils/
-│   ├── dateHelper.js
-│   ├── validationHelper.js
-│   └── constants.js
-└── rbac/
-    ├── rbac.js
-    ├── permissions.js
-    └── roles.js
+│   ├── admin/           # AdminUsuariosPage, RolesPermisosPage, PermisosPage
+│   ├── auth/            # LoginPage, SignupPage
+│   ├── calles/          # CallesPage, SectoresCuadrantesPage, DireccionesPage, TiposViaPage...
+│   ├── catalogos/       # RadiosTetraPage, UnidadesOficinaPage
+│   ├── dashboard/       # DashboardPage
+│   ├── novedades/       # NovedadesPage (~5000 líneas)
+│   ├── operativos/      # OperativosTurnosPage + vehiculos/ + personal/
+│   ├── personal/        # PersonalPage
+│   ├── reportes-operativos/ # ReportesOperativosPage
+│   └── vehiculos/       # VehiculosPage
+├── services/            # Un archivo por entidad (api.js + *Service.js)
+├── store/               # useAuthStore.js (Zustand)
+├── rbac/                # rbac.js — canPerformAction(), ROLE_SLUGS
+├── forms/               # Schemas Zod (AbastecimientoSchema, etc.)
+├── hooks/               # useBodyScrollLock, etc.
+├── utils/               # errorUtils, dateHelper, direccionCodeHelper, debug
+├── layouts/             # AppShell.jsx
+├── routes/              # AppRouter.jsx, ProtectedRoute.jsx
+├── config/              # Configuraciones
+└── styles/              # Estilos adicionales
 ```
 
 ### **Estándares de Código**
@@ -665,6 +638,72 @@ rounded-2xl: 1rem (16px)
 
 ---
 
+## ⚠️ Patrones críticos — Seguir siempre
+
+### Confirmaciones destructivas
+
+**Nunca usar `window.confirm()` ni `alert()`**. Usar siempre `ConfirmModal` de `src/components/common`:
+
+```jsx
+const [confirmModal, setConfirmModal] = useState({ isOpen: false, item: null, loading: false });
+
+// Abrir modal (síncrono):
+const handleEliminar = (item) => setConfirmModal({ isOpen: true, item, loading: false });
+
+// Ejecutar acción (async):
+const handleConfirmEliminar = async () => {
+  setConfirmModal(s => ({ ...s, loading: true }));
+  try {
+    await servicio.delete(confirmModal.item.id);
+    toast.success("Eliminado exitosamente");
+    cargarDatos();
+  } catch (err) {
+    toast.error(extractValidationErrors(err) || "Error al eliminar");
+  } finally {
+    setConfirmModal({ isOpen: false, item: null, loading: false });
+  }
+};
+
+// JSX (al final del return):
+<ConfirmModal
+  isOpen={confirmModal.isOpen}
+  title="Eliminar X"
+  message={`¿Seguro de eliminar "${confirmModal.item?.nombre}"?`}
+  confirmText="Eliminar"
+  type="danger"          // o "warning" para reactivaciones
+  loading={confirmModal.loading}
+  onClose={() => setConfirmModal({ isOpen: false, item: null, loading: false })}
+  onConfirm={handleConfirmEliminar}
+/>
+```
+
+Para múltiples tipos de acción en un mismo componente, usar un campo `type` discriminador en el state.
+
+### Feedback en operaciones largas
+
+```js
+const toastId = toast.loading("Generando reporte...");
+try {
+  await operacionLarga();
+  toast.dismiss(toastId);
+  toast.success("Listo");
+} catch {
+  toast.dismiss(toastId);
+  toast.error("Error");
+}
+```
+
+### Fechas en hora local (nunca UTC)
+
+```js
+const getTodayDate = () => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+};
+```
+
+---
+
 ## 🔐 Seguridad y Control de Acceso Frontend
 
 ### **Sistema RBAC (Role-Based Access Control)**
@@ -904,29 +943,30 @@ export const useLocalStorage = (key, initialValue) => {
 
 ## 🔄 Versiones y Cambios Frontend
 
-### **Versión Actual**: 2.0.0
+### **Versión Actual**: 2.x
 
-- **Framework**: React 18.2.0 con Vite 4.0.0
-- **Última Actualización**: 2026-03-10
+- **Framework**: React 19.2.0 con Vite 7.2.4
+- **Última Actualización**: 2026-05-24
 - **Estado**: Producción activa
-- **Siguiente Release**: 2.1.0 (planeado)
 
 ### **Historial de Cambios Recientes (Frontend)**
 
-- ✅ **Mejoras UX**: Abreviación de títulos en cards de novedades
-- ✅ **Interfaz**: Grid clickeable en cuadrantes de personal
-- ✅ **Seguridad**: Fix RBAC en permisos de Operativos Personal
-- ✅ **Componentes**: Optimización de modales con lazy loading
-- ✅ **Performance**: Code splitting y memoización
-- ✅ **Accesibilidad**: Mejoras en keyboard navigation
-- ✅ **Responsive**: Optimización para móviles
+- ✅ **UX**: Migración completa `window.confirm` → `ConfirmModal` profesional en 17 archivos (mayo 2026)
+- ✅ **Reportes**: Generación Excel multi-hoja con ExcelJS + gráficos Recharts incrustados
+- ✅ **Dark Mode**: Homologación completa — iconos calendario, paginación, inputs de fecha
+- ✅ **Novedades**: Modal de Atención rediseñado con layout de 3 filas en Tab Seguimiento
+- ✅ **Operativos**: Módulo completo — turnos, vehículos, personal, cuadrantes por vehículo
+- ✅ **Permisos**: Módulo PermisosPage con CRUD completo y protección `es_sistema`
+- ✅ **Direcciones**: Geocodificación, código `D-XXXXXX`, modal de ajuste en mapa, reactivación
+- ✅ **Fechas**: Corrección de desfase UTC → hora local en todos los inputs de fecha
+- ✅ **Feedback**: Toast inmediato en Exportar Excel con loading state
 
 ### **Technical Debt Pendiente**
 
-- 🔄 Migración a TypeScript (opcional)
-- 🔄 Implementación de tests unitarios
-- 🔄 Optimización de bundle size
-- 🔄 Migración a React 19 (cuando sea estable)
+- 🔄 `NovedadesPage.jsx` monolito ~5000 líneas — refactor modular pendiente
+- 🔄 Bundle size > 2.6 MB (ExcelJS domina el chunk)
+- 🔄 Sin tests unitarios ni e2e (Playwright y Vitest instalados, sin specs)
+- 🔄 TypeScript opcional — no migrar sin decisión explícita
 
 ---
 
