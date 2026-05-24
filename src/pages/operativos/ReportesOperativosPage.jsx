@@ -12,7 +12,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import * as XLSX from "xlsx";
+// xlsx ya no se usa — migrado a ExcelJS (ver handleExportarExcel)
 import html2canvas from "html2canvas";
 import {
   PieChart, Pie, Cell,
@@ -115,16 +115,6 @@ const formatDateTimeForExcel = (dateString) => {
   return dateString; // Mantener formato original de la BD
 };
 
-/**
- * Formatea número para Excel (asegura que se trate como número, no fecha)
- */
-const formatNumberForExcel = (value) => {
-  if (value === null || value === undefined || value === "") return "";
-  const num = Number(value);
-  if (isNaN(num)) return "";
-  // Forzar que Excel lo trate como texto con apóstrofe para evitar conversión a fecha
-  return `'${num}`;
-};
 
 /**
  * Obtiene fecha de hoy en formato YYYY-MM-DD (local time)
@@ -285,664 +275,357 @@ export default function ReportesOperativosPage() {
         captureChart(chartTiposRef),
       ]);
 
-      // Crear workbook
-      const wb = XLSX.utils.book_new();
+      // Crear workbook con ExcelJS nativo
+      const { Workbook } = await import("exceljs");
+      const workbook = new Workbook();
+      workbook.creator = "CitySecure";
+      workbook.created = new Date();
+
+      // Constantes de estilo
+      const C_HEADER_BG   = "FF1E3A8A"; // azul oscuro — encabezados de columna
+      const C_SECTION_BG  = "FF334155"; // gris pizarra — títulos de sección
+      const C_KPI_VALUE   = "FF1D4ED8"; // azul — valores KPI
+      const C_WHITE       = "FFFFFFFF";
+
+      // Aplica estilo a la fila de encabezado de columnas
+      const styleHeader = (row, numCols) => {
+        for (let c = 1; c <= numCols; c++) {
+          const cell = row.getCell(c);
+          cell.font = { bold: true, color: { argb: C_WHITE }, size: 10 };
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: C_HEADER_BG } };
+          cell.alignment = { horizontal: "center", vertical: "middle" };
+          cell.border = { bottom: { style: "thin", color: { argb: "FFE2E8F0" } } };
+        }
+        row.height = 20;
+      };
+
+      // Aplica estilo a un título de sección (fila completa)
+      const styleSection = (row, numCols = 2) => {
+        for (let c = 1; c <= numCols; c++) {
+          const cell = row.getCell(c);
+          cell.font = { bold: true, color: { argb: C_WHITE }, size: 10 };
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: C_SECTION_BG } };
+        }
+        row.height = 18;
+      };
 
       // Separar recursos por tipo
       const vehiculos = [];
       const personal = [];
-
       for (const turno of reporteData.data) {
         for (const recurso of turno.recursos) {
-          if (recurso.tipo === "VEHICULO") {
-            vehiculos.push({ turno, recurso });
-          } else {
-            personal.push({ turno, recurso });
-          }
+          if (recurso.tipo === "VEHICULO") vehiculos.push({ turno, recurso });
+          else personal.push({ turno, recurso });
         }
       }
 
       // ========================================
       // HOJA 1: RESUMEN
       // ========================================
-      const resumenData = [
-        ["REPORTE DE OPERATIVOS DE PATRULLAJE"],
-        [""],
-        ["Generado:", formatDateTime(reporteData.generado_en)],
-        [""],
-        ["FILTROS APLICADOS"],
-        ["Fecha Inicio:", formatDateForExcel(reporteData.filtros.fecha_inicio)],
-        ["Fecha Fin:", formatDateForExcel(reporteData.filtros.fecha_fin)],
-        ["Turno:", reporteData.filtros.turno === "todos" ? "Todos" : reporteData.filtros.turno],
-        [
-          "Sector:",
-          reporteData.filtros.sector_id === "todos"
-            ? "Todos"
-            : sectores.find((s) => s.id === Number(reporteData.filtros.sector_id))?.nombre || reporteData.filtros.sector_id,
-        ],
-        [
-          "Tipo Recurso:",
-          reporteData.filtros.tipo_recurso === "todos"
-            ? "Todos"
-            : reporteData.filtros.tipo_recurso === "VEHICULO"
-            ? "Vehículos"
-            : "Patrullaje a Pie",
-        ],
-        [""],
-        ["TOTALES"],
-        ["Total Turnos:", reporteData.total_turnos],
-        ["Total Recursos:", reporteData.total_recursos],
-        ["Total Vehículos:", reporteData.total_vehiculos],
-        ["Total Personal a Pie:", reporteData.total_personal],
-        ["Total Cuadrantes Patrullados:", reporteData.total_cuadrantes],
-        ["Total Novedades Atendidas:", reporteData.total_novedades],
-        ["Total Novedades No Atendidas (PENDIENTE):", reporteData.novedades_pendientes?.length || 0],
-      ];
+      {
+        const ws = workbook.addWorksheet("Resumen");
+        ws.columns = [{ width: 38 }, { width: 48 }];
 
-      const wsResumen = XLSX.utils.aoa_to_sheet(resumenData);
-      wsResumen["!cols"] = [{ wch: 30 }, { wch: 40 }];
-      XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen");
+        // Título principal
+        const rTitulo = ws.addRow(["REPORTE DE OPERATIVOS DE PATRULLAJE"]);
+        rTitulo.getCell(1).font = { bold: true, size: 14, color: { argb: C_HEADER_BG } };
+        ws.mergeCells("A1:B1");
+
+        ws.addRow([""]);
+        ws.addRow(["Generado:", formatDateTime(reporteData.generado_en)]);
+        ws.addRow([""]);
+
+        // Sección filtros
+        const rFiltrosTitulo = ws.addRow(["FILTROS APLICADOS"]);
+        styleSection(rFiltrosTitulo);
+        ws.mergeCells(`A${rFiltrosTitulo.number}:B${rFiltrosTitulo.number}`);
+
+        const sectorLabel = reporteData.filtros.sector_id === "todos"
+          ? "Todos"
+          : sectores.find((s) => s.id === Number(reporteData.filtros.sector_id))?.nombre || reporteData.filtros.sector_id;
+
+        ws.addRow(["Fecha Inicio:", formatDateForExcel(reporteData.filtros.fecha_inicio)]);
+        ws.addRow(["Fecha Fin:",    formatDateForExcel(reporteData.filtros.fecha_fin)]);
+        ws.addRow(["Turno:",        reporteData.filtros.turno === "todos" ? "Todos" : reporteData.filtros.turno]);
+        ws.addRow(["Sector:",       sectorLabel]);
+        ws.addRow(["Tipo Recurso:", reporteData.filtros.tipo_recurso === "todos"
+          ? "Todos"
+          : reporteData.filtros.tipo_recurso === "VEHICULO" ? "Vehículos" : "Patrullaje a Pie"]);
+
+        ws.addRow([""]);
+
+        // Sección totales
+        const rTotalesTitulo = ws.addRow(["TOTALES"]);
+        styleSection(rTotalesTitulo);
+        ws.mergeCells(`A${rTotalesTitulo.number}:B${rTotalesTitulo.number}`);
+
+        const kpis = [
+          ["Total Turnos:",                             reporteData.total_turnos],
+          ["Total Recursos:",                           reporteData.total_recursos],
+          ["Total Vehículos:",                          reporteData.total_vehiculos],
+          ["Total Personal a Pie:",                     reporteData.total_personal],
+          ["Total Cuadrantes Patrullados:",             reporteData.total_cuadrantes],
+          ["Total Novedades Atendidas:",                reporteData.total_novedades],
+          ["Total Novedades No Atendidas (PENDIENTE):", reporteData.novedades_pendientes?.length || 0],
+        ];
+        for (const [label, value] of kpis) {
+          const r = ws.addRow([label, value]);
+          r.getCell(1).font = { bold: true, color: { argb: "FF334155" } };
+          r.getCell(2).font = { bold: true, size: 12, color: { argb: C_KPI_VALUE } };
+        }
+
+        // Sección gráficos
+        ws.addRow([""]);
+        const rGraficosTitulo = ws.addRow(["GRÁFICOS"]);
+        styleSection(rGraficosTitulo);
+        ws.mergeCells(`A${rGraficosTitulo.number}:B${rGraficosTitulo.number}`);
+
+        let imgRow = rGraficosTitulo.number; // ExcelJS tl.row es 0-indexed
+        const addChartImage = (imgData) => {
+          if (!imgData) return;
+          const id = workbook.addImage({ base64: imgData, extension: "png" });
+          ws.addImage(id, { tl: { col: 0, row: imgRow }, ext: { width: 480, height: 260 } });
+          imgRow += 19;
+        };
+        addChartImage(imgDistribucion);
+        addChartImage(imgNovedades);
+        addChartImage(imgTipos);
+      }
 
       // ========================================
       // HOJA 2: SECTORES
       // ========================================
       if (reporteData.turnos && reporteData.turnos.length > 0) {
-        const sectoresHeaders = [
-          "Fecha",
-          "Turno",
-          "Sector",
-          "Operador",
-          "Supervisor",
-          "Fecha/Hora Inicio",
-          "Fecha/Hora Fin",
-          "Estado",
-          "Observaciones"
+        const ws = workbook.addWorksheet("Sectores");
+        ws.columns = [
+          { width: 12 }, { width: 10 }, { width: 18 }, { width: 22 }, { width: 22 },
+          { width: 20 }, { width: 20 }, { width: 12 }, { width: 30 },
         ];
-
-        const sectoresRows = [sectoresHeaders];
-
+        const headers = ["Fecha", "Turno", "Sector", "Operador", "Supervisor",
+          "Fecha/Hora Inicio", "Fecha/Hora Fin", "Estado", "Observaciones"];
+        styleHeader(ws.addRow(headers), headers.length);
         for (const turno of reporteData.turnos) {
-          sectoresRows.push([
-            formatDateForExcel(turno.fecha),
-            turno.turno || "-",
-            turno.sector || "-",
-            turno.operador || "-",
-            turno.supervisor || "-",
-            formatDateTime(turno.fecha_hora_inicio),
-            formatDateTime(turno.fecha_hora_fin),
-            turno.estado || "-",
-            turno.observaciones || "-"
+          ws.addRow([
+            formatDateForExcel(turno.fecha),    turno.turno || "-",
+            turno.sector || "-",                turno.operador || "-",
+            turno.supervisor || "-",            formatDateTime(turno.fecha_hora_inicio),
+            formatDateTime(turno.fecha_hora_fin), turno.estado || "-",
+            turno.observaciones || "-",
           ]);
         }
-
-        const wsSectores = XLSX.utils.aoa_to_sheet(sectoresRows);
-        wsSectores["!cols"] = [
-          { wch: 12 }, // Fecha
-          { wch: 10 }, // Turno
-          { wch: 18 }, // Sector
-          { wch: 22 }, // Operador
-          { wch: 22 }, // Supervisor
-          { wch: 20 }, // Fecha/Hora Inicio
-          { wch: 20 }, // Fecha/Hora Fin
-          { wch: 12 }, // Estado
-          { wch: 30 }, // Observaciones
-        ];
-
-        // Aplicar formato de fecha a columnas de fecha/hora
-        const rangeSectores = XLSX.utils.decode_range(wsSectores['!ref']);
-        for (let C = 0; C <= rangeSectores.e.c; C++) {
-          if ([0, 5, 6].includes(C)) { // Columnas: Fecha, Fecha/Hora Inicio, Fecha/Hora Fin
-            for (let R = 1; R <= rangeSectores.e.r; R++) {
-              const cellRef = XLSX.utils.encode_cell({c: C, r: R});
-              if (wsSectores[cellRef] && wsSectores[cellRef].v) {
-                wsSectores[cellRef].z = C === 0 ? 'yyyy-mm-dd;@' : 'yyyy-mm-dd hh:mm:ss;@';
-              }
-            }
-          }
-        }
-
-        XLSX.utils.book_append_sheet(wb, wsSectores, "Sectores");
       }
 
       // ========================================
       // HOJA 3: DETALLE VEHÍCULOS
       // ========================================
       if (vehiculos.length > 0) {
-        const vehiculosHeaders = [
-          "Fecha",
-          "Turno",
-          "Sector",
-          "Operador",
-          "Supervisor",
-          "Tipo Recurso",
-          "Código Vehículo",
-          "Placa",
-          "Tipo Vehículo",
-          "Unidad/Oficina",
-          "SOAT",
-          "Venc. SOAT",
-          "Conductor",
-          "Copiloto",
-          "Tipo Copiloto",
-          "Radio TETRA",
-          "Estado Operativo",
-          "Km Inicio",
-          "Hora Inicio",
-          "Km Recarga",
-          "Hora Recarga",
-          "Combustible (Lt)",
-          "Importe Recarga",
-          "Nivel Combustible",
-          "Km Fin",
-          "Km Recorridos",
-          "Observaciones",
-          "Total Cuadrantes",
-          "Total Novedades",
+        const ws = workbook.addWorksheet("Detalle Vehículos");
+        ws.columns = [
+          { width: 12 }, { width: 10 }, { width: 18 }, { width: 22 }, { width: 22 },
+          { width: 12 }, { width: 15 }, { width: 10 }, { width: 14 }, { width: 20 },
+          { width: 15 }, { width: 12 }, { width: 22 }, { width: 22 }, { width: 15 },
+          { width: 12 }, { width: 15 }, { width: 10 }, { width: 10 }, { width: 10 },
+          { width: 10 }, { width: 14 }, { width: 12 }, { width: 15 }, { width: 10 },
+          { width: 12 }, { width: 30 }, { width: 14 }, { width: 14 },
         ];
-
-        const vehiculosRows = [vehiculosHeaders];
-
+        const headers = [
+          "Fecha", "Turno", "Sector", "Operador", "Supervisor",
+          "Tipo Recurso", "Código Vehículo", "Placa", "Tipo Vehículo", "Unidad/Oficina",
+          "SOAT", "Venc. SOAT", "Conductor", "Copiloto", "Tipo Copiloto",
+          "Radio TETRA", "Estado Operativo", "Km Inicio", "Hora Inicio", "Km Recarga",
+          "Hora Recarga", "Combustible (Lt)", "Importe Recarga", "Nivel Combustible", "Km Fin",
+          "Km Recorridos", "Observaciones", "Total Cuadrantes", "Total Novedades",
+        ];
+        styleHeader(ws.addRow(headers), headers.length);
         for (const { turno, recurso } of vehiculos) {
-          vehiculosRows.push([
-            formatDateForExcel(turno.fecha),
-            turno.turno,
-            turno.sector,
-            turno.operador,
-            turno.supervisor,
-            "Vehículo",
-            recurso.codigo_vehiculo || "-",
-            recurso.placa || "-",
-            recurso.tipo_vehiculo || "-",
-            recurso.unidad_oficina || "-",
-            recurso.soat || "-",
-            recurso.fec_soat ? formatDateForExcel(recurso.fec_soat) : "",
-            recurso.conductor || "-",
-            recurso.copiloto || "-",
-            recurso.tipo_copiloto || "-",
-            recurso.radio_tetra_code || "-",
-            recurso.estado_operativo || "-",
-            formatNumberForExcel(recurso.kilometraje_inicio),
+          ws.addRow([
+            formatDateForExcel(turno.fecha),    turno.turno,
+            turno.sector,                       turno.operador,
+            turno.supervisor,                   "Vehículo",
+            recurso.codigo_vehiculo || "-",     recurso.placa || "-",
+            recurso.tipo_vehiculo || "-",       recurso.unidad_oficina || "-",
+            recurso.soat || "-",                recurso.fec_soat ? formatDateForExcel(recurso.fec_soat) : "",
+            recurso.conductor || "-",           recurso.copiloto || "-",
+            recurso.tipo_copiloto || "-",       recurso.radio_tetra_code || "-",
+            recurso.estado_operativo || "-",    recurso.kilometraje_inicio ?? "",
             recurso.hora_inicio ? formatDateTimeForExcel(recurso.hora_inicio) : "",
-            formatNumberForExcel(recurso.kilometraje_recarga),
+            recurso.kilometraje_recarga ?? "",
             recurso.hora_recarga ? formatDateTimeForExcel(recurso.hora_recarga) : "",
-            recurso.combustible_litros || "-",
-            recurso.importe_recarga || "-",
-            recurso.nivel_combustible_recarga || "-",
-            formatNumberForExcel(recurso.kilometraje_fin),
-            formatNumberForExcel(recurso.kilometros_recorridos),
-            recurso.observaciones || "-",
-            recurso.total_cuadrantes,
-            recurso.total_novedades,
+            recurso.combustible_litros || "-",  recurso.importe_recarga || "-",
+            recurso.nivel_combustible_recarga || "-", recurso.kilometraje_fin ?? "",
+            recurso.kilometros_recorridos ?? "", recurso.observaciones || "-",
+            recurso.total_cuadrantes,           recurso.total_novedades,
           ]);
         }
-
-        const wsVehiculos = XLSX.utils.aoa_to_sheet(vehiculosRows);
-        wsVehiculos["!cols"] = [
-          { wch: 12 }, // Fecha
-          { wch: 10 }, // Turno
-          { wch: 18 }, // Sector
-          { wch: 22 }, // Operador
-          { wch: 22 }, // Supervisor
-          { wch: 12 }, // Tipo Recurso
-          { wch: 15 }, // Código Vehículo
-          { wch: 10 }, // Placa
-          { wch: 14 }, // Tipo Vehículo
-          { wch: 20 }, // Unidad/Oficina
-          { wch: 15 }, // SOAT
-          { wch: 12 }, // Venc. SOAT
-          { wch: 22 }, // Conductor
-          { wch: 22 }, // Copiloto
-          { wch: 15 }, // Tipo Copiloto
-          { wch: 12 }, // Radio TETRA
-          { wch: 15 }, // Estado Operativo
-          { wch: 10 }, // Km Inicio
-          { wch: 10 }, // Hora Inicio
-          { wch: 10 }, // Km Recarga
-          { wch: 10 }, // Hora Recarga
-          { wch: 14 }, // Combustible
-          { wch: 12 }, // Importe Recarga
-          { wch: 15 }, // Nivel Combustible
-          { wch: 10 }, // Km Fin
-          { wch: 12 }, // Km Recorridos
-          { wch: 30 }, // Observaciones
-          { wch: 14 }, // Total Cuadrantes
-          { wch: 14 }, // Total Novedades
-        ];
-
-        // Aplicar formato de fecha a columnas específicas
-        const rangeVehiculos = XLSX.utils.decode_range(wsVehiculos['!ref']);
-        for (let C = 0; C <= rangeVehiculos.e.c; C++) {
-          if ([0, 11, 17, 19].includes(C)) { // Columnas: Fecha, Venc. SOAT, Hora Inicio, Hora Recarga
-            for (let R = 1; R <= rangeVehiculos.e.r; R++) {
-              const cellRef = XLSX.utils.encode_cell({c: C, r: R});
-              if (wsVehiculos[cellRef] && wsVehiculos[cellRef].v) {
-                wsVehiculos[cellRef].z = C === 0 || C === 11 ? 'yyyy-mm-dd;@' : 'yyyy-mm-dd hh:mm:ss;@';
-              }
-            }
-          }
-        }
-
-        XLSX.utils.book_append_sheet(wb, wsVehiculos, "Detalle Vehículos");
       }
 
       // ========================================
-      // HOJA 3: PATRULLAJE A PIE
+      // HOJA 4: PATRULLAJE A PIE
       // ========================================
       if (personal.length > 0) {
-        const personalHeaders = [
-          "Fecha",
-          "Turno",
-          "Sector",
-          "Operador",
-          "Supervisor",
-          "Tipo Recurso",
-          "Nombre Personal",
-          "Tipo Patrullaje",
-          "Cargo",
-          "Total Cuadrantes",
-          "Total Novedades",
+        const ws = workbook.addWorksheet("Patrullaje a Pie");
+        ws.columns = [
+          { width: 12 }, { width: 10 }, { width: 18 }, { width: 22 }, { width: 22 },
+          { width: 14 }, { width: 28 }, { width: 15 }, { width: 18 }, { width: 14 }, { width: 14 },
         ];
-
-        const personalRows = [personalHeaders];
-
+        const headers = ["Fecha", "Turno", "Sector", "Operador", "Supervisor",
+          "Tipo Recurso", "Nombre Personal", "Tipo Patrullaje", "Cargo",
+          "Total Cuadrantes", "Total Novedades"];
+        styleHeader(ws.addRow(headers), headers.length);
         for (const { turno, recurso } of personal) {
-          personalRows.push([
-            formatDateForExcel(turno.fecha),
-            turno.turno,
-            turno.sector,
-            turno.operador,
-            turno.supervisor,
-            "Personal a Pie",
-            recurso.personal_nombre || "-",
-            recurso.tipo_patrullaje || "-",
-            recurso.cargo || "-",
-            recurso.total_cuadrantes,
-            recurso.total_novedades,
+          ws.addRow([
+            formatDateForExcel(turno.fecha), turno.turno, turno.sector,
+            turno.operador, turno.supervisor, "Personal a Pie",
+            recurso.personal_nombre || "-", recurso.tipo_patrullaje || "-",
+            recurso.cargo || "-", recurso.total_cuadrantes, recurso.total_novedades,
           ]);
         }
-
-        const wsPersonal = XLSX.utils.aoa_to_sheet(personalRows);
-        wsPersonal["!cols"] = [
-          { wch: 12 }, // Fecha
-          { wch: 10 }, // Turno
-          { wch: 18 }, // Sector
-          { wch: 22 }, // Operador
-          { wch: 22 }, // Supervisor
-          { wch: 14 }, // Tipo Recurso
-          { wch: 28 }, // Nombre Personal
-          { wch: 15 }, // Tipo Patrullaje
-          { wch: 18 }, // Cargo
-          { wch: 14 }, // Total Cuadrantes
-          { wch: 14 }, // Total Novedades
-        ];
-
-        XLSX.utils.book_append_sheet(wb, wsPersonal, "Patrullaje a Pie");
       }
 
       // ========================================
-      // HOJA 4: CUADRANTES PATRULLADOS
+      // HOJA 5: CUADRANTES PATRULLADOS
       // ========================================
-      const cuadrantesHeaders = [
-        "Fecha",
-        "Turno",
-        "Sector",
-        "Tipo Recurso",
-        "Identificador",
-        "Código Cuadrante",
-        "Nombre Cuadrante",
-        "Hora Ingreso",
-        "Hora Salida",
-        "Tiempo (min)",
-        "Novedades Atendidas",
-      ];
-
-      const cuadrantesRows = [cuadrantesHeaders];
-
-      for (const turno of reporteData.data) {
-        for (const recurso of turno.recursos) {
-          for (const cuadrante of recurso.cuadrantes) {
-            cuadrantesRows.push([
-              formatDateForExcel(turno.fecha),
-              turno.turno,
-              turno.sector,
-              recurso.tipo === "VEHICULO" ? "Vehículo" : "Personal a Pie",
-              recurso.tipo === "VEHICULO" ? recurso.placa : recurso.personal_nombre,
-              cuadrante.cuadrante_code,
-              cuadrante.cuadrante_nombre,
-              cuadrante.hora_ingreso ? formatDateTimeForExcel(cuadrante.hora_ingreso) : "",
-              cuadrante.hora_salida ? formatDateTimeForExcel(cuadrante.hora_salida) : "",
-              cuadrante.tiempo_minutos || "-",
-              cuadrante.novedades_count,
-            ]);
-          }
-        }
-      }
-
-const wsCuadrantes = XLSX.utils.aoa_to_sheet(cuadrantesRows);
-        wsCuadrantes["!cols"] = [
-          { wch: 12 }, // Fecha
-          { wch: 10 }, // Turno
-          { wch: 18 }, // Sector
-          { wch: 14 }, // Tipo Recurso
-          { wch: 18 }, // Identificador
-          { wch: 15 }, // Código Cuadrante
-          { wch: 28 }, // Nombre Cuadrante
-          { wch: 18 }, // Hora Ingreso
-          { wch: 18 }, // Hora Salida
-          { wch: 12 }, // Tiempo
-          { wch: 16 }, // Novedades
+      {
+        const ws = workbook.addWorksheet("Cuadrantes Patrullados");
+        ws.columns = [
+          { width: 12 }, { width: 10 }, { width: 18 }, { width: 14 }, { width: 18 },
+          { width: 15 }, { width: 28 }, { width: 18 }, { width: 18 }, { width: 12 }, { width: 16 },
         ];
-
-        // Aplicar formato de fecha a columnas específicas
-        const rangeCuadrantes = XLSX.utils.decode_range(wsCuadrantes['!ref']);
-        for (let C = 0; C <= rangeCuadrantes.e.c; C++) {
-          if ([0, 7, 8].includes(C)) { // Columnas: Fecha, Hora Ingreso, Hora Salida
-            for (let R = 1; R <= rangeCuadrantes.e.r; R++) {
-              const cellRef = XLSX.utils.encode_cell({c: C, r: R});
-              if (wsCuadrantes[cellRef] && wsCuadrantes[cellRef].v) {
-                wsCuadrantes[cellRef].z = C === 0 ? 'yyyy-mm-dd;@' : 'yyyy-mm-dd hh:mm:ss;@';
-              }
+        const headers = ["Fecha", "Turno", "Sector", "Tipo Recurso", "Identificador",
+          "Código Cuadrante", "Nombre Cuadrante", "Hora Ingreso", "Hora Salida",
+          "Tiempo (min)", "Novedades Atendidas"];
+        styleHeader(ws.addRow(headers), headers.length);
+        for (const turno of reporteData.data) {
+          for (const recurso of turno.recursos) {
+            for (const cuadrante of recurso.cuadrantes) {
+              ws.addRow([
+                formatDateForExcel(turno.fecha),  turno.turno,  turno.sector,
+                recurso.tipo === "VEHICULO" ? "Vehículo" : "Personal a Pie",
+                recurso.tipo === "VEHICULO" ? recurso.placa : recurso.personal_nombre,
+                cuadrante.cuadrante_code,         cuadrante.cuadrante_nombre,
+                cuadrante.hora_ingreso ? formatDateTimeForExcel(cuadrante.hora_ingreso) : "",
+                cuadrante.hora_salida  ? formatDateTimeForExcel(cuadrante.hora_salida)  : "",
+                cuadrante.tiempo_minutos || "-",  cuadrante.novedades_count,
+              ]);
             }
           }
         }
-
-        XLSX.utils.book_append_sheet(wb, wsCuadrantes, "Cuadrantes Patrullados");
+      }
 
       // ========================================
-      // HOJA 5: NOVEDADES (siempre se agrega)
+      // HOJA 6: NOVEDADES ATENDIDAS
       // ========================================
       {
-        const novedadesSheetData = Array.isArray(reporteData.novedades) ? reporteData.novedades : [];
-        const novedadesHeaders = [
-          // A - Identificación
-          "Código Novedad",
-          // B
-          "Fecha Ocurrencia",
-          // C - Estado al inicio para visibilidad gerencial
-          "Estado Novedad",
-          // D-E - Despacho y origen
-          "Fecha Despacho",
-          "Origen Llamada",
-          // F - Llegada
-          "Fecha Llegada",
-          // G-H - Clasificación
-          "Tipo Novedad",
-          "Subtipo Novedad",
-          // I - Descripción
-          "Descripción",
-          // J-M - Ubicación
-          "Localización",
-          "Referencia",
-          "Latitud",
-          "Longitud",
-          // N-P - Resultado
-          "Prioridad",
-          "Resultado",
-          "Observaciones Atención",
-          // Q-R - Reportante
-          "Reportante Nombre",
-          "Reportante Teléfono",
-          // S-X - Contexto operativo
-          "Turno",
-          "Sector",
-          "Operador",
-          "Supervisor",
-          "Tipo Recurso",
-          "Recurso (Placa/Personal)",
-          // Y-AB - Cuadrante
-          "Cuadrante Código",
-          "Cuadrante Nombre",
-          "Hora Ingreso Cuadrante",
-          "Hora Salida Cuadrante",
+        const ws = workbook.addWorksheet("Novedades Atendidas");
+        ws.columns = [
+          { width: 16 }, { width: 20 }, { width: 18 }, { width: 20 }, { width: 18 },
+          { width: 20 }, { width: 22 }, { width: 22 }, { width: 45 }, { width: 35 },
+          { width: 30 }, { width: 12 }, { width: 12 }, { width: 12 }, { width: 14 },
+          { width: 40 }, { width: 25 }, { width: 18 }, { width: 10 }, { width: 20 },
+          { width: 22 }, { width: 22 }, { width: 16 }, { width: 22 }, { width: 16 },
+          { width: 28 }, { width: 22 }, { width: 22 },
         ];
-
-        const novedadesOrdenadas = [...novedadesSheetData].sort((a, b) =>
-          (a.codigo_novedad || "").localeCompare(b.codigo_novedad || "")
-        );
-        const novedadesRows = [novedadesHeaders];
-
+        const headers = [
+          "Código Novedad", "Fecha Ocurrencia", "Estado Novedad", "Fecha Despacho", "Origen Llamada",
+          "Fecha Llegada", "Tipo Novedad", "Subtipo Novedad", "Descripción", "Localización",
+          "Referencia", "Latitud", "Longitud", "Prioridad", "Resultado",
+          "Observaciones Atención", "Reportante Nombre", "Reportante Teléfono",
+          "Turno", "Sector", "Operador", "Supervisor", "Tipo Recurso", "Recurso (Placa/Personal)",
+          "Cuadrante Código", "Cuadrante Nombre", "Hora Ingreso Cuadrante", "Hora Salida Cuadrante",
+        ];
+        styleHeader(ws.addRow(headers), headers.length);
+        const novedadesOrdenadas = [...(Array.isArray(reporteData.novedades) ? reporteData.novedades : [])]
+          .sort((a, b) => (a.codigo_novedad || "").localeCompare(b.codigo_novedad || ""));
         if (novedadesOrdenadas.length === 0) {
-          novedadesRows.push(["Sin novedades para el período seleccionado"]);
+          ws.addRow(["Sin novedades para el período seleccionado"]);
         } else {
-          for (const novedad of novedadesOrdenadas) {
-            novedadesRows.push([
-              novedad.codigo_novedad || "-",
-              formatDateForExcel(novedad.fecha_ocurrencia),
-              novedad.estado_novedad || "-",
-              novedad.fecha_despacho ? formatDateTimeForExcel(novedad.fecha_despacho) : "-",
-              novedad.origen_llamada || "-",
-              novedad.fecha_llegada ? formatDateTimeForExcel(novedad.fecha_llegada) : "-",
-              novedad.tipo_novedad || "-",
-              novedad.subtipo_novedad || "-",
-              novedad.descripcion || "-",
-              novedad.direccion || "-",
-              novedad.referencia || "-",
-              novedad.latitud ?? "-",
-              novedad.longitud ?? "-",
-              novedad.prioridad || "-",
-              novedad.resultado || "-",
-              novedad.obs_atencion || "-",
-              novedad.reportante_nombre || "-",
-              novedad.reportante_telefono || "-",
-              novedad.turno || "-",
-              novedad.sector || "-",
-              novedad.operador || "-",
-              novedad.supervisor || "-",
-              novedad.tipo_recurso || "-",
-              novedad.recurso_nombre || "-",
-              novedad.cuadrante_codigo || "-",
-              novedad.cuadrante_nombre || "-",
-              novedad.hora_ingreso ? formatDateTimeForExcel(novedad.hora_ingreso) : "-",
-              novedad.hora_salida ? formatDateTimeForExcel(novedad.hora_salida) : "-",
+          for (const n of novedadesOrdenadas) {
+            ws.addRow([
+              n.codigo_novedad || "-",   formatDateForExcel(n.fecha_ocurrencia),
+              n.estado_novedad || "-",   n.fecha_despacho ? formatDateTimeForExcel(n.fecha_despacho) : "-",
+              n.origen_llamada || "-",   n.fecha_llegada  ? formatDateTimeForExcel(n.fecha_llegada)  : "-",
+              n.tipo_novedad || "-",     n.subtipo_novedad || "-",
+              n.descripcion || "-",      n.direccion || "-",
+              n.referencia || "-",       n.latitud  ?? "-",
+              n.longitud  ?? "-",        n.prioridad || "-",
+              n.resultado || "-",        n.obs_atencion || "-",
+              n.reportante_nombre || "-", n.reportante_telefono || "-",
+              n.turno || "-",            n.sector || "-",
+              n.operador || "-",         n.supervisor || "-",
+              n.tipo_recurso || "-",     n.recurso_nombre || "-",
+              n.cuadrante_codigo || "-", n.cuadrante_nombre || "-",
+              n.hora_ingreso ? formatDateTimeForExcel(n.hora_ingreso) : "-",
+              n.hora_salida  ? formatDateTimeForExcel(n.hora_salida)  : "-",
             ]);
           }
         }
-
-        const wsNovedades = XLSX.utils.aoa_to_sheet(novedadesRows);
-        wsNovedades["!cols"] = [
-          { wch: 16 }, // A  Código Novedad
-          { wch: 20 }, // B  Fecha Ocurrencia
-          { wch: 18 }, // C  Estado Novedad
-          { wch: 20 }, // D  Fecha Despacho
-          { wch: 18 }, // E  Origen Llamada
-          { wch: 20 }, // F  Fecha Llegada
-          { wch: 22 }, // G  Tipo Novedad
-          { wch: 22 }, // H  Subtipo Novedad
-          { wch: 45 }, // I  Descripción
-          { wch: 35 }, // J  Localización
-          { wch: 30 }, // K  Referencia
-          { wch: 12 }, // L  Latitud
-          { wch: 12 }, // M  Longitud
-          { wch: 12 }, // N  Prioridad
-          { wch: 14 }, // O  Resultado
-          { wch: 40 }, // P  Observaciones Atención
-          { wch: 25 }, // Q  Reportante Nombre
-          { wch: 18 }, // R  Reportante Teléfono
-          { wch: 10 }, // S  Turno
-          { wch: 20 }, // T  Sector
-          { wch: 22 }, // U  Operador
-          { wch: 22 }, // V  Supervisor
-          { wch: 16 }, // W  Tipo Recurso
-          { wch: 22 }, // X  Recurso
-          { wch: 16 }, // Y  Cuadrante Código
-          { wch: 28 }, // Z  Cuadrante Nombre
-          { wch: 22 }, // AA Hora Ingreso Cuadrante
-          { wch: 22 }, // AB Hora Salida Cuadrante
-        ];
-
-        XLSX.utils.book_append_sheet(wb, wsNovedades, "Novedades Atendidas");
       }
 
       // ========================================
-      // HOJA 6: NO ATENDIDAS (estado PENDIENTE)
+      // HOJA 7: NO ATENDIDAS (PENDIENTE)
       // ========================================
       {
-        // Las novedades PENDIENTE no tienen cuadrante asignado → vienen de /novedades directamente
         const noAtendidas = Array.isArray(reporteData.novedades_pendientes) ? reporteData.novedades_pendientes : [];
-
-        const noAtendidasHeaders = [
-          "Código Novedad",
-          "Fecha Ocurrencia",
-          "Estado Novedad",
-          "Fecha Despacho",
-          "Origen Llamada",
-          "Fecha Llegada",
-          "Tipo Novedad",
-          "Subtipo Novedad",
-          "Descripción",
-          "Localización",
-          "Referencia",
-          "Latitud",
-          "Longitud",
-          "Prioridad",
-          "Resultado",
-          "Observaciones Atención",
-          "Reportante Nombre",
-          "Reportante Teléfono",
-          "Turno",
-          "Sector",
-          "Operador",
-          "Supervisor",
-          "Tipo Recurso",
-          "Recurso (Placa/Personal)",
-          "Cuadrante Código",
-          "Cuadrante Nombre",
-          "Hora Ingreso Cuadrante",
-          "Hora Salida Cuadrante",
+        const ws = workbook.addWorksheet("No Atendidas");
+        ws.columns = [
+          { width: 16 }, { width: 20 }, { width: 18 }, { width: 20 }, { width: 18 },
+          { width: 20 }, { width: 22 }, { width: 22 }, { width: 45 }, { width: 35 },
+          { width: 30 }, { width: 12 }, { width: 12 }, { width: 12 }, { width: 14 },
+          { width: 40 }, { width: 25 }, { width: 18 }, { width: 10 }, { width: 20 },
+          { width: 22 }, { width: 22 }, { width: 16 }, { width: 22 }, { width: 16 },
+          { width: 28 }, { width: 22 }, { width: 22 },
         ];
-
-        const noAtendidasRows = [noAtendidasHeaders];
-
+        const headers = [
+          "Código Novedad", "Fecha Ocurrencia", "Estado Novedad", "Fecha Despacho", "Origen Llamada",
+          "Fecha Llegada", "Tipo Novedad", "Subtipo Novedad", "Descripción", "Localización",
+          "Referencia", "Latitud", "Longitud", "Prioridad", "Resultado",
+          "Observaciones Atención", "Reportante Nombre", "Reportante Teléfono",
+          "Turno", "Sector", "Operador", "Supervisor", "Tipo Recurso", "Recurso (Placa/Personal)",
+          "Cuadrante Código", "Cuadrante Nombre", "Hora Ingreso Cuadrante", "Hora Salida Cuadrante",
+        ];
+        styleHeader(ws.addRow(headers), headers.length);
         if (noAtendidas.length === 0) {
-          noAtendidasRows.push(["Sin novedades pendientes para el período seleccionado"]);
+          ws.addRow(["Sin novedades pendientes para el período seleccionado"]);
         } else {
-          for (const novedad of noAtendidas) {
-            noAtendidasRows.push([
-              novedad.codigo_novedad || "-",
-              formatDateForExcel(novedad.fecha_ocurrencia),
-              novedad.estado_novedad || "-",
-              novedad.fecha_despacho ? formatDateTimeForExcel(novedad.fecha_despacho) : "-",
-              novedad.origen_llamada || "-",
-              novedad.fecha_llegada ? formatDateTimeForExcel(novedad.fecha_llegada) : "-",
-              novedad.tipo_novedad || "-",
-              novedad.subtipo_novedad || "-",
-              novedad.descripcion || "-",
-              novedad.direccion || "-",
-              novedad.referencia || "-",
-              novedad.latitud ?? "-",
-              novedad.longitud ?? "-",
-              novedad.prioridad || "-",
-              novedad.resultado || "-",
-              novedad.obs_atencion || "-",
-              novedad.reportante_nombre || "-",
-              novedad.reportante_telefono || "-",
-              novedad.turno || "-",
-              novedad.sector || "-",
-              novedad.operador || "-",
-              novedad.supervisor || "-",
-              novedad.tipo_recurso || "-",
-              novedad.recurso_nombre || "-",
-              novedad.cuadrante_codigo || "-",
-              novedad.cuadrante_nombre || "-",
-              novedad.hora_ingreso ? formatDateTimeForExcel(novedad.hora_ingreso) : "-",
-              novedad.hora_salida ? formatDateTimeForExcel(novedad.hora_salida) : "-",
+          for (const n of noAtendidas) {
+            ws.addRow([
+              n.codigo_novedad || "-",   formatDateForExcel(n.fecha_ocurrencia),
+              n.estado_novedad || "-",   n.fecha_despacho ? formatDateTimeForExcel(n.fecha_despacho) : "-",
+              n.origen_llamada || "-",   n.fecha_llegada  ? formatDateTimeForExcel(n.fecha_llegada)  : "-",
+              n.tipo_novedad || "-",     n.subtipo_novedad || "-",
+              n.descripcion || "-",      n.direccion || "-",
+              n.referencia || "-",       n.latitud  ?? "-",
+              n.longitud  ?? "-",        n.prioridad || "-",
+              n.resultado || "-",        n.obs_atencion || "-",
+              n.reportante_nombre || "-", n.reportante_telefono || "-",
+              n.turno || "-",            n.sector || "-",
+              n.operador || "-",         n.supervisor || "-",
+              n.tipo_recurso || "-",     n.recurso_nombre || "-",
+              n.cuadrante_codigo || "-", n.cuadrante_nombre || "-",
+              n.hora_ingreso ? formatDateTimeForExcel(n.hora_ingreso) : "-",
+              n.hora_salida  ? formatDateTimeForExcel(n.hora_salida)  : "-",
             ]);
           }
         }
-
-        const wsNoAtendidas = XLSX.utils.aoa_to_sheet(noAtendidasRows);
-        wsNoAtendidas["!cols"] = [
-          { wch: 16 }, // A  Código Novedad
-          { wch: 20 }, // B  Fecha Ocurrencia
-          { wch: 18 }, // C  Estado Novedad
-          { wch: 20 }, // D  Fecha Despacho
-          { wch: 18 }, // E  Origen Llamada
-          { wch: 20 }, // F  Fecha Llegada
-          { wch: 22 }, // G  Tipo Novedad
-          { wch: 22 }, // H  Subtipo Novedad
-          { wch: 45 }, // I  Descripción
-          { wch: 35 }, // J  Localización
-          { wch: 30 }, // K  Referencia
-          { wch: 12 }, // L  Latitud
-          { wch: 12 }, // M  Longitud
-          { wch: 12 }, // N  Prioridad
-          { wch: 14 }, // O  Resultado
-          { wch: 40 }, // P  Observaciones Atención
-          { wch: 25 }, // Q  Reportante Nombre
-          { wch: 18 }, // R  Reportante Teléfono
-          { wch: 10 }, // S  Turno
-          { wch: 20 }, // T  Sector
-          { wch: 22 }, // U  Operador
-          { wch: 22 }, // V  Supervisor
-          { wch: 16 }, // W  Tipo Recurso
-          { wch: 22 }, // X  Recurso
-          { wch: 16 }, // Y  Cuadrante Código
-          { wch: 28 }, // Z  Cuadrante Nombre
-          { wch: 22 }, // AA Hora Ingreso Cuadrante
-          { wch: 22 }, // AB Hora Salida Cuadrante
-        ];
-
-        XLSX.utils.book_append_sheet(wb, wsNoAtendidas, "No Atendidas");
       }
 
       // ========================================
-      // Generar archivo — con gráficos (exceljs) o fallback xlsx
+      // DESCARGAR
       // ========================================
       const fechaArchivo = new Date().toISOString().split("T")[0];
       const fileName = `Reporte_Operativos_Patrullaje_${fechaArchivo}.xlsx`;
-
-      const xlsxBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-      let descargado = false;
-
-      if (imgDistribucion || imgNovedades || imgTipos) {
-        try {
-          const { Workbook } = await import("exceljs");
-          const workbook = new Workbook();
-          await workbook.xlsx.load(xlsxBuffer);
-
-          const resumenSheet = workbook.getWorksheet("Resumen");
-          if (resumenSheet) {
-            resumenSheet.getRow(21).getCell(1).value = "GRÁFICOS";
-            resumenSheet.getRow(21).getCell(1).font = {
-              bold: true, size: 11, color: { argb: "FF1E3A8A" },
-            };
-
-            let startRow = 22;
-            const addImg = (imgData) => {
-              if (!imgData) return;
-              const id = workbook.addImage({ base64: imgData, extension: "png" });
-              resumenSheet.addImage(id, {
-                tl: { col: 0, row: startRow },
-                ext: { width: 480, height: 260 },
-              });
-              startRow += 19;
-            };
-            addImg(imgDistribucion);
-            addImg(imgNovedades);
-            addImg(imgTipos);
-          }
-
-          const finalBuffer = await workbook.xlsx.writeBuffer();
-          const blob = new Blob([finalBuffer], {
-            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-          });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = fileName;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          setTimeout(() => URL.revokeObjectURL(url), 100);
-          descargado = true;
-        } catch (ejErr) {
-          console.warn("exceljs embed falló, descargando sin gráficos:", ejErr);
-        }
-      }
-
-      if (!descargado) {
-        XLSX.writeFile(wb, fileName);
-      }
+      const finalBuffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([finalBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 100);
       toast.success(`Archivo "${fileName}" descargado correctamente`);
     } catch (err) {
       console.error("Error exportando a Excel:", err);
@@ -1412,8 +1095,10 @@ const wsCuadrantes = XLSX.utils.aoa_to_sheet(cuadrantesRows);
             {(() => {
               const tiposCount = {};
               for (const nov of reporteData.novedades || []) {
-                const tipo = nov.tipo_novedad || "Sin tipo";
-                tiposCount[tipo] = (tiposCount[tipo] || 0) + 1;
+                const tipoBase = (nov.tipo_novedad || "Sin tipo").split("/")[0].trim();
+                const subtipo = (nov.subtipo_novedad || "").trim();
+                const label = subtipo ? `${tipoBase} / ${subtipo}` : tipoBase;
+                tiposCount[label] = (tiposCount[label] || 0) + 1;
               }
               const tiposData = Object.entries(tiposCount)
                 .sort((a, b) => b[1] - a[1])
