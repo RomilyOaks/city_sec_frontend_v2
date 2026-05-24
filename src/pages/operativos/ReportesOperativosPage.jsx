@@ -1108,18 +1108,18 @@ export default function ReportesOperativosPage() {
               return (
                 <div
                   ref={chartTiposRef}
-                  style={{ width: 500, height: 280, background: "#fff", padding: "12px 16px" }}
+                  style={{ width: 800, height: 320, background: "#fff", padding: "12px 16px" }}
                 >
                   <p style={{ textAlign: "center", fontFamily: "sans-serif", fontWeight: "bold", fontSize: 14, color: "#1e293b", margin: "0 0 6px" }}>
                     Novedades Atendidas por Tipo
                   </p>
                   <BarChart
-                    width={468} height={240} data={tiposData} layout="vertical"
-                    margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
+                    width={768} height={280} data={tiposData} layout="vertical"
+                    margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis type="number" allowDecimals={false} />
-                    <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 11 }} />
+                    <YAxis dataKey="name" type="category" width={200} tick={{ fontSize: 11 }} />
                     <Tooltip />
                     <Bar dataKey="value" fill="#8b5cf6" isAnimationActive={false} />
                   </BarChart>
