@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 
 // Importar componentes
+import { ConfirmModal } from "../../components/common";
 import RadioTetraList from "../../components/catalogos/RadioTetraList.jsx";
 import RadioTetraFormModal from "../../components/catalogos/RadioTetraFormModal.jsx";
 import AsignarPersonalModal from "../../components/catalogos/AsignarPersonalModal.jsx";
@@ -71,6 +72,7 @@ export default function RadiosTetraPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAsignarModal, setShowAsignarModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, item: null, loading: false });
 
   // Estados de datos
   const [radioSeleccionado, setRadioSeleccionado] = useState(null);
@@ -143,18 +145,21 @@ export default function RadiosTetraPage() {
   };
 
   // Manejar eliminación
-  const handleEliminar = async (radio) => {
-    if (!window.confirm(`¿Está seguro de eliminar el radio "${radio.radio_tetra_code}"?`)) {
-      return;
-    }
+  const handleEliminar = (radio) => {
+    setConfirmModal({ isOpen: true, item: radio, loading: false });
+  };
 
+  const handleConfirmEliminar = async () => {
+    setConfirmModal((s) => ({ ...s, loading: true }));
     try {
-      await radioTetraService.deleteRadio(radio.id);
+      await radioTetraService.deleteRadio(confirmModal.item.id);
       toast.success("Radio eliminado exitosamente");
       await cargarRadios();
     } catch (error) {
       console.error("Error eliminando radio:", error);
       toast.error(extractValidationErrors(error) || "Error al eliminar el radio");
+    } finally {
+      setConfirmModal({ isOpen: false, item: null, loading: false });
     }
   };
 
@@ -315,6 +320,17 @@ export default function RadiosTetraPage() {
           radio={radioSeleccionado}
         />
       )}
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title="Eliminar Radio TETRA"
+        message={`¿Está seguro de eliminar el radio "${confirmModal.item?.radio_tetra_code}"?`}
+        confirmText="Eliminar"
+        type="danger"
+        loading={confirmModal.loading}
+        onClose={() => setConfirmModal({ isOpen: false, item: null, loading: false })}
+        onConfirm={handleConfirmEliminar}
+      />
     </div>
   );
 }

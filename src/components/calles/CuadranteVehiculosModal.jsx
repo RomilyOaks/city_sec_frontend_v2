@@ -30,6 +30,7 @@ import {
 import toast from "react-hot-toast";
 import cuadranteVehiculoAsignadoService from "../../services/cuadranteVehiculoAsignadoService.js";
 import CuadranteVehiculoFormModal from "./CuadranteVehiculoFormModal.jsx";
+import { ConfirmModal } from "../common/index.js";
 import { useAuthStore } from "../../store/useAuthStore.js";
 import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 
@@ -60,6 +61,7 @@ export default function CuadranteVehiculosModal({ isOpen, onClose, cuadrante }) 
   const [asignacionSeleccionada, setAsignacionSeleccionada] = useState(null);
   const [viewAsignacionData, setViewAsignacionData] = useState(null);
   const [viewLoading, setViewLoading] = useState(false);
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, item: null, type: null, loading: false });
 
   // Estados de filtros
   const [search, setSearch] = useState("");
@@ -72,6 +74,7 @@ export default function CuadranteVehiculosModal({ isOpen, onClose, cuadrante }) 
   const canReactivate = user?.roles?.some(r => r.slug === "super_admin");
 
   // Cerrar modal de vista (declarado antes de useEffect)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const handleCloseViewModal = () => {
     setShowViewModal(false);
     setViewAsignacionData(null);
@@ -234,35 +237,30 @@ export default function CuadranteVehiculosModal({ isOpen, onClose, cuadrante }) 
   };
 
   // Manejar eliminación
-  const handleEliminar = async (asignacion) => {
-    if (!window.confirm(`¿Está seguro de eliminar esta asignación?`)) {
-      return;
-    }
-
-    try {
-      await cuadranteVehiculoAsignadoService.deleteAsignacion(asignacion.id);
-      toast.success("Asignación eliminada exitosamente");
-      await cargarAsignaciones();
-    } catch {
-      toast.error("Error al eliminar la asignación");
-    }
+  const handleEliminar = (asignacion) => {
+    setConfirmModal({ isOpen: true, item: asignacion, type: "eliminar", loading: false });
   };
 
   // Manejar reactivación
-  const handleReactivar = async (asignacion) => {
-    if (!window.confirm(
-      "¿Está seguro que desea reactivar esta asignación?\n\n" +
-      "Esta acción cambiará el estado a ACTIVO y eliminará la marca de eliminación."
-    )) {
-      return;
-    }
+  const handleReactivar = (asignacion) => {
+    setConfirmModal({ isOpen: true, item: asignacion, type: "reactivar", loading: false });
+  };
 
+  const handleConfirmAction = async () => {
+    setConfirmModal((s) => ({ ...s, loading: true }));
     try {
-      await cuadranteVehiculoAsignadoService.reactivarAsignacion(asignacion.id);
-      toast.success("Asignación reactivada exitosamente");
+      if (confirmModal.type === "eliminar") {
+        await cuadranteVehiculoAsignadoService.deleteAsignacion(confirmModal.item.id);
+        toast.success("Asignación eliminada exitosamente");
+      } else {
+        await cuadranteVehiculoAsignadoService.reactivarAsignacion(confirmModal.item.id);
+        toast.success("Asignación reactivada exitosamente");
+      }
       await cargarAsignaciones();
     } catch {
-      toast.error("Error al reactivar la asignación");
+      toast.error(confirmModal.type === "eliminar" ? "Error al eliminar la asignación" : "Error al reactivar la asignación");
+    } finally {
+      setConfirmModal({ isOpen: false, item: null, type: null, loading: false });
     }
   };
 
@@ -782,6 +780,21 @@ export default function CuadranteVehiculosModal({ isOpen, onClose, cuadrante }) 
             </div>
           </div>
         )}
+
+        <ConfirmModal
+          isOpen={confirmModal.isOpen}
+          title={confirmModal.type === "reactivar" ? "Reactivar Asignación" : "Eliminar Asignación"}
+          message={
+            confirmModal.type === "reactivar"
+              ? "¿Está seguro de reactivar esta asignación? El estado cambiará a ACTIVO y se eliminará la marca de eliminación."
+              : "¿Está seguro de eliminar esta asignación?"
+          }
+          confirmText={confirmModal.type === "reactivar" ? "Reactivar" : "Eliminar"}
+          type={confirmModal.type === "reactivar" ? "warning" : "danger"}
+          loading={confirmModal.loading}
+          onClose={() => setConfirmModal({ isOpen: false, item: null, type: null, loading: false })}
+          onConfirm={handleConfirmAction}
+        />
       </div>
     </div>
   );

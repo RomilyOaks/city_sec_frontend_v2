@@ -17,6 +17,7 @@ import { X, Car, Save, AlertCircle, RefreshCw } from "lucide-react";
 import toast from "react-hot-toast";
 import cuadranteVehiculoAsignadoService from "../../services/cuadranteVehiculoAsignadoService.js";
 import { listVehiculosDisponibles } from "../../services/vehiculosService.js";
+import { ConfirmModal } from "../common/index.js";
 import useBodyScrollLock from "../../hooks/useBodyScrollLock";
 
 /**
@@ -58,6 +59,7 @@ export default function CuadranteVehiculoFormModal({
   const [errors, setErrors] = useState({});
   const [vehiculosCargados, setVehiculosCargados] = useState(false);
   const [forceReload, setForceReload] = useState(0); // Para forzar recargas
+  const [reactivarModal, setReactivarModal] = useState({ isOpen: false, asignacionAnulada: null, loading: false });
 
   // Cargar vehículos disponibles y asignados al cuadrante
   const cargarVehiculos = useCallback(async () => {
@@ -140,6 +142,7 @@ export default function CuadranteVehiculoFormModal({
     } finally {
       setVehiculosLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vehiculosLoading, vehiculosCargados, cuadrante?.id, forceReload]); // Dependencias estables
 
   // Resetear vehículos al cerrar modal
@@ -323,6 +326,17 @@ export default function CuadranteVehiculoFormModal({
     }
   };
 
+  const handleConfirmReactivar = async () => {
+    setReactivarModal((s) => ({ ...s, loading: true }));
+    try {
+      await reactivarAsignacion(reactivarModal.asignacionAnulada.id);
+    } catch {
+      // reactivarAsignacion already shows the toast
+    } finally {
+      setReactivarModal({ isOpen: false, asignacionAnulada: null, loading: false });
+    }
+  };
+
   // Manejar envío del formulario
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -343,18 +357,9 @@ export default function CuadranteVehiculoFormModal({
         );
 
         if (asignacionAnulada) {
-          // Mostrar confirmación para reactivar
-          const confirmarReactivacion = window.confirm(
-            "Esta asignación ya fue realizada pero está anulada. ¿Desea reactivarla?"
-          );
-
-          if (confirmarReactivacion) {
-            await reactivarAsignacion(asignacionAnulada.id);
-            return;
-          } else {
-            setSaving(false);
-            return; // Usuario canceló la reactivación
-          }
+          setSaving(false);
+          setReactivarModal({ isOpen: true, asignacionAnulada, loading: false });
+          return;
         }
       }
 
@@ -635,6 +640,18 @@ export default function CuadranteVehiculoFormModal({
           </button>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={reactivarModal.isOpen}
+        title="Reactivar Asignación Existente"
+        message="Esta asignación ya fue realizada pero está anulada. ¿Desea reactivarla?"
+        confirmText="Reactivar"
+        cancelText="Cancelar"
+        type="warning"
+        loading={reactivarModal.loading}
+        onClose={() => setReactivarModal({ isOpen: false, asignacionAnulada: null, loading: false })}
+        onConfirm={handleConfirmReactivar}
+      />
     </div>
   );
 }

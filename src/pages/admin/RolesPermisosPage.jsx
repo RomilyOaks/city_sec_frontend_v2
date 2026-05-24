@@ -7,6 +7,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
+import { ConfirmModal } from "../../components/common";
 import {
   Shield,
   Plus,
@@ -57,6 +58,7 @@ export default function RolesPermisosPage() {
   const [searchPermisos, setSearchPermisos] = useState("");
   const [showCopiarModal, setShowCopiarModal] = useState(false);
   const [copiarTargetRolId, setCopiarTargetRolId] = useState("");
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, item: null });
 
   // Evita setState en componentes desmontados (protección para operaciones asíncronas)
   const isMountedRef = useRef(true);
@@ -142,6 +144,7 @@ export default function RolesPermisosPage() {
     onError: (error) => {
       toast.error(error.response?.data?.message || "Error al eliminar rol");
     },
+    onSettled: () => setConfirmModal({ isOpen: false, item: null }),
   });
 
   // Mutation: Asignar permisos
@@ -269,9 +272,7 @@ export default function RolesPermisosPage() {
       toast.error("No se puede eliminar un rol del sistema");
       return;
     }
-    if (window.confirm(`¿Eliminar el rol "${rol.nombre}"?`)) {
-      deleteMutation.mutate(rol.id);
-    }
+    setConfirmModal({ isOpen: true, item: rol });
   };
 
   /**
@@ -635,6 +636,17 @@ export default function RolesPermisosPage() {
       )}
 
       {/* Modal Copiar Permisos */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title="Eliminar Rol"
+        message={`¿Está seguro de eliminar el rol "${confirmModal.item?.nombre}"?`}
+        confirmText="Eliminar"
+        type="danger"
+        loading={deleteMutation.isPending}
+        onClose={() => setConfirmModal({ isOpen: false, item: null })}
+        onConfirm={() => deleteMutation.mutate(confirmModal.item?.id)}
+      />
+
       {showCopiarModal && (
         <CopiarPermisosModal
           rolOrigen={selectedRol}

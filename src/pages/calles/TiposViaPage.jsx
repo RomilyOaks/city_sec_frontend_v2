@@ -7,11 +7,13 @@
 
 import { useState, useEffect } from "react";
 import { Plus, Search, Edit, Trash2, Type, X, Eye } from "lucide-react";
+import toast from "react-hot-toast";
 import {
   listTiposVia,
   deleteTipoVia,
 } from "../../services/tiposViaService";
 import { useAuthStore } from "../../store/useAuthStore";
+import { ConfirmModal } from "../../components/common";
 import TipoViaFormModal from "../../components/calles/TipoViaFormModal";
 import TipoViaViewModal from "../../components/calles/TipoViaViewModal";
 
@@ -43,6 +45,7 @@ export default function TiposViaPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedTipoVia, setSelectedTipoVia] = useState(null);
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, item: null, loading: false });
 
   // Permisos
   const hasPermission = useAuthStore((s) => s.hasAnyPermission);
@@ -161,16 +164,21 @@ export default function TiposViaPage() {
     setShowEditModal(true);
   }
 
-  async function handleDelete(id) {
-    if (!window.confirm("¿Está seguro de eliminar este tipo de vía?")) return;
+  function handleDelete(tipoVia) {
+    setConfirmModal({ isOpen: true, item: tipoVia, loading: false });
+  }
 
+  async function handleConfirmDelete() {
+    setConfirmModal((s) => ({ ...s, loading: true }));
     try {
-      await deleteTipoVia(id);
-      alert("Tipo de vía eliminado exitosamente");
+      await deleteTipoVia(confirmModal.item.id);
+      toast.success("Tipo de vía eliminado exitosamente");
       loadTiposVia();
     } catch (error) {
       console.error("Error al eliminar tipo de vía:", error);
-      alert(error.response?.data?.message || "Error al eliminar tipo de vía");
+      toast.error(error.response?.data?.message || "Error al eliminar tipo de vía");
+    } finally {
+      setConfirmModal({ isOpen: false, item: null, loading: false });
     }
   }
 
@@ -363,7 +371,7 @@ export default function TiposViaPage() {
                         )}
                         {canDelete && (
                           <button
-                            onClick={() => handleDelete(tipoVia.id)}
+                            onClick={() => handleDelete(tipoVia)}
                             className="inline-flex items-center justify-center rounded-lg p-2 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
                             title="Eliminar"
                           >
@@ -439,6 +447,17 @@ export default function TiposViaPage() {
           tipoVia={selectedTipoVia}
         />
       )}
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title="Eliminar Tipo de Vía"
+        message={`¿Está seguro de eliminar el tipo de vía "${confirmModal.item?.nombre}"?`}
+        confirmText="Eliminar"
+        type="danger"
+        loading={confirmModal.loading}
+        onClose={() => setConfirmModal({ isOpen: false, item: null, loading: false })}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 }

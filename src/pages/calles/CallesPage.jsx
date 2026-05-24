@@ -13,12 +13,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Search, Edit, Trash2, MapPin, Filter, X, Eye } from "lucide-react";
+import toast from "react-hot-toast";
 import {
   listCalles,
   deleteCalle,
   listTiposVia,
 } from "../../services/callesService";
 import { useAuthStore } from "../../store/useAuthStore";
+import { ConfirmModal } from "../../components/common";
 import CalleFormModal from "../../components/calles/CalleFormModal";
 import CalleViewModal from "../../components/calles/CalleViewModal";
 
@@ -55,6 +57,7 @@ export default function CallesPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedCalle, setSelectedCalle] = useState(null);
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, item: null, loading: false });
 
   // Permisos
   const canCreate = hasAnyPermission(["calles.calles.create"]);
@@ -165,16 +168,21 @@ export default function CallesPage() {
     setShowEditModal(true);
   }
 
-  async function handleDelete(id) {
-    if (!window.confirm("¿Está seguro de eliminar esta calle?")) return;
+  function handleDelete(calle) {
+    setConfirmModal({ isOpen: true, item: calle, loading: false });
+  }
 
+  async function handleConfirmDelete() {
+    setConfirmModal((s) => ({ ...s, loading: true }));
     try {
-      await deleteCalle(id);
-      alert("Calle eliminada exitosamente");
+      await deleteCalle(confirmModal.item.id);
+      toast.success("Calle eliminada exitosamente");
       loadCalles();
     } catch (error) {
       console.error("Error al eliminar calle:", error);
-      alert(error.response?.data?.message || "Error al eliminar calle");
+      toast.error(error.response?.data?.message || "Error al eliminar calle");
+    } finally {
+      setConfirmModal({ isOpen: false, item: null, loading: false });
     }
   }
 
@@ -458,7 +466,7 @@ export default function CallesPage() {
                         )}
                         {canDelete && (
                           <button
-                            onClick={() => handleDelete(calle.id)}
+                            onClick={() => handleDelete(calle)}
                             className="inline-flex items-center justify-center rounded-lg p-2 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
                             title="Eliminar"
                           >
@@ -534,6 +542,17 @@ export default function CallesPage() {
           calle={selectedCalle}
         />
       )}
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title="Eliminar Calle"
+        message={`¿Está seguro de eliminar la calle "${confirmModal.item?.nombre}"?`}
+        confirmText="Eliminar"
+        type="danger"
+        loading={confirmModal.loading}
+        onClose={() => setConfirmModal({ isOpen: false, item: null, loading: false })}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 }

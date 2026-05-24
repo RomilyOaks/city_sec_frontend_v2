@@ -24,10 +24,12 @@ import {
   checkUnidadOficinaCanDelete,
   getUnidadOficinaById,
 } from "../../services/unidadesOficinaService";
+import toast from "react-hot-toast";
 import UnidadOficinaFormModal from "../../components/catalogos/UnidadOficinaFormModal";
 import UnidadOficinaViewModal from "../../components/catalogos/UnidadOficinaViewModal";
 import { useAuthStore } from "../../store/useAuthStore";
 import { canPerformAction } from "../../rbac/rbac.js";
+import { ConfirmModal } from "../../components/common";
 
 const TIPOS_UNIDAD = [
   {
@@ -92,6 +94,8 @@ export default function UnidadesOficinaPage() {
   const [showFormModal, setShowFormModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedUnidad, setSelectedUnidad] = useState(null);
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, item: null, loading: false });
+  const [deleteCheckLoading, setDeleteCheckLoading] = useState(false);
   //const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
@@ -138,29 +142,35 @@ export default function UnidadesOficinaPage() {
     setShowViewModal(true);
   }
 
-  async function handleDelete(id) {
+  async function handleDelete(unidad) {
+    setDeleteCheckLoading(true);
     try {
-      const unidadInfo = await getUnidadOficinaById(id);
-      const nombre = unidadInfo?.nombre || "";
-
-      const checkResult = await checkUnidadOficinaCanDelete(id);
+      const checkResult = await checkUnidadOficinaCanDelete(unidad.id);
       if (checkResult && !checkResult.canDelete) {
         const count = checkResult.count || 0;
-        const message = `No se puede eliminar la unidad/oficina:\n"${nombre}"\n\nHay ${count} novedad(es) asociada(s)`;
-        alert(message);
+        toast.error(`No se puede eliminar "${unidad.nombre}": hay ${count} novedad(es) asociada(s)`);
         return;
       }
+      setConfirmModal({ isOpen: true, item: unidad, loading: false });
+    } catch (error) {
+      console.error("Error al verificar eliminación:", error);
+      toast.error("Error al verificar si se puede eliminar");
+    } finally {
+      setDeleteCheckLoading(false);
+    }
+  }
 
-      if (confirm(`¿Está seguro de eliminar la unidad/oficina "${nombre}"?`)) {
-        await deleteUnidadOficina(id);
-        alert("Unidad/Oficina eliminada correctamente");
-        loadUnidades();
-      }
+  async function handleConfirmDelete() {
+    setConfirmModal((s) => ({ ...s, loading: true }));
+    try {
+      await deleteUnidadOficina(confirmModal.item.id);
+      toast.success("Unidad/Oficina eliminada correctamente");
+      loadUnidades();
     } catch (error) {
       console.error("Error al eliminar unidad:", error);
-      alert(
-        error.response?.data?.message || "Error al eliminar la unidad/oficina"
-      );
+      toast.error(error.response?.data?.message || "Error al eliminar la unidad/oficina");
+    } finally {
+      setConfirmModal({ isOpen: false, item: null, loading: false });
     }
   }
 
@@ -437,7 +447,8 @@ export default function UnidadesOficinaPage() {
                         )}
                         {canDelete && (
                           <button
-                            onClick={() => handleDelete(unidad.id)}
+                            onClick={() => handleDelete(unidad)}
+                            disabled={deleteCheckLoading}
                             className="text-slate-600 hover:text-red-700 dark:text-slate-400 dark:hover:text-red-500"
                             title="Eliminar"
                           >
@@ -498,6 +509,17 @@ export default function UnidadesOficinaPage() {
           unidad={selectedUnidad}
         />
       )}
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title="Eliminar Unidad/Oficina"
+        message={`¿Está seguro de eliminar "${confirmModal.item?.nombre}"?`}
+        confirmText="Eliminar"
+        type="danger"
+        loading={confirmModal.loading}
+        onClose={() => setConfirmModal({ isOpen: false, item: null, loading: false })}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 }

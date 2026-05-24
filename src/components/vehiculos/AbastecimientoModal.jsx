@@ -35,6 +35,7 @@ import {
 import useBodyScrollLock from '../../hooks/useBodyScrollLock';
 import { useAuthStore } from '../../store/useAuthStore.js';
 import { canPerformAction } from '../../rbac/rbac.js';
+import { ConfirmModal } from '../common/index.js';
 
 /**
  * Modal principal para gestión de abastecimientos de combustible.
@@ -60,6 +61,7 @@ export default function AbastecimientoModal({ isOpen, onClose, vehicle, onVehicl
   // Estado para vista readonly (doble click)
   const [viewOnlyData, setViewOnlyData] = useState(null);
   const [showViewOnly, setShowViewOnly] = useState(false);
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, item: null, loading: false });
 
   // Estado local para vehicle actualizado
   const [currentVehicle, setCurrentVehicle] = useState(vehicle);
@@ -396,11 +398,14 @@ export default function AbastecimientoModal({ isOpen, onClose, vehicle, onVehicl
    *
    * @param {number} id - ID del abastecimiento a eliminar
    */
-  const handleDelete = async (id) => {
-    if (!window.confirm('¿Está seguro de eliminar este abastecimiento?')) return;
+  const handleDelete = (ab) => {
+    setConfirmModal({ isOpen: true, item: ab, loading: false });
+  };
 
+  const handleConfirmDelete = async () => {
+    setConfirmModal((s) => ({ ...s, loading: true }));
     try {
-      const response = await deleteAbastecimiento(id);
+      const response = await deleteAbastecimiento(confirmModal.item.id);
       if (response.success) {
         toast.success('Abastecimiento eliminado correctamente');
         await cargarAbastecimientos();
@@ -410,6 +415,8 @@ export default function AbastecimientoModal({ isOpen, onClose, vehicle, onVehicl
     } catch (err) {
       toast.error('Error al eliminar');
       console.error('[AbastecimientoModal] Error eliminando:', err);
+    } finally {
+      setConfirmModal({ isOpen: false, item: null, loading: false });
     }
   };
 
@@ -816,7 +823,7 @@ export default function AbastecimientoModal({ isOpen, onClose, vehicle, onVehicl
                                 title="Eliminar"
                                 onClick={(e) => {
                                   e.stopPropagation(); // Evitar que se active el doble click
-                                  handleDelete(ab.id);
+                                  handleDelete(ab);
                                 }}
                                 className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
                               >
@@ -1182,6 +1189,17 @@ export default function AbastecimientoModal({ isOpen, onClose, vehicle, onVehicl
       {error && (
         <p className="text-red-500 text-xs mt-1">{error}</p>
       )}
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title="Eliminar Abastecimiento"
+        message="¿Está seguro de eliminar este abastecimiento? Esta acción no se puede deshacer."
+        confirmText="Eliminar"
+        type="danger"
+        loading={confirmModal.loading}
+        onClose={() => setConfirmModal({ isOpen: false, item: null, loading: false })}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 }

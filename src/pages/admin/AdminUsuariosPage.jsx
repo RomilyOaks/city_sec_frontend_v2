@@ -38,6 +38,7 @@ import {
 import { listPersonal } from "../../services/personalService.js";
 import { useAuthStore } from "../../store/useAuthStore.js";
 import { canPerformAction } from "../../rbac/rbac.js";
+import { ConfirmModal } from "../../components/common";
 
 const schema = z
   .object({
@@ -129,6 +130,7 @@ export default function AdminUsuariosPage() {
   const [personalList, setPersonalList] = useState([]);
   const [loadingPersonal, setLoadingPersonal] = useState(false);
   const [showAllPersonal, setShowAllPersonal] = useState(false);
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, item: null, loading: false });
 
   const estadoOptions = useMemo(
     () => ["ACTIVO", "INACTIVO", "BLOQUEADO", "PENDIENTE"],
@@ -588,21 +590,21 @@ export default function AdminUsuariosPage() {
     }
   };
 
-  const handleSoftDelete = async (u) => {
-    const confirmed = window.confirm(
-      `¿Estás seguro de eliminar al usuario "${u.username}"?\n\nEsta acción marcará al usuario como eliminado (soft delete).`
-    );
-    if (!confirmed) return;
+  const handleSoftDelete = (u) => {
+    setConfirmModal({ isOpen: true, item: u, loading: false });
+  };
 
+  const handleConfirmSoftDelete = async () => {
+    setConfirmModal((s) => ({ ...s, loading: true }));
     try {
-      await deleteUser(u.id);
+      await deleteUser(confirmModal.item.id);
       toast.success("Usuario eliminado");
       setPage(1);
       await fetchUsers({ nextPage: 1 });
     } catch (err) {
-      toast.error(
-        err?.response?.data?.message || err?.message || "No se pudo eliminar"
-      );
+      toast.error(err?.response?.data?.message || err?.message || "No se pudo eliminar");
+    } finally {
+      setConfirmModal({ isOpen: false, item: null, loading: false });
     }
   };
 
@@ -1722,6 +1724,17 @@ export default function AdminUsuariosPage() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title="Eliminar Usuario"
+        message={`¿Estás seguro de eliminar al usuario "${confirmModal.item?.username}"? Esta acción marcará al usuario como eliminado.`}
+        confirmText="Eliminar"
+        type="danger"
+        loading={confirmModal.loading}
+        onClose={() => setConfirmModal({ isOpen: false, item: null, loading: false })}
+        onConfirm={handleConfirmSoftDelete}
+      />
     </div>
   );
 }

@@ -11,7 +11,9 @@ import { Trash2, RefreshCw, RotateCcw, MapPin, Navigation, Map as MapIcon, X, Se
 import { useAuthStore } from "../../store/useAuthStore";
 import api from "../../services/api";
 import { reactivarDireccion } from "../../services/direccionesService";
+import { ConfirmModal } from "../../components/common";
 import DireccionViewModal from "../../components/direcciones/DireccionViewModal";
+import { toast } from "react-hot-toast";
 
 export default function DireccionesEliminadasPage() {
   const { user } = useAuthStore();
@@ -25,12 +27,14 @@ export default function DireccionesEliminadasPage() {
   // Modal states
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedDireccion, setSelectedDireccion] = useState(null);
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, item: null, loading: false });
 
   // Permisos - Solo super_admin puede reactivar según las especificaciones del backend
   const canReactivate = user?.roles?.some(r => r.slug === "super_admin");
 
   useEffect(() => {
     loadDireccionesEliminadas();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, search]);
 
   /**
@@ -71,7 +75,7 @@ export default function DireccionesEliminadasPage() {
       console.error("❌ Detalles del error:", error.response?.data || error.message);
 
       const errorMsg = error.response?.data?.message || error.message || "Error desconocido";
-      alert(`Error al cargar direcciones eliminadas:\n${errorMsg}\n\nVerifica que el backend esté disponible.`);
+      toast.error(`Error al cargar direcciones eliminadas: ${errorMsg}`);
     } finally {
       setLoading(false);
     }
@@ -104,38 +108,27 @@ export default function DireccionesEliminadasPage() {
   /**
    * Reactivar dirección eliminada
    */
-  async function handleReactivar(id) {
-    const confirmacion = window.confirm(
-      "¿Está seguro que desea reactivar esta dirección?\n\n" +
-      "Esta acción:\n" +
-      "• Cambiará el estado a ACTIVO (estado = 1)\n" +
-      "• Eliminará la marca de eliminación (deleted_at = NULL)\n" +
-      "• La dirección volverá a aparecer en la lista principal"
-    );
+  function handleReactivar(dir) {
+    setConfirmModal({ isOpen: true, item: dir, loading: false });
+  }
 
-    if (!confirmacion) return;
-
+  async function handleConfirmReactivar() {
+    setConfirmModal((s) => ({ ...s, loading: true }));
     try {
-      setLoading(true);
-
-      await reactivarDireccion(id);
-
-      alert("✅ Dirección reactivada exitosamente");
-
-      // Recargar lista
+      await reactivarDireccion(confirmModal.item.id);
+      toast.success("Dirección reactivada exitosamente");
       loadDireccionesEliminadas();
     } catch (error) {
       console.error("❌ Error al reactivar dirección:", error);
-
       if (error.response?.status === 403) {
-        alert("❌ No tiene permisos para reactivar direcciones (solo super_admin)");
+        toast.error("No tiene permisos para reactivar direcciones (solo super_admin)");
       } else if (error.response?.status === 404) {
-        alert("❌ Dirección no encontrada");
+        toast.error("Dirección no encontrada");
       } else {
-        alert("❌ Error al reactivar dirección: " + (error.response?.data?.message || error.message));
+        toast.error("Error al reactivar dirección: " + (error.response?.data?.message || error.message));
       }
     } finally {
-      setLoading(false);
+      setConfirmModal({ isOpen: false, item: null, loading: false });
     }
   }
 
@@ -272,7 +265,7 @@ export default function DireccionesEliminadasPage() {
                         </button>
                         {canReactivate && (
                           <button
-                            onClick={() => handleReactivar(dir.id)}
+                            onClick={() => handleReactivar(dir)}
                             className="text-green-600 hover:text-green-800 dark:text-green-400"
                             title="Reactivar dirección"
                           >
@@ -327,6 +320,18 @@ export default function DireccionesEliminadasPage() {
           direccion={selectedDireccion}
         />
       )}
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title="Reactivar Dirección"
+        message={`¿Está seguro de reactivar la dirección "${confirmModal.item?.direccion_completa || confirmModal.item?.direccion_code || "seleccionada"}"? La dirección volverá a aparecer en la lista principal.`}
+        confirmText="Reactivar"
+        cancelText="Cancelar"
+        type="warning"
+        loading={confirmModal.loading}
+        onClose={() => setConfirmModal({ isOpen: false, item: null, loading: false })}
+        onConfirm={handleConfirmReactivar}
+      />
     </div>
   );
 }

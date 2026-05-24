@@ -28,6 +28,7 @@ import CuadranteViewModal from "../../components/calles/CuadranteViewModal";
 import CuadranteMapaModal from "../../components/calles/CuadranteMapaModal";
 import CuadranteVehiculosModal from "../../components/calles/CuadranteVehiculosModal";
 import SubsectorFormModal from "../../components/calles/SubsectorFormModal";
+import { ConfirmModal } from "../../components/common";
 import toast from "react-hot-toast";
 
 export default function SectoresCuadrantesPage() {
@@ -72,6 +73,7 @@ export default function SectoresCuadrantesPage() {
   const [showMapaCuadranteModal, setShowMapaCuadranteModal] = useState(false);
   const [showVehiculosCuadranteModal, setShowVehiculosCuadranteModal] = useState(false);
   const [editingCuadrante, setEditingCuadrante] = useState(null);
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, item: null, type: null, loading: false });
   const [viewingCuadrante, setViewingCuadrante] = useState(null);
   const [mapaCuadrante, setMapaCuadrante] = useState(null);
   const [vehiculosCuadrante, setVehiculosCuadrante] = useState(null);
@@ -254,16 +256,8 @@ const loadCuadrantes = useCallback(async () => {
     setShowViewSectorModal(true);
   };
 
-  const handleDeleteSector = async (id) => {
-    if (!window.confirm("¿Está seguro de eliminar este sector?")) return;
-    try {
-      await deleteSector(id, user?.id);
-      toast.success("Sector eliminado correctamente");
-      loadSectores();
-    } catch (error) {
-      const errorMessage = logApiError('eliminar sector', error);
-      toast.error(errorMessage);
-    }
+  const handleDeleteSector = (sector) => {
+    setConfirmModal({ isOpen: true, item: sector, type: "sector", loading: false });
   };
 
   const handleClearSearchSectores = () => {
@@ -285,16 +279,8 @@ const loadCuadrantes = useCallback(async () => {
     setShowEditSubsectorModal(true);
   };
 
-  const handleDeleteSubsector = async (id) => {
-    if (!window.confirm("¿Está seguro de eliminar este subsector?")) return;
-    try {
-      await deleteSubsector(id, user?.id);
-      toast.success("Subsector eliminado correctamente");
-      loadSubsectores();
-    } catch (error) {
-      const errorMessage = logApiError('eliminar subsector', error);
-      toast.error(errorMessage);
-    }
+  const handleDeleteSubsector = (subsector) => {
+    setConfirmModal({ isOpen: true, item: subsector, type: "subsector", loading: false });
   };
 
   const handleClearSearchSubsectores = () => {
@@ -331,15 +317,31 @@ const loadCuadrantes = useCallback(async () => {
     setShowVehiculosCuadranteModal(true);
   };
 
-  const handleDeleteCuadrante = async (id) => {
-    if (!window.confirm("¿Está seguro de eliminar este cuadrante?")) return;
+  const handleDeleteCuadrante = (cuadrante) => {
+    setConfirmModal({ isOpen: true, item: cuadrante, type: "cuadrante", loading: false });
+  };
+
+  const handleConfirmDelete = async () => {
+    setConfirmModal((s) => ({ ...s, loading: true }));
     try {
-      await deleteCuadrante(id, user?.id);
-      toast.success("Cuadrante eliminado correctamente");
-      loadCuadrantes();
+      if (confirmModal.type === "sector") {
+        await deleteSector(confirmModal.item.id, user?.id);
+        toast.success("Sector eliminado correctamente");
+        loadSectores();
+      } else if (confirmModal.type === "subsector") {
+        await deleteSubsector(confirmModal.item.id, user?.id);
+        toast.success("Subsector eliminado correctamente");
+        loadSubsectores();
+      } else {
+        await deleteCuadrante(confirmModal.item.id, user?.id);
+        toast.success("Cuadrante eliminado correctamente");
+        loadCuadrantes();
+      }
     } catch (error) {
-      const errorMessage = logApiError('eliminar cuadrante', error);
+      const errorMessage = logApiError(`eliminar ${confirmModal.type}`, error);
       toast.error(errorMessage);
+    } finally {
+      setConfirmModal({ isOpen: false, item: null, type: null, loading: false });
     }
   };
 
@@ -553,7 +555,7 @@ const loadCuadrantes = useCallback(async () => {
                             )}
                             {can("sectores_delete") && (
                               <button
-                                onClick={(e) => { e.stopPropagation(); handleDeleteSector(sector.id); }}
+                                onClick={(e) => { e.stopPropagation(); handleDeleteSector(sector); }}
                                 className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
                                 title="Eliminar"
                               >
@@ -732,7 +734,7 @@ const loadCuadrantes = useCallback(async () => {
                             )}
                             {can("subsectores_delete") && (
                               <button
-                                onClick={(e) => { e.stopPropagation(); handleDeleteSubsector(subsector.id); }}
+                                onClick={(e) => { e.stopPropagation(); handleDeleteSubsector(subsector); }}
                                 className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
                                 title="Eliminar"
                               >
@@ -907,7 +909,7 @@ const loadCuadrantes = useCallback(async () => {
                             )}
                             {can("cuadrantes_delete") && (
                               <button
-                                onClick={() => handleDeleteCuadrante(cuadrante.id)}
+                                onClick={() => handleDeleteCuadrante(cuadrante)}
                                 className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
                                 title="Eliminar"
                               >
@@ -1046,6 +1048,21 @@ const loadCuadrantes = useCallback(async () => {
           cuadrante={vehiculosCuadrante}
         />
       )}
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={
+          confirmModal.type === "sector" ? "Eliminar Sector" :
+          confirmModal.type === "subsector" ? "Eliminar Subsector" :
+          "Eliminar Cuadrante"
+        }
+        message={`¿Está seguro de eliminar "${confirmModal.item?.nombre || confirmModal.item?.cuadrante_code || confirmModal.item?.nombre}"?`}
+        confirmText="Eliminar"
+        type="danger"
+        loading={confirmModal.loading}
+        onClose={() => setConfirmModal({ isOpen: false, item: null, type: null, loading: false })}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 }

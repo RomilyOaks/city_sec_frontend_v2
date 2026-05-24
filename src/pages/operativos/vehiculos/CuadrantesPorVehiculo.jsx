@@ -26,6 +26,7 @@ import {
 import api from "../../../services/api.js";
 import { canPerformAction } from "../../../rbac/rbac.js";
 import { useAuthStore } from "../../../store/useAuthStore.js";
+import { ConfirmModal } from "../../../components/common/index.js";
 import AsignarCuadranteForm from "./AsignarCuadranteForm.jsx";
 import EditarCuadranteForm from "./EditarCuadranteForm.jsx";
 import CuadranteMapaModal from "../../../components/calles/CuadranteMapaModal.jsx";
@@ -80,6 +81,7 @@ export default function CuadrantesPorVehiculo() {
   const [showMapModal, setShowMapModal] = useState(false);
   const [selectedCuadranteForMap, setSelectedCuadranteForMap] = useState(null);
   const [novedadesCounts, setNovedadesCounts] = useState({});
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, item: null, loading: false });
 
   // Obtener sector_id desde query params
   useEffect(() => {
@@ -283,6 +285,7 @@ export default function CuadrantesPorVehiculo() {
     } finally {
       setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [turnoId, vehiculoId, fetchVehiculo]);
 
   useEffect(() => {
@@ -383,31 +386,27 @@ export default function CuadrantesPorVehiculo() {
     setNovedadesCounts(counts);
   };
 
-  const handleDeleteCuadrante = async (cuadrante) => {
-    // Validar que no tenga novedades asignadas
+  const handleDeleteCuadrante = (cuadrante) => {
     const novedadesCount = novedadesCounts[cuadrante.id] || 0;
-    
     if (novedadesCount > 0) {
       toast.error(`No se puede eliminar. El cuadrante tiene ${novedadesCount} ${novedadesCount === 1 ? 'novedad asignada' : 'novedades asignadas'}`);
       return;
     }
-    
-    const cuadranteInfo = cuadrante.datosCuadrante || cuadrante.cuadrante || {};
-    const confirmed = window.confirm(
-      `¿Está seguro de eliminar el cuadrante ${cuadranteInfo.cuadrante_code || cuadranteInfo.codigo || ''} - ${cuadranteInfo.nombre || ''}?`
-    );
-    
-    if (!confirmed) return;
-    
+    setConfirmModal({ isOpen: true, item: cuadrante, loading: false });
+  };
+
+  const handleConfirmDeleteCuadrante = async () => {
+    setConfirmModal((s) => ({ ...s, loading: true }));
     try {
-      await api.delete(`/operativos/${turnoId}/vehiculos/${vehiculoId}/cuadrantes/${cuadrante.id}`);
-      
+      await api.delete(`/operativos/${turnoId}/vehiculos/${vehiculoId}/cuadrantes/${confirmModal.item.id}`);
       toast.success("Cuadrante eliminado exitosamente");
       fetchCuadrantes();
     } catch (err) {
       console.error("Error eliminando cuadrante:", err);
       const errorMsg = err.response?.data?.message || "Error al eliminar cuadrante";
       toast.error(errorMsg);
+    } finally {
+      setConfirmModal({ isOpen: false, item: null, loading: false });
     }
   };
 
@@ -774,6 +773,17 @@ export default function CuadrantesPorVehiculo() {
             setShowMapModal(false);
             setSelectedCuadranteForMap(null);
           }}
+        />
+
+        <ConfirmModal
+          isOpen={confirmModal.isOpen}
+          title="Eliminar Cuadrante"
+          message={`¿Está seguro de eliminar el cuadrante "${(confirmModal.item?.datosCuadrante || confirmModal.item?.cuadrante)?.cuadrante_code || ""} - ${(confirmModal.item?.datosCuadrante || confirmModal.item?.cuadrante)?.nombre || ""}"?`}
+          confirmText="Eliminar"
+          type="danger"
+          loading={confirmModal.loading}
+          onClose={() => setConfirmModal({ isOpen: false, item: null, loading: false })}
+          onConfirm={handleConfirmDeleteCuadrante}
         />
       </div>
     </div>

@@ -17,9 +17,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Search, Edit, Trash2, RefreshCw, RotateCcw, MapPin, Navigation, Map as MapIcon, Filter, X, Eye, Archive } from "lucide-react";
-import { listDirecciones, deleteDireccion, checkDireccionCanDelete, getDireccionById, geocodificarDireccion as geocodificarDireccionService } from "../../services/direccionesService";
+import { listDirecciones, deleteDireccion, checkDireccionCanDelete, geocodificarDireccion as geocodificarDireccionService } from "../../services/direccionesService";
 import { listCallesActivas } from "../../services/callesService";
 import { useAuthStore } from "../../store/useAuthStore";
+import { ConfirmModal } from "../../components/common";
 import DireccionFormModal from "../../components/direcciones/DireccionFormModal";
 import DireccionViewModal from "../../components/direcciones/DireccionViewModal";
 import UbicacionMiniMapa from "../../components/UbicacionMiniMapa";
@@ -70,6 +71,8 @@ export default function DireccionesPage() {
   const [showMapModal, setShowMapModal] = useState(false);
   const [mapDireccion, setMapDireccion] = useState(null);
   const [selectedDireccion, setSelectedDireccion] = useState(null);
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, item: null, loading: false });
+  const [deleteCheckLoading, setDeleteCheckLoading] = useState(false);
 
   // Permisos
   const hasPermission = useAuthStore((s) => s.hasAnyPermission);
@@ -192,64 +195,40 @@ export default function DireccionesPage() {
     setShowEditModal(true);
   }
 
-  async function handleDelete(id) {
+  async function handleDelete(dir) {
+    setDeleteCheckLoading(true);
     try {
-      // Primero obtener la información de la dirección para mostrarla en los mensajes
-      let direccionInfo = null;
-      let direccionCompleta = "";
-
-      try {
-        direccionInfo = await getDireccionById(id);
-        direccionCompleta = direccionInfo?.direccion_completa || "";
-      } catch (error) {
-        console.warn("⚠️ No se pudo obtener información de la dirección:", error);
-      }
-
-      // Verificar si la dirección puede ser eliminada
-      const checkResult = await checkDireccionCanDelete(id);
-
-      // Si no se puede eliminar, mostrar el error y detener
+      const checkResult = await checkDireccionCanDelete(dir.id);
       if (checkResult && !checkResult.canDelete) {
         const count = checkResult.count || 0;
-        let message = checkResult.message ||
-          `No se puede eliminar. Hay ${count} novedad(es) asociada(s)`;
-
-        // Agregar la dirección completa al mensaje si está disponible
-        if (direccionCompleta) {
-          message = `No se puede eliminar la dirección:\n"${direccionCompleta}"\n\nHay ${count} novedad(es) asociada(s)`;
-        }
-
+        const label = dir.direccion_completa || formatDireccion(dir);
+        const message = label
+          ? `No se puede eliminar la dirección "${label}". Hay ${count} novedad(es) asociada(s).`
+          : checkResult.message || `No se puede eliminar. Hay ${count} novedad(es) asociada(s).`;
         toast.error(message);
-        alert(message);
         return;
       }
+      setConfirmModal({ isOpen: true, item: dir, loading: false });
+    } catch (err) {
+      console.error("❌ Error al verificar dirección:", err);
+      toast.error("Error al verificar si la dirección puede eliminarse");
+    } finally {
+      setDeleteCheckLoading(false);
+    }
+  }
 
-      // Si se puede eliminar, pedir confirmación con la dirección completa
-      const confirmMessage = direccionCompleta
-        ? `¿Está seguro de eliminar esta dirección?\n\n"${direccionCompleta}"`
-        : "¿Está seguro de eliminar esta dirección?";
-
-      if (!window.confirm(confirmMessage)) return;
-
-      // Proceder con la eliminación
-      await deleteDireccion(id);
+  async function handleConfirmDelete() {
+    setConfirmModal((s) => ({ ...s, loading: true }));
+    try {
+      await deleteDireccion(confirmModal.item.id);
       toast.success("Dirección eliminada exitosamente");
       loadDirecciones();
     } catch (err) {
       console.error("❌ Error al eliminar dirección:", err);
-
-      // Si el error es porque hay referencias, mostrarlo claramente
       const errorMsg = err.response?.data?.message || "Error al eliminar dirección";
-
-      // Verificar si el error menciona referencias/asociaciones
-      if (errorMsg.toLowerCase().includes("asociad") ||
-          errorMsg.toLowerCase().includes("referencia") ||
-          errorMsg.toLowerCase().includes("novedad")) {
-        toast.error(errorMsg);
-        alert(errorMsg);
-      } else {
-        toast.error(errorMsg);
-      }
+      toast.error(errorMsg);
+    } finally {
+      setConfirmModal({ isOpen: false, item: null, loading: false });
     }
   }
 
@@ -565,8 +544,9 @@ export default function DireccionesPage() {
                         )}
                         {canDelete && (
                           <button
-                            onClick={() => handleDelete(dir.id)}
-                            className="text-red-600 hover:text-red-800 dark:text-red-400"
+                            onClick={() => handleDelete(dir)}
+                            disabled={deleteCheckLoading}
+                            className="text-red-600 hover:text-red-800 dark:text-red-400 disabled:opacity-50"
                             title="Eliminar"
                           >
                             <Trash2 size={18} />
@@ -652,6 +632,17 @@ export default function DireccionesPage() {
           editable={canUpdate}
         />
       )}
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title="Eliminar Dirección"
+        message={`¿Está seguro de eliminar la dirección "${confirmModal.item?.direccion_completa || "seleccionada"}"?`}
+        confirmText="Eliminar"
+        type="danger"
+        loading={confirmModal.loading}
+        onClose={() => setConfirmModal({ isOpen: false, item: null, loading: false })}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 }

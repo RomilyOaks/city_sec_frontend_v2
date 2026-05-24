@@ -22,6 +22,7 @@ import {
   deleteCalleCuadrante,
 } from "../../services/callesCuadrantesService";
 import { useAuthStore } from "../../store/useAuthStore";
+import { ConfirmModal } from "../../components/common";
 import CalleFormModal from "../../components/calles/CalleFormModal";
 import CalleCuadranteFormModal from "../../components/calles/CalleCuadranteFormModal";
 import CalleCuadranteViewModal from "../../components/calles/CalleCuadranteViewModal";
@@ -76,6 +77,7 @@ export default function CallesCuadrantesPage() {
   const [viewingCuadrante, setViewingCuadrante] = useState(null);
   const [showMapaCuadranteModal, setShowMapaCuadranteModal] = useState(false);
   const [mapaCuadrante, setMapaCuadrante] = useState(null);
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, item: null, type: null, loading: false });
 
   const limit = 15;
 
@@ -212,20 +214,9 @@ export default function CallesCuadrantesPage() {
     setShowEditCalleModal(true);
   };
 
-  const handleDeleteCalle = async (e, id) => {
+  const handleDeleteCalle = (e, calle) => {
     e.stopPropagation();
-    if (!window.confirm("¿Está seguro de eliminar esta calle?")) return;
-
-    try {
-      await deleteCalle(id, user?.id);
-      toast.success("Calle eliminada correctamente");
-      loadCalles();
-    } catch (error) {
-      console.error("Error al eliminar calle:", error);
-      toast.error(
-        error.response?.data?.message || "Error al eliminar la calle"
-      );
-    }
+    setConfirmModal({ isOpen: true, item: calle, type: "calle", loading: false });
   };
 
   const handleSearchCalles = (e) => {
@@ -257,18 +248,27 @@ export default function CallesCuadrantesPage() {
     setShowEditCuadranteModal(true);
   };
 
-  const handleDeleteCuadrante = async (id) => {
-    if (!window.confirm("¿Está seguro de eliminar esta relación?")) return;
+  const handleDeleteCuadrante = (cuad) => {
+    setConfirmModal({ isOpen: true, item: cuad, type: "cuadrante", loading: false });
+  };
 
+  const handleConfirmDelete = async () => {
+    setConfirmModal((s) => ({ ...s, loading: true }));
     try {
-      await deleteCalleCuadrante(id, user?.id);
-      toast.success("Relación eliminada correctamente");
-      loadCuadrantes();
+      if (confirmModal.type === "calle") {
+        await deleteCalle(confirmModal.item.id, user?.id);
+        toast.success("Calle eliminada correctamente");
+        loadCalles();
+      } else {
+        await deleteCalleCuadrante(confirmModal.item.id, user?.id);
+        toast.success("Relación eliminada correctamente");
+        loadCuadrantes();
+      }
     } catch (error) {
-      console.error("Error al eliminar relación:", error);
-      toast.error(
-        error.response?.data?.message || "Error al eliminar la relación"
-      );
+      console.error("Error al eliminar:", error);
+      toast.error(error.response?.data?.message || "Error al eliminar");
+    } finally {
+      setConfirmModal({ isOpen: false, item: null, type: null, loading: false });
     }
   };
 
@@ -393,7 +393,7 @@ export default function CallesCuadrantesPage() {
                             )}
                             {can("calles_delete") && (
                               <button
-                                onClick={(e) => handleDeleteCalle(e, calle.id)}
+                                onClick={(e) => handleDeleteCalle(e, calle)}
                                 className="text-red-600 hover:text-red-800 dark:text-red-400"
                                 title="Eliminar"
                               >
@@ -625,7 +625,7 @@ export default function CallesCuadrantesPage() {
                             )}
                             {can("calles_cuadrantes_delete") && (
                               <button
-                                onClick={() => handleDeleteCuadrante(cuad.id)}
+                                onClick={() => handleDeleteCuadrante(cuad)}
                                 className="text-red-600 hover:text-red-800 dark:text-red-400"
                                 title="Eliminar"
                               >
@@ -728,6 +728,21 @@ export default function CallesCuadrantesPage() {
           cuadrante={mapaCuadrante}
         />
       )}
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.type === "calle" ? "Eliminar Calle" : "Eliminar Relación"}
+        message={
+          confirmModal.type === "calle"
+            ? `¿Está seguro de eliminar la calle "${confirmModal.item?.nombre}"?`
+            : `¿Está seguro de eliminar esta relación calle-cuadrante?`
+        }
+        confirmText="Eliminar"
+        type="danger"
+        loading={confirmModal.loading}
+        onClose={() => setConfirmModal({ isOpen: false, item: null, type: null, loading: false })}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 }
