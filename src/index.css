@@ -2,11 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Ícono de calendario/reloj visible en Dark Mode */
+/* Ícono de calendario/reloj visible en Dark Mode.
+   brightness(0) primero neutraliza el color original del ícono,
+   luego invert(1) lo convierte a blanco — funciona con cualquier color-scheme. */
 .dark input[type="date"]::-webkit-calendar-picker-indicator,
 .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator,
 .dark input[type="time"]::-webkit-calendar-picker-indicator {
-  filter: invert(1) brightness(1.5);
+  filter: brightness(0) invert(1);
   cursor: pointer;
   opacity: 0.8;
 }

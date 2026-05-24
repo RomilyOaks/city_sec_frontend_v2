@@ -167,6 +167,7 @@ export default function ReportesOperativosPage() {
   const [reporteData, setReporteData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Refs para captura de gráficos — usados al exportar Excel
   const chartDistribucionRef = useRef(null);
@@ -258,6 +259,9 @@ export default function ReportesOperativosPage() {
       toast.error("No hay datos para exportar");
       return;
     }
+
+    setIsExporting(true);
+    const toastId = toast.loading("Generando reporte Excel, por favor espere...");
 
     try {
       // Capturar gráficos off-screen como PNG para incrustar en Excel
@@ -632,10 +636,14 @@ export default function ReportesOperativosPage() {
       a.click();
       document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 100);
+      toast.dismiss(toastId);
       toast.success(`Archivo "${fileName}" descargado correctamente`);
     } catch (err) {
       console.error("Error exportando a Excel:", err);
+      toast.dismiss(toastId);
       toast.error("Error al exportar el archivo Excel");
+    } finally {
+      setIsExporting(false);
     }
   }, [reporteData, sectores]);
 
@@ -870,11 +878,15 @@ export default function ReportesOperativosPage() {
                 </h2>
                 <button
                   onClick={handleExportarExcel}
-                  disabled={reporteData.total_turnos === 0}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                  disabled={reporteData.total_turnos === 0 || isExporting}
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white transition-colors disabled:opacity-50 ${
+                    isExporting
+                      ? "bg-slate-500 cursor-not-allowed"
+                      : "bg-green-600 hover:bg-green-700"
+                  }`}
                 >
-                  <Download size={18} />
-                  Exportar a Excel
+                  {isExporting ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+                  {isExporting ? "Generando..." : "Exportar a Excel"}
                 </button>
               </div>
 
