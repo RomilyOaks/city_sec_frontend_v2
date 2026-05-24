@@ -122,7 +122,10 @@ const formatDateTimeForExcel = (dateString) => {
  */
 const getTodayDate = () => {
   const now = new Date();
-  return now.toISOString().split("T")[0];
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 };
 
 /**
@@ -132,7 +135,10 @@ const getTodayDate = () => {
 const getYesterdayDate = () => {
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
-  return yesterday.toISOString().split("T")[0];
+  const y = yesterday.getFullYear();
+  const m = String(yesterday.getMonth() + 1).padStart(2, "0");
+  const d = String(yesterday.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 };
 
 /**
@@ -381,15 +387,15 @@ export default function ReportesOperativosPage() {
         ws.mergeCells(`A${rGraficosTitulo.number}:B${rGraficosTitulo.number}`);
 
         let imgRow = rGraficosTitulo.number; // ExcelJS tl.row es 0-indexed
-        const addChartImage = (imgData) => {
+        const addChartImage = (imgData, w = 480, h = 260) => {
           if (!imgData) return;
           const id = workbook.addImage({ base64: imgData, extension: "png" });
-          ws.addImage(id, { tl: { col: 0, row: imgRow }, ext: { width: 480, height: 260 } });
-          imgRow += 19;
+          ws.addImage(id, { tl: { col: 0, row: imgRow }, ext: { width: w, height: h } });
+          imgRow += Math.ceil(h / 14) + 1;
         };
         addChartImage(imgDistribucion);
         addChartImage(imgNovedades);
-        addChartImage(imgTipos);
+        addChartImage(imgTipos, 720, 300);
       }
 
       // ========================================
@@ -716,7 +722,7 @@ export default function ReportesOperativosPage() {
                 type="date"
                 value={filters.fecha_inicio}
                 onChange={(e) => setFilters({ ...filters, fecha_inicio: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50 [color-scheme:light] dark:[color-scheme:dark]"
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-600/25 [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:dark:invert"
               />
             </div>
 
@@ -730,7 +736,7 @@ export default function ReportesOperativosPage() {
                 type="date"
                 value={filters.fecha_fin}
                 onChange={(e) => setFilters({ ...filters, fecha_fin: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50 [color-scheme:light] dark:[color-scheme:dark]"
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-600/25 [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:dark:invert"
               />
             </div>
 
@@ -743,7 +749,7 @@ export default function ReportesOperativosPage() {
               <select
                 value={filters.turno}
                 onChange={(e) => setFilters({ ...filters, turno: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50 [color-scheme:light] dark:[color-scheme:dark]"
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-600/25 [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:dark:invert"
               >
                 {TURNO_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -783,7 +789,7 @@ export default function ReportesOperativosPage() {
               <select
                 value={filters.tipo_recurso}
                 onChange={(e) => setFilters({ ...filters, tipo_recurso: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50 [color-scheme:light] dark:[color-scheme:dark]"
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-600/25 [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:dark:invert"
               >
                 {TIPO_RECURSO_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
