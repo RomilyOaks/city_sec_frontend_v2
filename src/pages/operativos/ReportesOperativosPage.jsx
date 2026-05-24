@@ -501,7 +501,7 @@ export default function ReportesOperativosPage() {
           { width: 12 }, { width: 10 }, { width: 18 }, { width: 14 }, { width: 18 },
           { width: 15 }, { width: 28 }, { width: 18 }, { width: 18 }, { width: 12 }, { width: 16 },
         ];
-        const headers = ["Fecha", "Turno", "Sector", "Tipo Recurso", "Identificador",
+        const headers = ["Fecha", "Turno", "Sector", "Tipo Recurso", "Recurso",
           "Código Cuadrante", "Nombre Cuadrante", "Hora Ingreso", "Hora Salida",
           "Tiempo (min)", "Novedades Atendidas"];
         styleHeader(ws.addRow(headers), headers.length);
@@ -954,7 +954,7 @@ export default function ReportesOperativosPage() {
                           Tipo
                         </th>
                         <th className="px-4 py-3 text-left font-semibold text-slate-700 dark:text-slate-200">
-                          Identificador
+                          Recurso
                         </th>
                         <th className="px-4 py-3 text-center font-semibold text-slate-700 dark:text-slate-200">
                           Cuadrantes
