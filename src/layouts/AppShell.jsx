@@ -47,7 +47,7 @@ import {
 import ThemeToggle from "../components/common/ThemeToggle.jsx";
 import ChangePasswordModal from "../components/ChangePasswordModal.jsx";
 import { useAuthStore } from "../store/useAuthStore.js";
-import { canAccessRoute, ROUTE_PERMISSIONS } from "../rbac/rbac.js";
+import { canAccessRoute, canPerformAction, ROUTE_PERMISSIONS } from "../rbac/rbac.js";
 import { APP_VERSION } from "../config/version.js";
 
 /**
@@ -296,9 +296,11 @@ export default function AppShell() {
                 <SidebarLink to="/vehiculos" icon={Car}>
                   Flota vehicular
                 </SidebarLink>
-                <SidebarLink to="/vehiculos/talleres" icon={Wrench}>
-                  Talleres
-                </SidebarLink>
+                {canPerformAction(user, "vehiculos.talleres.read") && (
+                  <SidebarLink to="/vehiculos/talleres" icon={Wrench}>
+                    Talleres
+                  </SidebarLink>
+                )}
               </SidebarDropdown>
             )}
 
@@ -381,9 +383,11 @@ export default function AppShell() {
               <SidebarLink to="/catalogos/tipos-subtipos-novedad" icon={FileText}>
                 Tipos y Subtipos de Novedad
               </SidebarLink>
-              <SidebarLink to="/configuracion/horarios-turnos" icon={Clock}>
-                Horarios de Turnos
-              </SidebarLink>
+              {canPerformAction(user, "catalogos.horarios.turnos.read") && (
+                <SidebarLink to="/configuracion/horarios-turnos" icon={Clock}>
+                  Horarios de Turnos
+                </SidebarLink>
+              )}
             </SidebarDropdown>
 
             {/* ============================================
