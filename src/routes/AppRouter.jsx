@@ -53,6 +53,8 @@ import TiposSubtiposNovedadPage from "../pages/catalogos/TiposSubtiposNovedadPag
 import TalleresPage from "../pages/vehiculos/TalleresPage.jsx";
 import HorariosTurnosPage from "../pages/operativos/HorariosTurnosPage.jsx";
 import UbigeoPage from "../pages/configuracion/UbigeoPage.jsx";
+import ForgotPasswordPage from "../pages/auth/ForgotPasswordPage.jsx";
+import ResetPasswordPage from "../pages/auth/ResetPasswordPage.jsx";
 
 // ============================================
 // IMPORTAR PÁGINAS DEL MÓDULO OPERATIVOS
@@ -91,6 +93,8 @@ export default function AppRouter() {
       />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       <Route
         element={
