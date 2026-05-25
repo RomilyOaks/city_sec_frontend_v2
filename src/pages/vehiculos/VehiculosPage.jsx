@@ -48,6 +48,7 @@ import useBodyScrollLock from "../../hooks/useBodyScrollLock.js";
 import cuadranteVehiculoAsignadoService from "../../services/cuadranteVehiculoAsignadoService.js";
 import VehiculoCuadrantesModal from "../../components/vehiculos/VehiculoCuadrantesModal.jsx";
 import AbastecimientoModal from "../../components/vehiculos/AbastecimientoModal.jsx";
+import DesperfectosVehiculoModal from "../../components/vehiculos/DesperfectosVehiculoModal.jsx";
 
 const ESTADO_OPERATIVO_OPTIONS = [
   { value: "DISPONIBLE", label: "Disponible" },
@@ -207,6 +208,7 @@ export default function VehiculosPage() {
   const [viewingVehiculo, setViewingVehiculo] = useState(null);
   const [showCuadrantesModal, setShowCuadrantesModal] = useState(null); // Para mostrar cuadrantes del vehículo
   const [showAbastecimientoModal, setShowAbastecimientoModal] = useState(null); // Para mostrar modal de abastecimiento
+  const [showDesperfectosModal, setShowDesperfectosModal] = useState(null); // Vehículo para historial de desperfectos
   const [selectedVehicleForFuel, setSelectedVehicleForFuel] = useState(null); // Vehículo seleccionado para abastecimiento
   const [cuadrantesCount, setCuadrantesCount] = useState({}); // Contador de cuadrantes por vehículo
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -1667,7 +1669,13 @@ export default function VehiculosPage() {
                 </div>
               )}
             </div>
-            <div className="flex justify-end p-4 border-t border-slate-200 dark:border-slate-700">
+            <div className="flex justify-between items-center p-4 border-t border-slate-200 dark:border-slate-700">
+              <button
+                onClick={() => setShowDesperfectosModal(viewingVehiculo)}
+                className="px-4 py-2 rounded-lg border border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 text-sm"
+              >
+                Historial de desperfectos
+              </button>
               <button
                 onClick={() => { setViewingVehiculo(null); setViewConductor(null); }}
                 className="px-4 py-2 rounded-lg bg-slate-800 dark:bg-slate-700 text-white hover:bg-slate-900 dark:hover:bg-slate-600"
@@ -1677,6 +1685,14 @@ export default function VehiculosPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal Historial de Desperfectos */}
+      {showDesperfectosModal && (
+        <DesperfectosVehiculoModal
+          vehiculo={showDesperfectosModal}
+          onClose={() => setShowDesperfectosModal(null)}
+        />
       )}
 
       {/* Modal Cuadrantes del Vehículo */}
