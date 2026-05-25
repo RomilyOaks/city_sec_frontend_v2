@@ -117,6 +117,7 @@ export default function AdminUsuariosPage() {
     nombres: "",
     apellidos: "",
     telefono: "",
+    email: "",
     roles: [],
     personal_seguridad_id: "",
   });
@@ -943,6 +944,7 @@ export default function AdminUsuariosPage() {
                                   nombres: u.nombres || "",
                                   apellidos: u.apellidos || "",
                                   telefono: u.telefono || "",
+                                  email: u.email || "",
                                   roles: u.roleIds || [],
                                   personal_seguridad_id: u.personal_seguridad_id
                                     ? String(u.personal_seguridad_id)
@@ -1505,6 +1507,21 @@ export default function AdminUsuariosPage() {
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={editDraft.email}
+                  onChange={(e) =>
+                    setEditDraft((d) => ({ ...d, email: e.target.value }))
+                  }
+                  placeholder="correo@dominio.com"
+                  className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 dark:placeholder:text-slate-500/60 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
                   Rol
                 </label>
                 <select
@@ -1648,6 +1665,7 @@ export default function AdminUsuariosPage() {
                         nombres: capitalize(editDraft.nombres),
                         apellidos: editDraft.apellidos.toUpperCase(),
                         telefono: editDraft.telefono || undefined,
+                        email: editDraft.email || undefined,
                         personal_seguridad_id: editDraft.personal_seguridad_id
                           ? Number(editDraft.personal_seguridad_id)
                           : null,
