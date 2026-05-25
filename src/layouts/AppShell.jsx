@@ -388,6 +388,11 @@ export default function AppShell() {
                   Horarios de Turnos
                 </SidebarLink>
               )}
+              {canPerformAction(user, "catalogos.ubigeo.read") && (
+                <SidebarLink to="/configuracion/ubigeo" icon={MapPin}>
+                  Ubigeo
+                </SidebarLink>
+              )}
             </SidebarDropdown>
 
             {/* ============================================

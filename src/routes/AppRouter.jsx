@@ -52,6 +52,7 @@ import TiposSubtiposNovedadPage from "../pages/catalogos/TiposSubtiposNovedadPag
 // ============================================
 import TalleresPage from "../pages/vehiculos/TalleresPage.jsx";
 import HorariosTurnosPage from "../pages/operativos/HorariosTurnosPage.jsx";
+import UbigeoPage from "../pages/configuracion/UbigeoPage.jsx";
 
 // ============================================
 // IMPORTAR PÁGINAS DEL MÓDULO OPERATIVOS
@@ -298,6 +299,7 @@ export default function AppRouter() {
 
         {/* Sprint 2: Horarios de Turnos */}
         <Route path="configuracion/horarios-turnos" element={<HorariosTurnosPage />} />
+        <Route path="configuracion/ubigeo" element={<UbigeoPage />} />
 
         {/* ============================================
             MÓDULO CATÁLOGOS

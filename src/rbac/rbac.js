@@ -212,6 +212,9 @@ export const ACTION_PERMISSIONS = {
   "vehiculos.talleres.delete": ["vehiculos.talleres.delete"],
   "vehiculos.talleres.read": ["vehiculos.talleres.read"],
 
+  // Ubigeo
+  "catalogos.ubigeo.read": ["catalogos.ubigeo.read"],
+
   // Horarios de Turnos (configuración de catálogos)
   "catalogos.horarios.turnos.read": ["catalogos.horarios.turnos.read"],
   "catalogos.horarios.turnos.create": ["catalogos.horarios.turnos.create"],
