@@ -168,7 +168,7 @@ export default function HorariosTurnosPage() {
   const [editModal, setEditModal] = useState({ isOpen: false, horario: null });
 
   const { user } = useAuthStore();
-  const canUpdate = canPerformAction(user, "operativos.horarios.update");
+  const canUpdate = canPerformAction(user, "catalogos.horarios.turnos.update");
 
   const cargar = async () => {
     setLoading(true);

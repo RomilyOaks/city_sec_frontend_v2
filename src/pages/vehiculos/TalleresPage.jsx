@@ -12,6 +12,7 @@ import {
   Phone,
   Mail,
   MapPin,
+  Eye,
 } from "lucide-react";
 import { ConfirmModal } from "../../components/common";
 import { useAuthStore } from "../../store/useAuthStore";
@@ -34,6 +35,76 @@ const EMPTY_FORM = {
   contacto_nombre: "",
 };
 
+// Modal de consulta (solo lectura)
+function TallerViewModal({ taller, onClose }) {
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") { e.preventDefault(); onClose(); }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  const Row = ({ label, value }) => (
+    <div className="flex flex-col sm:flex-row sm:items-start gap-1 py-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
+      <span className="text-xs font-medium text-gray-500 dark:text-gray-400 sm:w-36 shrink-0 uppercase tracking-wide">
+        {label}
+      </span>
+      <span className="text-sm text-gray-900 dark:text-gray-100">
+        {value || <span className="text-gray-400 dark:text-gray-500 italic">—</span>}
+      </span>
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-lg bg-white dark:bg-gray-800 rounded-lg shadow-xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2">
+            <Wrench size={16} className="text-primary-700 dark:text-primary-400" />
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+              {taller.nombre}
+            </h2>
+            {taller.estado ? (
+              <span className="inline-flex items-center gap-1 text-xs text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30 px-2 py-0.5 rounded-full">
+                <CheckCircle size={11} /> Activo
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 px-2 py-0.5 rounded-full">
+                <XCircle size={11} /> Inactivo
+              </span>
+            )}
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="px-6 py-4">
+          <Row label="RUC" value={taller.ruc} />
+          <Row label="Dirección" value={taller.direccion} />
+          <Row label="Teléfono" value={taller.telefono} />
+          <Row label="Email" value={taller.email} />
+          <Row label="Contacto" value={taller.contacto_nombre} />
+        </div>
+
+        <div className="flex justify-end px-6 py-3 border-t border-gray-200 dark:border-gray-700">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Modal de creación / edición
 function TallerFormModal({ taller, onClose, onSaved }) {
   const [form, setForm] = useState(taller ? { ...taller } : { ...EMPTY_FORM });
   const [saving, setSaving] = useState(false);
@@ -41,10 +112,7 @@ function TallerFormModal({ taller, onClose, onSaved }) {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === "Escape" && !saving) {
-        e.preventDefault();
-        onClose();
-      }
+      if (e.key === "Escape" && !saving) { e.preventDefault(); onClose(); }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
@@ -84,7 +152,6 @@ function TallerFormModal({ taller, onClose, onSaved }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="w-full max-w-lg bg-white dark:bg-gray-800 rounded-lg shadow-xl">
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
             {isEdit ? "Editar Taller" : "Nuevo Taller"}
@@ -97,7 +164,6 @@ function TallerFormModal({ taller, onClose, onSaved }) {
           </button>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
@@ -186,7 +252,6 @@ function TallerFormModal({ taller, onClose, onSaved }) {
             </div>
           </div>
 
-          {/* Footer */}
           <div className="flex justify-end gap-3 pt-2">
             <button
               type="button"
@@ -214,6 +279,7 @@ export default function TalleresPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showInactive, setShowInactive] = useState(false);
+  const [viewModal, setViewModal] = useState({ isOpen: false, taller: null });
   const [formModal, setFormModal] = useState({ isOpen: false, taller: null });
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
@@ -271,6 +337,8 @@ export default function TalleresPage() {
       t.contacto_nombre?.toLowerCase().includes(q)
     );
   });
+
+  const hasActions = canUpdate || canDelete;
 
   return (
     <div className="p-6 space-y-6">
@@ -364,16 +432,15 @@ export default function TalleresPage() {
                   <th className="px-4 py-3 text-left">Contacto</th>
                   <th className="px-4 py-3 text-left">Datos de contacto</th>
                   <th className="px-4 py-3 text-center">Estado</th>
-                  {(canUpdate || canDelete) && (
-                    <th className="px-4 py-3 text-center">Acciones</th>
-                  )}
+                  <th className="px-4 py-3 text-center">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                 {filtered.map((t) => (
                   <tr
                     key={t.id}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                    onClick={() => setViewModal({ isOpen: true, taller: t })}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
                   >
                     <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">
                       {t.nombre}
@@ -420,32 +487,40 @@ export default function TalleresPage() {
                         </span>
                       )}
                     </td>
-                    {(canUpdate || canDelete) && (
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-center gap-2">
-                          {canUpdate && (
-                            <button
-                              onClick={() =>
-                                setFormModal({ isOpen: true, taller: t })
-                              }
-                              className="p-1.5 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-                              title="Editar"
-                            >
-                              <Edit2 size={15} />
-                            </button>
-                          )}
-                          {canDelete && t.estado ? (
-                            <button
-                              onClick={() => handleEliminar(t)}
-                              className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400"
-                              title="Eliminar"
-                            >
-                              <Trash2 size={15} />
-                            </button>
-                          ) : null}
-                        </div>
-                      </td>
-                    )}
+                    <td
+                      className="px-4 py-3"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => setViewModal({ isOpen: true, taller: t })}
+                          className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
+                          title="Ver detalle"
+                        >
+                          <Eye size={15} />
+                        </button>
+                        {canUpdate && (
+                          <button
+                            onClick={() =>
+                              setFormModal({ isOpen: true, taller: t })
+                            }
+                            className="p-1.5 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                            title="Editar"
+                          >
+                            <Edit2 size={15} />
+                          </button>
+                        )}
+                        {canDelete && t.estado && (
+                          <button
+                            onClick={() => handleEliminar(t)}
+                            className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400"
+                            title="Eliminar"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -454,7 +529,15 @@ export default function TalleresPage() {
         )}
       </div>
 
-      {/* Modal de formulario */}
+      {/* Modal consulta */}
+      {viewModal.isOpen && (
+        <TallerViewModal
+          taller={viewModal.taller}
+          onClose={() => setViewModal({ isOpen: false, taller: null })}
+        />
+      )}
+
+      {/* Modal formulario */}
       {formModal.isOpen && (
         <TallerFormModal
           taller={formModal.taller}

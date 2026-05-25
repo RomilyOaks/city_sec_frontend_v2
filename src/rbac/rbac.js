@@ -206,6 +206,18 @@ export const ACTION_PERMISSIONS = {
   "operativos.personal.novedades.update": ["operativos.personal.novedades.update"],
   "operativos.personal.novedades.delete": ["operativos.personal.novedades.delete"],
 
+  // Talleres
+  "vehiculos.talleres.create": ["vehiculos.talleres.create"],
+  "vehiculos.talleres.update": ["vehiculos.talleres.update"],
+  "vehiculos.talleres.delete": ["vehiculos.talleres.delete"],
+  "vehiculos.talleres.read": ["vehiculos.talleres.read"],
+
+  // Horarios de Turnos (configuración de catálogos)
+  "catalogos.horarios.turnos.read": ["catalogos.horarios.turnos.read"],
+  "catalogos.horarios.turnos.create": ["catalogos.horarios.turnos.create"],
+  "catalogos.horarios.turnos.update": ["catalogos.horarios.turnos.update"],
+  "catalogos.horarios.turnos.delete": ["catalogos.horarios.turnos.delete"],
+
   // Abastecimientos de Combustible
   abastecimientos_create: ["vehiculos.abastecimiento.create"],
   abastecimientos_update: ["vehiculos.abastecimiento.update"],
