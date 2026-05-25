@@ -222,7 +222,8 @@ export default function TalleresPage() {
       if (!showInactive) params.estado = "true";
       if (search.trim()) params.search = search.trim();
       const res = await getTalleres(params);
-      setTalleres(res.data?.talleres || res.data || []);
+      const items = res.data?.data;
+      setTalleres(Array.isArray(items) ? items : []);
     } catch {
       toast.error("Error al cargar talleres");
     } finally {
