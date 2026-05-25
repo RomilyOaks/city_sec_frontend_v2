@@ -16,6 +16,7 @@ import toast from "react-hot-toast";
 import {
   Eye,
   EyeOff,
+  History,
   KeyRound,
   Pencil,
   Plus,
@@ -39,6 +40,7 @@ import { listPersonal } from "../../services/personalService.js";
 import { useAuthStore } from "../../store/useAuthStore.js";
 import { canPerformAction } from "../../rbac/rbac.js";
 import { ConfirmModal } from "../../components/common";
+import HistorialUsuarioModal from "../../components/admin/HistorialUsuarioModal.jsx";
 
 const schema = z
   .object({
@@ -131,6 +133,7 @@ export default function AdminUsuariosPage() {
   const [loadingPersonal, setLoadingPersonal] = useState(false);
   const [showAllPersonal, setShowAllPersonal] = useState(false);
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, item: null, loading: false });
+  const [historialModal, setHistorialModal] = useState({ isOpen: false, usuario: null });
 
   const estadoOptions = useMemo(
     () => ["ACTIVO", "INACTIVO", "BLOQUEADO", "PENDIENTE"],
@@ -952,6 +955,14 @@ export default function AdminUsuariosPage() {
                               <Pencil size={14} />
                             </button>
                           )}
+                          <button
+                            type="button"
+                            onClick={() => setHistorialModal({ isOpen: true, usuario: u })}
+                            className="inline-flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                            title="Ver historial"
+                          >
+                            <History size={14} />
+                          </button>
                           {canResetPassword && !u.deletedAt && (
                             <button
                               type="button"
@@ -1735,6 +1746,14 @@ export default function AdminUsuariosPage() {
         onClose={() => setConfirmModal({ isOpen: false, item: null, loading: false })}
         onConfirm={handleConfirmSoftDelete}
       />
+
+      {historialModal.isOpen && historialModal.usuario && (
+        <HistorialUsuarioModal
+          usuarioId={historialModal.usuario.id}
+          username={historialModal.usuario.username}
+          onClose={() => setHistorialModal({ isOpen: false, usuario: null })}
+        />
+      )}
     </div>
   );
 }

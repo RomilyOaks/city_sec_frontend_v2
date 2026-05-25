@@ -48,6 +48,12 @@ import RadiosTetraPage from "../pages/catalogos/RadiosTetraPage.jsx";
 import TiposSubtiposNovedadPage from "../pages/catalogos/TiposSubtiposNovedadPage.jsx";
 
 // ============================================
+// IMPORTAR PÁGINAS SPRINT 2: TALLERES Y HORARIOS
+// ============================================
+import TalleresPage from "../pages/vehiculos/TalleresPage.jsx";
+import HorariosTurnosPage from "../pages/operativos/HorariosTurnosPage.jsx";
+
+// ============================================
 // IMPORTAR PÁGINAS DEL MÓDULO OPERATIVOS
 // ============================================
 import OperativosTurnoPage from "../pages/operativos/OperativosTurnoPage.jsx";
@@ -286,6 +292,12 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
+
+        {/* Sprint 2: Talleres */}
+        <Route path="vehiculos/talleres" element={<TalleresPage />} />
+
+        {/* Sprint 2: Horarios de Turnos */}
+        <Route path="configuracion/horarios-turnos" element={<HorariosTurnosPage />} />
 
         {/* ============================================
             MÓDULO CATÁLOGOS

@@ -26,7 +26,19 @@ export const listHorariosTurnos = async () => {
   return response.data?.data || response.data || [];
 };
 
+/**
+ * Actualiza un horario de turno existente (MAÑANA, TARDE, NOCHE)
+ * @param {string} turno - Identificador del turno
+ * @param {Object} data - Campos a actualizar
+ * @returns {Promise<Object>}
+ */
+export const updateHorarioTurno = async (turno, data) => {
+  const response = await api.put(`/horarios-turnos/${turno}`, data);
+  return response.data;
+};
+
 export default {
   getHorarioActivo,
   listHorariosTurnos,
+  updateHorarioTurno,
 };

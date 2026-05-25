@@ -21,6 +21,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
   Car,
+  Clock,
   LayoutDashboard,
   LogOut,
   User,
@@ -40,6 +41,7 @@ import {
   FileText,
   Briefcase,
   BarChart3,
+  Wrench,
 } from "lucide-react";
 
 import ThemeToggle from "../components/common/ThemeToggle.jsx";
@@ -290,9 +292,14 @@ export default function AppShell() {
 
             {/* Vehículos */}
             {canAccess("vehiculos") && (
-              <SidebarLink to="/vehiculos" icon={Car}>
-                Vehículos
-              </SidebarLink>
+              <SidebarDropdown icon={Car} label="Vehículos">
+                <SidebarLink to="/vehiculos" icon={Car}>
+                  Flota vehicular
+                </SidebarLink>
+                <SidebarLink to="/vehiculos/talleres" icon={Wrench}>
+                  Talleres
+                </SidebarLink>
+              </SidebarDropdown>
             )}
 
             {/* ============================================
@@ -373,6 +380,9 @@ export default function AppShell() {
               </SidebarLink>
               <SidebarLink to="/catalogos/tipos-subtipos-novedad" icon={FileText}>
                 Tipos y Subtipos de Novedad
+              </SidebarLink>
+              <SidebarLink to="/configuracion/horarios-turnos" icon={Clock}>
+                Horarios de Turnos
               </SidebarLink>
             </SidebarDropdown>
 
