@@ -45,10 +45,24 @@ export default function ResetPasswordPage() {
 
     setLoading(true);
     try {
-      await api.post("/auth/reset-password", { token, email, newPassword });
+      console.group("🔐 [ResetPassword] submit");
+      console.log("→ payload:", { token: token?.slice(0, 8) + "...", email, newPasswordLength: newPassword.length });
+
+      const response = await api.post("/auth/reset-password", { token, email, newPassword });
+
+      console.log("✅ respuesta OK:", response.status, response.data);
+      console.groupEnd();
+
       setExitoso(true);
       setTimeout(() => navigate("/login"), 3000);
     } catch (err) {
+      console.group("❌ [ResetPassword] error");
+      console.log("HTTP status:", err?.response?.status);
+      console.log("response.data:", err?.response?.data);
+      console.log("message extraído:", err?.response?.data?.message);
+      console.log("err completo:", err);
+      console.groupEnd();
+
       const msg = err?.response?.data?.message || "Error al restablecer contraseña";
       toast.error(msg);
     } finally {
