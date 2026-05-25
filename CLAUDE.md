@@ -113,6 +113,18 @@ const handleConfirmEliminar = async () => {
 />
 ```
 
+**Tecla ESC cierra modales/paneles** — obligatorio en todo modal o panel lateral:
+```jsx
+useEffect(() => {
+  const handleKeyDown = (e) => {
+    if (e.key === "Escape") onClose();
+  };
+  window.addEventListener("keydown", handleKeyDown);
+  return () => window.removeEventListener("keydown", handleKeyDown);
+}, [onClose]);
+```
+Si el modal tiene estado de guardado en progreso, ignorar ESC mientras `saving === true`.
+
 **Toasts de operaciones largas** → feedback inmediato:
 ```js
 const toastId = toast.loading("Procesando...");
