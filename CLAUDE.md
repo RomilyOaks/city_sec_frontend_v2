@@ -153,6 +153,7 @@ const fecha = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-
 
 ## Restricciones importantes
 
+- **Verificar slugs antes de usar `canPerformAction`** — los slugs son dinámicos (viven en la tabla `permisos` del backend). Antes de implementar cualquier check de permiso, consultar la BD con MCP (`SELECT slug FROM permisos WHERE slug LIKE 'modulo.%' ORDER BY slug`) o el PRD del backend (sección 2.2). Nunca asumir el slug — un slug inexistente en `ACTION_PERMISSIONS` hace que `canPerformAction` retorne `true` para todos.
 - **No usar `window.confirm` ni `alert()`** — reemplazar con `ConfirmModal` (tipo danger/warning) o `toast`
 - **No usar `toISOString()`** para generar fechas que se muestran en la UI (desfase UTC)
 - **No modificar** `NovedadesPage.jsx` sin entender su estructura (~5000 líneas, múltiples sub-vistas)
