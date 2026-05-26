@@ -8,8 +8,8 @@ const EMAIL_NO_EXISTE  = 'noexiste@citysecure.test';  // nunca registrado
 test.describe('Recuperación de contraseña — /forgot-password', () => {
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/forgot-password');
-    // La página carga con el formulario vacío
+    // Vite puede tardar en arrancar en el primer test — timeout generoso
+    await page.goto('/forgot-password', { timeout: 60000 });
     await expect(page.locator('h1')).toHaveText('Recuperar contraseña');
   });
 
@@ -48,23 +48,29 @@ test.describe('Recuperación de contraseña — /forgot-password', () => {
     // Clic sin ingresar email
     await page.click('button[type="submit"]');
 
-    // Aparece toast de error
-    const toast = page.locator('div[id^="react-hot-toast"], [data-hot-toast]').first();
-    await expect(toast).toBeVisible({ timeout: 3000 });
-    await expect(toast).toContainText('email');
+    // react-hot-toast usa IDs dinámicos (T_xxxx) — buscar por el texto del mensaje
+    await expect(page.getByText('Ingresa tu email')).toBeVisible({ timeout: 5000 });
 
     // El formulario sigue visible (no avanzó a la confirmación)
     await expect(page.locator('button[type="submit"]')).toBeVisible();
     await expect(page.locator('text=Revisa tu email')).not.toBeVisible();
   });
 
-  // 🔄 Botón muestra estado de carga "Enviando..." mientras procesa
+  // 🔄 Botón muestra "Enviando..." mientras la petición está en vuelo
   test('botón muestra "Enviando..." mientras la petición está en vuelo', async ({ page }) => {
-    await page.fill('input[type="email"]', EMAIL_REGISTRADO);
+    // Interceptar la petición al backend y añadir delay artificial
+    // para tener tiempo de verificar el estado de carga del botón
+    await page.route('**/auth/forgot-password', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 2000)); // 2s de delay
+      await route.continue();
+    });
 
-    // Click y verificar el texto de carga inmediatamente
+    await page.fill('input[type="email"]', EMAIL_REGISTRADO);
     await page.click('button[type="submit"]');
-    await expect(page.locator('button[type="submit"]')).toHaveText('Enviando...');
+
+    // El botón debe mostrar "Enviando..." durante los 2s de delay
+    await expect(page.locator('button[type="submit"]')).toHaveText('Enviando...', { timeout: 3000 });
+    await expect(page.locator('button[type="submit"]')).toBeDisabled();
   });
 
   // 🔗 Link "Volver al login" en el formulario navega a /login
