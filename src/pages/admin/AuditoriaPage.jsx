@@ -293,7 +293,12 @@ export default function AuditoriaPage() {
   // Cargar lista de usuarios para el dropdown
   useEffect(() => {
     listUsers({ limit: 100, estado: "ACTIVO" })
-      .then(({ usuarios: lista }) => setUsuarios(lista))
+      .then(({ usuarios: lista }) => {
+        const ordenada = [...lista].sort((a, b) =>
+          (a.username ?? "").localeCompare(b.username ?? "", "es", { sensitivity: "base" })
+        );
+        setUsuarios(ordenada);
+      })
       .catch(() => {}); // silencioso — el filtro queda sin opciones
   }, []);
 

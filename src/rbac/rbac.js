@@ -108,7 +108,10 @@ export const ROUTE_PERMISSIONS = {
     "reportes.personal.read",
     "reportes.vehiculos.read",
   ],
-  auditoria: ["auditoria.logs.read", "auditoria.registros.read"],
+  // auditoria NO está en ROUTE_PERMISSIONS intencionalmente:
+  // el acceso se controla SOLO por roles (ROUTE_ACCESS.auditoria),
+  // no por permisos individuales. Así se evita que roles operativos
+  // con permisos de lectura de auditoría accedan al panel.
 };
 
 // Permisos para acciones específicas
