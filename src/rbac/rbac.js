@@ -82,6 +82,11 @@ export const ROUTE_ACCESS = {
     ROLE_SLUGS.CONSULTA,
     ROLE_SLUGS.RADIO_OPERADOR,
   ],
+  auditoria: [
+    ROLE_SLUGS.SUPER_ADMIN,
+    ROLE_SLUGS.ADMIN,
+    ROLE_SLUGS.SUPERVISOR,
+  ],
 };
 
 // Mapeo de rutas a permisos requeridos (del backend)

@@ -42,6 +42,7 @@ import {
   Briefcase,
   BarChart3,
   Wrench,
+  ClipboardList,
 } from "lucide-react";
 
 import ThemeToggle from "../components/common/ThemeToggle.jsx";
@@ -399,7 +400,7 @@ export default function AppShell() {
                 CONTROL DE ACCESOS - MENÚ DESPLEGABLE
                 Solo visible si el usuario tiene acceso a alguna sub-ruta
                 ============================================ */}
-            {(canAccess("admin_usuarios") || canAccess("admin_roles") || canAccess("admin_permisos")) && (
+            {(canAccess("admin_usuarios") || canAccess("admin_roles") || canAccess("admin_permisos") || canAccess("auditoria")) && (
               <SidebarDropdown icon={Lock} label="Control de Accesos">
                 {canAccess("admin_permisos") && (
                   <SidebarLink to="/admin/permisos" icon={Shield}>
@@ -419,6 +420,11 @@ export default function AppShell() {
                 {canAccess("admin_usuarios") && (
                   <SidebarLink to="/admin/usuarios" icon={User}>
                     Usuarios
+                  </SidebarLink>
+                )}
+                {canAccess("auditoria") && (
+                  <SidebarLink to="/admin/auditoria" icon={ClipboardList}>
+                    Auditoría
                   </SidebarLink>
                 )}
               </SidebarDropdown>

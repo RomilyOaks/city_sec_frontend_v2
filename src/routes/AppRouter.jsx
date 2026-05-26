@@ -55,6 +55,7 @@ import HorariosTurnosPage from "../pages/operativos/HorariosTurnosPage.jsx";
 import UbigeoPage from "../pages/configuracion/UbigeoPage.jsx";
 import ForgotPasswordPage from "../pages/auth/ForgotPasswordPage.jsx";
 import ResetPasswordPage from "../pages/auth/ResetPasswordPage.jsx";
+import AuditoriaPage from "../pages/admin/AuditoriaPage.jsx";
 
 // ============================================
 // IMPORTAR PÁGINAS DEL MÓDULO OPERATIVOS
@@ -136,6 +137,14 @@ export default function AppRouter() {
           element={
             <ProtectedRoute routeKey="admin_roles">
               <RolEstadosNovedadPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="admin/auditoria"
+          element={
+            <ProtectedRoute routeKey="auditoria">
+              <AuditoriaPage />
             </ProtectedRoute>
           }
         />
