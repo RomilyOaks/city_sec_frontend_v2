@@ -113,6 +113,17 @@ const handleConfirmEliminar = async () => {
 />
 ```
 
+**Scroll exterior bloqueado en modales** — obligatorio en todo modal o panel que cubra la pantalla. Usar `useBodyScrollLock` del hook existente:
+```jsx
+import useBodyScrollLock from "../../hooks/useBodyScrollLock.js";
+
+function MiModal({ onClose }) {
+  useBodyScrollLock(true); // bloquea body.overflow mientras el modal está montado
+  // ...
+}
+```
+Sin esto el fondo sigue siendo scrolleable mientras el modal está abierto.
+
 **Tecla ESC cierra modales/paneles** — obligatorio en todo modal o panel lateral:
 ```jsx
 useEffect(() => {

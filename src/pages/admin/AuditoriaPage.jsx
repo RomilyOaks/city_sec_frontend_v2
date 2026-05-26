@@ -22,6 +22,7 @@ import {
 import { getAuditoria, getAuditoriaById, buildCsvUrl } from "../../services/auditoriaService.js";
 import { listUsers } from "../../services/usersService.js";
 import { useAuthStore } from "../../store/useAuthStore.js";
+import useBodyScrollLock from "../../hooks/useBodyScrollLock.js";
 
 // ─── Constantes de dominio ────────────────────────────────────────────────────
 
@@ -151,6 +152,8 @@ function JsonBlock({ data }) {
 function DetalleModal({ registroId, onClose }) {
   const [registro, setRegistro] = useState(null);
   const [cargando, setCargando] = useState(true); // true: espera la petición inicial
+
+  useBodyScrollLock(true);
 
   useEffect(() => {
     const handleEsc = (e) => { if (e.key === "Escape") onClose(); };
