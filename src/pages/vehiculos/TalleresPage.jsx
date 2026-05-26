@@ -35,17 +35,8 @@ const EMPTY_FORM = {
   contacto_nombre: "",
 };
 
-// Modal de consulta (solo lectura)
-function TallerViewModal({ taller, onClose }) {
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === "Escape") { e.preventDefault(); onClose(); }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
-
-  const Row = ({ label, value }) => (
+function TallerRow({ label, value }) {
+  return (
     <div className="flex flex-col sm:flex-row sm:items-start gap-1 py-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
       <span className="text-xs font-medium text-gray-500 dark:text-gray-400 sm:w-36 shrink-0 uppercase tracking-wide">
         {label}
@@ -55,6 +46,17 @@ function TallerViewModal({ taller, onClose }) {
       </span>
     </div>
   );
+}
+
+// Modal de consulta (solo lectura)
+function TallerViewModal({ taller, onClose }) {
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") { e.preventDefault(); onClose(); }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -84,11 +86,11 @@ function TallerViewModal({ taller, onClose }) {
         </div>
 
         <div className="px-6 py-4">
-          <Row label="RUC" value={taller.ruc} />
-          <Row label="Dirección" value={taller.direccion} />
-          <Row label="Teléfono" value={taller.telefono} />
-          <Row label="Email" value={taller.email} />
-          <Row label="Contacto" value={taller.contacto_nombre} />
+          <TallerRow label="RUC" value={taller.ruc} />
+          <TallerRow label="Dirección" value={taller.direccion} />
+          <TallerRow label="Teléfono" value={taller.telefono} />
+          <TallerRow label="Email" value={taller.email} />
+          <TallerRow label="Contacto" value={taller.contacto_nombre} />
         </div>
 
         <div className="flex justify-end px-6 py-3 border-t border-gray-200 dark:border-gray-700">
@@ -337,8 +339,6 @@ export default function TalleresPage() {
       t.contacto_nombre?.toLowerCase().includes(q)
     );
   });
-
-  const hasActions = canUpdate || canDelete;
 
   return (
     <div className="p-6 space-y-6">

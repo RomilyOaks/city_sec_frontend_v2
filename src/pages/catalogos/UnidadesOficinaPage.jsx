@@ -22,7 +22,6 @@ import {
   listUnidadesOficina,
   deleteUnidadOficina,
   checkUnidadOficinaCanDelete,
-  getUnidadOficinaById,
 } from "../../services/unidadesOficinaService";
 import toast from "react-hot-toast";
 import UnidadOficinaFormModal from "../../components/catalogos/UnidadOficinaFormModal";

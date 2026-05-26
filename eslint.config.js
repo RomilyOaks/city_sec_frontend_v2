@@ -5,7 +5,7 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', 'mcp-server']),
   {
     files: ['playwright.config.js', 'vite.config.js', 'postcss.config.js', 'tailwind.config.js'],
     languageOptions: {
