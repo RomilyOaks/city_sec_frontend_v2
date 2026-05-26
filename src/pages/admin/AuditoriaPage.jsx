@@ -13,16 +13,14 @@ import {
   RefreshCw,
   ChevronLeft,
   ChevronRight,
-  Eye,
   X,
   Shield,
-  AlertTriangle,
-  Info,
   CheckCircle,
   XCircle,
 } from "lucide-react";
 
 import { getAuditoria, getAuditoriaById, buildCsvUrl } from "../../services/auditoriaService.js";
+import { listUsers } from "../../services/usersService.js";
 import { useAuthStore } from "../../store/useAuthStore.js";
 
 // ─── Constantes de dominio ────────────────────────────────────────────────────
@@ -195,7 +193,7 @@ function DetalleModal({ registroId, onClose }) {
               {/* Información principal */}
               <div className="grid grid-cols-2 gap-x-6 gap-y-3">
                 <Field label="Fecha" value={formatFecha(registro.created_at)} />
-                <Field label="Usuario" value={registro.usuario?.nombre_usuario ?? `ID ${registro.usuario_id}`} />
+                <Field label="Usuario" value={registro.usuario?.username ?? `ID ${registro.usuario_id}`} />
                 <Field label="Acción">
                   <AccionBadge accion={registro.accion} />
                 </Field>
@@ -284,9 +282,17 @@ export default function AuditoriaPage() {
   const [paginacion, setPaginacion] = useState({ total: 0, page: 1, totalPages: 1 });
   const [cargando, setCargando] = useState(false);
   const [detalleId, setDetalleId] = useState(null);
+  const [usuarios, setUsuarios] = useState([]);
 
   // Ref para cancelar peticiones anteriores si llegan después de una nueva
   const reqId = useRef(0);
+
+  // Cargar lista de usuarios para el dropdown
+  useEffect(() => {
+    listUsers({ limit: 200, estado: "activo" })
+      .then(({ usuarios: lista }) => setUsuarios(lista))
+      .catch(() => {}); // silencioso — el filtro queda sin opciones
+  }, []);
 
   const cargar = useCallback(async (params) => {
     setCargando(true);
@@ -456,18 +462,23 @@ export default function AuditoriaPage() {
             </select>
           </div>
 
-          {/* Usuario ID */}
+          {/* Usuario — dropdown */}
           <div>
             <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
-              ID de usuario
+              Usuario
             </label>
-            <input
-              type="number"
-              placeholder="ID del usuario"
+            <select
               value={filtros.usuario_id}
               onChange={(e) => handleFiltroChange("usuario_id", e.target.value)}
-              className="w-full px-3 py-1.5 text-sm rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
-            />
+              className="w-full px-3 py-1.5 text-sm rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950/40 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
+            >
+              <option value="">Todos los usuarios</option>
+              {usuarios.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.username}{u.nombres ? ` — ${u.nombres} ${u.apellidos ?? ""}`.trimEnd() : ""}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Filas por página */}
@@ -526,7 +537,6 @@ export default function AuditoriaPage() {
                 <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-500 dark:text-slate-400">Severidad</th>
                 <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-500 dark:text-slate-400">Resultado</th>
                 <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-500 dark:text-slate-400">IP</th>
-                <th className="px-4 py-2.5 text-center text-xs font-medium text-slate-500 dark:text-slate-400">Ver</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -549,13 +559,15 @@ export default function AuditoriaPage() {
                 registros.map((reg) => (
                   <tr
                     key={reg.id}
-                    className={`hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors ${cargando ? "opacity-60" : ""}`}
+                    onClick={() => setDetalleId(reg.id)}
+                    className={`cursor-pointer hover:bg-primary-50 dark:hover:bg-slate-800/60 transition-colors ${cargando ? "opacity-60" : ""}`}
+                    title="Clic para ver detalle"
                   >
                     <td className="px-4 py-2.5 text-xs text-slate-600 dark:text-slate-300 whitespace-nowrap font-mono">
                       {formatFecha(reg.created_at)}
                     </td>
                     <td className="px-4 py-2.5 text-xs text-slate-700 dark:text-slate-200 whitespace-nowrap">
-                      {reg.usuario?.nombre_usuario ?? `#${reg.usuario_id}`}
+                      {reg.usuario?.username ?? `#${reg.usuario_id}`}
                     </td>
                     <td className="px-4 py-2.5 whitespace-nowrap">
                       <AccionBadge accion={reg.accion} />
@@ -577,15 +589,6 @@ export default function AuditoriaPage() {
                     </td>
                     <td className="px-4 py-2.5 text-xs text-slate-500 dark:text-slate-400 font-mono whitespace-nowrap">
                       {reg.ip_address ?? "—"}
-                    </td>
-                    <td className="px-4 py-2.5 text-center">
-                      <button
-                        onClick={() => setDetalleId(reg.id)}
-                        title="Ver detalle"
-                        className="p-1 rounded text-slate-400 hover:text-primary-700 dark:hover:text-primary-400 hover:bg-slate-100 dark:hover:bg-slate-700"
-                      >
-                        <Eye size={15} />
-                      </button>
                     </td>
                   </tr>
                 ))
