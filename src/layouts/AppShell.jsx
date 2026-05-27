@@ -43,6 +43,7 @@ import {
   BarChart3,
   Wrench,
   ClipboardList,
+  Settings,
 } from "lucide-react";
 
 import ThemeToggle from "../components/common/ThemeToggle.jsx";
@@ -384,17 +385,25 @@ export default function AppShell() {
               <SidebarLink to="/catalogos/tipos-subtipos-novedad" icon={FileText}>
                 Tipos y Subtipos de Novedad
               </SidebarLink>
-              {canPerformAction(user, "catalogos.horarios.turnos.read") && (
+            </SidebarDropdown>
+
+            {/* ============================================
+                CONTROL DE ACCESOS - MENÚ DESPLEGABLE
+                Solo visible si el usuario tiene acceso a alguna sub-ruta
+                ============================================ */}
+            {/* ============================================
+                CONFIGURACIONES - Solo super_admin y admin
+                ============================================ */}
+            {canAccess("configuracion") && (
+              <SidebarDropdown icon={Settings} label="Configuraciones">
+                <SidebarLink to="/configuracion/rol-estados-novedad" icon={Shield}>
+                  Estados Novedad por Rol
+                </SidebarLink>
                 <SidebarLink to="/configuracion/horarios-turnos" icon={Clock}>
                   Horarios de Turnos
                 </SidebarLink>
-              )}
-              {canPerformAction(user, "catalogos.ubigeo.read") && (
-                <SidebarLink to="/configuracion/ubigeo" icon={MapPin}>
-                  Ubigeo
-                </SidebarLink>
-              )}
-            </SidebarDropdown>
+              </SidebarDropdown>
+            )}
 
             {/* ============================================
                 CONTROL DE ACCESOS - MENÚ DESPLEGABLE
@@ -410,11 +419,6 @@ export default function AppShell() {
                 {canAccess("admin_roles") && (
                   <SidebarLink to="/admin/roles" icon={Shield}>
                     Roles y Permisos
-                  </SidebarLink>
-                )}
-                {canAccess("admin_roles") && (
-                  <SidebarLink to="/admin/rol-estados-novedad" icon={Shield}>
-                    Estados Novedad por Rol
                   </SidebarLink>
                 )}
                 {canAccess("admin_usuarios") && (

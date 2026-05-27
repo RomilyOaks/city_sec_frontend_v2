@@ -136,6 +136,7 @@ Botón "Exportar CSV" descarga hasta 10,000 registros con los filtros activos.
 | Pre-checks antes de eliminar | Handler async verifica dependencias (`checkCanDelete`) → si falla: `toast.error`; si pasa: abre modal |
 | Scroll bloqueado en modales | `useBodyScrollLock(true)` — **obligatorio** en todo modal o panel que cubra la pantalla. Sin esto el fondo sigue siendo scrolleable |
 | Tecla ESC cierra modales | `window.addEventListener("keydown")` en `useEffect` de cada modal — obligatorio |
+| **Botón "Cerrar" en modales** | El botón "Cerrar" (o "×") presente en **todos** los modales de la app sirve **únicamente para descartar/cerrar el modal** sin ejecutar ninguna acción sobre el registro. NO es una acción de negocio. Para modificar el estado de un registro (ej. cambiar un turno a "Cerrado") siempre se usa el flujo: **ícono lápiz (editar) → modal de edición → modificar campo Estado → botón Guardar**. |
 
 ---
 

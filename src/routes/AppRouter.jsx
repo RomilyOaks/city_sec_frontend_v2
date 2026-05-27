@@ -133,9 +133,9 @@ export default function AppRouter() {
           }
         />
         <Route
-          path="admin/rol-estados-novedad"
+          path="configuracion/rol-estados-novedad"
           element={
-            <ProtectedRoute routeKey="admin_roles">
+            <ProtectedRoute routeKey="configuracion">
               <RolEstadosNovedadPage />
             </ProtectedRoute>
           }

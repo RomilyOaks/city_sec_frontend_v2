@@ -87,6 +87,10 @@ export const ROUTE_ACCESS = {
     ROLE_SLUGS.ADMIN,
     ROLE_SLUGS.SUPERVISOR,
   ],
+  configuracion: [
+    ROLE_SLUGS.SUPER_ADMIN,
+    ROLE_SLUGS.ADMIN,
+  ],
 };
 
 // Mapeo de rutas a permisos requeridos (del backend)
