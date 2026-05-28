@@ -91,6 +91,12 @@ export const ROUTE_ACCESS = {
     ROLE_SLUGS.SUPER_ADMIN,
     ROLE_SLUGS.ADMIN,
   ],
+  mapa_operativo: [
+    ROLE_SLUGS.SUPER_ADMIN,
+    ROLE_SLUGS.ADMIN,
+    ROLE_SLUGS.SUPERVISOR,
+    ROLE_SLUGS.OPERADOR,
+  ],
 };
 
 // Mapeo de rutas a permisos requeridos (del backend)
@@ -107,6 +113,7 @@ export const ROUTE_PERMISSIONS = {
   calles_calles_cuadrantes: ["calles.calles.cuadrantes.read"],
   calles_direcciones: ["calles.direcciones.read"],
   operativos_turnos: ["operativos.turnos.read"],
+  mapa_operativo: ["tracking.vehiculos.read"],
   reportes: [
     "reportes.novedades.read",
     "reportes.personal.read",
@@ -276,6 +283,10 @@ export const ACTION_PERMISSIONS = {
   "catalogos.estados_operativo.create": ["catalogos.estados_operativo.create"],
   "catalogos.estados_operativo.update": ["catalogos.estados_operativo.update"],
   "catalogos.estados_operativo.delete": ["catalogos.estados_operativo.delete"],
+
+  // Tracking GPS (v1.0.0 — Mapa Operativo)
+  "tracking.vehiculos.read": ["tracking.vehiculos.read"],
+  "tracking.vehiculos.update": ["tracking.vehiculos.update"],
 };
 
 export function getUserRoleSlugs(user) {

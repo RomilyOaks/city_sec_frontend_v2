@@ -44,6 +44,7 @@ import {
   Wrench,
   ClipboardList,
   Settings,
+  Crosshair,
 } from "lucide-react";
 
 import ThemeToggle from "../components/common/ThemeToggle.jsx";
@@ -312,6 +313,16 @@ export default function AppShell() {
             {canAccess("operativos_turnos") && (
               <SidebarLink to="/operativos/turnos" icon={Clipboard}>
                 Operativos de Patrullaje
+              </SidebarLink>
+            )}
+
+            {/* ============================================
+                MAPA OPERATIVO GPS — Tracking en tiempo real
+                Visible: operador, supervisor, admin, super_admin
+                ============================================ */}
+            {canAccess("mapa_operativo") && (
+              <SidebarLink to="/mapa-operativo" icon={Crosshair}>
+                Mapa Operativo
               </SidebarLink>
             )}
 

@@ -67,6 +67,11 @@ import NovedadesPorCuadrante from "../pages/operativos/vehiculos/NovedadesPorCua
 import ReportesOperativosPage from "../pages/operativos/ReportesOperativosPage.jsx";
 
 // ============================================
+// IMPORTAR PÁGINA MAPA OPERATIVO GPS
+// ============================================
+import MapaOperativo from "../pages/MapaOperativo.jsx";
+
+// ============================================
 // IMPORTAR PÁGINAS DEL MÓDULO REPORTES V2.0
 // ============================================
 import ReportesOperativosDashboardPage from "../pages/reportes-operativos/ReportesOperativosDashboardPage.jsx";
@@ -215,6 +220,18 @@ export default function AppRouter() {
           element={
             <ProtectedRoute routeKey="operativos_turnos">
               <ReportesOperativosPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ============================================
+            MAPA OPERATIVO GPS — Tracking en tiempo real
+            ============================================ */}
+        <Route
+          path="mapa-operativo"
+          element={
+            <ProtectedRoute routeKey="mapa_operativo">
+              <MapaOperativo />
             </ProtectedRoute>
           }
         />

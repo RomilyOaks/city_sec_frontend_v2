@@ -28,6 +28,8 @@ import {
   Bot,
   AlertTriangle,
   Mic,
+  Navigation,
+  Activity,
 } from "lucide-react";
 import FotoViewerModal from "./common/FotoViewerModal";
 import toast from "react-hot-toast";
@@ -37,6 +39,7 @@ import {
   updateNovedad,
 } from "../services/novedadesService";
 import { geocodificarDireccion } from "../services/direccionesService";
+import { getVehiculosCercanos } from "../services/trackingService.js";
 import UbicacionMiniMapa from "./UbicacionMiniMapa";
 import { formatUsuarioCompleto } from "../utils/usuarioUtils";
 import { formatForDisplay } from "../utils/dateHelper";
@@ -140,6 +143,7 @@ export default function NovedadDetalleModal({
 }) {
   const user = useAuthStore((s) => s.user);
   const canEditLocation = canPerformAction(user, "novedades_update");
+  const canReadTracking = canPerformAction(user, "tracking.vehiculos.read");
 
   // Permisos RBAC para adjuntos (fotos y audio de vecino alerta)
   const _permisos = user?.permisos ?? [];
@@ -160,6 +164,10 @@ export default function NovedadDetalleModal({
   // Estado para ajuste de coordenadas en el mapa
   const [editedCoordinates, setEditedCoordinates] = useState(null);
   const [savingCoordinates, setSavingCoordinates] = useState(false);
+
+  // Estado para unidades cercanas (tab 3 — requiere tracking.vehiculos.read)
+  const [unidadesCercanas, setUnidadesCercanas] = useState([]);
+  const [loadingCercanos, setLoadingCercanos] = useState(false);
 
   // Handler para ajustar coordenadas desde el mapa
   const handleCoordinatesChange = useCallback(
@@ -256,6 +264,35 @@ export default function NovedadDetalleModal({
       document.body.style.overflow = "";
     };
   }, [isOpen]);
+
+  // Cargar unidades cercanas al entrar al Tab 3 si la novedad tiene coordenadas
+  useEffect(() => {
+    if (activeTab !== 3 || !canReadTracking || !novedad?.latitud || !novedad?.longitud) return;
+
+    let cancelled = false;
+    setLoadingCercanos(true);
+
+    getVehiculosCercanos({
+      lat: novedad.latitud,
+      lng: novedad.longitud,
+      radio_km: 2,
+      limite: 5,
+    })
+      .then((data) => {
+        if (!cancelled) setUnidadesCercanas(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => {
+        console.warn("[NovedadDetalleModal] Sin unidades cercanas:", err?.message);
+        if (!cancelled) setUnidadesCercanas([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingCercanos(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, canReadTracking, novedad?.latitud, novedad?.longitud]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -915,6 +952,102 @@ export default function NovedadDetalleModal({
                       })()}
                     </p>
                   </div>
+
+                  {/* ── Unidades Cercanas (requiere tracking.vehiculos.read) ── */}
+                  {canReadTracking && novedad?.latitud && novedad?.longitud && (
+                    <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                      {/* Cabecera */}
+                      <div className="flex items-center justify-between px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700">
+                        <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                          <Navigation size={13} />
+                          Unidades cercanas
+                          <span className="font-normal text-slate-400">(radio 2 km)</span>
+                        </span>
+                        {loadingCercanos && (
+                          <Loader2 size={13} className="animate-spin text-slate-400" />
+                        )}
+                        {!loadingCercanos && unidadesCercanas.length > 0 && (
+                          <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                            <Activity size={11} />
+                            {unidadesCercanas.length} disponible{unidadesCercanas.length !== 1 ? "s" : ""}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Cuerpo */}
+                      <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {loadingCercanos ? (
+                          <div className="flex items-center gap-2 px-3 py-3 text-xs text-slate-400">
+                            <Loader2 size={13} className="animate-spin" />
+                            Buscando unidades en el área…
+                          </div>
+                        ) : unidadesCercanas.length === 0 ? (
+                          <div className="flex items-center gap-2 px-3 py-3 text-xs text-slate-400 dark:text-slate-500">
+                            <Car size={14} />
+                            Sin unidades activas en un radio de 2 km
+                          </div>
+                        ) : (
+                          unidadesCercanas.map((u) => {
+                            const dist = u.distancia_km !== undefined
+                              ? parseFloat(u.distancia_km).toFixed(2)
+                              : "—";
+                            // ETA estimado: distancia / 40 km/h × 60 min
+                            const etaMin = u.distancia_km !== undefined
+                              ? Math.max(1, Math.round((parseFloat(u.distancia_km) / 40) * 60))
+                              : null;
+                            const estaEnMovimiento = u.velocidad !== null && parseFloat(u.velocidad) > 0;
+
+                            return (
+                              <div
+                                key={u.vehiculo_id}
+                                className="flex items-center justify-between px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+                              >
+                                {/* Info vehículo */}
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span
+                                    className="w-2 h-2 rounded-full flex-shrink-0"
+                                    style={{
+                                      backgroundColor: estaEnMovimiento ? "#22c55e" : "#3b82f6",
+                                    }}
+                                  />
+                                  <div className="min-w-0">
+                                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">
+                                      {u.placa || `V-${u.vehiculo_id}`}
+                                    </p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                                      {dist} km
+                                      {estaEnMovimiento
+                                        ? ` · ${Math.round(parseFloat(u.velocidad))} km/h`
+                                        : " · Detenido"}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                {/* ETA + botón asignar */}
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  {etaMin !== null && (
+                                    <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                      <Clock size={11} />
+                                      ~{etaMin} min
+                                    </span>
+                                  )}
+                                  <button
+                                    type="button"
+                                    title="Funcionalidad próximamente"
+                                    disabled
+                                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-xs font-medium text-slate-500 dark:text-slate-400 opacity-60 cursor-not-allowed"
+                                  >
+                                    <Truck size={11} />
+                                    Asignar
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
