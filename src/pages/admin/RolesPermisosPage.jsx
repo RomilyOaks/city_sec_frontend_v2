@@ -25,6 +25,7 @@ import {
   Clock,
   Search,
   Copy,
+  FileDown,
 } from "lucide-react";
 import {
   listRoles,
@@ -296,6 +297,113 @@ export default function RolesPermisosPage() {
     }
   };
 
+  const handleExportarExcel = async () => {
+    if (!selectedRol || permisosSeleccionados.length === 0) {
+      toast.error("No hay permisos asignados para exportar");
+      return;
+    }
+
+    const toastId = toast.loading("Generando Excel...");
+    try {
+      const ExcelJS = (await import("exceljs")).default;
+      const wb = new ExcelJS.Workbook();
+      wb.creator = "CitySecure";
+      wb.created = new Date();
+
+      const ws = wb.addWorksheet("Permisos");
+
+      // Título
+      ws.mergeCells("A1:E1");
+      const titleCell = ws.getCell("A1");
+      titleCell.value = `Permisos del Rol: ${selectedRol.nombre} (${selectedRol.slug})`;
+      titleCell.font = { bold: true, size: 14, color: { argb: "FF1E293B" } };
+      titleCell.alignment = { horizontal: "center", vertical: "middle" };
+      ws.getRow(1).height = 28;
+
+      ws.mergeCells("A2:E2");
+      const subtitleCell = ws.getCell("A2");
+      const now = new Date();
+      subtitleCell.value = `Exportado el: ${now.toLocaleDateString("es-PE")} ${now.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })} · ${permisosSeleccionados.length} permiso${permisosSeleccionados.length !== 1 ? "s" : ""} asignado${permisosSeleccionados.length !== 1 ? "s" : ""}`;
+      subtitleCell.font = { size: 10, color: { argb: "FF64748B" } };
+      subtitleCell.alignment = { horizontal: "center" };
+      ws.getRow(2).height = 18;
+
+      ws.addRow([]); // fila vacía
+
+      // Encabezados
+      const headerRow = ws.addRow(["Módulo", "Recurso", "Acción", "Slug", "Tipo"]);
+      headerRow.eachCell((cell) => {
+        cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 11 };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF4E8C1F" } };
+        cell.alignment = { horizontal: "center", vertical: "middle" };
+        cell.border = {
+          top: { style: "thin", color: { argb: "FF3D7016" } },
+          bottom: { style: "thin", color: { argb: "FF3D7016" } },
+          left: { style: "thin", color: { argb: "FF3D7016" } },
+          right: { style: "thin", color: { argb: "FF3D7016" } },
+        };
+      });
+      headerRow.height = 22;
+
+      // Filas de datos — solo permisos asignados, ordenados por módulo > recurso > acción
+      let rowIndex = 0;
+      Object.entries(permisosAgrupados)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .forEach(([, { modulo, recurso, permisos }]) => {
+          permisos
+            .filter((p) => permisosSeleccionados.includes(p.id))
+            .forEach((p) => {
+              const slug = p.slug || `${modulo}.${recurso}.${p.accion}`;
+              const dataRow = ws.addRow([
+                modulo,
+                recurso,
+                p.accion,
+                slug,
+                p.es_sistema ? "Sistema" : "Custom",
+              ]);
+              const bgColor = rowIndex % 2 === 0 ? "FFFAFAFA" : "FFF0F4F8";
+              dataRow.eachCell((cell) => {
+                cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bgColor } };
+                cell.border = {
+                  bottom: { style: "thin", color: { argb: "FFE2E8F0" } },
+                  right: { style: "thin", color: { argb: "FFE2E8F0" } },
+                };
+                cell.alignment = { vertical: "middle" };
+              });
+              dataRow.height = 18;
+              rowIndex++;
+            });
+        });
+
+      ws.columns = [
+        { key: "modulo", width: 18 },
+        { key: "recurso", width: 22 },
+        { key: "accion", width: 16 },
+        { key: "slug", width: 42 },
+        { key: "tipo", width: 12 },
+      ];
+
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const fecha = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+      a.download = `permisos_${selectedRol.slug}_${fecha}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      toast.dismiss(toastId);
+      toast.success(`Excel generado: ${permisosSeleccionados.length} permisos de "${selectedRol.nombre}"`);
+    } catch (error) {
+      console.error("Error exportando Excel:", error);
+      toast.dismiss(toastId);
+      toast.error("Error al generar el Excel");
+    }
+  };
+
   /**
    * Devuelve el color asociado a un rol o un color por defecto.
    * @param {Object} rol - Objeto rol que puede contener el atributo `color`.
@@ -452,6 +560,16 @@ export default function RolesPermisosPage() {
                 )}
               </div>
               <div className="flex items-center gap-2">
+                {selectedRol && !loadingPermisosRol && !loadingPermisos && permisosSeleccionados.length > 0 && (
+                  <button
+                    onClick={handleExportarExcel}
+                    className="flex items-center gap-2 rounded-lg border border-green-300 dark:border-green-600 px-3 py-2 text-sm font-medium text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+                    title="Exportar permisos asignados a Excel"
+                  >
+                    <FileDown className="h-4 w-4" />
+                    Excel
+                  </button>
+                )}
                 {selectedRol && !loadingPermisosRol && !loadingPermisos && rolesElegiblesParaCopia.length > 0 && (
                   <button
                     onClick={() => {

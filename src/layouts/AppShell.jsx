@@ -149,6 +149,16 @@ export default function AppShell() {
   };
 
   /**
+   * Mapa Operativo: visible para super_admin/admin/operador/supervisor (bypass)
+   * y para cualquier otro rol que tenga al menos un permiso tracking.vehiculos.*
+   */
+  const canAccessMapaOperativo = () => {
+    const bypassRoles = ["super_admin", "admin", "operador", "supervisor"];
+    if (user?.roles?.some((r) => bypassRoles.includes(r?.slug))) return true;
+    return user?.permisos?.some((p) => p?.slug?.startsWith("tracking.vehiculos.")) || false;
+  };
+
+  /**
    * Verifica si el usuario tiene acceso a CUALQUIER módulo de Reportes Operativos
    * @returns {boolean}
    */
@@ -318,9 +328,10 @@ export default function AppShell() {
 
             {/* ============================================
                 MAPA OPERATIVO GPS — Tracking en tiempo real
-                Visible: operador, supervisor, admin, super_admin
+                Bypass: super_admin, admin, operador, supervisor
+                Otros roles: solo si tienen tracking.vehiculos.*
                 ============================================ */}
-            {canAccess("mapa_operativo") && (
+            {canAccessMapaOperativo() && (
               <SidebarLink to="/mapa-operativo" icon={Crosshair}>
                 Mapa Operativo
               </SidebarLink>

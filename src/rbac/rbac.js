@@ -113,7 +113,7 @@ export const ROUTE_PERMISSIONS = {
   calles_calles_cuadrantes: ["calles.calles.cuadrantes.read"],
   calles_direcciones: ["calles.direcciones.read"],
   operativos_turnos: ["operativos.turnos.read"],
-  mapa_operativo: ["tracking.vehiculos.read"],
+  mapa_operativo: ["tracking.vehiculos.read", "tracking.vehiculos.update"],
   reportes: [
     "reportes.novedades.read",
     "reportes.personal.read",
