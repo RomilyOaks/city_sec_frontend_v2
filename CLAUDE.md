@@ -2,7 +2,7 @@
 
 ## Proyecto
 
-**CitySecure Frontend v2** — SPA de gestión de seguridad ciudadana (serenazgo) para municipalidades peruanas. Backend separado (Node/Express/Sequelize). Este repo es solo frontend.
+**CitySecure Frontend v2** — SPA de gestión de seguridad ciudadana (serenazgo) para municipalidades peruanas. Backend separado (Node/Express/Sequelize/PostgreSQL). Este repo es solo frontend.
 
 ---
 
@@ -16,6 +16,17 @@ npm run preview   # Preview del build
 ```
 
 **Antes de subir a GitHub**: ejecutar ESLint + build. Preguntar siempre al usuario si desea hacer push.
+
+---
+
+## Backend: URLs de producción
+
+| Entorno | URL base |
+|---|---|
+| **Producción (Supabase)** | `https://citysecbackendsupabase-production.up.railway.app/api/v1` |
+| Local | `http://localhost:3000/api/v1` |
+
+El backend en producción usa **PostgreSQL (Supabase)** como base de datos, no MySQL. Esto afecta cómo se interpretan algunos campos booleanos y la codificación de ciertos filtros — ver sección "Trampas conocidas backend" más abajo.
 
 ---
 
@@ -172,6 +183,39 @@ const fecha = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-
 - **No añadir** comentarios explicativos en el código salvo que el WHY sea no obvio
 - **No hacer push** a GitHub sin preguntar al usuario primero
 - Los permisos del sistema (`es_sistema: true`) no se pueden editar ni eliminar
+
+---
+
+## Trampas conocidas — RBAC con Supabase (PostgreSQL)
+
+### 🚨 `canPerformAction` no bypasea el rol `admin`
+
+`canPerformAction(user, key)` solo bypasea `super_admin` (via `isSuperAdmin`). Para `admin`, verifica permisos en `ACTION_PERMISSIONS[key]`. Si el permiso requerido no está asignado al rol `admin` en Supabase, el botón queda **oculto** aunque el backend sí lo permita (el backend tiene bypass por rol).
+
+```js
+// rbac.js — canPerformAction
+if (isSuperAdmin(user)) return true;  // solo super_admin
+// admin sin el permiso asignado → retorna false → botón oculto
+```
+
+**Regla**: cuando añadas un nuevo `ACTION_PERMISSIONS`, confirma que el permiso está asignado al rol `admin` en la migración `002_citysecure_seeds.sql`. Si no, el botón será invisible para `admin`.
+
+### 🚨 Slug incorrecto en `usuarios_reset_password`
+
+```js
+// rbac.js:138 — INCORRECTO (slug de permiso legacy)
+usuarios_reset_password: ["usuarios.reset_password.execute"],
+// El backend exige: "usuarios.usuarios.reset_password"
+```
+
+Este slug legacy (`usuarios.reset_password.execute`) **no está asignado al rol `admin`** en Supabase. Por eso el botón "Resetear contraseña" solo lo ven los `super_admin`. Pendiente normalizar el slug y asignar el permiso correcto al rol `admin`.
+
+### 🚨 `canAccessRoute` sí bypasea `admin` — pero `canPerformAction` no
+
+- `canAccessRoute` → bypasea `super_admin` Y `admin`
+- `canPerformAction` → bypasea solo `super_admin`
+
+No confundir los dos. Para dar acceso a una **ruta** a `admin`, alcanza con `ROUTE_ACCESS`. Para mostrar un **botón de acción** a `admin`, el permiso debe estar asignado en la BD o usar `canAccessRoute` como fallback.
 
 ---
 

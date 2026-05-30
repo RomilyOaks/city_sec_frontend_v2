@@ -3,7 +3,7 @@
 **Producto**: Sistema de gestión de seguridad ciudadana (serenazgo)
 **Cliente**: Municipalidades peruanas
 **Versión frontend**: 2.x
-**Última actualización**: 2026-05-25
+**Última actualización**: 2026-05-30
 
 ---
 
@@ -80,14 +80,21 @@ Módulo central del sistema (~5000 líneas). Funcionalidades:
 - **Cuadrantes por vehículo** (`CuadrantesPorVehiculo`): patrullaje con hora ingreso/salida.
 - **Personal por turno**: asignación de efectivos a pie.
 
-### 3.10 Reportes Operativos
+### 3.10 Tracking GPS (`/operativos/tracking`)
+Mapa operativo en tiempo real con Leaflet:
+- Visualización de posición de vehículos en servicio sobre el mapa de Chorrillos.
+- Actualización en tiempo real via SSE (`/api/v1/tracking/stream`) o polling configurable.
+- Panel lateral con estado de cada unidad (en servicio, patrullando, en base).
+- Permiso requerido: `tracking.vehiculos.read` (read) / `tracking.vehiculos.update` (update posición).
+
+### 3.11 Reportes Operativos
 Generación de Excel multi-hoja con ExcelJS:
 - **Hoja Resumen**: KPIs del turno + 3 gráficos Recharts incrustados.
 - **Hoja Novedades**: detalle de incidentes filtrados por fecha.
 - **Hoja No Atendidas**: novedades en estado PENDIENTE.
 - **Hoja Recursos**: personal y vehículos del turno.
 
-### 3.11 Autenticación
+### 3.12 Autenticación
 - **Login** (`LoginPage`): formulario con JWT.
 - **Recuperar contraseña** (`ForgotPasswordPage`): envío de email con link de reset via Resend SDK.
 - **Restablecer contraseña** (`ResetPasswordPage`): formulario con token de URL, indicador de fortaleza de contraseña. Redirige al login tras éxito.
@@ -167,38 +174,58 @@ Botón "Exportar CSV" descarga hasta 10,000 registros con los filtros activos.
 
 ---
 
-## 8. Estado actual del desarrollo (2026-05-25)
+## 8. Estado actual del desarrollo (2026-05-30)
 
-### Completado en este sprint (mayo 2026)
-- **Flujo recuperación de contraseña** — `ForgotPasswordPage` + `ResetPasswordPage` con validación de fortaleza, redirige al login tras éxito
-- **Tests Playwright** — 6 tests del flujo forgot-password (todos verdes): flujo completo, email no registrado, campo vacío, estado "Enviando...", links de retorno
-- **Panel de Auditoría** (`/admin/auditoria`) — filtros completos, tabla paginada con filas clickeables, modal de detalle con JSON diff, exportación CSV
-- **Fix seguridad RBAC** — `auditoria` removido de `ROUTE_PERMISSIONS`; acceso solo por rol. Fix a bug donde usuarios con permiso `auditoria.registros.read` podían bypassear el filtro de roles
-- **`useBodyScrollLock`** documentado como patrón obligatorio en `CLAUDE.md`
-- **ESLint 0 errores** — excluido `mcp-server/`, `TallerRow` extraído de render, imports sin usar eliminados
+### Backend: migración MySQL → PostgreSQL (Supabase) — completada
+El backend en producción ahora usa **PostgreSQL vía Supabase** (antes MySQL Railway).
+- URL producción: `https://citysecbackendsupabase-production.up.railway.app/api/v1`
+- 2 591 registros migrados desde MySQL (19 tablas) — migraciones `001`–`007` aplicadas
+- Supabase schema: `citysecure` (no `public`)
+- 7 migraciones SQL en `city_sec_backend_claude/supabase/migrations/`
+
+Bugs corregidos como parte de la migración PostgreSQL:
+- **Reset de contraseña**: el hook `afterUpdate` de `Usuario.js` generaba `realizado_por=null`, abortando silenciosamente la transacción en PostgreSQL. `require_password_change` nunca se grababa → el modal de cambio no aparecía tras el reset. Corregido en `ee2242c`.
+- **`/personal/stats`**: `sequelize.fn("CURRENT_DATE")` generaba `CURRENT_DATE()` — válido en MySQL, error de sintaxis en PostgreSQL. Corregido a `sequelize.literal("CURRENT_DATE")`. Corregido en `cafe9bf`.
+- Otros fixes previos: `Op.iLike` para búsquedas case-insensitive, comparaciones boolean/integer, GROUP BY estricto.
+
+### Completado en el sprint mayo 2026
+- **Tracking GPS** (`/operativos/tracking`) — Mapa Operativo en tiempo real con Leaflet, SSE y panel lateral de estado de unidades
+- **Flujo recuperación de contraseña** — `ForgotPasswordPage` + `ResetPasswordPage`
+- **Tests Playwright** — 6 tests del flujo forgot-password
+- **Panel de Auditoría** (`/admin/auditoria`) — filtros completos, exportación CSV, modal con JSON diff
+- **Fix seguridad RBAC** — `auditoria` solo por rol, no por permisos
+- **ESLint 0 errores**
 
 ### Completado anteriormente
 - Migración completa `window.confirm` → `ConfirmModal` en 17 archivos
 - Reportes Operativos en Excel con gráficos Recharts incrustados
 - Dark mode homologado en toda la app
-- Módulo completo de Novedades con modal de Atención
-- Módulo de Operativos completo (turnos, vehículos, personal, cuadrantes)
+- Módulo completo de Novedades, Operativos, Calles, Vehículos, Personal
 - Administración completa (usuarios, roles, permisos del sistema)
-- Módulo de Calles y Territorio con geocodificación
 - Talleres, Horarios de Turnos, Ubigeo
 
 ### Deuda técnica conocida
 - `NovedadesPage.jsx` es un monolito de ~5000 líneas; candidato a refactor modular
-- Bundle size > 2.6 MB minificado (ExcelJS aporta ~936 KB; warnings de Vite)
+- Bundle size > 2.6 MB minificado (ExcelJS aporta ~936 KB)
 - 42 warnings de ESLint (dependencias faltantes en `useEffect`) en archivos preexistentes — no bloquean
 - Tests Playwright solo cubren flujo forgot-password; pendiente cobertura de login, novedades, operativos
-- Dropdown de usuarios en Auditoría limitado a 100 activos — si el sistema crece, paginar
+- Dropdown de usuarios en Auditoría limitado a 100 activos
+- **Slug incorrecto**: `ACTION_PERMISSIONS.usuarios_reset_password` usa `usuarios.reset_password.execute` pero el backend exige `usuarios.usuarios.reset_password`. El botón "Resetear contraseña" solo lo ven los `super_admin` — pendiente normalizar slug y asignar permiso a rol `admin` en Supabase.
+- **`canPerformAction` no bypasea `admin`**: todos los botones de acción verifican permisos en `ACTION_PERMISSIONS`. Si el permiso no está asignado al rol `admin` en Supabase seeds, el botón queda oculto aunque el backend lo permita.
 
 ---
 
-## 9. Variables de entorno del backend relevantes para el frontend
+## 9. Variables de entorno relevantes
 
+### Frontend (`.env.local` / Railway)
+| Variable | Valor desarrollo | Valor producción |
+|---|---|---|
+| `VITE_API_URL` | `http://localhost:3000/api/v1` | `https://citysecbackendsupabase-production.up.railway.app/api/v1` |
+
+### Backend (Railway — relevantes para el frontend)
 | Variable | Propósito |
 |---|---|
 | `FRONTEND_PUBLIC_URL` | URL pública del frontend (para links en emails de reset password). Distinta de `FRONTEND_URL` que puede apuntar a URL interna de Railway |
 | `RESEND_API_KEY` | SDK de Resend para envío de emails (reemplaza SMTP bloqueado en Railway) |
+| `DB_DIALECT` | `postgres` en producción Supabase |
+| `DB_SCHEMA` | `citysecure` en producción Supabase |
