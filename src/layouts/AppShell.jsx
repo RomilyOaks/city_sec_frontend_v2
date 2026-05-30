@@ -149,14 +149,31 @@ export default function AppShell() {
   };
 
   /**
+   * Helper genérico: devuelve true si el usuario es un rol con bypass,
+   * o si tiene al menos un permiso cuyo slug empieza por `prefix`.
+   * Los roles bypass son los operacionales del sistema.
+   */
+  const hasPermissionPrefix = (prefix, bypassRoles = ["super_admin", "admin", "operador", "supervisor"]) => {
+    if (user?.roles?.some((r) => bypassRoles.includes(r?.slug))) return true;
+    return user?.permisos?.some((p) => p?.slug?.startsWith(prefix)) || false;
+  };
+
+  /**
    * Mapa Operativo: visible para super_admin/admin/operador/supervisor (bypass)
    * y para cualquier otro rol que tenga al menos un permiso tracking.vehiculos.*
    */
-  const canAccessMapaOperativo = () => {
-    const bypassRoles = ["super_admin", "admin", "operador", "supervisor"];
-    if (user?.roles?.some((r) => bypassRoles.includes(r?.slug))) return true;
-    return user?.permisos?.some((p) => p?.slug?.startsWith("tracking.vehiculos.")) || false;
-  };
+  const canAccessMapaOperativo = () => hasPermissionPrefix("tracking.vehiculos.");
+
+  // Visibilidad de cada ítem del menú Catálogos
+  // Bypass: super_admin, admin, supervisor, operador, consulta (todos los roles operacionales)
+  const CATALOG_BYPASS = ["super_admin", "admin", "supervisor", "operador", "consulta"];
+  const hasCatalogPerm = (prefix) => hasPermissionPrefix(prefix, CATALOG_BYPASS);
+
+  const canSeeUnidades    = hasCatalogPerm("catalogos.unidades.");
+  const canSeeCargos      = hasCatalogPerm("catalogos.cargos.");
+  const canSeeRadios      = hasCatalogPerm("catalogos.radios_tetra.");
+  const canSeeTiposNovedad = hasCatalogPerm("catalogos.tipos_novedad.") || hasCatalogPerm("catalogos.subtipos_novedad.");
+  const canSeeCatalogos   = canSeeUnidades || canSeeCargos || canSeeRadios || canSeeTiposNovedad;
 
   /**
    * Verifica si el usuario tiene acceso a CUALQUIER módulo de Reportes Operativos
@@ -392,22 +409,33 @@ export default function AppShell() {
             )}
 
             {/* ============================================
-                CATÁLOGOS - MENÚ DESPLEGABLE
+                CATÁLOGOS - Solo visible si el usuario tiene
+                acceso a al menos un ítem del catálogo
                 ============================================ */}
-            <SidebarDropdown icon={Building2} label="Catálogos">
-              <SidebarLink to="/catalogos/unidades-oficinas" icon={Building2}>
-                Unidades y Oficinas
-              </SidebarLink>
-              <SidebarLink to="/catalogos/cargos" icon={Briefcase}>
-                Cargos y Puestos
-              </SidebarLink>
-              <SidebarLink to="/catalogos/radios-tetra" icon={Radio}>
-                Radios Tetra
-              </SidebarLink>
-              <SidebarLink to="/catalogos/tipos-subtipos-novedad" icon={FileText}>
-                Tipos y Subtipos de Novedad
-              </SidebarLink>
-            </SidebarDropdown>
+            {canSeeCatalogos && (
+              <SidebarDropdown icon={Building2} label="Catálogos">
+                {canSeeUnidades && (
+                  <SidebarLink to="/catalogos/unidades-oficinas" icon={Building2}>
+                    Unidades y Oficinas
+                  </SidebarLink>
+                )}
+                {canSeeCargos && (
+                  <SidebarLink to="/catalogos/cargos" icon={Briefcase}>
+                    Cargos y Puestos
+                  </SidebarLink>
+                )}
+                {canSeeRadios && (
+                  <SidebarLink to="/catalogos/radios-tetra" icon={Radio}>
+                    Radios Tetra
+                  </SidebarLink>
+                )}
+                {canSeeTiposNovedad && (
+                  <SidebarLink to="/catalogos/tipos-subtipos-novedad" icon={FileText}>
+                    Tipos y Subtipos de Novedad
+                  </SidebarLink>
+                )}
+              </SidebarDropdown>
+            )}
 
             {/* ============================================
                 CONTROL DE ACCESOS - MENÚ DESPLEGABLE

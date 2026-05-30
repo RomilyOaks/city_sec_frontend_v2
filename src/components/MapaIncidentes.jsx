@@ -17,6 +17,7 @@ import {
   listVehiculos,
   listPersonalSeguridad,
 } from "../services/novedadesService";
+import { useAuthStore } from "../store/useAuthStore";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -262,6 +263,13 @@ export default function MapaIncidentes({
   const [vehiculos, setVehiculos] = useState([]);
   const [personalSeguridad, setPersonalSeguridad] = useState([]);
 
+  const user = useAuthStore((s) => s.user);
+
+  // Roles que tienen bypass para acceder a recursos de catálogos/personal/vehículos
+  const OP_ROLES = ["super_admin", "admin", "supervisor", "operador", "consulta"];
+  const isOpRole = user?.roles?.some((r) => OP_ROLES.includes(r?.slug)) || false;
+  const hasPerm = (slug) => isOpRole || (user?.permisos?.some((p) => p?.slug === slug) || false);
+
   // Calcular estados activos (orden > es_inicial y es_final = 0)
   const estadosActivos = useMemo(() => {
     return estados
@@ -301,13 +309,13 @@ export default function MapaIncidentes({
     return estadoInfo?.color || "#6B7280";
   };
 
-  // Cargar recursos para el modal de novedades
+  // Cargar recursos para el modal de novedades — solo si el usuario tiene permiso
   const fetchRecursos = async () => {
     try {
       const [unidades, vehic, personal] = await Promise.all([
-        listUnidadesOficina(),
-        listVehiculos(),
-        listPersonalSeguridad(),
+        hasPerm("catalogos.unidades.read") ? listUnidadesOficina() : Promise.resolve([]),
+        hasPerm("vehiculos.vehiculos.read") ? listVehiculos() : Promise.resolve([]),
+        hasPerm("personal.personal.read") ? listPersonalSeguridad() : Promise.resolve([]),
       ]);
       setUnidadesOficina(unidades || []);
       setVehiculos(vehic || []);
@@ -319,8 +327,8 @@ export default function MapaIncidentes({
 
   // Cargar recursos al montar el componente
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchRecursos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Usar estados del prop para el dropdown, ordenados por campo 'orden'

@@ -18,6 +18,7 @@ import {
   getNovedadesEnAtencion,
 } from "../../services/novedadesService";
 import MapaIncidentes from "../../components/MapaIncidentes";
+import { useAuthStore } from "../../store/useAuthStore";
 
 /**
  * File: c:\\Project\\city_sec_frontend_v2\\src\\pages\\dashboard\\DashboardPage.jsx
@@ -36,6 +37,17 @@ import MapaIncidentes from "../../components/MapaIncidentes";
  */
 
 export default function DashboardPage() {
+  const user = useAuthStore((s) => s.user);
+
+  // Bypass: roles operacionales del sistema tienen acceso a todas las estadísticas
+  const OP_ROLES = ["super_admin", "admin", "supervisor", "operador", "consulta"];
+  const isOpRole = user?.roles?.some((r) => OP_ROLES.includes(r?.slug)) || false;
+  const hasPerm = (slug) => isOpRole || (user?.permisos?.some((p) => p?.slug === slug) || false);
+
+  const canReadPersonal  = hasPerm("personal.personal.read");
+  const canReadVehiculos = hasPerm("vehiculos.vehiculos.read");
+  const canReadNovedades = hasPerm("novedades.incidentes.read") || hasPerm("novedades.novedades.read");
+
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     personalActivo: 0,
@@ -55,12 +67,12 @@ export default function DashboardPage() {
     try {
       const [personalStats, vehiculosStats, novedadesStats, novedadesList, estadosRes, enAtencionRes] =
         await Promise.all([
-          getEstadisticasPersonal(),
-          getEstadisticasVehiculos(),
-          getEstadisticasNovedades(),
-          listNovedades({ limit: 100 }), // Cargar novedades para el mapa
-          listEstadosNovedad(), // Cargar estados para filtro del mapa
-          getNovedadesEnAtencion(), // Nuevo endpoint para novedades en atención
+          canReadPersonal  ? getEstadisticasPersonal()         : Promise.resolve(null),
+          canReadVehiculos ? getEstadisticasVehiculos()        : Promise.resolve(null),
+          canReadNovedades ? getEstadisticasNovedades()        : Promise.resolve(null),
+          canReadNovedades ? listNovedades({ limit: 100 })     : Promise.resolve(null),
+          canReadNovedades ? listEstadosNovedad()              : Promise.resolve([]),
+          canReadNovedades ? getNovedadesEnAtencion()          : Promise.resolve(null),
         ]);
 
       // Guardar estados para el mapa
@@ -130,6 +142,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const cards = [
