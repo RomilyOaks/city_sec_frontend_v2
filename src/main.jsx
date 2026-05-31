@@ -16,15 +16,6 @@ const queryClient = new QueryClient({
   },
 });
 
-// Log build-time env only when debug is enabled to verify production variables
-if (
-  import.meta.env.VITE_DEBUG === "true" ||
-  import.meta.env.VITE_DEBUG === true
-) {
-   
-  console.log("import.meta.env:", import.meta.env);
-}
-
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>

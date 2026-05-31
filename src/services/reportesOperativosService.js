@@ -60,14 +60,6 @@ export async function getTurnosParaReporte() {
 export async function buildReporteData(params) {
   const { fecha_inicio, fecha_fin, turno, sector_id, tipo_recurso } = params;
 
-  console.log("=== DEBUGGING BUILD REPORTE DATA ===");
-  console.log("Parámetros recibidos:", params);
-  console.log("fecha_inicio:", fecha_inicio);
-  console.log("fecha_fin:", fecha_fin);
-  console.log("turno:", turno);
-  console.log("sector_id:", sector_id);
-  console.log("tipo_recurso:", tipo_recurso);
-
   // 1. Obtener turnos operativos en el rango de fechas
   const queryParams = new URLSearchParams();
   queryParams.append("limit", "1000");
@@ -77,15 +69,8 @@ export async function buildReporteData(params) {
   if (sector_id && sector_id !== "todos") queryParams.append("sector_id", sector_id);
 
   const queryString = queryParams.toString();
-  console.log("Query string enviada al backend:", queryString);
-  console.log("URL completa:", `/operativos?${queryString}`);
-
   const turnosResponse = await api.get(`/operativos?${queryString}`);
   const turnosData = turnosResponse.data?.data?.items || turnosResponse.data?.data || turnosResponse.data || [];
-  
-  console.log("Respuesta del backend (cruda):", turnosResponse.data);
-  console.log("Turnos data extraída:", turnosData);
-  console.log("Cantidad de turnos recibidos:", turnosData.length);
 
   // 2. Para cada turno, obtener vehículos y/o personal según tipo_recurso
   const reporteData = [];
@@ -286,10 +271,6 @@ export async function buildReporteData(params) {
   // Las novedades deben venir dentro de cada cuadrante en: recurso.cuadrantes[].novedades[]
   // Por ahora, dejamos el array vacío hasta que backend implemente esta funcionalidad
   
-  console.log("=== ESPERANDO NOVEDADES DESDE BACKEND ===");
-  console.log("El backend debe incorporar novedades en la estructura de cuadrantes");
-  console.log("Estructura esperada: recurso.cuadrantes[].novedades[]");
-  
   const allNovedades = [];
   // DISTINCT: evitar duplicados cuando la misma novedad aparece en varios cuadrantes/recursos
   const seenNovedad = new Set();
@@ -357,7 +338,6 @@ export async function buildReporteData(params) {
     }
   }
   
-  console.log("Total de novedades encontradas (desde backend):", allNovedades.length);
   // allNovedades ya está acotado al rango de fechas porque proviene de cuadrantes
   // de turnos filtrados por ot.fecha — no se filtra adicionalmente por fecha_ocurrencia
   // (una novedad puede haber ocurrido antes del rango pero ser atendida dentro de él).
@@ -414,7 +394,6 @@ export async function buildReporteData(params) {
       hora_ingreso:     null,
       hora_salida:      null,
     }));
-    console.log("Novedades PENDIENTE obtenidas:", novedadesPendientes.length);
   } catch (err) {
     console.warn("No se pudieron obtener novedades pendientes:", err.message);
   }
@@ -465,15 +444,6 @@ export async function buildReporteData(params) {
     novedades: allNovedades,
     novedades_pendientes: novedadesPendientes,
   };
-
-  console.log("=== DEBUGGING RETORNO FINAL ===");
-  console.log("total_turnos:", resultado.total_turnos);
-  console.log("total_recursos:", resultado.total_recursos);
-  console.log("total_cuadrantes:", resultado.total_cuadrantes);
-  console.log("total_novedades:", resultado.total_novedades);
-  console.log("turnos.length:", resultado.turnos?.length || 0);
-  console.log("novedades.length:", resultado.novedades?.length || 0);
-  console.log("Estructura completa del resultado:", resultado);
 
   return resultado;
 }
