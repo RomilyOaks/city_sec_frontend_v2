@@ -117,49 +117,46 @@ const GraficosOperativos = ({ data, filters = {} }) => {
   // Memoizar datos procesados para optimización
   const processedData = useMemo(() => {
     if (!data) return {};
-    
-    console.log('🔍 Datos procesados:', {
-      analisisTurnos: data?.analisis_turnos || [],
-      totalNovedades: data?.total_novedades || 0,
-      analisisPrioridad: data?.analisis_prioridad || [],
-      tendencias: data?.tendencias || [],
-      acumulados: data?.tendencias?.map((item, index) => ({
+
+    const toNum = (v) => parseInt(v, 10) || 0;
+
+    const buildTendencias = (tendencias) =>
+      (tendencias || []).map((item, index) => ({
         ...item,
-        fecha: new Date(item.fecha).toLocaleDateString('es-PE', { 
-          day: '2-digit', 
-          month: 'short' 
+        cantidad: toNum(item.cantidad),
+        fecha: new Date(item.fecha).toLocaleDateString('es-PE', {
+          day: '2-digit',
+          month: 'short',
         }),
-        acumulado: data.tendencias.slice(0, index + 1).reduce((sum, t) => sum + t.cantidad, 0)
-      })) || []
-    });
-    
+        acumulado: tendencias
+          .slice(0, index + 1)
+          .reduce((sum, t) => sum + toNum(t.cantidad), 0),
+      }));
+
     return {
-      analisisTurnos: data.analisis_turnos?.map(item => ({
+      totalNovedades:
+        data.kpis_principales?.total_novedades ??
+        data.total_novedades ??
+        0,
+      analisisTurnos: (data.analisis_turnos || []).map((item) => ({
         ...item,
-        porcentaje: item.porcentaje || 0
-      })) || [],
-      analisisPrioridad: data.analisis_prioridad?.map(item => ({
+        cantidad: toNum(item.cantidad),
+        porcentaje: item.porcentaje || 0,
+      })),
+      analisisPrioridad: (data.analisis_prioridad || []).map((item) => ({
         ...item,
-        color: item.prioridad === 'BAJA' ? COLORS.chart.green :
-               item.prioridad === 'MEDIA' ? COLORS.chart.amber :
-               item.prioridad === 'ALTA' ? COLORS.chart.red : COLORS.chart.slate
-      })) || [],
-      tendencias: data?.tendencias?.map((item, index) => ({
-        ...item,
-        fecha: new Date(item.fecha).toLocaleDateString('es-PE', { 
-          day: '2-digit', 
-          month: 'short' 
-        }),
-        acumulado: data.tendencias.slice(0, index + 1).reduce((sum, t) => sum + t.cantidad, 0)
-      })) || [],
-      acumulados: data?.tendencias?.map((item, index) => ({
-        ...item,
-        fecha: new Date(item.fecha).toLocaleDateString('es-PE', { 
-          day: '2-digit', 
-          month: 'short' 
-        }),
-        acumulado: data.tendencias.slice(0, index + 1).reduce((sum, t) => sum + t.cantidad, 0)
-      })) || []
+        cantidad: toNum(item.cantidad),
+        color:
+          item.prioridad === 'BAJA'
+            ? COLORS.chart.green
+            : item.prioridad === 'MEDIA'
+            ? COLORS.chart.amber
+            : item.prioridad === 'ALTA'
+            ? COLORS.chart.red
+            : COLORS.chart.slate,
+      })),
+      tendencias: buildTendencias(data.tendencias),
+      acumulados: buildTendencias(data.tendencias),
     };
   }, [data]);
 
