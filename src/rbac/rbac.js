@@ -135,13 +135,13 @@ export const ACTION_PERMISSIONS = {
     "usuarios.usuarios.update_estado",
     "usuarios.usuarios.update",
   ],
-  usuarios_reset_password: ["usuarios.reset_password.execute"],
+  usuarios_reset_password: ["usuarios.usuarios.reset_password"],
 
   // Roles
   roles_create: ["usuarios.roles.create"],
   roles_update: ["usuarios.roles.update"],
   roles_delete: ["usuarios.roles.delete"],
-  roles_assign_permisos: ["usuarios.roles_permisos.assign"],
+  roles_assign_permisos: ["usuarios.roles.permisos.assign"],
 
   // Personal
   personal_create: ["personal.personal.create"],
