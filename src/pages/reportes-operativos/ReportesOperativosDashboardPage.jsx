@@ -140,7 +140,10 @@ const ReportesOperativosDashboardPage = () => {
         return `${day}-${month}-${year}`;
       };
       
-      const nombreArchivo = `reportes-combinados-operativos-del-${formatearFecha(fechaInicio)}-al-${formatearFecha(fechaFin)}.xlsx`;
+      const fi = formatearFecha(fechaInicio);
+      const ff = formatearFecha(fechaFin);
+      const sufijo = fi === ff ? fi : `del-${fi}-al-${ff}`;
+      const nombreArchivo = `reportes-combinados-operativos-${sufijo}.xlsx`;
       link.setAttribute('download', nombreArchivo);
       
       document.body.appendChild(link);

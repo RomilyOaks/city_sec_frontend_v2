@@ -176,7 +176,11 @@ const NovedadesNoAtendidasPage = () => {
           const url = window.URL.createObjectURL(blob);
           const link = document.createElement('a');
           link.href = url;
-          link.download = `reportes-novedades-no-atendidas-${new Date().toLocaleDateString('es-PE', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')}.xlsx`;
+          const fmtDate = (s) => { const [y, m, d] = s.split('-'); return `${d}-${m}-${y}`; };
+          const fi = fmtDate(filters.fecha_inicio || new Date().toISOString().split('T')[0]);
+          const ff = fmtDate(filters.fecha_fin    || new Date().toISOString().split('T')[0]);
+          const sufijo = fi === ff ? fi : `del-${fi}-al-${ff}`;
+          link.download = `reportes-novedades-no-atendidas-${sufijo}.xlsx`;
           
           document.body.appendChild(link);
           link.click();
