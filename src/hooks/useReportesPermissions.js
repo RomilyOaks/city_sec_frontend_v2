@@ -14,20 +14,20 @@ export const useReportesPermissions = () => {
   
   const permissions = {
     dashboard: {
-      read: isSuperAdmin || user?.permisos?.some(p => p.slug === 'reportes.operativos_dashboard.read') || false,
-      export: isSuperAdmin || user?.permisos?.some(p => p.slug === 'reportes.operativos_dashboard.export') || false,
+      read: isSuperAdmin || user?.permisos?.some(p => p.slug === 'reportes.operativos.dashboard.read') || false,
+      export: isSuperAdmin || user?.permisos?.some(p => p.slug === 'reportes.operativos.dashboard.export') || false,
     },
     vehiculares: {
-      read: isSuperAdmin || user?.permisos?.some(p => p.slug === 'reportes.operativos_vehiculares.read') || false,
-      export: isSuperAdmin || user?.permisos?.some(p => p.slug === 'reportes.operativos_vehiculares.export') || false,
+      read: isSuperAdmin || user?.permisos?.some(p => p.slug === 'reportes.operativos.vehiculares.read') || false,
+      export: isSuperAdmin || user?.permisos?.some(p => p.slug === 'reportes.operativos.vehiculares.export') || false,
     },
     operativosPie: {
-      read: isSuperAdmin || user?.permisos?.some(p => p.slug === 'reportes.operativos_personales.read') || false,
-      export: isSuperAdmin || user?.permisos?.some(p => p.slug === 'reportes.operativos_personales.export') || false,
+      read: isSuperAdmin || user?.permisos?.some(p => p.slug === 'reportes.operativos.personales.read') || false,
+      export: isSuperAdmin || user?.permisos?.some(p => p.slug === 'reportes.operativos.personales.export') || false,
     },
     noAtendidas: {
-      read: isSuperAdmin || user?.permisos?.some(p => p.slug === 'reportes.novedades_no_atendidas.read') || false,
-      export: isSuperAdmin || user?.permisos?.some(p => p.slug === 'reportes.novedades_no_atendidas.export') || false,
+      read: isSuperAdmin || user?.permisos?.some(p => p.slug === 'reportes.novedades.no_atendidas.read') || false,
+      export: isSuperAdmin || user?.permisos?.some(p => p.slug === 'reportes.novedades.no_atendidas.export') || false,
     }
   };
   

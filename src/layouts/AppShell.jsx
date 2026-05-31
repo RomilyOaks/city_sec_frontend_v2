@@ -131,10 +131,10 @@ export default function AppShell() {
     
     // Para rutas específicas de reportes operativos, usar slugs específicos
     const reportesOperativosSlugs = {
-      'operativos_dashboard': 'reportes.operativos_dashboard.read',
-      'operativos_vehiculares': 'reportes.operativos_vehiculares.read',
-      'operativos_personales': 'reportes.operativos_personales.read',
-      'novedades_no_atendidas': 'reportes.novedades_no_atendidas.read'
+      'operativos_dashboard': 'reportes.operativos.dashboard.read',
+      'operativos_vehiculares': 'reportes.operativos.vehiculares.read',
+      'operativos_personales': 'reportes.operativos.personales.read',
+      'novedades_no_atendidas': 'reportes.novedades.no_atendidas.read'
     };
     
     // Si es una ruta de reportes operativos, verificar el slug específico
@@ -187,10 +187,10 @@ export default function AppShell() {
     
     // Verificar si tiene ALGÚN permiso de reportes operativos
     const requiredSlugs = [
-      'reportes.operativos_dashboard.read',
-      'reportes.operativos_vehiculares.read',
-      'reportes.operativos_personales.read',
-      'reportes.novedades_no_atendidas.read'
+      'reportes.operativos.dashboard.read',
+      'reportes.operativos.vehiculares.read',
+      'reportes.operativos.personales.read',
+      'reportes.novedades.no_atendidas.read'
     ];
     
     return user?.permisos?.some(permiso => 
