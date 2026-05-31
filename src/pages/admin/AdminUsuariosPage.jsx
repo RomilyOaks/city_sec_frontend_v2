@@ -145,6 +145,8 @@ export default function AdminUsuariosPage() {
     register,
     handleSubmit,
     reset,
+    setValue,
+    getValues,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(schema),
@@ -1207,7 +1209,18 @@ export default function AdminUsuariosPage() {
               <select
                 className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-3 py-2 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
                 disabled={loadingPersonal}
-                {...register("personal_seguridad_id")}
+                {...register("personal_seguridad_id", {
+                  onChange: (e) => {
+                    const p = personalList.find((x) => String(x.id) === e.target.value);
+                    if (p) {
+                      if (!getValues("nombres")) setValue("nombres", p.nombres, { shouldValidate: true });
+                      if (!getValues("apellidos")) {
+                        const ap = [p.apellido_paterno, p.apellido_materno].filter(Boolean).join(" ");
+                        setValue("apellidos", ap, { shouldValidate: true });
+                      }
+                    }
+                  },
+                })}
               >
                 <option value="">
                   {loadingPersonal
