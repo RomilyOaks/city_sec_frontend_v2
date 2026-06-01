@@ -53,7 +53,8 @@ export function useEstadosPorRol() {
     setLoadingEstadosRol(true);
     try {
       const res = await getEstadosByRol(rolId);
-      const data = Array.isArray(res?.data) ? res.data : [];
+      const raw = Array.isArray(res?.data) ? res.data : [];
+      const data = [...raw].sort((a, b) => (a.orden ?? 999) - (b.orden ?? 999));
       cache.set(rolId, data);
       setEstadosRol(data);
     } catch {
