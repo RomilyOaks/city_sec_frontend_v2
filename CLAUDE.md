@@ -173,6 +173,26 @@ const fecha = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-
 
 ---
 
+## MCP disponibles
+
+### Supabase (schema: `citysecure`)
+Siempre usar el prefijo `citysecure.` en todas las queries:
+```sql
+SELECT slug FROM citysecure.permisos WHERE slug LIKE 'modulo.%' ORDER BY slug;
+SELECT r.nombre, COUNT(rp.permiso_id) FROM citysecure.roles r
+  JOIN citysecure.rol_permisos rp ON rp.rol_id = r.id GROUP BY r.nombre;
+```
+**Verificar slugs de permisos antes de implementar cualquier `canPerformAction`:**
+```sql
+SELECT slug FROM citysecure.permisos WHERE slug LIKE 'modulo.%' ORDER BY slug;
+```
+
+### MySQL local / Railway
+- `mcp__mysql-local__mysql_query` → base de datos `citizen_security` (desarrollo)
+- `mcp__mysql-railway__mysql_query` → base de datos `railway` (producción Railway)
+
+---
+
 ## Restricciones importantes
 
 - **Verificar slugs antes de usar `canPerformAction`** — los slugs son dinámicos (viven en la tabla `permisos` del backend). Antes de implementar cualquier check de permiso, consultar la BD con MCP (`SELECT slug FROM permisos WHERE slug LIKE 'modulo.%' ORDER BY slug`) o el PRD del backend (sección 2.2). Nunca asumir el slug — un slug inexistente en `ACTION_PERMISSIONS` hace que `canPerformAction` retorne `true` para todos.

@@ -28,6 +28,8 @@ Deprecated-Sources/
 
 # MCP Server (Node.js backend files)
 mcp-server/
+.mcp.json
+
 
 # Playwright
 /test-results/
@@ -38,3 +40,10 @@ mcp-server/
 
 # Claude settings
 .claude/settings.local.json
+testsprite_tests/tmp/config.json
+
+#Omitir documentos de desarrollo
+docs/*
+
+#TestSprite
+testsprite_tests/*
