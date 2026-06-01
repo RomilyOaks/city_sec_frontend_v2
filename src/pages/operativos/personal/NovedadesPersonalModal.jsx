@@ -172,7 +172,9 @@ export default function NovedadesPersonalModal({
       if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();
-        if (showViewModal) {
+        if (showEyeModal) {
+          handleCloseEyeModal();
+        } else if (showViewModal) {
           setShowViewModal(false);
           setViewingNovedad(null);
         } else if (showEditModal) {
@@ -203,6 +205,8 @@ export default function NovedadesPersonalModal({
   }, [
     isOpen,
     onClose,
+    showEyeModal,
+    handleCloseEyeModal,
     showEditModal,
     showViewModal,
     canCreate,

@@ -628,25 +628,31 @@ export default function NovedadesPorCuadrante() {
         event.preventDefault();
         event.stopPropagation();
 
-        // Prioridad 1: Cerrar modal de edición inline
+        // Prioridad 1: Cerrar modal Eye (Consulta de Operativo Vehículo)
+        if (showEyeModal) {
+          handleCloseEyeModal();
+          return;
+        }
+
+        // Prioridad 2: Cerrar modal de edición inline
         if (showEditModal) {
           handleCloseEditModal();
           return;
         }
 
-        // Prioridad 2: Cerrar modal de detalle de novedad
+        // Prioridad 3: Cerrar modal de detalle de novedad
         if (viewingNovedad) {
           handleCloseViewModal();
           return;
         }
 
-        // Prioridad 3: Cerrar modal de confirmación de eliminación
+        // Prioridad 4: Cerrar modal de confirmación de eliminación
         if (deletingNovedad) {
           cancelDeleteNovedad();
           return;
         }
 
-        // Prioridad 4: Volver al panel anterior (Cuadrantes del Vehículo)
+        // Prioridad 5: Volver al panel anterior (Cuadrantes del Vehículo)
         handleBack();
       }
     };
@@ -657,6 +663,8 @@ export default function NovedadesPorCuadrante() {
     };
   }, [
     handleBack,
+    showEyeModal,
+    handleCloseEyeModal,
     viewingNovedad,
     handleCloseViewModal,
     deletingNovedad,
