@@ -49,9 +49,9 @@ export default function TiposViaPage() {
 
   // Permisos
   const hasPermission = useAuthStore((s) => s.hasAnyPermission);
-  const canCreate = hasPermission(["calles.tipos_via.create"]);
-  const canUpdate = hasPermission(["calles.tipos_via.update"]);
-  const canDelete = hasPermission(["calles.tipos_via.delete"]);
+  const canCreate = hasPermission(["calles.tipos.via.create"]);
+  const canUpdate = hasPermission(["calles.tipos.via.update"]);
+  const canDelete = hasPermission(["calles.tipos.via.delete"]);
 
   // ============================================
   // EFECTOS
