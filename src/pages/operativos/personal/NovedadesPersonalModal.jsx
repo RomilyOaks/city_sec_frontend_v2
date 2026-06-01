@@ -173,7 +173,8 @@ export default function NovedadesPersonalModal({
         e.preventDefault();
         e.stopPropagation();
         if (showEyeModal) {
-          handleCloseEyeModal();
+          setShowEyeModal(false);
+          setSelectedEyeOperativo(null);
         } else if (showViewModal) {
           setShowViewModal(false);
           setViewingNovedad(null);
@@ -206,7 +207,7 @@ export default function NovedadesPersonalModal({
     isOpen,
     onClose,
     showEyeModal,
-    handleCloseEyeModal,
+    setSelectedEyeOperativo,
     showEditModal,
     showViewModal,
     canCreate,
