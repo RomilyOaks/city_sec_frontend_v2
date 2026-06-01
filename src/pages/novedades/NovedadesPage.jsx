@@ -88,6 +88,7 @@ import { getCuadrantesPorCalle } from "../../services/callesCuadrantesService.js
 import { useAuthStore } from "../../store/useAuthStore.js";
 import { canPerformAction, canAccessRoute } from "../../rbac/rbac.js";
 import { useEstadosPorRol } from "../../hooks/useEstadosPorRol.js";
+import { EstadoNovedadSelect } from "../../components/catalogos/EstadoNovedadSelect.jsx";
 import { getDefaultUbigeo } from "../../config/defaults.js";
 import {
   geocodificarDireccion,
@@ -2747,18 +2748,10 @@ export default function NovedadesPage() {
                     </option>
                   ))}
                 </select>
-                <select
+                <EstadoNovedadSelect
                   value={filterEstado}
                   onChange={(e) => setFilterEstado(e.target.value)}
-                  className="text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950/40 px-2 py-1.5 text-slate-900 dark:text-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-600/25"
-                >
-                  <option value="">Todos los estados</option>
-                  {estados.map((e) => (
-                    <option key={e.id} value={e.id}>
-                      {e.nombre}
-                    </option>
-                  ))}
-                </select>
+                />
                 <select
                   value={filterPrioridad}
                   onChange={(e) => setFilterPrioridad(e.target.value)}
