@@ -125,10 +125,18 @@ export default function CalleViewModal({ isOpen, onClose, calle }) {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                Nombre
+                Nombre de la Vía
               </label>
               <p className="text-base text-slate-900 dark:text-white p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
-                {calle.nombre || calle.nombre_via}
+                {calle.nombre || calle.nombre_via || "-"}
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Nombre Anterior
+              </label>
+              <p className="text-base text-slate-900 dark:text-white p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+                {calle.nombre_anterior || "-"}
               </p>
             </div>
           </div>
@@ -169,6 +177,26 @@ export default function CalleViewModal({ isOpen, onClose, calle }) {
               </label>
               <p className="text-base text-slate-900 dark:text-white p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
                 {calle.categoria_via || "-"}
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Tipo de Pavimento
+              </label>
+              <p className="text-base text-slate-900 dark:text-white p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+                {calle.tipo_pavimento
+                  ? calle.tipo_pavimento.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+                  : "-"}
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Sentido de Vía
+              </label>
+              <p className="text-base text-slate-900 dark:text-white p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+                {calle.sentido_via
+                  ? calle.sentido_via.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+                  : "-"}
               </p>
             </div>
           </div>
