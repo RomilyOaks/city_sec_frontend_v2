@@ -106,7 +106,7 @@ export const ROUTE_PERMISSIONS = {
   admin_permisos: ["usuarios.permisos.read"],
   personal: ["personal.personal.read"],
   vehiculos: ["vehiculos.vehiculos.read"],
-  novedades: ["novedades.incidentes.read", "novedades.novedades.read", "catalogos.tipos_novedad.read", "catalogos.subtipos_novedad.read"],
+  novedades: ["novedades.incidentes.read", "novedades.novedades.read", "catalogos.tipos.novedad.read", "catalogos.subtipos.novedad.read"],
   calles: ["calles.calles.read"],
   calles_tipos_via: ["calles.tipos.via.read"],
   calles_sectores_cuadrantes: ["calles.sectores.read", "calles.cuadrantes.read"],
@@ -265,12 +265,12 @@ export const ACTION_PERMISSIONS = {
   "catalogos.radios_tetra.asignar": ["catalogos.radios_tetra.asignar"],
 
   // Catálogos - Tipos/Subtipos de Novedad
-  "catalogos.tipos_novedad.create": ["catalogos.tipos_novedad.create"],
-  "catalogos.tipos_novedad.update": ["catalogos.tipos_novedad.update"],
-  "catalogos.tipos_novedad.delete": ["catalogos.tipos_novedad.delete"],
-  "catalogos.subtipos_novedad.create": ["catalogos.subtipos_novedad.create"],
-  "catalogos.subtipos_novedad.update": ["catalogos.subtipos_novedad.update"],
-  "catalogos.subtipos_novedad.delete": ["catalogos.subtipos_novedad.delete"],
+  "catalogos.tipos.novedad.create": ["catalogos.tipos.novedad.create"],
+  "catalogos.tipos.novedad.update": ["catalogos.tipos.novedad.update"],
+  "catalogos.tipos.novedad.delete": ["catalogos.tipos.novedad.delete"],
+  "catalogos.subtipos.novedad.create": ["catalogos.subtipos.novedad.create"],
+  "catalogos.subtipos.novedad.update": ["catalogos.subtipos.novedad.update"],
+  "catalogos.subtipos.novedad.delete": ["catalogos.subtipos.novedad.delete"],
 
   // Catálogos - Tipos Copiloto
   "catalogos.tipos_copiloto.read": ["catalogos.tipos_copiloto.read"],

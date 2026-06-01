@@ -166,8 +166,8 @@ export default function LoginPage() {
           permisos: [
             'novedades.incidentes.read',
             'novedades.novedades.read',
-            'catalogos.tipos_novedad.read',
-            'catalogos.subtipos_novedad.read',
+            'catalogos.tipos.novedad.read',
+            'catalogos.subtipos.novedad.read',
             'personal.personal.read',
             'auditoria.estadisticas.read',
             'calles.calles.read',
@@ -252,8 +252,8 @@ export default function LoginPage() {
           permisos: [
             'novedades.incidentes.read',
             'novedades.novedades.read',
-            'catalogos.tipos_novedad.read',
-            'catalogos.subtipos_novedad.read',
+            'catalogos.tipos.novedad.read',
+            'catalogos.subtipos.novedad.read',
             'personal.personal.read',
             'auditoria.estadisticas.read',
             'calles.calles.read',

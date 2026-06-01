@@ -63,12 +63,12 @@ export default function TiposSubtiposNovedadPage() {
   const [showEliminadosSubtipos, setShowEliminadosSubtipos] = useState(false);
 
   // Permisos
-  const canCreateTipos = canPerformAction(user, "catalogos.tipos_novedad.create");
-  const canEditTipos = canPerformAction(user, "catalogos.tipos_novedad.update");
-  const canDeleteTipos = canPerformAction(user, "catalogos.tipos_novedad.delete");
-  const canCreateSubtipos = canPerformAction(user, "catalogos.subtipos_novedad.create");
-  const canEditSubtipos = canPerformAction(user, "catalogos.subtipos_novedad.update");
-  const canDeleteSubtipos = canPerformAction(user, "catalogos.subtipos_novedad.delete");
+  const canCreateTipos = canPerformAction(user, "catalogos.tipos.novedad.create");
+  const canEditTipos = canPerformAction(user, "catalogos.tipos.novedad.update");
+  const canDeleteTipos = canPerformAction(user, "catalogos.tipos.novedad.delete");
+  const canCreateSubtipos = canPerformAction(user, "catalogos.subtipos.novedad.create");
+  const canEditSubtipos = canPerformAction(user, "catalogos.subtipos.novedad.update");
+  const canDeleteSubtipos = canPerformAction(user, "catalogos.subtipos.novedad.delete");
 
   // Cargar tipos de novedad
   const fetchTipos = async () => {

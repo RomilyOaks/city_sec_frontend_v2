@@ -172,7 +172,7 @@ export default function AppShell() {
   const canSeeUnidades    = hasCatalogPerm("catalogos.unidades.");
   const canSeeCargos      = hasCatalogPerm("catalogos.cargos.");
   const canSeeRadios      = hasCatalogPerm("catalogos.radios_tetra.");
-  const canSeeTiposNovedad = hasCatalogPerm("catalogos.tipos_novedad.") || hasCatalogPerm("catalogos.subtipos_novedad.");
+  const canSeeTiposNovedad = hasCatalogPerm("catalogos.tipos.novedad.") || hasCatalogPerm("catalogos.subtipos.novedad.");
   const canSeeCatalogos   = canSeeUnidades || canSeeCargos || canSeeRadios || canSeeTiposNovedad;
 
   /**
