@@ -27,7 +27,6 @@ import {
   CheckCircle,
   XCircle
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
 import reportesOperativosNewService from '../../services/reportesOperativosNewService';
 import { useReportesPermissions } from '../../hooks/useReportesPermissions';
 import api from '../../services/api';

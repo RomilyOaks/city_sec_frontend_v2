@@ -1,5 +1,6 @@
 require("dotenv").config();
 const express = require("express");
+const helmet = require("helmet");
 const mysql = require("mysql2/promise");
 
 // Create a connection pool using DATABASE_URL or individual vars
@@ -23,6 +24,7 @@ console.log("MCP pool config:", maskedConfig);
 const pool = mysql.createPool(connectionConfig);
 
 const app = express();
+app.use(helmet());
 app.use(express.json());
 
 app.get("/health", async (req, res) => {
@@ -34,11 +36,17 @@ app.get("/health", async (req, res) => {
   }
 });
 
-// Example MCP endpoint (replace with real logic)
 app.post("/mcp/query", async (req, res) => {
   const { query } = req.body;
+  if (!query || typeof query !== "string") {
+    return res.status(400).json({ error: "query requerida" });
+  }
+  const trimmed = query.trim().toUpperCase();
+  if (!trimmed.startsWith("SELECT") && !trimmed.startsWith("SHOW") && !trimmed.startsWith("DESCRIBE")) {
+    return res.status(403).json({ error: "Solo se permiten consultas de lectura (SELECT, SHOW, DESCRIBE)" });
+  }
   try {
-    const [rows] = await pool.query(query || "SELECT NOW() as now");
+    const [rows] = await pool.query(query);
     res.json({ rows });
   } catch (err) {
     res.status(400).json({ error: err.message });

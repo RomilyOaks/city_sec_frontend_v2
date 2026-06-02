@@ -346,7 +346,8 @@ async function scanDirectory(dir) {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
 
     for (const entry of entries) {
-      const fullPath = path.join(dir, entry.name);
+      const safeName = path.basename(entry.name);
+      const fullPath = path.join(dir, safeName);
 
       if (entry.isDirectory()) {
         // Recursión en subdirectorios
