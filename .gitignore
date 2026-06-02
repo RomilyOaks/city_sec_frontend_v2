@@ -26,8 +26,7 @@ dist-ssr
 # Deprecation folder for sources
 Deprecated-Sources/
 
-# MCP Server (Node.js backend files)
-mcp-server/
+# MCP Server
 .mcp.json
 
 
