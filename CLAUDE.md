@@ -41,7 +41,7 @@ El backend en producción usa **PostgreSQL (Supabase)** como base de datos, no M
 | Zustand | 5.0.9 |
 | @tanstack/react-query | 5.90.12 |
 | React Hook Form | 7.68.0 |
-| Zod | 4.2.1 |
+| Zod | 4.4.0+ |
 | Axios | 1.13.2 |
 | Lucide React | 0.562.0 |
 | React Hot Toast | 2.6.0 |
@@ -253,6 +253,88 @@ No confundir los dos. Para dar acceso a una **ruta** a `admin`, alcanza con `ROU
 | `src/routes/AppRouter.jsx` | Rutas protegidas con RBAC |
 | `src/index.css` | Estilos globales + dark mode calendar icon fix |
 | `.claude/rules/dploy-dev.instructions.md` | Reglas de deploy (ESLint + build + preguntar push) |
+
+---
+
+## Seguridad
+
+Reglas derivadas de auditorías reales (Aikido.dev). Aplicar en todo desarrollo nuevo.
+
+### Dependencias
+
+**Revisar imports antes de instalar** — si una librería ya no se usa, eliminarla en lugar de mantenerla como superficie de ataque:
+```js
+// ❌ import * as XLSX from 'xlsx';  ← eliminado: no se usaba, tenía CVE High
+```
+
+**Dependencias transitivas vulnerables** — usar `overrides` en `package.json` para parchear sin esperar que el paquete padre actualice:
+```json
+"overrides": {
+  "tmp": "0.2.6",
+  "follow-redirects": "^1.16.0",
+  "uuid": "^11.1.1",
+  "brace-expansion": "^1.1.14"
+}
+```
+Siempre verificar con `npm run build` después de un override de versión mayor (ej: uuid 8→11).
+
+**Al agregar una dependencia nueva**, verificar primero si una ya instalada cubre el caso de uso (ej: `exceljs` ya estaba cuando se instaló `xlsx` redundantemente).
+
+### Credenciales y secretos
+
+**Nunca hardcodear credenciales en código fuente**, ni en archivos de test:
+```js
+// ❌ const PASSWORD = 'MiPassword2026';
+// ✅
+const PASSWORD = process.env.TEST_PASSWORD ?? '';
+```
+
+**Patrón para tests Playwright** — leer desde `.env.test` (en `.gitignore`):
+- Plantilla: `.env.test.example` (commiteable, sin valores reales)
+- Valor real: `.env.test` (en `.gitignore`, nunca commitear)
+- `playwright.config.js` carga dotenv desde `.env.test`
+
+Si una credencial ya fue commiteada al historial git, **cambiar la contraseña en el sistema** — no alcanza con eliminarla del código porque sigue en el historial.
+
+### mcp-server (Express)
+
+El `mcp-server/` es un servidor Express que debe cumplir:
+
+1. **Helmet obligatorio** — instalar y aplicar antes de cualquier middleware de rutas:
+```js
+const helmet = require("helmet");
+app.use(helmet());
+app.use(express.json());
+```
+
+2. **Sin SQL dinámico libre** — nunca ejecutar queries arbitrarios del request body:
+```js
+// ❌  pool.query(req.body.query)
+// ✅  validar que solo sean SELECT / SHOW / DESCRIBE antes de ejecutar
+const trimmed = query.trim().toUpperCase();
+if (!trimmed.startsWith("SELECT") && !trimmed.startsWith("SHOW") && !trimmed.startsWith("DESCRIBE")) {
+  return res.status(403).json({ error: "Solo se permiten consultas de lectura" });
+}
+```
+
+### Scripts de utilidad (Node.js en raíz)
+
+Al escanear directorios con `fs.readdirSync`, siempre sanitizar con `path.basename()` para evitar path traversal:
+```js
+// ❌ const fullPath = path.join(dir, entry.name);
+// ✅
+const safeName = path.basename(entry.name);
+const fullPath = path.join(dir, safeName);
+```
+
+### ESLint — globals por entorno
+
+Los archivos Node.js (scripts raíz, tests, config) necesitan globals de Node para que ESLint no marque `process`, `__dirname`, etc. como `no-undef`. Ya configurado en `eslint.config.js`:
+```js
+files: ['playwright.config.js', 'tests/**/*.js', 'auto-document.js', 'preview-documentation.js'],
+languageOptions: { globals: { ...globals.browser, ...globals.node } }
+```
+Al agregar nuevos scripts Node en la raíz, incluirlos en este bloque.
 
 ---
 
