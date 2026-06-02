@@ -28,7 +28,7 @@
     "react-leaflet-cluster": "^4.0.0",
     "react-router-dom": "^7.11.0",
     "recharts": "^3.8.1",
-    "zod": "^4.2.1",
+    "zod": "^4.4.0",
     "zustand": "^5.0.9"
   },
   "devDependencies": {
@@ -51,7 +51,10 @@
     "vitest": "^1.6.1"
   },
   "overrides": {
-    "tmp": "0.2.6"
+    "tmp": "0.2.6",
+    "follow-redirects": "^1.16.0",
+    "uuid": "^11.1.1",
+    "brace-expansion": "^1.1.14"
   },
   "vitest": {
     "environment": "jsdom",
