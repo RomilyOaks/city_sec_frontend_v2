@@ -1,7 +1,5 @@
 #!/usr/bin/env node
 
-/* global process */
-
 /**
  * Script de Documentación Automática para CitySecure Frontend
  *
