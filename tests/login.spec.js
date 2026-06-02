@@ -1,9 +1,9 @@
 // tests/login.spec.js
 import { test, expect } from '@playwright/test';
 
-// ─── Credenciales de prueba ───────────────────────────────────────────────────
-const USUARIO_VALIDO = 'junior';      // ← cambia por tu usuario real
-const PASSWORD_VALIDO = 'REDACTED';   // ← cambia por tu password real
+// ─── Credenciales de prueba — definir en .env.test (nunca hardcodear) ─────────
+const USUARIO_VALIDO = process.env.TEST_USER ?? 'junior';
+const PASSWORD_VALIDO = process.env.TEST_PASSWORD ?? '';
 
 test.describe('Login CitySecure', () => {
 

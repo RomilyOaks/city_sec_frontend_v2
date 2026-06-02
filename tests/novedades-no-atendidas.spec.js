@@ -1,8 +1,8 @@
 // tests/novedades-no-atendidas.spec.js
 import { test, expect } from '@playwright/test';
 
-const USUARIO = 'junior';
-const PASSWORD = 'REDACTED';   // ← vi la contraseña en el panel 👀
+const USUARIO = process.env.TEST_USER ?? 'junior';
+const PASSWORD = process.env.TEST_PASSWORD ?? '';
 
 test.describe('Reportes v2 → Novedades No Atendidas', () => {
 

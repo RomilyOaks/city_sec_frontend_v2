@@ -7,7 +7,7 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 export default defineConfig([
   globalIgnores(['dist', 'mcp-server']),
   {
-    files: ['playwright.config.js', 'vite.config.js', 'postcss.config.js', 'tailwind.config.js'],
+    files: ['playwright.config.js', 'vite.config.js', 'postcss.config.js', 'tailwind.config.js', 'tests/**/*.js', 'auto-document.js', 'preview-documentation.js'],
     languageOptions: {
       globals: { ...globals.browser, ...globals.node },
     },

@@ -37,6 +37,9 @@ Deprecated-Sources/
 /playwright/.cache/
 /playwright/.auth/
 
+# Test credentials (nunca commitear)
+.env.test
+
 # Claude settings
 .claude/settings.local.json
 testsprite_tests/tmp/config.json
