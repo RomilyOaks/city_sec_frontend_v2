@@ -42,7 +42,7 @@ El backend en producción usa **PostgreSQL (Supabase)** como base de datos, no M
 | @tanstack/react-query | 5.90.12 |
 | React Hook Form | 7.68.0 |
 | Zod | 4.4.0+ |
-| Axios | 1.13.2 |
+| Axios | 1.16.1 |
 | Lucide React | 0.562.0 |
 | React Hot Toast | 2.6.0 |
 | React Leaflet | 5.0.0 |
@@ -267,6 +267,8 @@ Reglas derivadas de auditorías reales (Aikido.dev). Aplicar en todo desarrollo 
 // ❌ import * as XLSX from 'xlsx';  ← eliminado: no se usaba, tenía CVE High
 ```
 
+**Dependencias directas** — actualizar regularmente con `npm install <pkg>@latest`. No asumir que `^` en `package.json` aplica las actualizaciones de seguridad automáticamente; npm solo resuelve rangos semver dentro del `node_modules` en caché. Ejemplo: `axios` acumuló 10 CVEs entre 1.13.2 y 1.16.1 sin actualización automática.
+
 **Dependencias transitivas vulnerables** — usar `overrides` en `package.json` para parchear sin esperar que el paquete padre actualice:
 ```json
 "overrides": {
@@ -294,7 +296,29 @@ const PASSWORD = process.env.TEST_PASSWORD ?? '';
 - Valor real: `.env.test` (en `.gitignore`, nunca commitear)
 - `playwright.config.js` carga dotenv desde `.env.test`
 
-Si una credencial ya fue commiteada al historial git, **cambiar la contraseña en el sistema** — no alcanza con eliminarla del código porque sigue en el historial.
+Si una credencial ya fue commiteada al historial git, hay dos acciones complementarias:
+
+1. **Cambiar la contraseña en el sistema** — invalida el secreto aunque alguien acceda al historial.
+2. **Reescribir el historial git** con `git-filter-repo` para eliminar físicamente el secreto de todos los commits:
+
+```bash
+# 1. Crear archivo de reemplazos
+echo "literal:MiPasswordExfiltrada==>REDACTED" > replacements.txt
+
+# 2. Reescribir historial (git-filter-repo elimina el remote automáticamente)
+python -m git_filter_repo --replace-text replacements.txt --force
+
+# 3. Restaurar el remote y hacer force-push
+git remote add origin https://github.com/RomilyOaks/<repo>.git
+git push origin main --force
+
+# 4. Eliminar el archivo temporal
+rm replacements.txt
+```
+
+Verificar que el secreto desapareció: `git log --all -S "MiPasswordExfiltrada" --oneline` debe retornar vacío.
+
+Nota: el force-push reescribe todos los hashes del historial. Cualquier colaborador debe re-clonar el repo.
 
 ### mcp-server (Express)
 
@@ -335,6 +359,8 @@ files: ['playwright.config.js', 'tests/**/*.js', 'auto-document.js', 'preview-do
 languageOptions: { globals: { ...globals.browser, ...globals.node } }
 ```
 Al agregar nuevos scripts Node en la raíz, incluirlos en este bloque.
+
+**No usar `/* global process */`** en archivos ya cubiertos por `globals.node` en `eslint.config.js` — ESLint lo marca como `no-redeclare` (error). Si un archivo tiene esa directiva y está en el bloque Node de la config, eliminarla.
 
 ---
 
