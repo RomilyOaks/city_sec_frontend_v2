@@ -3,7 +3,7 @@
 **Producto**: Sistema de gestión de seguridad ciudadana (serenazgo)
 **Cliente**: Municipalidades peruanas
 **Versión frontend**: 2.x
-**Última actualización**: 2026-05-30
+**Última actualización**: 2026-06-09
 
 ---
 
@@ -94,7 +94,16 @@ Generación de Excel multi-hoja con ExcelJS:
 - **Hoja No Atendidas**: novedades en estado PENDIENTE.
 - **Hoja Recursos**: personal y vehículos del turno.
 
-### 3.12 Autenticación
+### 3.12 Facturación y Suscripción (`BillingDrawer`)
+Drawer lateral accesible **solo para `super_admin`** desde el dropdown "Configuraciones" del sidebar (`canAccess("billing")`, `ROUTE_ACCESS.billing = [SUPER_ADMIN]`). 4 tabs:
+- **Suscripción**: estado del plan activo (activa/trial/gracia/suspendida/cancelada), banners de alerta para `gracia` (días restantes) y `suspendida`.
+- **Métricas**: uso del período actual (usuarios activos, novedades creadas) vs. límites del plan (`max_usuarios`, `max_novedades_mes`; `null` = ilimitado), barras de progreso con umbrales de color (verde/naranja/rojo), cálculo de excedente estimado + IGV (18%).
+- **Facturas**: listado con filtros (estado, período), botón PDF (`pdf_url`), registro de pago (`ConfirmarPagoModal` con campo `fecha_pago`).
+- **Configuración**: formulario de datos de facturación (RUC, razón social, etc.) + cards de planes con cambio de plan (`ConfirmModal` tipo `warning`).
+
+Servicios: `src/services/billingService.js`. Hooks: `src/hooks/useBilling.js` (React Query, `select: (res) => res.data?.data` para desempaquetar `formatResponse`).
+
+### 3.13 Autenticación
 - **Login** (`LoginPage`): formulario con JWT.
 - **Recuperar contraseña** (`ForgotPasswordPage`): envío de email con link de reset via Resend SDK.
 - **Restablecer contraseña** (`ResetPasswordPage`): formulario con token de URL, indicador de fortaleza de contraseña. Redirige al login tras éxito.
@@ -174,7 +183,12 @@ Botón "Exportar CSV" descarga hasta 10,000 registros con los filtros activos.
 
 ---
 
-## 8. Estado actual del desarrollo (2026-05-30)
+## 8. Estado actual del desarrollo (2026-06-09)
+
+### Completado en el sprint junio 2026
+- **Drawer de Facturación y Suscripción** (`BillingDrawer`, solo `super_admin`) — tabs Suscripción, Métricas, Facturas, Configuración (SPEC-BILLING-001-FRONTEND)
+- `src/services/billingService.js` y `src/hooks/useBilling.js` con patrón `select: (res) => res.data?.data` para desempaquetar `formatResponse`
+- Fix: campos decimales de PostgreSQL (`costo_excedente_*`) llegan como `string` — usar `parseFloat()` antes de sumar
 
 ### Backend: migración MySQL → PostgreSQL (Supabase) — completada
 El backend en producción ahora usa **PostgreSQL vía Supabase** (antes MySQL Railway).

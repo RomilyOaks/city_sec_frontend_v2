@@ -239,6 +239,40 @@ No confundir los dos. Para dar acceso a una **ruta** a `admin`, alcanza con `ROU
 
 ---
 
+## Trampas conocidas — Formato de respuesta API
+
+### 🚨 Doble `data`: `formatResponse` envuelve el payload
+
+Todos los endpoints del backend responden con `formatResponse(success, message, data, meta)`:
+
+```json
+{ "success": true, "message": "...", "data": { /* payload real */ }, "meta": { "timestamp": "..." } }
+```
+
+Axios entrega ese body completo en `response.data`. Es decir, el payload real está en `response.data.data` (doble `.data`).
+
+**Patrón correcto en hooks de React Query** — usar `select` para desempaquetar una sola vez:
+```js
+export const useFacturas = (filters = {}) =>
+  useQuery({
+    queryKey: ["billing", "facturas", filters],
+    queryFn: () => getFacturas(filters),
+    select: (res) => res.data?.data,
+  });
+```
+Con `select`, el componente recibe directamente el payload (`data` en el componente = array/objeto real), sin volver a acceder a `.data`.
+
+Si no se usa `select`, el componente debe acceder a `data?.data?.data` (ej. patrón usado en `useDropdownsData.js`: `response.data?.data || response.data`). Olvidar el segundo `.data` produce errores como `m.map is not a function` (se intenta iterar el objeto `{success, message, data, meta}` en vez del array).
+
+### 🚨 Campos decimales de PostgreSQL llegan como `string`
+
+Columnas `DECIMAL`/`NUMERIC` (ej. `costo_excedente_usuarios`, `costo_excedente_novedades` en `/billing/metricas/actual`) llegan como **strings**, no `number`. Sumarlos directamente concatena texto (`"10.50" + "5.00"` → `"10.505.00"`). Siempre usar `parseFloat()` antes de operar:
+```js
+const excedenteEstimado = parseFloat(m.costo_excedente_usuarios ?? 0) + parseFloat(m.costo_excedente_novedades ?? 0);
+```
+
+---
+
 ## Archivos clave
 
 | Archivo | Propósito |
@@ -252,6 +286,8 @@ No confundir los dos. Para dar acceso a una **ruta** a `admin`, alcanza con `ROU
 | `src/layouts/AppShell.jsx` | Shell principal con sidebar |
 | `src/routes/AppRouter.jsx` | Rutas protegidas con RBAC |
 | `src/index.css` | Estilos globales + dark mode calendar icon fix |
+| `src/components/billing/BillingDrawer.jsx` | Drawer de Facturación y Suscripción (solo `super_admin`) |
+| `src/hooks/useBilling.js` | Hooks React Query del módulo de billing (con `select` para desempaquetar `data.data`) |
 | `.claude/rules/dploy-dev.instructions.md` | Reglas de deploy (ESLint + build + preguntar push) |
 
 ---
@@ -371,3 +407,8 @@ Al agregar nuevos scripts Node en la raíz, incluirlos en este bloque.
 - **Sin emojis** salvo que el usuario los pida
 - **Sin resúmenes al final** de cada respuesta
 - Antes de implementar algo no trivial, proponer el enfoque en 2–3 líneas y esperar confirmación
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+<!-- SPECKIT END -->
