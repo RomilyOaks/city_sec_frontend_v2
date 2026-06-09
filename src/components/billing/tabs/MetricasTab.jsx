@@ -55,7 +55,7 @@ export default function MetricasTab() {
   const limiteUsuarios = plan?.max_usuarios ?? null;
   const limiteNovedades = plan?.max_novedades_mes ?? null;
 
-  const excedenteEstimado = (m.costo_excedente_usuarios ?? 0) + (m.costo_excedente_novedades ?? 0);
+  const excedenteEstimado = parseFloat(m.costo_excedente_usuarios ?? 0) + parseFloat(m.costo_excedente_novedades ?? 0);
   const subtotal = m.costo_total ?? ((m.costo_base ?? 0) + excedenteEstimado);
   const igv = subtotal * 0.18;
   const total = subtotal + igv;
