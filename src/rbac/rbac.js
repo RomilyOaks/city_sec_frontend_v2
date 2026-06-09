@@ -91,6 +91,9 @@ export const ROUTE_ACCESS = {
     ROLE_SLUGS.SUPER_ADMIN,
     ROLE_SLUGS.ADMIN,
   ],
+  billing: [
+    ROLE_SLUGS.SUPER_ADMIN,
+  ],
   mapa_operativo: [
     ROLE_SLUGS.SUPER_ADMIN,
     ROLE_SLUGS.ADMIN,

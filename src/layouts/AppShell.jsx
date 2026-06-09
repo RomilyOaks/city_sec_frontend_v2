@@ -45,10 +45,12 @@ import {
   ClipboardList,
   Settings,
   Crosshair,
+  CreditCard,
 } from "lucide-react";
 
 import ThemeToggle from "../components/common/ThemeToggle.jsx";
 import ChangePasswordModal from "../components/ChangePasswordModal.jsx";
+import BillingDrawer from "../components/billing/BillingDrawer.jsx";
 import { useAuthStore } from "../store/useAuthStore.js";
 import { canAccessRoute, canPerformAction, ROUTE_PERMISSIONS } from "../rbac/rbac.js";
 import { APP_VERSION } from "../config/version.js";
@@ -122,6 +124,7 @@ export default function AppShell() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [isBillingOpen, setIsBillingOpen] = useState(false);
 
   const canAccess = (routeKey) => {
     // Para super_admin, siempre dar acceso
@@ -452,6 +455,15 @@ export default function AppShell() {
                 <SidebarLink to="/configuracion/horarios-turnos" icon={Clock}>
                   Horarios de Turnos
                 </SidebarLink>
+                {canAccess("billing") && (
+                  <button
+                    onClick={() => setIsBillingOpen(true)}
+                    className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition text-left text-slate-700 hover:bg-primary-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                  >
+                    <CreditCard size={18} />
+                    <span>Facturación</span>
+                  </button>
+                )}
               </SidebarDropdown>
             )}
 
@@ -503,6 +515,9 @@ export default function AppShell() {
         isOpen={showChangePassword}
         onClose={() => setShowChangePassword(false)}
       />
+
+      {/* Drawer de Facturación y Suscripción */}
+      {isBillingOpen && <BillingDrawer onClose={() => setIsBillingOpen(false)} />}
     </div>
   );
 }
