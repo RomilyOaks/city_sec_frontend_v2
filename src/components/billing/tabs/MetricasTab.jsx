@@ -46,8 +46,8 @@ export default function MetricasTab() {
   const { data: metricasData, isLoading: loadingMetricas, isError: errorMetricas } = useMetricasActual();
   const { data: suscripcionData, isLoading: loadingSuscripcion, isError: errorSuscripcion } = useSuscripcion();
 
-  const m = metricasData?.data;
-  const plan = suscripcionData?.data?.plan;
+  const m = metricasData;
+  const plan = suscripcionData?.plan;
 
   if (loadingMetricas || loadingSuscripcion) return <Loading />;
   if (errorMetricas || errorSuscripcion || !m) return <Error />;

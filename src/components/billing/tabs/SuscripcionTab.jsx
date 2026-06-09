@@ -23,7 +23,7 @@ const formatMonto = (m, moneda = "PEN") =>
 
 export default function SuscripcionTab({ onIrAConfiguracion }) {
   const { data, isLoading, isError } = useSuscripcion();
-  const s = data?.data;
+  const s = data;
 
   if (isLoading) return <Loading />;
   if (isError || !s) return <Error />;

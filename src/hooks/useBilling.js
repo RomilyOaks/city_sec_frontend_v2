@@ -14,30 +14,35 @@ export const useSuscripcion = () =>
   useQuery({
     queryKey: ["billing", "suscripcion"],
     queryFn: getSuscripcion,
+    select: (res) => res.data?.data,
   });
 
 export const useMetricasActual = () =>
   useQuery({
     queryKey: ["billing", "metricas", "actual"],
     queryFn: getMetricasActual,
+    select: (res) => res.data?.data,
   });
 
 export const useFacturas = (filters = {}) =>
   useQuery({
     queryKey: ["billing", "facturas", filters],
     queryFn: () => getFacturas(filters),
+    select: (res) => res.data?.data,
   });
 
 export const useDatosFacturacion = () =>
   useQuery({
     queryKey: ["billing", "datos-facturacion"],
     queryFn: getDatosFacturacion,
+    select: (res) => res.data?.data,
   });
 
 export const usePlanes = () =>
   useQuery({
     queryKey: ["billing", "planes"],
     queryFn: getPlanes,
+    select: (res) => res.data?.data,
   });
 
 export const useRegistrarPago = () => {

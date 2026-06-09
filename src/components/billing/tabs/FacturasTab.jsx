@@ -34,7 +34,7 @@ export default function FacturasTab() {
   const { data, isLoading, isError } = useFacturas(params);
   const registrarPagoMutation = useRegistrarPago();
 
-  const facturas = data?.data ?? [];
+  const facturas = data ?? [];
 
   const handleConfirmarPago = async (fechaPago) => {
     const toastId = toast.loading("Registrando pago...");

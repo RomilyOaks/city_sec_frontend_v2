@@ -36,9 +36,9 @@ export default function ConfigBillingTab() {
 
   const [confirmPlan, setConfirmPlan] = useState({ isOpen: false, plan: null, loading: false });
 
-  const datos = datosData?.data;
-  const planes = planesData?.data ?? [];
-  const planActualId = suscripcionData?.data?.plan?.id;
+  const datos = datosData;
+  const planes = planesData ?? [];
+  const planActualId = suscripcionData?.plan?.id;
 
   const {
     register,
