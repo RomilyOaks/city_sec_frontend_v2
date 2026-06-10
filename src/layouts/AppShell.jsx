@@ -16,7 +16,7 @@
  * @module src/layouts/AppShell.jsx
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
@@ -125,6 +125,11 @@ export default function AppShell() {
   const logout = useAuthStore((s) => s.logout);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [isBillingOpen, setIsBillingOpen] = useState(false);
+
+  useEffect(() => {
+    document.body.classList.toggle("billing-open", isBillingOpen);
+    return () => document.body.classList.remove("billing-open");
+  }, [isBillingOpen]);
 
   const canAccess = (routeKey) => {
     // Para super_admin, siempre dar acceso

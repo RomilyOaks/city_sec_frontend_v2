@@ -33,7 +33,7 @@ export default function BillingDrawer({ onClose }) {
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-[200] flex justify-end">
+    <div className="fixed inset-0 z-[9999] flex justify-end">
       {/* Overlay */}
       <div
         className={`absolute inset-0 bg-black/50 transition-opacity duration-300 ${

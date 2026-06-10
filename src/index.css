@@ -17,3 +17,8 @@
 .dark input[type="time"]::-webkit-calendar-picker-indicator:hover {
   opacity: 1;
 }
+
+/* BillingDrawer queda detrás del mapa Leaflet (stacking context propio) */
+body.billing-open .leaflet-container {
+  z-index: 0 !important;
+}
